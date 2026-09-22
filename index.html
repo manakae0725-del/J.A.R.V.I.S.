@@ -144,7 +144,7 @@ if (!SpeechRecognition) {
             const timeout =
                 setTimeout(() => {
                     controller.abort();
-                }, 60000);
+                }, 240000);
 
             const response =
                 await fetch("/api/gemini", {
