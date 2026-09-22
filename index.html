@@ -61,9 +61,46 @@ const SpeechRecognition =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
 
+function speak(text) {
+
+    if (!("speechSynthesis" in window)) {
+        status.textContent =
+            "音声読み上げに対応していません";
+        return;
+    }
+
+    speechSynthesis.cancel();
+
+    const utterance =
+        new SpeechSynthesisUtterance(text);
+
+    utterance.lang = "ja-JP";
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    utterance.onstart = () => {
+        status.textContent =
+            "J.A.R.V.I.S. 発話中…";
+    };
+
+    utterance.onend = () => {
+        status.textContent =
+            "待機中";
+    };
+
+    utterance.onerror = () => {
+        status.textContent =
+            "音声読み上げエラー";
+    };
+
+    speechSynthesis.speak(utterance);
+}
+
 if (!SpeechRecognition) {
 
-    status.textContent = "音声認識に対応していません";
+    status.textContent =
+        "音声認識に対応していません";
 
 } else {
 
@@ -75,7 +112,10 @@ if (!SpeechRecognition) {
 
     button.addEventListener("click", () => {
 
-        status.textContent = "聞いています…";
+        speechSynthesis.cancel();
+
+        status.textContent =
+            "聞いています…";
 
         recognition.start();
 
@@ -83,46 +123,53 @@ if (!SpeechRecognition) {
 
     recognition.onresult = async (event) => {
 
-        const text = event.results[0][0].transcript;
+        const text =
+            event.results[0][0].transcript;
 
         status.textContent =
             "認識：「" + text + "」";
 
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(
+            resolve => setTimeout(resolve, 300)
+        );
 
         status.textContent =
             "Geminiへ送信中…";
 
         try {
 
-            const controller = new AbortController();
+            const controller =
+                new AbortController();
 
-            const timeout = setTimeout(() => {
-                controller.abort();
-            }, 60000);
+            const timeout =
+                setTimeout(() => {
+                    controller.abort();
+                }, 60000);
 
-            const response = await fetch("/api/gemini", {
+            const response =
+                await fetch("/api/gemini", {
 
-                method: "POST",
+                    method: "POST",
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
 
-                body: JSON.stringify({
-                    text: text
-                }),
+                    body: JSON.stringify({
+                        text: text
+                    }),
 
-                signal: controller.signal
+                    signal: controller.signal
 
-            });
+                });
 
             clearTimeout(timeout);
 
             status.textContent =
                 "Geminiから受信中…";
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
             if (!response.ok) {
                 throw new Error(
@@ -135,6 +182,8 @@ if (!SpeechRecognition) {
                 "J.A.R.V.I.S.：「" +
                 data.text +
                 "」";
+
+            speak(data.text);
 
         } catch (error) {
 
@@ -168,7 +217,8 @@ if (!SpeechRecognition) {
         if (
             status.textContent === "聞いています…"
         ) {
-            status.textContent = "待機中";
+            status.textContent =
+                "待機中";
         }
 
     };
