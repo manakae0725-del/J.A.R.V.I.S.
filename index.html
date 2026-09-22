@@ -99,7 +99,7 @@ if (!SpeechRecognition) {
 
             const timeout = setTimeout(() => {
                 controller.abort();
-            }, 15000);
+            }, 60000);
 
             const response = await fetch("/api/gemini", {
 
@@ -133,7 +133,7 @@ if (!SpeechRecognition) {
 
             status.textContent =
                 "J.A.R.V.I.S.：「" +
-                data.answer +
+                data.text +
                 "」";
 
         } catch (error) {
