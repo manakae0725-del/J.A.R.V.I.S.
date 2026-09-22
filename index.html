@@ -38,6 +38,8 @@ button:active {
 #status {
     margin-top: 30px;
     color: #aaa;
+    padding: 0 20px;
+    word-break: break-word;
 }
 </style>
 </head>
@@ -83,9 +85,21 @@ if (!SpeechRecognition) {
 
         const text = event.results[0][0].transcript;
 
-        status.textContent = "認識：「" + text + "」";
+        status.textContent =
+            "認識：「" + text + "」";
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        status.textContent =
+            "Geminiへ送信中…";
 
         try {
+
+            const controller = new AbortController();
+
+            const timeout = setTimeout(() => {
+                controller.abort();
+            }, 15000);
 
             const response = await fetch("/api/gemini", {
 
@@ -97,33 +111,55 @@ if (!SpeechRecognition) {
 
                 body: JSON.stringify({
                     text: text
-                })
+                }),
+
+                signal: controller.signal
 
             });
+
+            clearTimeout(timeout);
+
+            status.textContent =
+                "Geminiから受信中…";
 
             const data = await response.json();
 
             if (!response.ok) {
                 throw new Error(
-                    data.error || "Gemini APIエラー"
+                    data.error ||
+                    "HTTP " + response.status
                 );
             }
 
             status.textContent =
-                "J.A.R.V.I.S.：「" + data.answer + "」";
+                "J.A.R.V.I.S.：「" +
+                data.answer +
+                "」";
 
         } catch (error) {
 
-            status.textContent =
-                "エラー：" + error.message;
+            if (error.name === "AbortError") {
+
+                status.textContent =
+                    "エラー：Geminiへの接続がタイムアウトしました";
+
+            } else {
+
+                status.textContent =
+                    "エラー：" +
+                    error.message;
+
+            }
 
         }
 
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
 
-        status.textContent = "音声認識エラー";
+        status.textContent =
+            "音声認識エラー：" +
+            event.error;
 
     };
 
