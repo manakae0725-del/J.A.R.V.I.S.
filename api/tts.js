@@ -14,31 +14,19 @@ export default async function handler(req, res) {
       });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({
-        error: "GEMINI_API_KEY is not configured",
-      });
-    }
-
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/interactions",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-          "Api-Revision": "2026-05-20",
+          "x-goog-api-key": process.env.GEMINI_API_KEY,
         },
         body: JSON.stringify({
           model: "gemini-3.1-flash-tts-preview",
-          input:
-            "落ち着いた、知的で紳士的なAIアシスタントとして話してください。\n\n" +
-            text,
+          input: text,
           response_format: {
             type: "audio",
-            delivery: "inline",
           },
           generation_config: {
             speech_config: [
@@ -63,8 +51,7 @@ export default async function handler(req, res) {
 
     if (!audioData) {
       return res.status(500).json({
-        error: "No audio response from Gemini",
-        data,
+        error: "Audio data was not returned.",
       });
     }
 
@@ -72,10 +59,10 @@ export default async function handler(req, res) {
       audio: audioData,
     });
   } catch (error) {
-    console.error(error);
+    console.error("TTS Error:", error);
 
     return res.status(500).json({
-      error: "Internal Server Error",
+      error: error.message || "TTS request failed",
     });
   }
 }
