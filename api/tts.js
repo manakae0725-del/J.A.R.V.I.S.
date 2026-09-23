@@ -26,16 +26,22 @@ export default async function handler(req, res) {
       "https://generativelanguage.googleapis.com/v1beta/interactions",
       {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
+          "x-goog-api-key": apiKey,
+          "Api-Revision": "2026-05-20"
         },
+
         body: JSON.stringify({
           model: "gemini-3.1-flash-tts-preview",
+
           input: text,
+
           response_format: {
             type: "audio"
           },
+
           generation_config: {
             speech_config: [
               {
@@ -49,82 +55,34 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // APIキー・音声データ本体を絶対に返さないための診断情報
-    function inspect(value, depth = 0) {
-      if (depth > 5) {
-        return {
-          type: typeof value
-        };
-      }
-
-      if (value === null) {
-        return {
-          type: "null"
-        };
-      }
-
-      if (Array.isArray(value)) {
-        return {
-          type: "array",
-          length: value.length,
-          items: value.slice(0, 5).map((item) =>
-            inspect(item, depth + 1)
-          )
-        };
-      }
-
-      if (typeof value === "object") {
-        const result = {};
-
-        for (const [key, val] of Object.entries(value)) {
-          // APIキー等の機密情報を除外
-          if (
-            /api.?key|authorization|token|secret|password/i.test(key)
-          ) {
-            result[key] = {
-              type: "REDACTED"
-            };
-            continue;
-          }
-
-          if (typeof val === "string") {
-            result[key] = {
-              type: "string",
-              length: val.length,
-              preview: val.slice(0, 20)
-            };
-          } else if (Array.isArray(val)) {
-            result[key] = inspect(val, depth + 1);
-          } else if (val && typeof val === "object") {
-            result[key] = inspect(val, depth + 1);
-          } else {
-            result[key] = {
-              type: typeof val,
-              value: val
-            };
-          }
-        }
-
-        return result;
-      }
-
-      return {
-        type: typeof value,
-        value: value
-      };
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error:
+          data?.error?.message ||
+          "Gemini TTS request failed."
+      });
     }
 
-    return res.status(response.status).json({
-      diagnostic: true,
-      gemini_http_status: response.status,
-      gemini_ok: response.ok,
-      response_structure: inspect(data)
+    const audio =
+      data?.steps?.[0]?.content?.[0]?.data;
+
+    if (!audio) {
+      return res.status(500).json({
+        error: "Audio data was not returned."
+      });
+    }
+
+    return res.status(200).json({
+      audio: audio
     });
 
   } catch (error) {
+
     return res.status(500).json({
-      error: "TTS diagnostic failed.",
-      message: error?.message || "Unknown error"
+      error:
+        error?.message ||
+        "TTS server error."
     });
+
   }
 }
