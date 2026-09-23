@@ -41,6 +41,24 @@ button:active {
     padding: 0 20px;
     word-break: break-word;
 }
+
+#diagnostic {
+    display: none;
+    margin: 30px 20px;
+    padding: 15px;
+    background: #111;
+    border: 1px solid #444;
+    border-radius: 10px;
+    color: #ddd;
+    text-align: left;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    max-height: 500px;
+    overflow-y: auto;
+}
 </style>
 </head>
 
@@ -52,10 +70,13 @@ button:active {
 
 <div id="status">待機中</div>
 
+<pre id="diagnostic"></pre>
+
 <script>
 
 const button = document.getElementById("talkButton");
 const status = document.getElementById("status");
+const diagnostic = document.getElementById("diagnostic");
 
 const SpeechRecognition =
     window.SpeechRecognition ||
@@ -169,6 +190,9 @@ async function speakWithGemini(text) {
     status.textContent =
         "J.A.R.V.I.S. 音声生成中…";
 
+    diagnostic.style.display = "none";
+    diagnostic.textContent = "";
+
     const controller =
         new AbortController();
 
@@ -200,6 +224,34 @@ async function speakWithGemini(text) {
 
         const data =
             await response.json();
+
+
+        /* ================================
+           診断版TTSレスポンス
+           ================================ */
+
+        if (data.diagnostic === true) {
+
+            status.textContent =
+                "TTS診断完了：レスポンス構造を確認してください";
+
+            diagnostic.textContent =
+                JSON.stringify(
+                    data,
+                    null,
+                    2
+                );
+
+            diagnostic.style.display =
+                "block";
+
+            return;
+        }
+
+
+        /* ================================
+           通常のTTS処理
+           ================================ */
 
         if (!response.ok) {
             throw new Error(
