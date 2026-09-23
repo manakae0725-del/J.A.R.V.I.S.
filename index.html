@@ -87,16 +87,15 @@ let currentSource = null;
 
 let conversationActive = false;
 let recognitionRunning = false;
+let recognition = null;
 
 
 /* Gemini TTSのPCM音声をWAVに変換 */
 function pcmToWav(base64) {
 
-    const binary =
-        atob(base64);
+    const binary = atob(base64);
 
-    const pcm =
-        new Uint8Array(binary.length);
+    const pcm = new Uint8Array(binary.length);
 
     for (let i = 0; i < binary.length; i++) {
         pcm[i] = binary.charCodeAt(i);
@@ -177,8 +176,7 @@ function pcmToWav(base64) {
         true
     );
 
-    new Uint8Array(buffer, 44)
-        .set(pcm);
+    new Uint8Array(buffer, 44).set(pcm);
 
     return new Blob(
         [buffer],
@@ -195,6 +193,13 @@ function startListening() {
     }
 
     if (recognitionRunning) {
+        return;
+    }
+
+    if (!recognition) {
+        status.textContent =
+            "音声認識を初期化できません";
+
         return;
     }
 
@@ -260,8 +265,6 @@ async function speakWithGemini(text) {
             await response.json();
 
 
-        /* 診断版TTSレスポンス */
-
         if (data.diagnostic === true) {
 
             status.textContent =
@@ -280,8 +283,6 @@ async function speakWithGemini(text) {
             return;
         }
 
-
-        /* 通常のTTS処理 */
 
         if (!response.ok) {
             throw new Error(
@@ -306,10 +307,16 @@ async function speakWithGemini(text) {
                 arrayBuffer
             );
 
+
         if (currentSource) {
-            currentSource.stop();
+
+            try {
+                currentSource.stop();
+            } catch (e) {}
+
             currentSource = null;
         }
+
 
         currentSource =
             audioContext.createBufferSource();
@@ -321,8 +328,6 @@ async function speakWithGemini(text) {
             audioContext.destination
         );
 
-
-        /* 発話終了を待つ */
 
         await new Promise(resolve => {
 
@@ -347,10 +352,11 @@ async function speakWithGemini(text) {
         if (conversationActive) {
 
             status.textContent =
-                "発話終了。次の入力を待っています…";
+                "次の入力を待っています…";
 
             await new Promise(
-                resolve => setTimeout(resolve, 300)
+                resolve =>
+                    setTimeout(resolve, 300)
             );
 
             startListening();
@@ -375,6 +381,10 @@ async function speakWithGemini(text) {
 }
 
 
+/* ================================
+   音声認識初期化
+   ================================ */
+
 if (!SpeechRecognition) {
 
     status.textContent =
@@ -382,7 +392,7 @@ if (!SpeechRecognition) {
 
 } else {
 
-    const recognition =
+    recognition =
         new SpeechRecognition();
 
     recognition.lang = "ja-JP";
@@ -390,7 +400,7 @@ if (!SpeechRecognition) {
     recognition.interimResults = false;
 
 
-    /* 会話開始 */
+    /* 会話開始・終了 */
 
     button.addEventListener("click", async () => {
 
@@ -407,7 +417,7 @@ if (!SpeechRecognition) {
         await audioContext.resume();
 
 
-        /* すでに会話中なら停止 */
+        /* 会話中なら終了 */
 
         if (conversationActive) {
 
@@ -422,6 +432,7 @@ if (!SpeechRecognition) {
             }
 
             recognitionRunning = false;
+
 
             if (currentSource) {
 
@@ -466,16 +477,21 @@ if (!SpeechRecognition) {
         status.textContent =
             "認識：「" + text + "」";
 
+
         await new Promise(
-            resolve => setTimeout(resolve, 300)
+            resolve =>
+                setTimeout(resolve, 300)
         );
+
 
         if (!conversationActive) {
             return;
         }
 
+
         status.textContent =
             "Geminiへ送信中…";
+
 
         try {
 
@@ -486,6 +502,7 @@ if (!SpeechRecognition) {
                 setTimeout(() => {
                     controller.abort();
                 }, 240000);
+
 
             const response =
                 await fetch("/api/gemini", {
@@ -504,24 +521,32 @@ if (!SpeechRecognition) {
 
                 });
 
+
             clearTimeout(timeout);
+
 
             const data =
                 await response.json();
 
+
             if (!response.ok) {
+
                 throw new Error(
                     data.error ||
                     "HTTP " + response.status
                 );
+
             }
+
 
             status.textContent =
                 "J.A.R.V.I.S.：「" +
                 data.text +
                 "」";
 
+
             await speakWithGemini(data.text);
+
 
         } catch (error) {
 
@@ -553,8 +578,6 @@ if (!SpeechRecognition) {
             "音声認識エラー：" +
             event.error;
 
-
-        /* 一時的な認識エラーなら再試行 */
 
         if (
             conversationActive &&
