@@ -38,6 +38,7 @@ export default async function handler(req, res) {
             text,
           response_format: {
             type: "audio",
+            delivery: "inline",
           },
           generation_config: {
             speech_config: [
