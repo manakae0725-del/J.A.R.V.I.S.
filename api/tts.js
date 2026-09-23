@@ -47,9 +47,26 @@ export default async function handler(req, res) {
       });
     }
 
-    const audioData = data.output_audio?.data;
+    let audioData = null;
+
+    if (Array.isArray(data.steps)) {
+      for (const step of data.steps) {
+        if (step.type === "model_output" && Array.isArray(step.content)) {
+          for (const content of step.content) {
+            if (content.type === "audio" && content.data) {
+              audioData = content.data;
+              break;
+            }
+          }
+        }
+
+        if (audioData) break;
+      }
+    }
 
     if (!audioData) {
+      console.error("TTS response:", JSON.stringify(data));
+
       return res.status(500).json({
         error: "Audio data was not returned.",
       });
