@@ -15,13 +15,37 @@ body {
 }
 
 h1 {
-    margin-top: 80px;
+    margin-top: 60px;
     font-size: 32px;
     letter-spacing: 6px;
 }
 
-button {
-    margin-top: 100px;
+#modeSelector {
+    margin-top: 35px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.modeButton {
+    width: 85px;
+    height: 40px;
+    margin: 0;
+    border-radius: 20px;
+    border: 1px solid #555;
+    background: #111;
+    color: #aaa;
+    font-size: 13px;
+}
+
+.modeButton.active {
+    background: #333;
+    color: white;
+    border-color: #aaa;
+}
+
+#talkButton {
+    margin-top: 70px;
     width: 180px;
     height: 180px;
     border-radius: 50%;
@@ -31,12 +55,51 @@ button {
     font-size: 20px;
 }
 
-button:active {
+#talkButton:active {
     background: #333;
 }
 
+#textArea {
+    display: none;
+    margin: 40px auto 0;
+    width: calc(100% - 50px);
+    max-width: 600px;
+}
+
+#textInput {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 100px;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #444;
+    background: #111;
+    color: white;
+    font-size: 16px;
+    resize: vertical;
+}
+
+#sendButton {
+    width: 120px;
+    height: 45px;
+    margin-top: 12px;
+    border-radius: 22px;
+    border: 1px solid #555;
+    background: #222;
+    color: white;
+    font-size: 15px;
+}
+
+#response {
+    margin: 30px 20px 0;
+    color: white;
+    padding: 0 10px;
+    word-break: break-word;
+    line-height: 1.7;
+}
+
 #status {
-    margin-top: 30px;
+    margin-top: 20px;
     color: #aaa;
     padding: 0 20px;
     word-break: break-word;
@@ -66,9 +129,53 @@ button:active {
 
 <h1>J.A.R.V.I.S.</h1>
 
+<div id="modeSelector">
+
+    <button
+        class="modeButton active"
+        data-mode="voice"
+    >
+        VOICE
+    </button>
+
+    <button
+        class="modeButton"
+        data-mode="text"
+    >
+        TEXT
+    </button>
+
+    <button
+        class="modeButton"
+        data-mode="auto"
+    >
+        AUTO
+    </button>
+
+</div>
+
 <button id="talkButton">🎙️ 話す</button>
 
-<div id="status">待機中</div>
+<div id="textArea">
+
+    <textarea
+        id="textInput"
+        placeholder="J.A.R.V.I.S.に話しかける内容を入力"
+    ></textarea>
+
+    <br>
+
+    <button id="sendButton">
+        送信
+    </button>
+
+</div>
+
+<div id="response"></div>
+
+<div id="status">
+    待機中
+</div>
 
 <pre id="diagnostic"></pre>
 
@@ -80,8 +187,23 @@ const button =
 const status =
     document.getElementById("status");
 
+const responseArea =
+    document.getElementById("response");
+
 const diagnostic =
     document.getElementById("diagnostic");
+
+const textArea =
+    document.getElementById("textArea");
+
+const textInput =
+    document.getElementById("textInput");
+
+const sendButton =
+    document.getElementById("sendButton");
+
+const modeButtons =
+    document.querySelectorAll(".modeButton");
 
 
 const SpeechRecognition =
@@ -98,12 +220,14 @@ let recognition = null;
 
 let memories = [];
 
+let previousInteractionId = null;
+
 
 /* ================================
-   短期会話コンテキスト
+   モード
    ================================ */
 
-let previousInteractionId = null;
+let currentMode = "voice";
 
 
 /* ================================
@@ -130,6 +254,96 @@ function getErrorMessage(error) {
     }
 
     return String(error);
+}
+
+
+/* ================================
+   モード切替
+   ================================ */
+
+function setMode(mode) {
+
+    if (
+        mode !== "voice" &&
+        mode !== "text" &&
+        mode !== "auto"
+    ) {
+        return;
+    }
+
+    currentMode = mode;
+
+
+    modeButtons.forEach(
+        (modeButton) => {
+
+            modeButton.classList.toggle(
+                "active",
+                modeButton.dataset.mode === mode
+            );
+
+        }
+    );
+
+
+    if (mode === "text") {
+
+        textArea.style.display =
+            "block";
+
+        button.style.display =
+            "none";
+
+        if (conversationActive) {
+
+            if (recognitionRunning) {
+
+                try {
+                    recognition.stop();
+                } catch (e) {}
+
+            }
+
+            recognitionRunning =
+                false;
+        }
+
+        status.textContent =
+            "文字入力モード";
+
+    } else {
+
+        textArea.style.display =
+            "none";
+
+        button.style.display =
+            "inline-block";
+
+        if (mode === "voice") {
+
+            button.textContent =
+                conversationActive
+                    ? "⏹️ 終了"
+                    : "🎙️ 話す";
+
+            if (conversationActive) {
+                status.textContent =
+                    "音声入力モード";
+            }
+
+        } else {
+
+            button.textContent =
+                conversationActive
+                    ? "⏹️ 終了"
+                    : "⚡ AUTO";
+
+            if (conversationActive) {
+                status.textContent =
+                    "自動モード";
+            }
+        }
+    }
 }
 
 
@@ -337,7 +551,7 @@ async function saveMemory(memory) {
 
 
 /* ================================
-   Gemini TTSのPCM音声をWAVに変換
+   PCM → WAV
    ================================ */
 
 function pcmToWav(base64) {
@@ -401,10 +615,7 @@ function pcmToWav(base64) {
         }
     }
 
-    writeString(
-        0,
-        "RIFF"
-    );
+    writeString(0, "RIFF");
 
     view.setUint32(
         4,
@@ -412,15 +623,8 @@ function pcmToWav(base64) {
         true
     );
 
-    writeString(
-        8,
-        "WAVE"
-    );
-
-    writeString(
-        12,
-        "fmt "
-    );
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
 
     view.setUint32(
         16,
@@ -499,11 +703,29 @@ function startListening() {
         return;
     }
 
+    if (currentMode === "text") {
+        return;
+    }
+
     if (recognitionRunning) {
         return;
     }
 
     if (!recognition) {
+
+        if (currentMode === "auto") {
+
+            textArea.style.display =
+                "block";
+
+            button.style.display =
+                "none";
+
+            status.textContent =
+                "音声認識が使えないため文字入力に切り替えました";
+
+            return;
+        }
 
         status.textContent =
             "音声認識を初期化できません";
@@ -516,13 +738,15 @@ function startListening() {
         status.textContent =
             "聞いています…";
 
-        recognitionRunning = true;
+        recognitionRunning =
+            true;
 
         recognition.start();
 
     } catch (error) {
 
-        recognitionRunning = false;
+        recognitionRunning =
+            false;
 
         status.textContent =
             "音声認識開始エラー：" +
@@ -572,7 +796,8 @@ async function speakWithGemini(text) {
                     text: text
                 }),
 
-                signal: controller.signal
+                signal:
+                    controller.signal
 
             });
 
@@ -597,7 +822,7 @@ async function speakWithGemini(text) {
             diagnostic.style.display =
                 "block";
 
-            return;
+            return false;
         }
 
 
@@ -672,11 +897,230 @@ async function speakWithGemini(text) {
 
         });
 
+        return true;
+
+    } catch (error) {
+
+        clearTimeout(timeout);
+
+        console.error(
+            "TTS error:",
+            error
+        );
+
+        return false;
+    }
+}
+
+
+/* ================================
+   Gemini処理
+   ================================ */
+
+async function sendToGemini(text) {
+
+    const cleanText =
+        typeof text === "string"
+            ? text.trim()
+            : "";
+
+    if (!cleanText) {
+        return;
+    }
+
+    if (!conversationActive) {
+        return;
+    }
+
+
+    status.textContent =
+        "Geminiへ送信中…";
+
+
+    try {
+
+        const controller =
+            new AbortController();
+
+        const timeout =
+            setTimeout(() => {
+
+                controller.abort();
+
+            }, 240000);
+
+
+        const response =
+            await fetch(
+                "/api/gemini",
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        text:
+                            buildGeminiPrompt(
+                                cleanText
+                            ),
+
+                        previousInteractionId:
+                            previousInteractionId
+
+                    }),
+
+                    signal:
+                        controller.signal
+
+                }
+            );
+
+
+        clearTimeout(timeout);
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                getErrorMessage(
+                    data.error
+                ) ||
+                "Gemini HTTP " +
+                response.status
+            );
+
+        }
+
+
+        if (!data.text) {
+
+            throw new Error(
+                "Geminiから回答テキストがありません"
+            );
+
+        }
+
+
+        /* ================================
+           短期会話ID更新
+           ================================ */
+
+        if (data.interactionId) {
+
+            previousInteractionId =
+                data.interactionId;
+
+        }
+
+
+        /* ================================
+           長期記憶
+           ================================ */
+
+        if (
+            data.memory &&
+            data.memory.shouldSave === true
+        ) {
+
+            status.textContent =
+                "記憶しています…";
+
+
+            const saved =
+                await saveMemory(
+                    data.memory
+                );
+
+
+            if (saved) {
+
+                status.textContent =
+                    "記憶しました";
+
+            } else {
+
+                status.textContent =
+                    "記憶の保存に失敗しました";
+            }
+
+
+            await new Promise(
+                resolve =>
+                    setTimeout(
+                        resolve,
+                        500
+                    )
+            );
+
+        }
+
+
+        /* ================================
+           回答表示
+           ================================ */
+
+        responseArea.textContent =
+            data.text;
+
+
+        /* ================================
+           TEXTモード
+           ================================ */
+
+        if (currentMode === "text") {
+
+            status.textContent =
+                "回答完了";
+
+            return;
+        }
+
+
+        /* ================================
+           VOICE / AUTO
+           ================================ */
+
+        status.textContent =
+            "J.A.R.V.I.S. 音声生成中…";
+
+
+        const spoken =
+            await speakWithGemini(
+                data.text
+            );
+
+
+        /* ================================
+           TTS失敗時
+           ================================ */
+
+        if (!spoken) {
+
+            status.textContent =
+                "音声生成に失敗しました。回答は画面に表示しています。";
+
+            return;
+        }
+
+
+        /* ================================
+           次の入力
+           ================================ */
 
         if (conversationActive) {
 
             status.textContent =
                 "次の入力を待っています…";
+
 
             await new Promise(
                 resolve =>
@@ -686,12 +1130,11 @@ async function speakWithGemini(text) {
                     )
             );
 
+
             startListening();
         }
 
     } catch (error) {
-
-        clearTimeout(timeout);
 
         if (
             error.name ===
@@ -699,12 +1142,12 @@ async function speakWithGemini(text) {
         ) {
 
             status.textContent =
-                "エラー：音声生成がタイムアウトしました";
+                "エラー：Geminiへの接続がタイムアウトしました";
 
         } else {
 
             status.textContent =
-                "音声エラー：" +
+                "エラー：" +
                 getErrorMessage(error);
 
         }
@@ -718,8 +1161,12 @@ async function speakWithGemini(text) {
 
 if (!SpeechRecognition) {
 
-    status.textContent =
-        "音声認識に対応していません";
+    if (currentMode === "voice") {
+
+        status.textContent =
+            "音声認識に対応していません";
+
+    }
 
 } else {
 
@@ -737,100 +1184,6 @@ if (!SpeechRecognition) {
 
 
     /* ================================
-       会話開始 / 終了
-       ================================ */
-
-    button.addEventListener(
-        "click",
-        async () => {
-
-            if (!audioContext) {
-
-                audioContext =
-                    new (
-                        window.AudioContext ||
-                        window.webkitAudioContext
-                    )();
-
-            }
-
-            await audioContext.resume();
-
-
-            if (conversationActive) {
-
-                conversationActive =
-                    false;
-
-
-                if (recognitionRunning) {
-
-                    try {
-                        recognition.stop();
-                    } catch (e) {}
-
-                }
-
-                recognitionRunning =
-                    false;
-
-
-                if (currentSource) {
-
-                    try {
-                        currentSource.stop();
-                    } catch (e) {}
-
-                    currentSource = null;
-                }
-
-
-                /* ================================
-                   会話コンテキストをリセット
-                   ================================ */
-
-                previousInteractionId =
-                    null;
-
-
-                status.textContent =
-                    "待機中";
-
-                button.textContent =
-                    "🎙️ 話す";
-
-                return;
-            }
-
-
-            status.textContent =
-                "記憶を読み込んでいます…";
-
-
-            await loadMemories();
-
-
-            /* ================================
-               新しい会話を開始
-               ================================ */
-
-            previousInteractionId =
-                null;
-
-
-            conversationActive =
-                true;
-
-            button.textContent =
-                "⏹️ 終了";
-
-            startListening();
-
-        }
-    );
-
-
-    /* ================================
        音声認識結果
        ================================ */
 
@@ -842,6 +1195,7 @@ if (!SpeechRecognition) {
 
             const text =
                 event.results[0][0].transcript;
+
 
             status.textContent =
                 "認識：「" +
@@ -863,179 +1217,7 @@ if (!SpeechRecognition) {
             }
 
 
-            /* ================================
-               Gemini
-               ================================ */
-
-            status.textContent =
-                "Geminiへ送信中…";
-
-
-            try {
-
-                const controller =
-                    new AbortController();
-
-                const timeout =
-                    setTimeout(() => {
-
-                        controller.abort();
-
-                    }, 240000);
-
-
-                const response =
-                    await fetch(
-                        "/api/gemini",
-                        {
-
-                            method: "POST",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body: JSON.stringify({
-
-                                text:
-                                    buildGeminiPrompt(
-                                        text
-                                    ),
-
-                                previousInteractionId:
-                                    previousInteractionId
-
-                            }),
-
-                            signal:
-                                controller.signal
-
-                        }
-                    );
-
-
-                clearTimeout(timeout);
-
-
-                const data =
-                    await response.json();
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        getErrorMessage(
-                            data.error
-                        ) ||
-                        "Gemini HTTP " +
-                        response.status
-                    );
-
-                }
-
-
-                if (!data.text) {
-
-                    throw new Error(
-                        "Geminiから回答テキストがありません"
-                    );
-
-                }
-
-
-                /* ================================
-                   次回会話用IDを更新
-                   ================================ */
-
-                if (
-                    data.interactionId
-                ) {
-
-                    previousInteractionId =
-                        data.interactionId;
-
-                }
-
-
-                /* ================================
-                   Geminiの記憶判断
-                   ================================ */
-
-                if (
-                    data.memory &&
-                    data.memory.shouldSave === true
-                ) {
-
-                    status.textContent =
-                        "記憶しています…";
-
-
-                    const saved =
-                        await saveMemory(
-                            data.memory
-                        );
-
-
-                    if (saved) {
-
-                        status.textContent =
-                            "記憶しました";
-
-                    } else {
-
-                        status.textContent =
-                            "記憶の保存に失敗しました";
-
-                    }
-
-
-                    await new Promise(
-                        resolve =>
-                            setTimeout(
-                                resolve,
-                                500
-                            )
-                    );
-
-                }
-
-
-                /* ================================
-                   Gemini回答
-                   ================================ */
-
-                status.textContent =
-                    "J.A.R.V.I.S.：「" +
-                    data.text +
-                    "」";
-
-
-                await speakWithGemini(
-                    data.text
-                );
-
-
-            } catch (error) {
-
-                clearTimeout(timeout);
-
-                if (
-                    error.name ===
-                    "AbortError"
-                ) {
-
-                    status.textContent =
-                        "エラー：Geminiへの接続がタイムアウトしました";
-
-                } else {
-
-                    status.textContent =
-                        "エラー：" +
-                        getErrorMessage(error);
-
-                }
-            }
+            await sendToGemini(text);
         };
 
 
@@ -1048,6 +1230,24 @@ if (!SpeechRecognition) {
 
             recognitionRunning =
                 false;
+
+
+            if (
+                currentMode === "auto"
+            ) {
+
+                textArea.style.display =
+                    "block";
+
+                button.style.display =
+                    "none";
+
+                status.textContent =
+                    "音声入力を使用できないため、文字入力に切り替えました";
+
+                return;
+            }
+
 
             status.textContent =
                 "音声認識エラー：" +
@@ -1086,8 +1286,180 @@ if (!SpeechRecognition) {
 
 
 /* ================================
-   起動時に記憶を先読み
+   会話開始 / 終了
    ================================ */
+
+button.addEventListener(
+    "click",
+    async () => {
+
+        if (!audioContext) {
+
+            audioContext =
+                new (
+                    window.AudioContext ||
+                    window.webkitAudioContext
+                )();
+
+        }
+
+        await audioContext.resume();
+
+
+        if (conversationActive) {
+
+            conversationActive =
+                false;
+
+
+            if (recognitionRunning) {
+
+                try {
+                    recognition.stop();
+                } catch (e) {}
+
+            }
+
+            recognitionRunning =
+                false;
+
+
+            if (currentSource) {
+
+                try {
+                    currentSource.stop();
+                } catch (e) {}
+
+                currentSource = null;
+            }
+
+
+            previousInteractionId =
+                null;
+
+
+            status.textContent =
+                "待機中";
+
+            button.textContent =
+                currentMode === "auto"
+                    ? "⚡ AUTO"
+                    : "🎙️ 話す";
+
+            return;
+        }
+
+
+        status.textContent =
+            "記憶を読み込んでいます…";
+
+
+        await loadMemories();
+
+
+        previousInteractionId =
+            null;
+
+
+        conversationActive =
+            true;
+
+
+        button.textContent =
+            "⏹️ 終了";
+
+
+        startListening();
+
+    }
+);
+
+
+/* ================================
+   TEXT送信
+   ================================ */
+
+sendButton.addEventListener(
+    "click",
+    async () => {
+
+        const text =
+            textInput.value.trim();
+
+        if (!text) {
+            return;
+        }
+
+
+        if (!conversationActive) {
+
+            await loadMemories();
+
+            previousInteractionId =
+                null;
+
+            conversationActive =
+                true;
+        }
+
+
+        textInput.value =
+            "";
+
+
+        await sendToGemini(text);
+    }
+);
+
+
+/* ================================
+   Enter送信
+   ================================ */
+
+textInput.addEventListener(
+    "keydown",
+    async (event) => {
+
+        if (
+            event.key === "Enter" &&
+            !event.shiftKey
+        ) {
+
+            event.preventDefault();
+
+            sendButton.click();
+        }
+    }
+);
+
+
+/* ================================
+   モードボタン
+   ================================ */
+
+modeButtons.forEach(
+    (modeButton) => {
+
+        modeButton.addEventListener(
+            "click",
+            () => {
+
+                setMode(
+                    modeButton.dataset.mode
+                );
+
+            }
+        );
+
+    }
+);
+
+
+/* ================================
+   初期化
+   ================================ */
+
+setMode("voice");
 
 loadMemories();
 
