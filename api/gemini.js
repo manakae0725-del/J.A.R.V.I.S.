@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method Not Allowed",
@@ -29,6 +29,20 @@ export default async function handler(req, res) {
       model: "gemini-3.6-flash",
 
       input: text,
+
+      /* ================================
+         Google Search
+         ================================ */
+
+      tools: [
+        {
+          type: "google_search"
+        }
+      ],
+
+      /* ================================
+         構造化出力
+         ================================ */
 
       response_format: {
         type: "text",
@@ -152,13 +166,15 @@ export default async function handler(req, res) {
         i--
       ) {
 
-        const content =
-          data.steps[i]?.content;
+        const step = data.steps[i];
 
-        if (Array.isArray(content)) {
+        if (
+          step?.type === "model_output" &&
+          Array.isArray(step.content)
+        ) {
 
           const textContent =
-            content.find(
+            step.content.find(
               (item) =>
                 item.type === "text" &&
                 item.text
@@ -227,6 +243,64 @@ export default async function handler(req, res) {
 
 
     /* ================================
+       Google Search 引用情報
+       ================================ */
+
+    const sources = [];
+
+    if (Array.isArray(data.steps)) {
+
+      for (const step of data.steps) {
+
+        if (
+          step?.type !== "model_output" ||
+          !Array.isArray(step.content)
+        ) {
+          continue;
+        }
+
+        for (const contentBlock of step.content) {
+
+          if (
+            contentBlock?.type !== "text" ||
+            !Array.isArray(contentBlock.annotations)
+          ) {
+            continue;
+          }
+
+          for (const annotation of contentBlock.annotations) {
+
+            if (
+              annotation?.type === "url_citation" &&
+              annotation?.url
+            ) {
+
+              const exists =
+                sources.some(
+                  (source) =>
+                    source.url === annotation.url
+                );
+
+              if (!exists) {
+
+                sources.push({
+                  title:
+                    annotation.title ||
+                    annotation.url,
+
+                  url:
+                    annotation.url
+                });
+
+              }
+            }
+          }
+        }
+      }
+    }
+
+
+    /* ================================
        次回会話用Interaction ID
        ================================ */
 
@@ -262,6 +336,8 @@ export default async function handler(req, res) {
           result.memory.importance ||
           1,
       },
+
+      sources: sources,
 
     });
 
