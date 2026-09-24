@@ -22,6 +22,28 @@ export default async function handler(req, res) {
       });
     }
 
+    const voiceInstruction = `
+Speak as J.A.R.V.I.S., a calm and intelligent personal AI assistant.
+
+Voice style:
+- Calm, composed and sophisticated
+- Slightly low and mature male tone
+- Natural conversational delivery
+- Warm but restrained
+- Confident without sounding arrogant
+- Speak clearly and smoothly
+- Use natural Japanese conversational rhythm
+- Avoid sounding like a news announcer, weather broadcaster, narrator, or commercial voice
+- Avoid exaggerated emotion
+- Do not over-enunciate every word
+- Do not add dramatic pauses
+- Sound like you are speaking directly to one person in a private conversation
+
+Read the following Japanese text naturally:
+
+${text}
+`;
+
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/interactions",
       {
@@ -36,7 +58,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           model: "gemini-3.1-flash-tts-preview",
 
-          input: text,
+          input: voiceInstruction,
 
           response_format: {
             type: "audio"
