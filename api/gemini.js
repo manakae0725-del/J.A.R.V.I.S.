@@ -32,8 +32,66 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: "gemini-3.6-flash",
+
           input: text,
-        }),
+
+          response_format: {
+            type: "text",
+            mime_type: "application/json",
+            schema: {
+              type: "object",
+
+              properties: {
+                reply: {
+                  type: "string",
+                },
+
+                memory: {
+                  type: "object",
+
+                  properties: {
+                    shouldSave: {
+                      type: "boolean",
+                    },
+
+                    category: {
+                      type: "string",
+                      enum: [
+                        "personal",
+                        "preference",
+                        "work",
+                        "family",
+                        "goal"
+                      ],
+                    },
+
+                    content: {
+                      type: "string",
+                    },
+
+                    importance: {
+                      type: "integer",
+                      minimum: 1,
+                      maximum: 5,
+                    }
+                  },
+
+                  required: [
+                    "shouldSave",
+                    "category",
+                    "content",
+                    "importance"
+                  ]
+                }
+              },
+
+              required: [
+                "reply",
+                "memory"
+              ]
+            }
+          }
+        })
       }
     );
 
@@ -71,9 +129,39 @@ export default async function handler(req, res) {
       });
     }
 
+    let result;
+
+    try {
+      result = JSON.parse(outputText);
+    } catch (error) {
+      return res.status(500).json({
+        error: "Gemini returned invalid JSON",
+        raw: outputText,
+      });
+    }
+
+    if (
+      !result.reply ||
+      !result.memory ||
+      typeof result.memory.shouldSave !== "boolean"
+    ) {
+      return res.status(500).json({
+        error: "Invalid Gemini response structure",
+        data: result,
+      });
+    }
+
     return res.status(200).json({
-      text: outputText,
+      text: result.reply,
+
+      memory: {
+        shouldSave: result.memory.shouldSave,
+        category: result.memory.category || "personal",
+        content: result.memory.content || "",
+        importance: result.memory.importance || 1,
+      },
     });
+
   } catch (error) {
     console.error(error);
 
