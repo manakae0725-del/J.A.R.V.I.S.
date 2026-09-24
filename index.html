@@ -89,6 +89,12 @@ let conversationActive = false;
 let recognitionRunning = false;
 let recognition = null;
 
+/* ================================
+   長期記憶
+   ================================ */
+
+let memories = [];
+
 
 /* ================================
    エラーを安全に文字列化
@@ -114,6 +120,233 @@ function getErrorMessage(error) {
     }
 
     return String(error);
+}
+
+
+/* ================================
+   長期記憶を取得
+   ================================ */
+
+async function loadMemories() {
+
+    try {
+
+        const response =
+            await fetch("/api/memory", {
+                method: "GET"
+            });
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.ok) {
+            throw new Error(
+                getErrorMessage(data.error) ||
+                "Memory GET error"
+            );
+        }
+
+        memories =
+            Array.isArray(data.memories)
+                ? data.memories.slice(0, 30)
+                : [];
+
+        return memories;
+
+    } catch (error) {
+
+        console.error(
+            "Memory load error:",
+            error
+        );
+
+        memories = [];
+
+        return [];
+    }
+}
+
+
+/* ================================
+   長期記憶をGemini用テキストへ変換
+   ================================ */
+
+function buildMemoryContext() {
+
+    if (!memories.length) {
+
+        return "現在、登録されている長期記憶はありません。";
+    }
+
+    return memories
+        .map((memory, index) => {
+
+            return (
+                `${index + 1}. ` +
+                `[${memory.category}] ` +
+                `${memory.content}`
+            );
+
+        })
+        .join("\n");
+}
+
+
+/* ================================
+   「覚えて」系の発言を判定
+   ================================ */
+
+function isMemoryRequest(text) {
+
+    const patterns = [
+        "覚えて",
+        "記憶して",
+        "記憶に入れて",
+        "記憶に残して",
+        "覚えといて",
+        "覚えておいて",
+        "忘れないで"
+    ];
+
+    return patterns.some(
+        pattern => text.includes(pattern)
+    );
+}
+
+
+/* ================================
+   記憶カテゴリ判定
+   ================================ */
+
+function detectMemoryCategory(text) {
+
+    if (
+        text.includes("好き") ||
+        text.includes("嫌い") ||
+        text.includes("好み") ||
+        text.includes("好きな")
+    ) {
+        return "preference";
+    }
+
+    if (
+        text.includes("仕事") ||
+        text.includes("美容師") ||
+        text.includes("サロン") ||
+        text.includes("職場")
+    ) {
+        return "work";
+    }
+
+    if (
+        text.includes("目標") ||
+        text.includes("予定") ||
+        text.includes("計画")
+    ) {
+        return "goal";
+    }
+
+    if (
+        text.includes("家族") ||
+        text.includes("妻") ||
+        text.includes("娘") ||
+        text.includes("母")
+    ) {
+        return "family";
+    }
+
+    return "personal";
+}
+
+
+/* ================================
+   記憶内容を保存
+   ================================ */
+
+async function saveMemory(text) {
+
+    const category =
+        detectMemoryCategory(text);
+
+    const content =
+        text
+            .replace(/^.*?(覚えて|記憶して|記憶に入れて|記憶に残して|覚えといて|覚えておいて|忘れないで)/, "")
+            .trim()
+            .replace(/^[、。\s]+/, "");
+
+    if (!content) {
+        return false;
+    }
+
+    try {
+
+        const response =
+            await fetch("/api/memory", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+                    category: category,
+                    content: content,
+                    importance: 3
+                })
+            });
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.ok) {
+
+            throw new Error(
+                getErrorMessage(data.error) ||
+                "Memory save error"
+            );
+        }
+
+        await loadMemories();
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Memory save error:",
+            error
+        );
+
+        return false;
+    }
+}
+
+
+/* ================================
+   Geminiへ送る最終テキスト
+   ================================ */
+
+function buildGeminiPrompt(text) {
+
+    const memoryContext =
+        buildMemoryContext();
+
+    return `
+あなたはJ.A.R.V.I.S.です。
+
+以下は真人さんについて保存されている長期記憶です。
+回答に関連する場合のみ自然に利用してください。
+記憶にないことは推測せず、分からない場合は分からないと答えてください。
+
+--- 長期記憶 ---
+${memoryContext}
+--- 長期記憶ここまで ---
+
+今回の真人さんの発言：
+${text}
+`;
 }
 
 
@@ -307,8 +540,6 @@ async function speakWithGemini(text) {
             await response.json();
 
 
-        /* 診断レスポンス */
-
         if (data.diagnostic === true) {
 
             status.textContent =
@@ -328,8 +559,6 @@ async function speakWithGemini(text) {
         }
 
 
-        /* TTSエラー */
-
         if (!response.ok) {
 
             throw new Error(
@@ -347,8 +576,6 @@ async function speakWithGemini(text) {
         }
 
 
-        /* PCM → WAV */
-
         const wav =
             pcmToWav(data.audio);
 
@@ -361,8 +588,6 @@ async function speakWithGemini(text) {
             );
 
 
-        /* 現在の音声を停止 */
-
         if (currentSource) {
 
             try {
@@ -372,8 +597,6 @@ async function speakWithGemini(text) {
             currentSource = null;
         }
 
-
-        /* AudioBufferSource */
 
         currentSource =
             audioContext.createBufferSource();
@@ -385,8 +608,6 @@ async function speakWithGemini(text) {
             audioContext.destination
         );
 
-
-        /* 発話終了を待つ */
 
         await new Promise(resolve => {
 
@@ -405,10 +626,6 @@ async function speakWithGemini(text) {
 
         });
 
-
-        /* ================================
-           発話終了 → 再び聞く
-           ================================ */
 
         if (conversationActive) {
 
@@ -482,8 +699,6 @@ if (!SpeechRecognition) {
             await audioContext.resume();
 
 
-            /* 会話中なら終了 */
-
             if (conversationActive) {
 
                 conversationActive = false;
@@ -518,7 +733,13 @@ if (!SpeechRecognition) {
             }
 
 
-            /* 会話開始 */
+            /* 会話開始時に最新記憶を取得 */
+
+            status.textContent =
+                "記憶を読み込んでいます…";
+
+            await loadMemories();
+
 
             conversationActive = true;
 
@@ -560,6 +781,48 @@ if (!SpeechRecognition) {
             }
 
 
+            /* ================================
+               明示的な記憶保存
+               ================================ */
+
+            if (isMemoryRequest(text)) {
+
+                status.textContent =
+                    "記憶しています…";
+
+                const saved =
+                    await saveMemory(text);
+
+                if (saved) {
+
+                    status.textContent =
+                        "記憶しました";
+
+                } else {
+
+                    status.textContent =
+                        "記憶の保存に失敗しました";
+                }
+
+
+                if (conversationActive) {
+
+                    await new Promise(
+                        resolve =>
+                            setTimeout(resolve, 500)
+                    );
+
+                    startListening();
+                }
+
+                return;
+            }
+
+
+            /* ================================
+               Gemini
+               ================================ */
+
             status.textContent =
                 "Geminiへ送信中…";
 
@@ -588,7 +851,8 @@ if (!SpeechRecognition) {
                         },
 
                         body: JSON.stringify({
-                            text: text
+                            text:
+                                buildGeminiPrompt(text)
                         }),
 
                         signal: controller.signal
@@ -602,10 +866,6 @@ if (!SpeechRecognition) {
                 const data =
                     await response.json();
 
-
-                /* ================================
-                   Geminiエラー
-                   ================================ */
 
                 if (!response.ok) {
 
@@ -630,8 +890,6 @@ if (!SpeechRecognition) {
                     data.text +
                     "」";
 
-
-                /* TTS */
 
                 await speakWithGemini(
                     data.text
@@ -703,6 +961,13 @@ if (!SpeechRecognition) {
         };
 
 }
+
+
+/* ================================
+   起動時に記憶を先読み
+   ================================ */
+
+loadMemories();
 
 </script>
 
