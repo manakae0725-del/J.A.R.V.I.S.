@@ -22,26 +22,39 @@ export default async function handler(req, res) {
       });
     }
 
+    // TTSでは「真人」を「まなと」と読ませる
+    const spokenText = text.replace(/真人/g, "まなと");
+
     const voiceInstruction = `
-Speak as J.A.R.V.I.S., a calm and intelligent personal AI assistant.
+Speak as J.A.R.V.I.S., an advanced personal artificial intelligence assistant.
 
-Voice style:
-- Calm, composed and sophisticated
-- Slightly low and mature male tone
-- Natural conversational delivery
-- Warm but restrained
-- Confident without sounding arrogant
-- Speak clearly and smoothly
-- Use natural Japanese conversational rhythm
-- Avoid sounding like a news announcer, weather broadcaster, narrator, or commercial voice
-- Avoid exaggerated emotion
-- Do not over-enunciate every word
+Voice identity:
+- Clearly sound like an AI assistant, not an ordinary human speaker
+- Calm, intelligent and highly controlled
+- Slightly low and mature male voice
+- Cool and composed
+- Precise and deliberate
+- Emotion is restrained
+- Do not sound cheerful, excited, emotional, or overly warm
+- Do not sound like an actor, announcer, narrator, weather broadcaster, or commercial voice
+- Do not imitate a human celebrity or real person
+- Maintain a subtle sense of artificial intelligence and advanced technology
+- Natural enough for conversation, but clearly not overly human
+- Speak directly to one person
+- Use smooth Japanese conversational rhythm
+- Keep the delivery controlled and concise
+- Do not exaggerate pronunciation
 - Do not add dramatic pauses
-- Sound like you are speaking directly to one person in a private conversation
+- Do not add emotional emphasis
+- Do not add words that are not present in the text
 
-Read the following Japanese text naturally:
+Pronunciation:
+- The name 「まなと」 must be pronounced naturally as Japanese "まなと".
+- Do not reinterpret or change the pronunciation.
 
-${text}
+Read the following Japanese text exactly as intended, with the J.A.R.V.I.S. voice described above:
+
+${spokenText}
 `;
 
     const response = await fetch(
