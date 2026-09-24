@@ -131,24 +131,15 @@ h1 {
 
 <div id="modeSelector">
 
-    <button
-        class="modeButton active"
-        data-mode="voice"
-    >
+    <button class="modeButton active" data-mode="voice">
         VOICE
     </button>
 
-    <button
-        class="modeButton"
-        data-mode="text"
-    >
+    <button class="modeButton" data-mode="text">
         TEXT
     </button>
 
-    <button
-        class="modeButton"
-        data-mode="auto"
-    >
+    <button class="modeButton" data-mode="auto">
         AUTO
     </button>
 
@@ -222,57 +213,135 @@ let memories = [];
 
 let previousInteractionId = null;
 
-
-/* ================================
-   モード
-   ================================ */
-
 let currentMode = "voice";
 
 
-/* ================================
-   J.A.R.V.I.S. 音声後処理設定
-   ================================ */
+/* =========================================================
+   J.A.R.V.I.S. FINAL VOICE ENGINE
+   =========================================================
+
+   今回は「軽い後処理」ではない。
+
+   Charon
+      ↓
+   High Pass
+      ↓
+   Low / Low-Mid body reconstruction
+      ↓
+   Presence control
+      ↓
+   Air reduction
+      ↓
+   Non-linear coloration
+      ↓
+   Main compression
+      ↓
+   Density compression
+      ↓
+   Final tone shaping
+      ↓
+   Output
+
+   目的：
+   Charonの明るいアナウンサー的な質感を可能な限り削り、
+   成熟した映画吹替系AI音声の音像へ変換する。
+   ========================================================= */
 
 const VOICE_PROCESSING = {
 
-    // 声の不要な低域を軽く整理
-    highpassFrequency: 65,
+    /*
+     * 不要な超低域を整理
+     */
+    highpassFrequency: 55,
 
-    // 高域を削りすぎない
-    lowpassFrequency: 14500,
+    /*
+     * アナウンサー感の原因になりやすい
+     * 上方向の明るさをかなり抑える
+     */
+    lowpassFrequency: 9200,
 
-    // ごく薄いSaturation
-    saturationAmount: 0.025,
+    /*
+     * Low body
+     */
+    lowBodyFrequency: 145,
+    lowBodyGain: 4.5,
 
-    // 音量の安定化
-    compressorThreshold: -18,
-    compressorKnee: 12,
-    compressorRatio: 2.2,
-    compressorAttack: 0.008,
-    compressorRelease: 0.12,
+    /*
+     * Low-mid body
+     */
+    lowMidFrequency: 330,
+    lowMidGain: 3.8,
 
-    // 最終出力
-    outputGain: 0.92
+    /*
+     * Mud control
+     */
+    mudFrequency: 620,
+    mudGain: -2.2,
+
+    /*
+     * Announcer / presence reduction
+     */
+    presenceFrequency: 3000,
+    presenceGain: -4.8,
+
+    /*
+     * Brightness reduction
+     */
+    brightnessFrequency: 5600,
+    brightnessGain: -4.5,
+
+    /*
+     * Harshness reduction
+     */
+    harshFrequency: 7200,
+    harshGain: -3.5,
+
+    /*
+     * Saturation
+     */
+    saturationDrive: 2.8,
+
+    /*
+     * Main compression
+     */
+    compressorThreshold: -24,
+    compressorKnee: 8,
+    compressorRatio: 4.5,
+    compressorAttack: 0.006,
+    compressorRelease: 0.16,
+
+    /*
+     * Density compression
+     */
+    densityThreshold: -30,
+    densityKnee: 5,
+    densityRatio: 2.8,
+    densityAttack: 0.012,
+    densityRelease: 0.20,
+
+    /*
+     * Output
+     */
+    outputGain: 0.82
 };
 
 
-/* ================================
-   軽いSaturation用WaveShaper
-   ================================ */
+/* =========================================================
+   Saturation
+   ========================================================= */
 
 function createVoiceSaturation(context) {
 
     const shaper =
         context.createWaveShaper();
 
-    const amount =
-        VOICE_PROCESSING.saturationAmount;
-
-    const samples = 2048;
+    const samples = 4096;
 
     const curve =
         new Float32Array(samples);
+
+    const drive =
+        VOICE_PROCESSING.saturationDrive;
 
     for (
         let i = 0;
@@ -281,30 +350,76 @@ function createVoiceSaturation(context) {
     ) {
 
         const x =
-            (i * 2) / (samples - 1) - 1;
+            (i * 2) /
+            (samples - 1) -
+            1;
+
+        /*
+         * より強い非線形処理。
+         * ただし完全な歪みにはしない。
+         */
 
         curve[i] =
             Math.tanh(
-                x * (1 + amount * 8)
+                x * drive
             ) /
             Math.tanh(
-                1 + amount * 8
+                drive
             );
     }
 
-    shaper.curve = curve;
+    shaper.curve =
+        curve;
 
-    shaper.oversample = "2x";
+    shaper.oversample =
+        "4x";
 
     return shaper;
 }
 
 
-/* ================================
-   J.A.R.V.I.S. 音声処理チェーン
-   ================================ */
+/* =========================================================
+   EQ helper
+   ========================================================= */
+
+function createEQ(
+    context,
+    type,
+    frequency,
+    gain,
+    Q
+) {
+
+    const filter =
+        context.createBiquadFilter();
+
+    filter.type =
+        type;
+
+    filter.frequency.value =
+        frequency;
+
+    filter.gain.value =
+        gain;
+
+    filter.Q.value =
+        Q;
+
+    return filter;
+}
+
+
+/* =========================================================
+   強化版J.A.R.V.I.S.音声チェーン
+   ========================================================= */
 
 function createVoiceProcessingChain(context) {
+
+    /*
+     * -----------------------------------------
+     * 1. High Pass
+     * -----------------------------------------
+     */
 
     const highpass =
         context.createBiquadFilter();
@@ -316,8 +431,115 @@ function createVoiceProcessingChain(context) {
         VOICE_PROCESSING.highpassFrequency;
 
     highpass.Q.value =
-        0.7;
+        0.65;
 
+
+    /*
+     * -----------------------------------------
+     * 2. Low Body
+     * -----------------------------------------
+     */
+
+    const lowBody =
+        createEQ(
+            context,
+            "lowshelf",
+            VOICE_PROCESSING.lowBodyFrequency,
+            VOICE_PROCESSING.lowBodyGain,
+            0.7
+        );
+
+
+    /*
+     * -----------------------------------------
+     * 3. Low-Mid Body
+     * -----------------------------------------
+     */
+
+    const lowMid =
+        createEQ(
+            context,
+            "peaking",
+            VOICE_PROCESSING.lowMidFrequency,
+            VOICE_PROCESSING.lowMidGain,
+            0.9
+        );
+
+
+    /*
+     * -----------------------------------------
+     * 4. Mud reduction
+     * -----------------------------------------
+     */
+
+    const mud =
+        createEQ(
+            context,
+            "peaking",
+            VOICE_PROCESSING.mudFrequency,
+            VOICE_PROCESSING.mudGain,
+            1.0
+        );
+
+
+    /*
+     * -----------------------------------------
+     * 5. Presence reduction
+     *
+     * アナウンサー的な
+     * 「前に出てくる明瞭さ」を削る
+     * -----------------------------------------
+     */
+
+    const presence =
+        createEQ(
+            context,
+            "peaking",
+            VOICE_PROCESSING.presenceFrequency,
+            VOICE_PROCESSING.presenceGain,
+            0.85
+        );
+
+
+    /*
+     * -----------------------------------------
+     * 6. Brightness reduction
+     * -----------------------------------------
+     */
+
+    const brightness =
+        createEQ(
+            context,
+            "peaking",
+            VOICE_PROCESSING.brightnessFrequency,
+            VOICE_PROCESSING.brightnessGain,
+            0.75
+        );
+
+
+    /*
+     * -----------------------------------------
+     * 7. Harshness reduction
+     * -----------------------------------------
+     */
+
+    const harshness =
+        createEQ(
+            context,
+            "peaking",
+            VOICE_PROCESSING.harshFrequency,
+            VOICE_PROCESSING.harshGain,
+            1.1
+        );
+
+
+    /*
+     * -----------------------------------------
+     * 8. Low Pass
+     *
+     * 高域の「放送・ナレーション感」を削る
+     * -----------------------------------------
+     */
 
     const lowpass =
         context.createBiquadFilter();
@@ -329,14 +551,26 @@ function createVoiceProcessingChain(context) {
         VOICE_PROCESSING.lowpassFrequency;
 
     lowpass.Q.value =
-        0.35;
+        0.45;
 
+
+    /*
+     * -----------------------------------------
+     * 9. Saturation
+     * -----------------------------------------
+     */
 
     const saturation =
         createVoiceSaturation(
             context
         );
 
+
+    /*
+     * -----------------------------------------
+     * 10. Main compressor
+     * -----------------------------------------
+     */
 
     const compressor =
         context.createDynamicsCompressor();
@@ -357,6 +591,55 @@ function createVoiceProcessingChain(context) {
         VOICE_PROCESSING.compressorRelease;
 
 
+    /*
+     * -----------------------------------------
+     * 11. Density compressor
+     *
+     * 声の密度をさらに均一化
+     * -----------------------------------------
+     */
+
+    const density =
+        context.createDynamicsCompressor();
+
+    density.threshold.value =
+        VOICE_PROCESSING.densityThreshold;
+
+    density.knee.value =
+        VOICE_PROCESSING.densityKnee;
+
+    density.ratio.value =
+        VOICE_PROCESSING.densityRatio;
+
+    density.attack.value =
+        VOICE_PROCESSING.densityAttack;
+
+    density.release.value =
+        VOICE_PROCESSING.densityRelease;
+
+
+    /*
+     * -----------------------------------------
+     * 12. Final tone
+     * -----------------------------------------
+     */
+
+    const finalTone =
+        createEQ(
+            context,
+            "peaking",
+            180,
+            1.8,
+            0.8
+        );
+
+
+    /*
+     * -----------------------------------------
+     * 13. Output
+     * -----------------------------------------
+     */
+
     const outputGain =
         context.createGain();
 
@@ -364,7 +647,37 @@ function createVoiceProcessingChain(context) {
         VOICE_PROCESSING.outputGain;
 
 
+    /*
+     * -----------------------------------------
+     * 接続
+     * -----------------------------------------
+     */
+
     highpass.connect(
+        lowBody
+    );
+
+    lowBody.connect(
+        lowMid
+    );
+
+    lowMid.connect(
+        mud
+    );
+
+    mud.connect(
+        presence
+    );
+
+    presence.connect(
+        brightness
+    );
+
+    brightness.connect(
+        harshness
+    );
+
+    harshness.connect(
         lowpass
     );
 
@@ -377,6 +690,14 @@ function createVoiceProcessingChain(context) {
     );
 
     compressor.connect(
+        density
+    );
+
+    density.connect(
+        finalTone
+    );
+
+    finalTone.connect(
         outputGain
     );
 
@@ -392,9 +713,9 @@ function createVoiceProcessingChain(context) {
 }
 
 
-/* ================================
-   エラーを安全に文字列化
-   ================================ */
+/* =========================================================
+   Error
+   ========================================================= */
 
 function getErrorMessage(error) {
 
@@ -402,7 +723,10 @@ function getErrorMessage(error) {
         return error;
     }
 
-    if (error && typeof error === "object") {
+    if (
+        error &&
+        typeof error === "object"
+    ) {
 
         if (error.message) {
             return error.message;
@@ -419,9 +743,9 @@ function getErrorMessage(error) {
 }
 
 
-/* ================================
-   モード切替
-   ================================ */
+/* =========================================================
+   Mode
+   ========================================================= */
 
 function setMode(mode) {
 
@@ -433,7 +757,8 @@ function setMode(mode) {
         return;
     }
 
-    currentMode = mode;
+    currentMode =
+        mode;
 
 
     modeButtons.forEach(
@@ -456,6 +781,7 @@ function setMode(mode) {
         button.style.display =
             "none";
 
+
         if (conversationActive) {
 
             if (recognitionRunning) {
@@ -470,6 +796,7 @@ function setMode(mode) {
                 false;
         }
 
+
         status.textContent =
             "文字入力モード";
 
@@ -481,6 +808,7 @@ function setMode(mode) {
         button.style.display =
             "inline-block";
 
+
         if (mode === "voice") {
 
             button.textContent =
@@ -488,7 +816,9 @@ function setMode(mode) {
                     ? "⏹️ 終了"
                     : "🎙️ 話す";
 
+
             if (conversationActive) {
+
                 status.textContent =
                     "音声入力モード";
             }
@@ -500,7 +830,9 @@ function setMode(mode) {
                     ? "⏹️ 終了"
                     : "⚡ AUTO";
 
+
             if (conversationActive) {
+
                 status.textContent =
                     "自動モード";
             }
@@ -509,35 +841,49 @@ function setMode(mode) {
 }
 
 
-/* ================================
-   長期記憶を取得
-   ================================ */
+/* =========================================================
+   Memory
+   ========================================================= */
 
 async function loadMemories() {
 
     try {
 
         const response =
-            await fetch("/api/memory", {
-                method: "GET"
-            });
+            await fetch(
+                "/api/memory",
+                {
+                    method: "GET"
+                }
+            );
+
 
         const data =
             await response.json();
 
-        if (!response.ok || !data.ok) {
+
+        if (
+            !response.ok ||
+            !data.ok
+        ) {
 
             throw new Error(
-                getErrorMessage(data.error) ||
+                getErrorMessage(
+                    data.error
+                ) ||
                 "Memory GET error"
             );
 
         }
 
+
         memories =
-            Array.isArray(data.memories)
+            Array.isArray(
+                data.memories
+            )
                 ? data.memories.slice(0, 30)
                 : [];
+
 
         return memories;
 
@@ -548,47 +894,51 @@ async function loadMemories() {
             error
         );
 
-        memories = [];
+        memories =
+            [];
 
         return [];
     }
 }
 
 
-/* ================================
-   長期記憶をGemini用テキストへ変換
-   ================================ */
+/* =========================================================
+   Memory Context
+   ========================================================= */
 
 function buildMemoryContext() {
 
     if (!memories.length) {
 
         return "現在、登録されている長期記憶はありません。";
-
     }
 
+
     return memories
-        .map((memory, index) => {
+        .map(
+            (memory, index) => {
 
-            return (
-                `${index + 1}. ` +
-                `[${memory.category}] ` +
-                `${memory.content}`
-            );
+                return (
+                    `${index + 1}. ` +
+                    `[${memory.category}] ` +
+                    `${memory.content}`
+                );
 
-        })
+            }
+        )
         .join("\n");
 }
 
 
-/* ================================
-   Geminiへ送る最終テキスト
-   ================================ */
+/* =========================================================
+   Gemini Prompt
+   ========================================================= */
 
 function buildGeminiPrompt(text) {
 
     const memoryContext =
         buildMemoryContext();
+
 
     return `
 あなたは真人さん専用のAIアシスタント、J.A.R.V.I.S.です。
@@ -624,24 +974,30 @@ ${text}
 }
 
 
-/* ================================
-   長期記憶を保存
-   ================================ */
+/* =========================================================
+   Save Memory
+   ========================================================= */
 
 async function saveMemory(memory) {
 
-    if (!memory || !memory.shouldSave) {
+    if (
+        !memory ||
+        !memory.shouldSave
+    ) {
         return false;
     }
+
 
     const content =
         typeof memory.content === "string"
             ? memory.content.trim()
             : "";
 
+
     if (!content) {
         return false;
     }
+
 
     const category =
         [
@@ -650,12 +1006,17 @@ async function saveMemory(memory) {
             "work",
             "family",
             "goal"
-        ].includes(memory.category)
+        ].includes(
+            memory.category
+        )
             ? memory.category
             : "personal";
 
+
     const importance =
-        Number.isInteger(memory.importance)
+        Number.isInteger(
+            memory.importance
+        )
             ? Math.min(
                 5,
                 Math.max(
@@ -665,36 +1026,47 @@ async function saveMemory(memory) {
             )
             : 1;
 
+
     try {
 
         const response =
-            await fetch("/api/memory", {
+            await fetch(
+                "/api/memory",
+                {
 
-                method: "POST",
+                    method: "POST",
 
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
-                body: JSON.stringify({
-                    category: category,
-                    content: content,
-                    importance: importance
-                })
-            });
+                    body: JSON.stringify({
+                        category,
+                        content,
+                        importance
+                    })
+                }
+            );
+
 
         const data =
             await response.json();
 
-        if (!response.ok || !data.ok) {
+
+        if (
+            !response.ok ||
+            !data.ok
+        ) {
 
             throw new Error(
-                getErrorMessage(data.error) ||
+                getErrorMessage(
+                    data.error
+                ) ||
                 "Memory save error"
             );
-
         }
+
 
         await loadMemories();
 
@@ -712,19 +1084,21 @@ async function saveMemory(memory) {
 }
 
 
-/* ================================
+/* =========================================================
    PCM → WAV
-   ================================ */
+   ========================================================= */
 
 function pcmToWav(base64) {
 
     const binary =
         atob(base64);
 
+
     const pcm =
         new Uint8Array(
             binary.length
         );
+
 
     for (
         let i = 0;
@@ -734,29 +1108,44 @@ function pcmToWav(base64) {
 
         pcm[i] =
             binary.charCodeAt(i);
-
     }
 
-    const sampleRate = 24000;
-    const channels = 1;
-    const bitsPerSample = 16;
+
+    const sampleRate =
+        24000;
+
+    const channels =
+        1;
+
+    const bitsPerSample =
+        16;
+
 
     const byteRate =
         sampleRate *
         channels *
-        bitsPerSample / 8;
+        bitsPerSample /
+        8;
+
 
     const blockAlign =
         channels *
-        bitsPerSample / 8;
+        bitsPerSample /
+        8;
+
 
     const buffer =
         new ArrayBuffer(
-            44 + pcm.length
+            44 +
+            pcm.length
         );
 
+
     const view =
-        new DataView(buffer);
+        new DataView(
+            buffer
+        );
+
 
     function writeString(
         offset,
@@ -773,11 +1162,15 @@ function pcmToWav(base64) {
                 offset + i,
                 string.charCodeAt(i)
             );
-
         }
     }
 
-    writeString(0, "RIFF");
+
+    writeString(
+        0,
+        "RIFF"
+    );
+
 
     view.setUint32(
         4,
@@ -785,14 +1178,25 @@ function pcmToWav(base64) {
         true
     );
 
-    writeString(8, "WAVE");
-    writeString(12, "fmt ");
+
+    writeString(
+        8,
+        "WAVE"
+    );
+
+
+    writeString(
+        12,
+        "fmt "
+    );
+
 
     view.setUint32(
         16,
         16,
         true
     );
+
 
     view.setUint16(
         20,
@@ -800,11 +1204,13 @@ function pcmToWav(base64) {
         true
     );
 
+
     view.setUint16(
         22,
         channels,
         true
     );
+
 
     view.setUint32(
         24,
@@ -812,11 +1218,13 @@ function pcmToWav(base64) {
         true
     );
 
+
     view.setUint32(
         28,
         byteRate,
         true
     );
+
 
     view.setUint16(
         32,
@@ -824,16 +1232,19 @@ function pcmToWav(base64) {
         true
     );
 
+
     view.setUint16(
         34,
         bitsPerSample,
         true
     );
 
+
     writeString(
         36,
         "data"
     );
+
 
     view.setUint32(
         40,
@@ -841,23 +1252,26 @@ function pcmToWav(base64) {
         true
     );
 
+
     new Uint8Array(
         buffer,
         44
     ).set(pcm);
 
+
     return new Blob(
         [buffer],
         {
-            type: "audio/wav"
+            type:
+                "audio/wav"
         }
     );
 }
 
 
-/* ================================
-   音声認識開始
-   ================================ */
+/* =========================================================
+   Listening
+   ========================================================= */
 
 function startListening() {
 
@@ -865,17 +1279,22 @@ function startListening() {
         return;
     }
 
+
     if (currentMode === "text") {
         return;
     }
+
 
     if (recognitionRunning) {
         return;
     }
 
+
     if (!recognition) {
 
-        if (currentMode === "auto") {
+        if (
+            currentMode === "auto"
+        ) {
 
             textArea.style.display =
                 "block";
@@ -889,19 +1308,23 @@ function startListening() {
             return;
         }
 
+
         status.textContent =
             "音声認識を初期化できません";
 
         return;
     }
 
+
     try {
 
         status.textContent =
             "聞いています…";
 
+
         recognitionRunning =
             true;
+
 
         recognition.start();
 
@@ -910,69 +1333,85 @@ function startListening() {
         recognitionRunning =
             false;
 
+
         status.textContent =
             "音声認識開始エラー：" +
-            getErrorMessage(error);
+            getErrorMessage(
+                error
+            );
     }
 }
 
 
-/* ================================
+/* =========================================================
    Gemini TTS
-   ================================ */
+   ========================================================= */
 
 async function speakWithGemini(text) {
 
     status.textContent =
         "J.A.R.V.I.S. 音声生成中…";
 
+
     diagnostic.style.display =
         "none";
+
 
     diagnostic.textContent =
         "";
 
+
     const controller =
         new AbortController();
 
+
     const timeout =
-        setTimeout(() => {
+        setTimeout(
+            () => {
+                controller.abort();
+            },
+            240000
+        );
 
-            controller.abort();
-
-        }, 240000);
 
     try {
 
         const response =
-            await fetch("/api/tts", {
+            await fetch(
+                "/api/tts",
+                {
 
-                method: "POST",
+                    method: "POST",
 
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
-                body: JSON.stringify({
-                    text: text
-                }),
+                    body: JSON.stringify({
+                        text
+                    }),
 
-                signal:
-                    controller.signal
+                    signal:
+                        controller.signal
+                }
+            );
 
-            });
 
         clearTimeout(timeout);
+
 
         const data =
             await response.json();
 
 
-        if (data.diagnostic === true) {
+        if (
+            data.diagnostic === true
+        ) {
 
             status.textContent =
                 "TTS診断完了";
+
 
             diagnostic.textContent =
                 JSON.stringify(
@@ -981,8 +1420,10 @@ async function speakWithGemini(text) {
                     2
                 );
 
+
             diagnostic.style.display =
                 "block";
+
 
             return false;
         }
@@ -991,11 +1432,12 @@ async function speakWithGemini(text) {
         if (!response.ok) {
 
             throw new Error(
-                getErrorMessage(data.error) ||
+                getErrorMessage(
+                    data.error
+                ) ||
                 "TTS HTTP " +
                 response.status
             );
-
         }
 
 
@@ -1004,15 +1446,18 @@ async function speakWithGemini(text) {
             throw new Error(
                 "音声データがありません"
             );
-
         }
 
 
         const wav =
-            pcmToWav(data.audio);
+            pcmToWav(
+                data.audio
+            );
+
 
         const arrayBuffer =
             await wav.arrayBuffer();
+
 
         const audioBuffer =
             await audioContext.decodeAudioData(
@@ -1026,14 +1471,15 @@ async function speakWithGemini(text) {
                 currentSource.stop();
             } catch (e) {}
 
-            currentSource = null;
+            currentSource =
+                null;
         }
 
 
         /*
-         * ================================
-         * J.A.R.V.I.S. 音声後処理
-         * ================================
+         * =================================================
+         * FINAL J.A.R.V.I.S. VOICE ENGINE
+         * =================================================
          */
 
         const processing =
@@ -1045,13 +1491,15 @@ async function speakWithGemini(text) {
         currentSource =
             audioContext.createBufferSource();
 
+
         currentSource.buffer =
             audioBuffer;
 
 
         /*
-         * TTS音声を直接再生せず、
-         * 後処理チェーンへ送る。
+         * Charonを直接再生しない。
+         *
+         * 必ず全音声処理を通過させる。
          */
 
         currentSource.connect(
@@ -1059,23 +1507,27 @@ async function speakWithGemini(text) {
         );
 
 
-        await new Promise(resolve => {
+        await new Promise(
+            resolve => {
 
-            currentSource.onended =
-                () => {
+                currentSource.onended =
+                    () => {
 
-                    currentSource = null;
+                        currentSource =
+                            null;
 
-                    resolve();
+                        resolve();
+                    };
 
-                };
 
-            status.textContent =
-                "J.A.R.V.I.S. 発話中…";
+                status.textContent =
+                    "J.A.R.V.I.S. 発話中…";
 
-            currentSource.start();
 
-        });
+                currentSource.start();
+            }
+        );
+
 
         return true;
 
@@ -1083,19 +1535,21 @@ async function speakWithGemini(text) {
 
         clearTimeout(timeout);
 
+
         console.error(
             "TTS error:",
             error
         );
+
 
         return false;
     }
 }
 
 
-/* ================================
-   Gemini処理
-   ================================ */
+/* =========================================================
+   Gemini
+   ========================================================= */
 
 async function sendToGemini(text) {
 
@@ -1104,9 +1558,11 @@ async function sendToGemini(text) {
             ? text.trim()
             : "";
 
+
     if (!cleanText) {
         return;
     }
+
 
     if (!conversationActive) {
         return;
@@ -1122,12 +1578,14 @@ async function sendToGemini(text) {
         const controller =
             new AbortController();
 
+
         const timeout =
-            setTimeout(() => {
-
-                controller.abort();
-
-            }, 240000);
+            setTimeout(
+                () => {
+                    controller.abort();
+                },
+                240000
+            );
 
 
         const response =
@@ -1151,12 +1609,10 @@ async function sendToGemini(text) {
 
                         previousInteractionId:
                             previousInteractionId
-
                     }),
 
                     signal:
                         controller.signal
-
                 }
             );
 
@@ -1177,7 +1633,6 @@ async function sendToGemini(text) {
                 "Gemini HTTP " +
                 response.status
             );
-
         }
 
 
@@ -1186,25 +1641,15 @@ async function sendToGemini(text) {
             throw new Error(
                 "Geminiから回答テキストがありません"
             );
-
         }
 
-
-        /* ================================
-           短期会話ID更新
-           ================================ */
 
         if (data.interactionId) {
 
             previousInteractionId =
                 data.interactionId;
-
         }
 
-
-        /* ================================
-           長期記憶
-           ================================ */
 
         if (
             data.memory &&
@@ -1240,23 +1685,16 @@ async function sendToGemini(text) {
                         500
                     )
             );
-
         }
 
-
-        /* ================================
-           回答表示
-           ================================ */
 
         responseArea.textContent =
             data.text;
 
 
-        /* ================================
-           TEXTモード
-           ================================ */
-
-        if (currentMode === "text") {
+        if (
+            currentMode === "text"
+        ) {
 
             status.textContent =
                 "回答完了";
@@ -1264,10 +1702,6 @@ async function sendToGemini(text) {
             return;
         }
 
-
-        /* ================================
-           VOICE / AUTO
-           ================================ */
 
         status.textContent =
             "J.A.R.V.I.S. 音声生成中…";
@@ -1279,10 +1713,6 @@ async function sendToGemini(text) {
             );
 
 
-        /* ================================
-           TTS失敗時
-           ================================ */
-
         if (!spoken) {
 
             status.textContent =
@@ -1291,10 +1721,6 @@ async function sendToGemini(text) {
             return;
         }
 
-
-        /* ================================
-           次の入力
-           ================================ */
 
         if (conversationActive) {
 
@@ -1312,6 +1738,7 @@ async function sendToGemini(text) {
 
 
             if (conversationActive) {
+
                 startListening();
             }
         }
@@ -1330,24 +1757,26 @@ async function sendToGemini(text) {
 
             status.textContent =
                 "エラー：" +
-                getErrorMessage(error);
-
+                getErrorMessage(
+                    error
+                );
         }
     }
 }
 
 
-/* ================================
-   音声認識初期化
-   ================================ */
+/* =========================================================
+   Speech Recognition
+   ========================================================= */
 
 if (!SpeechRecognition) {
 
-    if (currentMode === "voice") {
+    if (
+        currentMode === "voice"
+    ) {
 
         status.textContent =
             "音声認識に対応していません";
-
     }
 
 } else {
@@ -1355,19 +1784,18 @@ if (!SpeechRecognition) {
     recognition =
         new SpeechRecognition();
 
+
     recognition.lang =
         "ja-JP";
+
 
     recognition.continuous =
         false;
 
+
     recognition.interimResults =
         false;
 
-
-    /* ================================
-       音声認識結果
-       ================================ */
 
     recognition.onresult =
         async (event) => {
@@ -1375,8 +1803,10 @@ if (!SpeechRecognition) {
             recognitionRunning =
                 false;
 
+
             const text =
-                event.results[0][0].transcript;
+                event.results[0][0]
+                    .transcript;
 
 
             status.textContent =
@@ -1399,13 +1829,11 @@ if (!SpeechRecognition) {
             }
 
 
-            await sendToGemini(text);
+            await sendToGemini(
+                text
+            );
         };
 
-
-    /* ================================
-       音声認識エラー
-       ================================ */
 
     recognition.onerror =
         (event) => {
@@ -1415,7 +1843,8 @@ if (!SpeechRecognition) {
 
 
             if (
-                currentMode === "auto"
+                currentMode ===
+                "auto"
             ) {
 
                 textArea.style.display =
@@ -1438,41 +1867,36 @@ if (!SpeechRecognition) {
 
             if (
                 conversationActive &&
-                event.error !== "not-allowed" &&
-                event.error !== "service-not-allowed"
+                event.error !==
+                    "not-allowed" &&
+                event.error !==
+                    "service-not-allowed"
             ) {
 
-                setTimeout(() => {
+                setTimeout(
+                    () => {
 
-                    startListening();
+                        startListening();
 
-                }, 500);
-
+                    },
+                    500
+                );
             }
         };
 
-
-    /* ================================
-       音声認識終了
-       ================================ */
 
     recognition.onend =
         () => {
 
             recognitionRunning =
                 false;
-
-            // J.A.R.V.I.S.発話後の
-            // 自動再開は sendToGemini() が担当する。
-            // ここでは勝手に再開しない。
         };
-
 }
 
 
-/* ================================
-   会話開始 / 終了
-   ================================ */
+/* =========================================================
+   Conversation
+   ========================================================= */
 
 button.addEventListener(
     "click",
@@ -1485,8 +1909,8 @@ button.addEventListener(
                     window.AudioContext ||
                     window.webkitAudioContext
                 )();
-
         }
+
 
         await audioContext.resume();
 
@@ -1502,8 +1926,8 @@ button.addEventListener(
                 try {
                     recognition.stop();
                 } catch (e) {}
-
             }
+
 
             recognitionRunning =
                 false;
@@ -1515,7 +1939,8 @@ button.addEventListener(
                     currentSource.stop();
                 } catch (e) {}
 
-                currentSource = null;
+                currentSource =
+                    null;
             }
 
 
@@ -1526,10 +1951,12 @@ button.addEventListener(
             status.textContent =
                 "待機中";
 
+
             button.textContent =
                 currentMode === "auto"
                     ? "⚡ AUTO"
                     : "🎙️ 話す";
+
 
             return;
         }
@@ -1555,14 +1982,13 @@ button.addEventListener(
 
 
         startListening();
-
     }
 );
 
 
-/* ================================
-   TEXT送信
-   ================================ */
+/* =========================================================
+   Text
+   ========================================================= */
 
 sendButton.addEventListener(
     "click",
@@ -1570,6 +1996,7 @@ sendButton.addEventListener(
 
         const text =
             textInput.value.trim();
+
 
         if (!text) {
             return;
@@ -1592,14 +2019,16 @@ sendButton.addEventListener(
             "";
 
 
-        await sendToGemini(text);
+        await sendToGemini(
+            text
+        );
     }
 );
 
 
-/* ================================
-   Enter送信
-   ================================ */
+/* =========================================================
+   Enter
+   ========================================================= */
 
 textInput.addEventListener(
     "keydown",
@@ -1618,9 +2047,9 @@ textInput.addEventListener(
 );
 
 
-/* ================================
-   モードボタン
-   ================================ */
+/* =========================================================
+   Mode Buttons
+   ========================================================= */
 
 modeButtons.forEach(
     (modeButton) => {
@@ -1632,19 +2061,19 @@ modeButtons.forEach(
                 setMode(
                     modeButton.dataset.mode
                 );
-
             }
         );
-
     }
 );
 
 
-/* ================================
-   初期化
-   ================================ */
+/* =========================================================
+   Initial
+   ========================================================= */
 
-setMode("voice");
+setMode(
+    "voice"
+);
 
 loadMemories();
 
