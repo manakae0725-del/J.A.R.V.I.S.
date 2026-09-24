@@ -31,6 +31,92 @@ export default async function handler(req, res) {
     const sources = [];
 
     // ==========================================
+    // Weather Detection
+    // ==========================================
+
+    const weatherKeywords = [
+      "天気",
+      "気温",
+      "降水確率",
+      "雨降る",
+      "雨は降る",
+      "雪降る",
+      "雪は降る",
+      "最高気温",
+      "最低気温",
+      "傘",
+      "晴れる",
+      "天候",
+    ];
+
+    const isWeatherQuestion = weatherKeywords.some(
+      (keyword) => text.includes(keyword)
+    );
+
+    // ==========================================
+    // Weather Search Query
+    // ==========================================
+
+    let searchQuery = text;
+
+    if (isWeatherQuestion) {
+      let location = "札幌市";
+
+      const locationPatterns = [
+        /([一-龯ぁ-んァ-ヶ]+市)/,
+        /([一-龯ぁ-んァ-ヶ]+区)/,
+        /(東京|大阪|京都|名古屋|福岡|仙台|横浜|川崎|神戸|広島|千葉|埼玉|札幌|旭川|函館|帯広|釧路|小樽)/,
+      ];
+
+      for (const pattern of locationPatterns) {
+        const match = text.match(pattern);
+
+        if (match?.[1]) {
+          location = match[1];
+
+          if (
+            !location.endsWith("市") &&
+            !location.endsWith("区")
+          ) {
+            location += "市";
+          }
+
+          break;
+        }
+      }
+
+      let day = "今日";
+
+      if (
+        text.includes("明日") ||
+        text.includes("あした")
+      ) {
+        day = "明日";
+      } else if (
+        text.includes("明後日") ||
+        text.includes("あさって")
+      ) {
+        day = "明後日";
+      } else if (
+        text.includes("現在") ||
+        text.includes("今")
+      ) {
+        day = "現在";
+      } else if (
+        text.includes("今週")
+      ) {
+        day = "今週";
+      }
+
+      searchQuery = `${location} 天気 ${day}`;
+
+      console.log(
+        "Weather search query:",
+        searchQuery
+      );
+    }
+
+    // ==========================================
     // Serper Search
     // ==========================================
 
@@ -45,10 +131,10 @@ export default async function handler(req, res) {
               "X-API-KEY": serperKey,
             },
             body: JSON.stringify({
-              q: text,
+              q: searchQuery,
               gl: "jp",
               hl: "ja",
-              num: 8,
+              num: isWeatherQuestion ? 10 : 8,
             }),
           }
         );
@@ -56,7 +142,10 @@ export default async function handler(req, res) {
         if (response.ok) {
           const data = await response.json();
 
+          // ======================================
           // Answer Box
+          // ======================================
+
           if (data.answerBox) {
             searchContext += `
 [Serper Answer Box]
@@ -64,7 +153,10 @@ ${JSON.stringify(data.answerBox)}
 `;
           }
 
+          // ======================================
           // Knowledge Graph
+          // ======================================
+
           if (data.knowledgeGraph) {
             searchContext += `
 [Serper Knowledge Graph]
@@ -72,7 +164,21 @@ ${JSON.stringify(data.knowledgeGraph)}
 `;
           }
 
-          // Organic results
+          // ======================================
+          // Weather
+          // ======================================
+
+          if (data.weather) {
+            searchContext += `
+[Serper Weather]
+${JSON.stringify(data.weather)}
+`;
+          }
+
+          // ======================================
+          // Organic Results
+          // ======================================
+
           if (Array.isArray(data.organic)) {
             for (const result of data.organic) {
               if (!result?.link) continue;
@@ -110,7 +216,7 @@ Snippet: ${snippet}
     }
 
     // ==========================================
-    // Tavily fallback
+    // Tavily Fallback
     // ==========================================
 
     if (!searchContext && tavilyKey) {
@@ -124,10 +230,14 @@ Snippet: ${snippet}
               Authorization: `Bearer ${tavilyKey}`,
             },
             body: JSON.stringify({
-              query: text,
+              query: searchQuery,
               topic: "general",
-              search_depth: "basic",
-              max_results: 5,
+              search_depth: isWeatherQuestion
+                ? "advanced"
+                : "basic",
+              max_results: isWeatherQuestion
+                ? 8
+                : 5,
               include_answer: true,
               include_raw_content: false,
             }),
@@ -149,7 +259,9 @@ ${data.answer}
               if (!result?.url) continue;
 
               sources.push({
-                title: result.title || result.url,
+                title:
+                  result.title ||
+                  result.url,
                 url: result.url,
                 source: "tavily",
               });
@@ -162,6 +274,11 @@ Content: ${result.content || ""}
 `;
             }
           }
+        } else {
+          console.error(
+            "Tavily HTTP error:",
+            response.status
+          );
         }
       } catch (error) {
         console.error(
@@ -199,13 +316,35 @@ SEARCH INSTRUCTIONS
 
 - Web検索結果を必ず確認してください。
 - ユーザーの質問に検索結果が関係する場合、検索結果を利用して回答してください。
-- 「今日」「現在」「最新」「今」など時間依存の質問では、検索結果を優先してください。
+- 「今日」「現在」「最新」「今」「明日」など時間依存の質問では、検索結果を優先してください。
+- 天気に関する質問では、検索結果内の天気情報を最優先してください。
+- 天気情報が複数存在する場合は、場所と日付が一致する情報を優先してください。
+- 気温、最高気温、最低気温、降水確率、天候など、検索結果に存在する具体的な情報を使用してください。
 - 検索結果に存在しない情報を、検索結果から得た情報として扱わないでください。
 - 複数の検索結果がある場合は内容を比較してください。
 - 情報が不足している場合は、不足していると明示してください。
 - 日本語で回答してください。
 - 簡潔かつ自然なJ.A.R.V.I.S.口調で回答してください。
 `;
+
+      if (isWeatherQuestion) {
+        geminiInput += `
+
+==============================
+WEATHER INSTRUCTIONS
+==============================
+
+これは天気関連の質問です。
+
+- 検索結果に含まれる天気情報を確認してください。
+- 地域が明示されている場合、その地域を優先してください。
+- 地域が明示されていない場合は、検索クエリで使用した地域を基準にしてください。
+- 「今日」「明日」「現在」などの日付・時間を必ず確認してください。
+- 現在取得できた検索結果だけを根拠に回答してください。
+- 「最新の天気データを取得できませんでした」とだけ回答するのは禁止です。
+- 検索結果から判断可能な情報がある場合は、具体的に回答してください。
+`;
+      }
     }
 
     // ==========================================
