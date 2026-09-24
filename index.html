@@ -1126,12 +1126,14 @@ async function sendToGemini(text) {
                 resolve =>
                     setTimeout(
                         resolve,
-                        300
+                        150
                     )
             );
 
 
-            startListening();
+            if (conversationActive) {
+                startListening();
+            }
         }
 
     } catch (error) {
@@ -1280,6 +1282,9 @@ if (!SpeechRecognition) {
             recognitionRunning =
                 false;
 
+            // J.A.R.V.I.S.発話後の
+            // 自動再開は sendToGemini() が担当する。
+            // ここでは勝手に再開しない。
         };
 
 }
