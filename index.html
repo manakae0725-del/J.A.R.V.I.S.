@@ -89,10 +89,6 @@ let conversationActive = false;
 let recognitionRunning = false;
 let recognition = null;
 
-/* ================================
-   長期記憶
-   ================================ */
-
 let memories = [];
 
 
@@ -193,90 +189,88 @@ function buildMemoryContext() {
 
 
 /* ================================
-   「覚えて」系の発言を判定
+   Geminiへ送る最終テキスト
    ================================ */
 
-function isMemoryRequest(text) {
+function buildGeminiPrompt(text) {
 
-    const patterns = [
-        "覚えて",
-        "記憶して",
-        "記憶に入れて",
-        "記憶に残して",
-        "覚えといて",
-        "覚えておいて",
-        "忘れないで"
-    ];
+    const memoryContext =
+        buildMemoryContext();
 
-    return patterns.some(
-        pattern => text.includes(pattern)
-    );
+    return `
+あなたは真人さん専用のAIアシスタント、J.A.R.V.I.S.です。
+
+以下は真人さんについて保存されている長期記憶です。
+今回の会話に関連する場合のみ自然に利用してください。
+記憶にないことは推測しないでください。
+
+--- 長期記憶 ---
+${memoryContext}
+--- 長期記憶ここまで ---
+
+今回の真人さんの発言：
+${text}
+
+以下のルールで判断してください。
+
+1. 真人さんの発言への自然な回答を「reply」に入れてください。
+2. 今後の会話でも長期的に役立つ情報なら「memory.shouldSave」をtrueにしてください。
+3. 一時的な発言、雑談、その場限りの情報は保存しないでください。
+4. 「覚えて」「記憶して」など明示的に保存を求められた場合は、保存対象として扱ってください。
+5. 保存する場合は、発言そのものではなく、今後利用しやすい簡潔な事実として「memory.content」にしてください。
+6. カテゴリは以下から選択してください。
+   - personal
+   - preference
+   - work
+   - family
+   - goal
+7. 重要度は1〜5で設定してください。
+8. 保存しない場合は「memory.shouldSave」をfalseにしてください。
+9. 保存しない場合でも「reply」は通常どおり自然に回答してください。
+`;
 }
 
 
 /* ================================
-   記憶カテゴリ判定
+   長期記憶を保存
    ================================ */
 
-function detectMemoryCategory(text) {
+async function saveMemory(memory) {
 
-    if (
-        text.includes("好き") ||
-        text.includes("嫌い") ||
-        text.includes("好み") ||
-        text.includes("好きな")
-    ) {
-        return "preference";
+    if (!memory || !memory.shouldSave) {
+        return false;
     }
-
-    if (
-        text.includes("仕事") ||
-        text.includes("美容師") ||
-        text.includes("サロン") ||
-        text.includes("職場")
-    ) {
-        return "work";
-    }
-
-    if (
-        text.includes("目標") ||
-        text.includes("予定") ||
-        text.includes("計画")
-    ) {
-        return "goal";
-    }
-
-    if (
-        text.includes("家族") ||
-        text.includes("妻") ||
-        text.includes("娘") ||
-        text.includes("母")
-    ) {
-        return "family";
-    }
-
-    return "personal";
-}
-
-
-/* ================================
-   記憶内容を保存
-   ================================ */
-
-async function saveMemory(text) {
-
-    const category =
-        detectMemoryCategory(text);
 
     const content =
-        text
-            .replace(/^.*?(覚えて|記憶して|記憶に入れて|記憶に残して|覚えといて|覚えておいて|忘れないで)/, "")
-            .trim()
-            .replace(/^[、。\s]+/, "");
+        typeof memory.content === "string"
+            ? memory.content.trim()
+            : "";
 
     if (!content) {
         return false;
     }
+
+    const category =
+        [
+            "personal",
+            "preference",
+            "work",
+            "family",
+            "goal"
+        ].includes(memory.category)
+            ? memory.category
+            : "personal";
+
+    const importance =
+        Number.isInteger(memory.importance)
+            ? Math.min(
+                5,
+                Math.max(
+                    1,
+                    memory.importance
+                )
+            )
+            : 1;
 
     try {
 
@@ -293,7 +287,7 @@ async function saveMemory(text) {
                 body: JSON.stringify({
                     category: category,
                     content: content,
-                    importance: 3
+                    importance: importance
                 })
             });
 
@@ -321,32 +315,6 @@ async function saveMemory(text) {
 
         return false;
     }
-}
-
-
-/* ================================
-   Geminiへ送る最終テキスト
-   ================================ */
-
-function buildGeminiPrompt(text) {
-
-    const memoryContext =
-        buildMemoryContext();
-
-    return `
-あなたはJ.A.R.V.I.S.です。
-
-以下は真人さんについて保存されている長期記憶です。
-回答に関連する場合のみ自然に利用してください。
-記憶にないことは推測せず、分からない場合は分からないと答えてください。
-
---- 長期記憶 ---
-${memoryContext}
---- 長期記憶ここまで ---
-
-今回の真人さんの発言：
-${text}
-`;
 }
 
 
@@ -733,8 +701,6 @@ if (!SpeechRecognition) {
             }
 
 
-            /* 会話開始時に最新記憶を取得 */
-
             status.textContent =
                 "記憶を読み込んでいます…";
 
@@ -777,44 +743,6 @@ if (!SpeechRecognition) {
 
 
             if (!conversationActive) {
-                return;
-            }
-
-
-            /* ================================
-               明示的な記憶保存
-               ================================ */
-
-            if (isMemoryRequest(text)) {
-
-                status.textContent =
-                    "記憶しています…";
-
-                const saved =
-                    await saveMemory(text);
-
-                if (saved) {
-
-                    status.textContent =
-                        "記憶しました";
-
-                } else {
-
-                    status.textContent =
-                        "記憶の保存に失敗しました";
-                }
-
-
-                if (conversationActive) {
-
-                    await new Promise(
-                        resolve =>
-                            setTimeout(resolve, 500)
-                    );
-
-                    startListening();
-                }
-
                 return;
             }
 
@@ -884,6 +812,48 @@ if (!SpeechRecognition) {
                     );
                 }
 
+
+                /* ================================
+                   Geminiの記憶判断
+                   ================================ */
+
+                if (
+                    data.memory &&
+                    data.memory.shouldSave === true
+                ) {
+
+                    status.textContent =
+                        "記憶しています…";
+
+                    const saved =
+                        await saveMemory(
+                            data.memory
+                        );
+
+                    if (saved) {
+
+                        status.textContent =
+                            "記憶しました";
+
+                    } else {
+
+                        status.textContent =
+                            "記憶の保存に失敗しました";
+                    }
+
+                    await new Promise(
+                        resolve =>
+                            setTimeout(
+                                resolve,
+                                500
+                            )
+                    );
+                }
+
+
+                /* ================================
+                   Gemini回答
+                   ================================ */
 
                 status.textContent =
                     "J.A.R.V.I.S.：「" +
