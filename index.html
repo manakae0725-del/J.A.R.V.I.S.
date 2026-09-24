@@ -231,6 +231,168 @@ let currentMode = "voice";
 
 
 /* ================================
+   J.A.R.V.I.S. 音声後処理設定
+   ================================ */
+
+const VOICE_PROCESSING = {
+
+    // 声の不要な低域を軽く整理
+    highpassFrequency: 65,
+
+    // 高域を削りすぎない
+    lowpassFrequency: 14500,
+
+    // ごく薄いSaturation
+    saturationAmount: 0.025,
+
+    // 音量の安定化
+    compressorThreshold: -18,
+    compressorKnee: 12,
+    compressorRatio: 2.2,
+    compressorAttack: 0.008,
+    compressorRelease: 0.12,
+
+    // 最終出力
+    outputGain: 0.92
+};
+
+
+/* ================================
+   軽いSaturation用WaveShaper
+   ================================ */
+
+function createVoiceSaturation(context) {
+
+    const shaper =
+        context.createWaveShaper();
+
+    const amount =
+        VOICE_PROCESSING.saturationAmount;
+
+    const samples = 2048;
+
+    const curve =
+        new Float32Array(samples);
+
+    for (
+        let i = 0;
+        i < samples;
+        i++
+    ) {
+
+        const x =
+            (i * 2) / (samples - 1) - 1;
+
+        curve[i] =
+            Math.tanh(
+                x * (1 + amount * 8)
+            ) /
+            Math.tanh(
+                1 + amount * 8
+            );
+    }
+
+    shaper.curve = curve;
+
+    shaper.oversample = "2x";
+
+    return shaper;
+}
+
+
+/* ================================
+   J.A.R.V.I.S. 音声処理チェーン
+   ================================ */
+
+function createVoiceProcessingChain(context) {
+
+    const highpass =
+        context.createBiquadFilter();
+
+    highpass.type =
+        "highpass";
+
+    highpass.frequency.value =
+        VOICE_PROCESSING.highpassFrequency;
+
+    highpass.Q.value =
+        0.7;
+
+
+    const lowpass =
+        context.createBiquadFilter();
+
+    lowpass.type =
+        "lowpass";
+
+    lowpass.frequency.value =
+        VOICE_PROCESSING.lowpassFrequency;
+
+    lowpass.Q.value =
+        0.35;
+
+
+    const saturation =
+        createVoiceSaturation(
+            context
+        );
+
+
+    const compressor =
+        context.createDynamicsCompressor();
+
+    compressor.threshold.value =
+        VOICE_PROCESSING.compressorThreshold;
+
+    compressor.knee.value =
+        VOICE_PROCESSING.compressorKnee;
+
+    compressor.ratio.value =
+        VOICE_PROCESSING.compressorRatio;
+
+    compressor.attack.value =
+        VOICE_PROCESSING.compressorAttack;
+
+    compressor.release.value =
+        VOICE_PROCESSING.compressorRelease;
+
+
+    const outputGain =
+        context.createGain();
+
+    outputGain.gain.value =
+        VOICE_PROCESSING.outputGain;
+
+
+    highpass.connect(
+        lowpass
+    );
+
+    lowpass.connect(
+        saturation
+    );
+
+    saturation.connect(
+        compressor
+    );
+
+    compressor.connect(
+        outputGain
+    );
+
+    outputGain.connect(
+        context.destination
+    );
+
+
+    return {
+        input: highpass,
+        output: outputGain
+    };
+}
+
+
+/* ================================
    エラーを安全に文字列化
    ================================ */
 
@@ -868,14 +1030,32 @@ async function speakWithGemini(text) {
         }
 
 
+        /*
+         * ================================
+         * J.A.R.V.I.S. 音声後処理
+         * ================================
+         */
+
+        const processing =
+            createVoiceProcessingChain(
+                audioContext
+            );
+
+
         currentSource =
             audioContext.createBufferSource();
 
         currentSource.buffer =
             audioBuffer;
 
+
+        /*
+         * TTS音声を直接再生せず、
+         * 後処理チェーンへ送る。
+         */
+
         currentSource.connect(
-            audioContext.destination
+            processing.input
         );
 
 
