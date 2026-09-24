@@ -74,13 +74,20 @@ button:active {
 
 <script>
 
-const button = document.getElementById("talkButton");
-const status = document.getElementById("status");
-const diagnostic = document.getElementById("diagnostic");
+const button =
+    document.getElementById("talkButton");
+
+const status =
+    document.getElementById("status");
+
+const diagnostic =
+    document.getElementById("diagnostic");
+
 
 const SpeechRecognition =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
+
 
 let audioContext = null;
 let currentSource = null;
@@ -90,6 +97,13 @@ let recognitionRunning = false;
 let recognition = null;
 
 let memories = [];
+
+
+/* ================================
+   短期会話コンテキスト
+   ================================ */
+
+let previousInteractionId = null;
 
 
 /* ================================
@@ -136,10 +150,12 @@ async function loadMemories() {
             await response.json();
 
         if (!response.ok || !data.ok) {
+
             throw new Error(
                 getErrorMessage(data.error) ||
                 "Memory GET error"
             );
+
         }
 
         memories =
@@ -172,6 +188,7 @@ function buildMemoryContext() {
     if (!memories.length) {
 
         return "現在、登録されている長期記憶はありません。";
+
     }
 
     return memories
@@ -300,6 +317,7 @@ async function saveMemory(memory) {
                 getErrorMessage(data.error) ||
                 "Memory save error"
             );
+
         }
 
         await loadMemories();
@@ -324,12 +342,23 @@ async function saveMemory(memory) {
 
 function pcmToWav(base64) {
 
-    const binary = atob(base64);
+    const binary =
+        atob(base64);
 
-    const pcm = new Uint8Array(binary.length);
+    const pcm =
+        new Uint8Array(
+            binary.length
+        );
 
-    for (let i = 0; i < binary.length; i++) {
-        pcm[i] = binary.charCodeAt(i);
+    for (
+        let i = 0;
+        i < binary.length;
+        i++
+    ) {
+
+        pcm[i] =
+            binary.charCodeAt(i);
+
     }
 
     const sampleRate = 24000;
@@ -346,14 +375,23 @@ function pcmToWav(base64) {
         bitsPerSample / 8;
 
     const buffer =
-        new ArrayBuffer(44 + pcm.length);
+        new ArrayBuffer(
+            44 + pcm.length
+        );
 
     const view =
         new DataView(buffer);
 
-    function writeString(offset, string) {
+    function writeString(
+        offset,
+        string
+    ) {
 
-        for (let i = 0; i < string.length; i++) {
+        for (
+            let i = 0;
+            i < string.length;
+            i++
+        ) {
 
             view.setUint8(
                 offset + i,
@@ -363,7 +401,10 @@ function pcmToWav(base64) {
         }
     }
 
-    writeString(0, "RIFF");
+    writeString(
+        0,
+        "RIFF"
+    );
 
     view.setUint32(
         4,
@@ -371,12 +412,33 @@ function pcmToWav(base64) {
         true
     );
 
-    writeString(8, "WAVE");
-    writeString(12, "fmt ");
+    writeString(
+        8,
+        "WAVE"
+    );
 
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, channels, true);
+    writeString(
+        12,
+        "fmt "
+    );
+
+    view.setUint32(
+        16,
+        16,
+        true
+    );
+
+    view.setUint16(
+        20,
+        1,
+        true
+    );
+
+    view.setUint16(
+        22,
+        channels,
+        true
+    );
 
     view.setUint32(
         24,
@@ -402,7 +464,10 @@ function pcmToWav(base64) {
         true
     );
 
-    writeString(36, "data");
+    writeString(
+        36,
+        "data"
+    );
 
     view.setUint32(
         40,
@@ -410,11 +475,16 @@ function pcmToWav(base64) {
         true
     );
 
-    new Uint8Array(buffer, 44).set(pcm);
+    new Uint8Array(
+        buffer,
+        44
+    ).set(pcm);
 
     return new Blob(
         [buffer],
-        { type: "audio/wav" }
+        {
+            type: "audio/wav"
+        }
     );
 }
 
@@ -470,8 +540,11 @@ async function speakWithGemini(text) {
     status.textContent =
         "J.A.R.V.I.S. 音声生成中…";
 
-    diagnostic.style.display = "none";
-    diagnostic.textContent = "";
+    diagnostic.style.display =
+        "none";
+
+    diagnostic.textContent =
+        "";
 
     const controller =
         new AbortController();
@@ -491,7 +564,8 @@ async function speakWithGemini(text) {
                 method: "POST",
 
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type":
+                        "application/json"
                 },
 
                 body: JSON.stringify({
@@ -531,8 +605,10 @@ async function speakWithGemini(text) {
 
             throw new Error(
                 getErrorMessage(data.error) ||
-                "TTS HTTP " + response.status
+                "TTS HTTP " +
+                response.status
             );
+
         }
 
 
@@ -541,6 +617,7 @@ async function speakWithGemini(text) {
             throw new Error(
                 "音声データがありません"
             );
+
         }
 
 
@@ -579,13 +656,14 @@ async function speakWithGemini(text) {
 
         await new Promise(resolve => {
 
-            currentSource.onended = () => {
+            currentSource.onended =
+                () => {
 
-                currentSource = null;
+                    currentSource = null;
 
-                resolve();
+                    resolve();
 
-            };
+                };
 
             status.textContent =
                 "J.A.R.V.I.S. 発話中…";
@@ -602,7 +680,10 @@ async function speakWithGemini(text) {
 
             await new Promise(
                 resolve =>
-                    setTimeout(resolve, 300)
+                    setTimeout(
+                        resolve,
+                        300
+                    )
             );
 
             startListening();
@@ -612,7 +693,10 @@ async function speakWithGemini(text) {
 
         clearTimeout(timeout);
 
-        if (error.name === "AbortError") {
+        if (
+            error.name ===
+            "AbortError"
+        ) {
 
             status.textContent =
                 "エラー：音声生成がタイムアウトしました";
@@ -642,9 +726,14 @@ if (!SpeechRecognition) {
     recognition =
         new SpeechRecognition();
 
-    recognition.lang = "ja-JP";
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.lang =
+        "ja-JP";
+
+    recognition.continuous =
+        false;
+
+    recognition.interimResults =
+        false;
 
 
     /* ================================
@@ -662,6 +751,7 @@ if (!SpeechRecognition) {
                         window.AudioContext ||
                         window.webkitAudioContext
                     )();
+
             }
 
             await audioContext.resume();
@@ -669,7 +759,9 @@ if (!SpeechRecognition) {
 
             if (conversationActive) {
 
-                conversationActive = false;
+                conversationActive =
+                    false;
+
 
                 if (recognitionRunning) {
 
@@ -679,7 +771,8 @@ if (!SpeechRecognition) {
 
                 }
 
-                recognitionRunning = false;
+                recognitionRunning =
+                    false;
 
 
                 if (currentSource) {
@@ -690,6 +783,15 @@ if (!SpeechRecognition) {
 
                     currentSource = null;
                 }
+
+
+                /* ================================
+                   会話コンテキストをリセット
+                   ================================ */
+
+                previousInteractionId =
+                    null;
+
 
                 status.textContent =
                     "待機中";
@@ -704,10 +806,20 @@ if (!SpeechRecognition) {
             status.textContent =
                 "記憶を読み込んでいます…";
 
+
             await loadMemories();
 
 
-            conversationActive = true;
+            /* ================================
+               新しい会話を開始
+               ================================ */
+
+            previousInteractionId =
+                null;
+
+
+            conversationActive =
+                true;
 
             button.textContent =
                 "⏹️ 終了";
@@ -725,7 +837,8 @@ if (!SpeechRecognition) {
     recognition.onresult =
         async (event) => {
 
-            recognitionRunning = false;
+            recognitionRunning =
+                false;
 
             const text =
                 event.results[0][0].transcript;
@@ -738,7 +851,10 @@ if (!SpeechRecognition) {
 
             await new Promise(
                 resolve =>
-                    setTimeout(resolve, 300)
+                    setTimeout(
+                        resolve,
+                        300
+                    )
             );
 
 
@@ -769,23 +885,34 @@ if (!SpeechRecognition) {
 
 
                 const response =
-                    await fetch("/api/gemini", {
+                    await fetch(
+                        "/api/gemini",
+                        {
 
-                        method: "POST",
+                            method: "POST",
 
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
 
-                        body: JSON.stringify({
-                            text:
-                                buildGeminiPrompt(text)
-                        }),
+                            body: JSON.stringify({
 
-                        signal: controller.signal
+                                text:
+                                    buildGeminiPrompt(
+                                        text
+                                    ),
 
-                    });
+                                previousInteractionId:
+                                    previousInteractionId
+
+                            }),
+
+                            signal:
+                                controller.signal
+
+                        }
+                    );
 
 
                 clearTimeout(timeout);
@@ -798,10 +925,13 @@ if (!SpeechRecognition) {
                 if (!response.ok) {
 
                     throw new Error(
-                        getErrorMessage(data.error) ||
+                        getErrorMessage(
+                            data.error
+                        ) ||
                         "Gemini HTTP " +
                         response.status
                     );
+
                 }
 
 
@@ -810,6 +940,21 @@ if (!SpeechRecognition) {
                     throw new Error(
                         "Geminiから回答テキストがありません"
                     );
+
+                }
+
+
+                /* ================================
+                   次回会話用IDを更新
+                   ================================ */
+
+                if (
+                    data.interactionId
+                ) {
+
+                    previousInteractionId =
+                        data.interactionId;
+
                 }
 
 
@@ -825,10 +970,12 @@ if (!SpeechRecognition) {
                     status.textContent =
                         "記憶しています…";
 
+
                     const saved =
                         await saveMemory(
                             data.memory
                         );
+
 
                     if (saved) {
 
@@ -839,7 +986,9 @@ if (!SpeechRecognition) {
 
                         status.textContent =
                             "記憶の保存に失敗しました";
+
                     }
+
 
                     await new Promise(
                         resolve =>
@@ -848,6 +997,7 @@ if (!SpeechRecognition) {
                                 500
                             )
                     );
+
                 }
 
 
@@ -896,7 +1046,8 @@ if (!SpeechRecognition) {
     recognition.onerror =
         (event) => {
 
-            recognitionRunning = false;
+            recognitionRunning =
+                false;
 
             status.textContent =
                 "音声認識エラー：" +
@@ -926,7 +1077,8 @@ if (!SpeechRecognition) {
     recognition.onend =
         () => {
 
-            recognitionRunning = false;
+            recognitionRunning =
+                false;
 
         };
 
