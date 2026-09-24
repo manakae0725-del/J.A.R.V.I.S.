@@ -88,23 +88,21 @@ export default async function handler(req, res) {
       let day = "今日";
 
       if (
-        text.includes("明日") ||
-        text.includes("あした")
-      ) {
-        day = "明日";
-      } else if (
         text.includes("明後日") ||
         text.includes("あさって")
       ) {
         day = "明後日";
       } else if (
+        text.includes("明日") ||
+        text.includes("あした")
+      ) {
+        day = "明日";
+      } else if (
         text.includes("現在") ||
         text.includes("今")
       ) {
         day = "現在";
-      } else if (
-        text.includes("今週")
-      ) {
+      } else if (text.includes("今週")) {
         day = "今週";
       }
 
@@ -142,20 +140,12 @@ export default async function handler(req, res) {
         if (response.ok) {
           const data = await response.json();
 
-          // ======================================
-          // Answer Box
-          // ======================================
-
           if (data.answerBox) {
             searchContext += `
 [Serper Answer Box]
 ${JSON.stringify(data.answerBox)}
 `;
           }
-
-          // ======================================
-          // Knowledge Graph
-          // ======================================
 
           if (data.knowledgeGraph) {
             searchContext += `
@@ -164,20 +154,12 @@ ${JSON.stringify(data.knowledgeGraph)}
 `;
           }
 
-          // ======================================
-          // Weather
-          // ======================================
-
           if (data.weather) {
             searchContext += `
 [Serper Weather]
 ${JSON.stringify(data.weather)}
 `;
           }
-
-          // ======================================
-          // Organic Results
-          // ======================================
 
           if (Array.isArray(data.organic)) {
             for (const result of data.organic) {
@@ -317,9 +299,6 @@ SEARCH INSTRUCTIONS
 - Web検索結果を必ず確認してください。
 - ユーザーの質問に検索結果が関係する場合、検索結果を利用して回答してください。
 - 「今日」「現在」「最新」「今」「明日」など時間依存の質問では、検索結果を優先してください。
-- 天気に関する質問では、検索結果内の天気情報を最優先してください。
-- 天気情報が複数存在する場合は、場所と日付が一致する情報を優先してください。
-- 気温、最高気温、最低気温、降水確率、天候など、検索結果に存在する具体的な情報を使用してください。
 - 検索結果に存在しない情報を、検索結果から得た情報として扱わないでください。
 - 複数の検索結果がある場合は内容を比較してください。
 - 情報が不足している場合は、不足していると明示してください。
@@ -331,18 +310,19 @@ SEARCH INSTRUCTIONS
         geminiInput += `
 
 ==============================
-WEATHER INSTRUCTIONS
+WEATHER RESPONSE RULES
 ==============================
 
 これは天気関連の質問です。
 
-- 検索結果に含まれる天気情報を確認してください。
-- 地域が明示されている場合、その地域を優先してください。
-- 地域が明示されていない場合は、検索クエリで使用した地域を基準にしてください。
-- 「今日」「明日」「現在」などの日付・時間を必ず確認してください。
-- 現在取得できた検索結果だけを根拠に回答してください。
-- 「最新の天気データを取得できませんでした」とだけ回答するのは禁止です。
-- 検索結果から判断可能な情報がある場合は、具体的に回答してください。
+- 検索結果に含まれる天気情報を使用してください。
+- 地域と日付が一致する情報を優先してください。
+- 回答は簡潔にしてください。
+- 天気、気温、降水確率など、質問に必要な情報だけ回答してください。
+- ユーザーから求められていない服装、傘、外出、体調などの助言はしないでください。
+- 「お出かけの際は」「傘をお持ちください」などの定型的な助言を追加しないでください。
+- 気象キャスターのような長い解説をしないでください。
+- J.A.R.V.I.S.として簡潔に回答してください。
 `;
       }
     }
