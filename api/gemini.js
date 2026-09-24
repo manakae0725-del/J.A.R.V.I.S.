@@ -1,4 +1,4 @@
- export default async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method Not Allowed",
@@ -17,36 +17,210 @@
       });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const tavilyKey = process.env.TAVILY_API_KEY;
+    const serperKey = process.env.SERPER_API_KEY;
 
-    if (!apiKey) {
+    if (!geminiKey) {
       return res.status(500).json({
         error: "GEMINI_API_KEY is not configured",
       });
     }
 
+    /*
+     * ==========================================
+     * Web Search
+     * ==========================================
+     */
+
+    let searchContext = "";
+    const sources = [];
+
+    /*
+     * ------------------------------------------
+     * Tavily
+     * ------------------------------------------
+     */
+
+    if (tavilyKey) {
+      try {
+        const tavilyResponse = await fetch(
+          "https://api.tavily.com/search",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${tavilyKey}`,
+            },
+
+            body: JSON.stringify({
+              query: text,
+              topic: "general",
+              search_depth: "basic",
+              max_results: 5,
+              include_answer: true,
+              include_raw_content: false,
+            }),
+          }
+        );
+
+        if (tavilyResponse.ok) {
+          const tavilyData =
+            await tavilyResponse.json();
+
+          if (Array.isArray(tavilyData.results)) {
+            for (const result of tavilyData.results) {
+              if (!result?.url) continue;
+
+              sources.push({
+                title:
+                  result.title ||
+                  result.url,
+
+                url:
+                  result.url,
+
+                source: "tavily"
+              });
+
+              searchContext +=
+                `\n[Tavily]\n` +
+                `Title: ${result.title || ""}\n` +
+                `URL: ${result.url}\n` +
+                `Content: ${result.content || ""}\n`;
+            }
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Tavily search error:",
+          error
+        );
+      }
+    }
+
+    /*
+     * ------------------------------------------
+     * Serper
+     * ------------------------------------------
+     */
+
+    if (serperKey) {
+      try {
+        const serperResponse = await fetch(
+          "https://google.serper.dev/search",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-KEY": serperKey,
+            },
+
+            body: JSON.stringify({
+              q: text,
+              gl: "jp",
+              hl: "ja",
+              num: 5,
+            }),
+          }
+        );
+
+        if (serperResponse.ok) {
+          const serperData =
+            await serperResponse.json();
+
+          if (
+            Array.isArray(
+              serperData.organic
+            )
+          ) {
+            for (
+              const result of
+              serperData.organic
+            ) {
+              if (!result?.link) continue;
+
+              sources.push({
+                title:
+                  result.title ||
+                  result.link,
+
+                url:
+                  result.link,
+
+                source: "serper"
+              });
+
+              searchContext +=
+                `\n[Serper]\n` +
+                `Title: ${result.title || ""}\n` +
+                `URL: ${result.link}\n` +
+                `Snippet: ${result.snippet || ""}\n`;
+            }
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Serper search error:",
+          error
+        );
+      }
+    }
+
+    /*
+     * ==========================================
+     * Gemini Input
+     * ==========================================
+     */
+
+    let geminiInput = text;
+
+    if (searchContext) {
+      geminiInput = `
+ユーザーからの質問:
+${text}
+
+以下はWeb検索で取得した最新情報です。
+必要に応じて内容を参照して回答してください。
+
+${searchContext}
+
+重要:
+- 検索結果をそのまま信じず、内容を比較・整理してください。
+- 検索結果にない情報を検索結果由来として扱わないでください。
+- 回答は日本語で行ってください。
+`;
+    }
+
+    /*
+     * ==========================================
+     * Gemini Request
+     * ==========================================
+     */
+
     const requestBody = {
       model: "gemini-3.6-flash",
 
-      input: text,
+      input: geminiInput,
 
-      /* ================================
-         Google Search
-         ================================ */
-
+      /*
+       * Google Search
+       */
       tools: [
         {
           type: "google_search"
         }
       ],
 
-      /* ================================
-         構造化出力
-         ================================ */
-
+      /*
+       * Structured Output
+       */
       response_format: {
         type: "text",
         mime_type: "application/json",
+
         schema: {
           type: "object",
 
@@ -65,6 +239,7 @@
 
                 category: {
                   type: "string",
+
                   enum: [
                     "personal",
                     "preference",
@@ -80,6 +255,7 @@
 
                 importance: {
                   type: "integer",
+
                   minimum: 1,
                   maximum: 5,
                 }
@@ -102,10 +278,11 @@
       }
     };
 
-
-    /* ================================
-       短期会話コンテキスト
-       ================================ */
+    /*
+     * ==========================================
+     * Conversation Context
+     * ==========================================
+     */
 
     if (
       previousInteractionId &&
@@ -115,10 +292,11 @@
         previousInteractionId;
     }
 
-
-    /* ================================
-       Gemini Interactions API
-       ================================ */
+    /*
+     * ==========================================
+     * Gemini Interactions API
+     * ==========================================
+     */
 
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1/interactions",
@@ -127,52 +305,52 @@
 
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
+          "x-goog-api-key": geminiKey,
         },
 
         body: JSON.stringify(requestBody)
       }
     );
 
-
     const data = await response.json();
 
-
-    /* ================================
-       Gemini APIエラー
-       ================================ */
+    /*
+     * ==========================================
+     * Gemini Error
+     * ==========================================
+     */
 
     if (!response.ok) {
-
       return res.status(response.status).json({
         error: data,
       });
-
     }
 
+    /*
+     * ==========================================
+     * Gemini Output
+     * ==========================================
+     */
 
-    /* ================================
-       Gemini出力取得
-       ================================ */
+    let outputText =
+      data.output_text;
 
-    let outputText = data.output_text;
-
-
-    if (!outputText && Array.isArray(data.steps)) {
-
+    if (
+      !outputText &&
+      Array.isArray(data.steps)
+    ) {
       for (
         let i = data.steps.length - 1;
         i >= 0;
         i--
       ) {
-
-        const step = data.steps[i];
+        const step =
+          data.steps[i];
 
         if (
           step?.type === "model_output" &&
           Array.isArray(step.content)
         ) {
-
           const textContent =
             step.content.find(
               (item) =>
@@ -181,77 +359,72 @@
             );
 
           if (textContent) {
-
             outputText =
               textContent.text;
 
             break;
-
           }
         }
       }
     }
 
-
     if (!outputText) {
-
       return res.status(500).json({
-        error: "No text response from Gemini",
+        error:
+          "No text response from Gemini",
+
         data,
       });
-
     }
 
-
-    /* ================================
-       JSON解析
-       ================================ */
+    /*
+     * ==========================================
+     * JSON Parse
+     * ==========================================
+     */
 
     let result;
 
     try {
-
       result =
         JSON.parse(outputText);
-
     } catch (error) {
-
       return res.status(500).json({
-        error: "Gemini returned invalid JSON",
+        error:
+          "Gemini returned invalid JSON",
+
         raw: outputText,
       });
-
     }
 
-
-    /* ================================
-       レスポンス構造確認
-       ================================ */
+    /*
+     * ==========================================
+     * Response Validation
+     * ==========================================
+     */
 
     if (
       !result.reply ||
       !result.memory ||
-      typeof result.memory.shouldSave !== "boolean"
+      typeof result.memory.shouldSave !==
+        "boolean"
     ) {
-
       return res.status(500).json({
-        error: "Invalid Gemini response structure",
+        error:
+          "Invalid Gemini response structure",
+
         data: result,
       });
-
     }
 
-
-    /* ================================
-       Google Search 引用情報
-       ================================ */
-
-    const sources = [];
+    /*
+     * ==========================================
+     * Google Search Citations
+     * ==========================================
+     */
 
     if (Array.isArray(data.steps)) {
-
       for (const step of data.steps) {
-
         if (
           step?.type !== "model_output" ||
           !Array.isArray(step.content)
@@ -259,39 +432,47 @@
           continue;
         }
 
-        for (const contentBlock of step.content) {
-
+        for (
+          const contentBlock
+          of step.content
+        ) {
           if (
             contentBlock?.type !== "text" ||
-            !Array.isArray(contentBlock.annotations)
+            !Array.isArray(
+              contentBlock.annotations
+            )
           ) {
             continue;
           }
 
-          for (const annotation of contentBlock.annotations) {
-
+          for (
+            const annotation
+            of contentBlock.annotations
+          ) {
             if (
-              annotation?.type === "url_citation" &&
+              annotation?.type ===
+                "url_citation" &&
               annotation?.url
             ) {
-
               const exists =
                 sources.some(
                   (source) =>
-                    source.url === annotation.url
+                    source.url ===
+                    annotation.url
                 );
 
               if (!exists) {
-
                 sources.push({
                   title:
                     annotation.title ||
                     annotation.url,
 
                   url:
-                    annotation.url
-                });
+                    annotation.url,
 
+                  source:
+                    "google_search"
+                });
               }
             }
           }
@@ -299,26 +480,29 @@
       }
     }
 
-
-    /* ================================
-       次回会話用Interaction ID
-       ================================ */
+    /*
+     * ==========================================
+     * Interaction ID
+     * ==========================================
+     */
 
     const interactionId =
       typeof data.id === "string"
         ? data.id
         : null;
 
-
-    /* ================================
-       レスポンス
-       ================================ */
+    /*
+     * ==========================================
+     * Response
+     * ==========================================
+     */
 
     return res.status(200).json({
-
       text: result.reply,
 
-      interactionId: interactionId,
+      interactionId:
+
+        interactionId,
 
       memory: {
         shouldSave:
@@ -337,17 +521,15 @@
           1,
       },
 
-      sources: sources,
-
+      sources,
     });
 
   } catch (error) {
-
     console.error(error);
 
     return res.status(500).json({
-      error: "Internal Server Error",
+      error:
+        "Internal Server Error",
     });
-
   }
 }
