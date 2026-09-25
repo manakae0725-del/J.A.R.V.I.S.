@@ -122,6 +122,65 @@ h1 {
     max-height: 500px;
     overflow-y: auto;
 }
+
+/* =========================================================
+   HIDDEN VOICE EXPORT PANEL
+   ========================================================= */
+
+#exportPanel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 280px;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 30px 20px;
+    background: #0b0b0b;
+    border-left: 1px solid #444;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    z-index: 9999;
+    text-align: left;
+}
+
+#exportPanel.open {
+    transform: translateX(0);
+}
+
+#exportPanel h2 {
+    margin: 0 0 25px;
+    font-size: 18px;
+    letter-spacing: 2px;
+}
+
+#exportPanel p {
+    color: #999;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+#voiceExportButton,
+#closeExportButton {
+    width: 100%;
+    height: 48px;
+    margin-top: 15px;
+    border-radius: 24px;
+    border: 1px solid #555;
+    background: #181818;
+    color: white;
+    font-size: 14px;
+}
+
+#voiceExportButton:disabled {
+    color: #555;
+    border-color: #333;
+}
+
+#closeExportButton {
+    margin-top: 10px;
+    color: #aaa;
+}
+
 </style>
 </head>
 
@@ -170,6 +229,25 @@ h1 {
 
 <pre id="diagnostic"></pre>
 
+<div id="exportPanel">
+
+    <h2>VOICE EXPORT</h2>
+
+    <p>
+        最後に生成・処理された
+        J.A.R.V.I.S.音声をWAVとして保存します。
+    </p>
+
+    <button id="voiceExportButton" disabled>
+        VOICE EXPORT
+    </button>
+
+    <button id="closeExportButton">
+        CLOSE
+    </button>
+
+</div>
+
 <script>
 
 const button =
@@ -196,6 +274,15 @@ const sendButton =
 const modeButtons =
     document.querySelectorAll(".modeButton");
 
+const exportPanel =
+    document.getElementById("exportPanel");
+
+const voiceExportButton =
+    document.getElementById("voiceExportButton");
+
+const closeExportButton =
+    document.getElementById("closeExportButton");
+
 
 const SpeechRecognition =
     window.SpeechRecognition ||
@@ -215,113 +302,54 @@ let previousInteractionId = null;
 
 let currentMode = "voice";
 
+/*
+ * 最後に処理されたWAV
+ */
+let lastProcessedWav = null;
+
 
 /* =========================================================
    J.A.R.V.I.S. FINAL VOICE ENGINE
-   =========================================================
-
-   今回は「軽い後処理」ではない。
-
-   Charon
-      ↓
-   High Pass
-      ↓
-   Low / Low-Mid body reconstruction
-      ↓
-   Presence control
-      ↓
-   Air reduction
-      ↓
-   Non-linear coloration
-      ↓
-   Main compression
-      ↓
-   Density compression
-      ↓
-   Final tone shaping
-      ↓
-   Output
-
-   目的：
-   Charonの明るいアナウンサー的な質感を可能な限り削り、
-   成熟した映画吹替系AI音声の音像へ変換する。
    ========================================================= */
 
 const VOICE_PROCESSING = {
 
-    /*
-     * 不要な超低域を整理
-     */
     highpassFrequency: 55,
 
-    /*
-     * アナウンサー感の原因になりやすい
-     * 上方向の明るさをかなり抑える
-     */
     lowpassFrequency: 9200,
 
-    /*
-     * Low body
-     */
     lowBodyFrequency: 145,
     lowBodyGain: 4.5,
 
-    /*
-     * Low-mid body
-     */
     lowMidFrequency: 330,
     lowMidGain: 3.8,
 
-    /*
-     * Mud control
-     */
     mudFrequency: 620,
     mudGain: -2.2,
 
-    /*
-     * Announcer / presence reduction
-     */
     presenceFrequency: 3000,
     presenceGain: -4.8,
 
-    /*
-     * Brightness reduction
-     */
     brightnessFrequency: 5600,
     brightnessGain: -4.5,
 
-    /*
-     * Harshness reduction
-     */
     harshFrequency: 7200,
     harshGain: -3.5,
 
-    /*
-     * Saturation
-     */
     saturationDrive: 2.8,
 
-    /*
-     * Main compression
-     */
     compressorThreshold: -24,
     compressorKnee: 8,
     compressorRatio: 4.5,
     compressorAttack: 0.006,
     compressorRelease: 0.16,
 
-    /*
-     * Density compression
-     */
     densityThreshold: -30,
     densityKnee: 5,
     densityRatio: 2.8,
     densityAttack: 0.012,
     densityRelease: 0.20,
 
-    /*
-     * Output
-     */
     outputGain: 0.82
 };
 
@@ -353,11 +381,6 @@ function createVoiceSaturation(context) {
             (i * 2) /
             (samples - 1) -
             1;
-
-        /*
-         * より強い非線形処理。
-         * ただし完全な歪みにはしない。
-         */
 
         curve[i] =
             Math.tanh(
@@ -410,16 +433,13 @@ function createEQ(
 
 
 /* =========================================================
-   強化版J.A.R.V.I.S.音声チェーン
+   Voice Processing Chain
    ========================================================= */
 
-function createVoiceProcessingChain(context) {
-
-    /*
-     * -----------------------------------------
-     * 1. High Pass
-     * -----------------------------------------
-     */
+function createVoiceProcessingChain(
+    context,
+    destination = context.destination
+) {
 
     const highpass =
         context.createBiquadFilter();
@@ -434,12 +454,6 @@ function createVoiceProcessingChain(context) {
         0.65;
 
 
-    /*
-     * -----------------------------------------
-     * 2. Low Body
-     * -----------------------------------------
-     */
-
     const lowBody =
         createEQ(
             context,
@@ -449,12 +463,6 @@ function createVoiceProcessingChain(context) {
             0.7
         );
 
-
-    /*
-     * -----------------------------------------
-     * 3. Low-Mid Body
-     * -----------------------------------------
-     */
 
     const lowMid =
         createEQ(
@@ -466,12 +474,6 @@ function createVoiceProcessingChain(context) {
         );
 
 
-    /*
-     * -----------------------------------------
-     * 4. Mud reduction
-     * -----------------------------------------
-     */
-
     const mud =
         createEQ(
             context,
@@ -481,15 +483,6 @@ function createVoiceProcessingChain(context) {
             1.0
         );
 
-
-    /*
-     * -----------------------------------------
-     * 5. Presence reduction
-     *
-     * アナウンサー的な
-     * 「前に出てくる明瞭さ」を削る
-     * -----------------------------------------
-     */
 
     const presence =
         createEQ(
@@ -501,12 +494,6 @@ function createVoiceProcessingChain(context) {
         );
 
 
-    /*
-     * -----------------------------------------
-     * 6. Brightness reduction
-     * -----------------------------------------
-     */
-
     const brightness =
         createEQ(
             context,
@@ -517,12 +504,6 @@ function createVoiceProcessingChain(context) {
         );
 
 
-    /*
-     * -----------------------------------------
-     * 7. Harshness reduction
-     * -----------------------------------------
-     */
-
     const harshness =
         createEQ(
             context,
@@ -532,14 +513,6 @@ function createVoiceProcessingChain(context) {
             1.1
         );
 
-
-    /*
-     * -----------------------------------------
-     * 8. Low Pass
-     *
-     * 高域の「放送・ナレーション感」を削る
-     * -----------------------------------------
-     */
 
     const lowpass =
         context.createBiquadFilter();
@@ -554,23 +527,11 @@ function createVoiceProcessingChain(context) {
         0.45;
 
 
-    /*
-     * -----------------------------------------
-     * 9. Saturation
-     * -----------------------------------------
-     */
-
     const saturation =
         createVoiceSaturation(
             context
         );
 
-
-    /*
-     * -----------------------------------------
-     * 10. Main compressor
-     * -----------------------------------------
-     */
 
     const compressor =
         context.createDynamicsCompressor();
@@ -591,14 +552,6 @@ function createVoiceProcessingChain(context) {
         VOICE_PROCESSING.compressorRelease;
 
 
-    /*
-     * -----------------------------------------
-     * 11. Density compressor
-     *
-     * 声の密度をさらに均一化
-     * -----------------------------------------
-     */
-
     const density =
         context.createDynamicsCompressor();
 
@@ -618,12 +571,6 @@ function createVoiceProcessingChain(context) {
         VOICE_PROCESSING.densityRelease;
 
 
-    /*
-     * -----------------------------------------
-     * 12. Final tone
-     * -----------------------------------------
-     */
-
     const finalTone =
         createEQ(
             context,
@@ -634,12 +581,6 @@ function createVoiceProcessingChain(context) {
         );
 
 
-    /*
-     * -----------------------------------------
-     * 13. Output
-     * -----------------------------------------
-     */
-
     const outputGain =
         context.createGain();
 
@@ -647,63 +588,19 @@ function createVoiceProcessingChain(context) {
         VOICE_PROCESSING.outputGain;
 
 
-    /*
-     * -----------------------------------------
-     * 接続
-     * -----------------------------------------
-     */
-
-    highpass.connect(
-        lowBody
-    );
-
-    lowBody.connect(
-        lowMid
-    );
-
-    lowMid.connect(
-        mud
-    );
-
-    mud.connect(
-        presence
-    );
-
-    presence.connect(
-        brightness
-    );
-
-    brightness.connect(
-        harshness
-    );
-
-    harshness.connect(
-        lowpass
-    );
-
-    lowpass.connect(
-        saturation
-    );
-
-    saturation.connect(
-        compressor
-    );
-
-    compressor.connect(
-        density
-    );
-
-    density.connect(
-        finalTone
-    );
-
-    finalTone.connect(
-        outputGain
-    );
-
-    outputGain.connect(
-        context.destination
-    );
+    highpass.connect(lowBody);
+    lowBody.connect(lowMid);
+    lowMid.connect(mud);
+    mud.connect(presence);
+    presence.connect(brightness);
+    brightness.connect(harshness);
+    harshness.connect(lowpass);
+    lowpass.connect(saturation);
+    saturation.connect(compressor);
+    compressor.connect(density);
+    density.connect(finalTone);
+    finalTone.connect(outputGain);
+    outputGain.connect(destination);
 
 
     return {
@@ -1166,11 +1063,7 @@ function pcmToWav(base64) {
     }
 
 
-    writeString(
-        0,
-        "RIFF"
-    );
-
+    writeString(0, "RIFF");
 
     view.setUint32(
         4,
@@ -1178,25 +1071,14 @@ function pcmToWav(base64) {
         true
     );
 
-
-    writeString(
-        8,
-        "WAVE"
-    );
-
-
-    writeString(
-        12,
-        "fmt "
-    );
-
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
 
     view.setUint32(
         16,
         16,
         true
     );
-
 
     view.setUint16(
         20,
@@ -1204,13 +1086,11 @@ function pcmToWav(base64) {
         true
     );
 
-
     view.setUint16(
         22,
         channels,
         true
     );
-
 
     view.setUint32(
         24,
@@ -1218,13 +1098,11 @@ function pcmToWav(base64) {
         true
     );
 
-
     view.setUint32(
         28,
         byteRate,
         true
     );
-
 
     view.setUint16(
         32,
@@ -1232,26 +1110,19 @@ function pcmToWav(base64) {
         true
     );
 
-
     view.setUint16(
         34,
         bitsPerSample,
         true
     );
 
-
-    writeString(
-        36,
-        "data"
-    );
-
+    writeString(36, "data");
 
     view.setUint32(
         40,
         pcm.length,
         true
     );
-
 
     new Uint8Array(
         buffer,
@@ -1266,10 +1137,7 @@ function pcmToWav(base64) {
                 "audio/wav"
         }
     );
-}
-
-
-/* =========================================================
+} /* =========================================================
    Listening
    ========================================================= */
 
@@ -1455,15 +1323,91 @@ async function speakWithGemini(text) {
             );
 
 
-        const arrayBuffer =
+        /*
+         * =================================================
+         * 元音声を保持
+         * =================================================
+         */
+
+        const originalArrayBuffer =
             await wav.arrayBuffer();
 
 
-        const audioBuffer =
+        const originalAudioBuffer =
             await audioContext.decodeAudioData(
-                arrayBuffer
+                originalArrayBuffer.slice(0)
             );
 
+
+        /*
+         * =================================================
+         * 最終処理済み音声を生成
+         *
+         * OfflineAudioContextを使用して
+         * 実際にWAVへ書き出せる状態を作る。
+         * =================================================
+         */
+
+        const offlineContext =
+            new OfflineAudioContext(
+                1,
+                originalAudioBuffer.length,
+                originalAudioBuffer.sampleRate
+            );
+
+
+        const processing =
+            createVoiceProcessingChain(
+                offlineContext,
+                offlineContext.destination
+            );
+
+
+        const offlineSource =
+            offlineContext.createBufferSource();
+
+
+        offlineSource.buffer =
+            originalAudioBuffer;
+
+
+        offlineSource.connect(
+            processing.input
+        );
+
+
+        offlineSource.start(0);
+
+
+        const processedAudioBuffer =
+            await offlineContext.startRendering();
+
+
+        /*
+         * =================================================
+         * 処理済みAudioBuffer → WAV
+         * =================================================
+         */
+
+        lastProcessedWav =
+            audioBufferToWav(
+                processedAudioBuffer
+            );
+
+
+        /*
+         * VOICE EXPORTを有効化
+         */
+
+        voiceExportButton.disabled =
+            false;
+
+
+        /*
+         * =================================================
+         * 実際の再生
+         * =================================================
+         */
 
         if (currentSource) {
 
@@ -1476,34 +1420,16 @@ async function speakWithGemini(text) {
         }
 
 
-        /*
-         * =================================================
-         * FINAL J.A.R.V.I.S. VOICE ENGINE
-         * =================================================
-         */
-
-        const processing =
-            createVoiceProcessingChain(
-                audioContext
-            );
-
-
         currentSource =
             audioContext.createBufferSource();
 
 
         currentSource.buffer =
-            audioBuffer;
+            processedAudioBuffer;
 
-
-        /*
-         * Charonを直接再生しない。
-         *
-         * 必ず全音声処理を通過させる。
-         */
 
         currentSource.connect(
-            processing.input
+            audioContext.destination
         );
 
 
@@ -1544,6 +1470,265 @@ async function speakWithGemini(text) {
 
         return false;
     }
+}
+
+
+/* =========================================================
+   AudioBuffer → WAV
+   ========================================================= */
+
+function audioBufferToWav(audioBuffer) {
+
+    const numberOfChannels =
+        audioBuffer.numberOfChannels;
+
+    const sampleRate =
+        audioBuffer.sampleRate;
+
+    const format =
+        1;
+
+    const bitDepth =
+        16;
+
+    const channelData = [];
+
+
+    for (
+        let channel = 0;
+        channel < numberOfChannels;
+        channel++
+    ) {
+
+        channelData.push(
+            audioBuffer.getChannelData(
+                channel
+            )
+        );
+    }
+
+
+    const length =
+        audioBuffer.length *
+        numberOfChannels *
+        (bitDepth / 8);
+
+
+    const buffer =
+        new ArrayBuffer(
+            44 + length
+        );
+
+
+    const view =
+        new DataView(
+            buffer
+        );
+
+
+    function writeString(
+        offset,
+        string
+    ) {
+
+        for (
+            let i = 0;
+            i < string.length;
+            i++
+        ) {
+
+            view.setUint8(
+                offset + i,
+                string.charCodeAt(i)
+            );
+        }
+    }
+
+
+    let offset =
+        0;
+
+
+    writeString(
+        offset,
+        "RIFF"
+    );
+
+    offset += 4;
+
+
+    view.setUint32(
+        offset,
+        36 + length,
+        true
+    );
+
+    offset += 4;
+
+
+    writeString(
+        offset,
+        "WAVE"
+    );
+
+    offset += 4;
+
+
+    writeString(
+        offset,
+        "fmt "
+    );
+
+    offset += 4;
+
+
+    view.setUint32(
+        offset,
+        16,
+        true
+    );
+
+    offset += 4;
+
+
+    view.setUint16(
+        offset,
+        format,
+        true
+    );
+
+    offset += 2;
+
+
+    view.setUint16(
+        offset,
+        numberOfChannels,
+        true
+    );
+
+    offset += 2;
+
+
+    view.setUint32(
+        offset,
+        sampleRate,
+        true
+    );
+
+    offset += 4;
+
+
+    view.setUint32(
+        offset,
+        sampleRate *
+        numberOfChannels *
+        bitDepth /
+        8,
+        true
+    );
+
+    offset += 4;
+
+
+    view.setUint16(
+        offset,
+        numberOfChannels *
+        bitDepth /
+        8,
+        true
+    );
+
+    offset += 2;
+
+
+    view.setUint16(
+        offset,
+        bitDepth,
+        true
+    );
+
+    offset += 2;
+
+
+    writeString(
+        offset,
+        "data"
+    );
+
+    offset += 4;
+
+
+    view.setUint32(
+        offset,
+        length,
+        true
+    );
+
+    offset += 4;
+
+
+    /*
+     * Interleave
+     */
+
+    for (
+        let sample = 0;
+        sample < audioBuffer.length;
+        sample++
+    ) {
+
+        for (
+            let channel = 0;
+            channel < numberOfChannels;
+            channel++
+        ) {
+
+            let sampleValue =
+                channelData[channel][sample];
+
+
+            sampleValue =
+                Math.max(
+                    -1,
+                    Math.min(
+                        1,
+                        sampleValue
+                    )
+                );
+
+
+            if (
+                sampleValue < 0
+            ) {
+
+                sampleValue *=
+                    0x8000;
+
+            } else {
+
+                sampleValue *=
+                    0x7fff;
+            }
+
+
+            view.setInt16(
+                offset,
+                sampleValue,
+                true
+            );
+
+            offset += 2;
+        }
+    }
+
+
+    return new Blob(
+        [buffer],
+        {
+            type:
+                "audio/wav"
+        }
+    );
 }
 
 
@@ -2068,6 +2253,152 @@ modeButtons.forEach(
 
 
 /* =========================================================
+   VOICE EXPORT PANEL
+   ========================================================= */
+
+let touchStartX = 0;
+let touchEndX = 0;
+
+
+document.addEventListener(
+    "touchstart",
+    (event) => {
+
+        touchStartX =
+            event.changedTouches[0].screenX;
+    },
+    {
+        passive: true
+    }
+);
+
+
+document.addEventListener(
+    "touchend",
+    (event) => {
+
+        touchEndX =
+            event.changedTouches[0].screenX;
+
+
+        const delta =
+            touchEndX -
+            touchStartX;
+
+
+        /*
+         * 右端から左へのスワイプ
+         */
+
+        if (
+            touchStartX >
+                window.innerWidth - 40 &&
+            delta < -80
+        ) {
+
+            exportPanel.classList.add(
+                "open"
+            );
+        }
+
+
+        /*
+         * パネルを右へ閉じる
+         */
+
+        if (
+            exportPanel.classList.contains(
+                "open"
+            ) &&
+            delta > 80
+        ) {
+
+            exportPanel.classList.remove(
+                "open"
+            );
+        }
+    },
+    {
+        passive: true
+    }
+);
+
+
+/* =========================================================
+   VOICE EXPORT
+   ========================================================= */
+
+voiceExportButton.addEventListener(
+    "click",
+    () => {
+
+        if (!lastProcessedWav) {
+
+            status.textContent =
+                "保存できる音声がありません";
+
+            return;
+        }
+
+
+        const url =
+            URL.createObjectURL(
+                lastProcessedWav
+            );
+
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+
+        link.href =
+            url;
+
+
+        link.download =
+            "JARVIS_voice_processed.wav";
+
+
+        document.body.appendChild(
+            link
+        );
+
+
+        link.click();
+
+
+        link.remove();
+
+
+        setTimeout(
+            () => {
+
+                URL.revokeObjectURL(
+                    url
+                );
+
+            },
+            1000
+        );
+
+
+        status.textContent =
+            "WAVを書き出しました";
+    }
+);
+
+
+closeExportButton.addEventListener(
+    "click",
+    () => {
+
+        exportPanel.classList.remove(
+            "open"
+        );
+    }
+); /* =========================================================
    Initial
    ========================================================= */
 
