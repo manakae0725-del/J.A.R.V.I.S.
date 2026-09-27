@@ -1,3 +1,49 @@
+async function logApiUsage({
+  provider,
+  service,
+  success,
+  statusCode,
+  durationMs,
+  metadata = {}
+}) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey =
+      process.env.SUPABASE_SECRET_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return;
+    }
+
+    await fetch(
+      `${supabaseUrl}/rest/v1/api_usage`,
+      {
+        method: "POST",
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify({
+          provider,
+          service,
+          success,
+          status_code: statusCode,
+          duration_ms: durationMs,
+          metadata
+        })
+      }
+    );
+  } catch (error) {
+    console.error(
+      "[API USAGE] Log failed:",
+      error
+    );
+  }
+}
+
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -210,9 +256,9 @@ module.exports = async function handler(req, res) {
     if (serperKey && isSearchQuestion) {
       console.log("[DEBUG] Serper: START");
 
+      const serperStart = Date.now();
+
       try {
-        // News questions use Serper News API.
-        // Weather and normal searches keep using /search.
         const serperEndpoint = isNewsQuestion
           ? "https://google.serper.dev/news"
           : "https://google.serper.dev/search";
@@ -242,10 +288,26 @@ module.exports = async function handler(req, res) {
           }
         );
 
+        const serperDuration =
+          Date.now() - serperStart;
+
         console.log(
           "[DEBUG] Serper HTTP status:",
           response.status
         );
+
+        await logApiUsage({
+          provider: "serper",
+          service: isNewsQuestion
+            ? "news"
+            : "search",
+          success: response.ok,
+          statusCode: response.status,
+          durationMs: serperDuration,
+          metadata: {
+            query: searchQuery
+          }
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -283,10 +345,6 @@ module.exports = async function handler(req, res) {
             !!data.weather
           );
 
-          // ==========================================
-          // Debug: First 3 News Results
-          // ==========================================
-
           if (
             isNewsQuestion &&
             Array.isArray(data.news)
@@ -311,10 +369,6 @@ module.exports = async function handler(req, res) {
               }))
             );
           }
-
-          // ==========================================
-          // Debug: First 3 Normal Search Results
-          // ==========================================
 
           if (
             !isNewsQuestion &&
@@ -452,6 +506,25 @@ Snippet: ${snippet}
           );
         }
       } catch (error) {
+        const serperDuration =
+          Date.now() - serperStart;
+
+        await logApiUsage({
+          provider: "serper",
+          service: isNewsQuestion
+            ? "news"
+            : "search",
+          success: false,
+          statusCode: null,
+          durationMs: serperDuration,
+          metadata: {
+            query: searchQuery,
+            error:
+              error?.message ||
+              "Unknown error"
+          }
+        });
+
         console.error(
           "[DEBUG] Serper search error:",
           error
@@ -471,6 +544,8 @@ Snippet: ${snippet}
       console.log(
         "[DEBUG] Tavily fallback: START"
       );
+
+      const tavilyStart = Date.now();
 
       try {
         const response = await fetch(
@@ -498,10 +573,25 @@ Snippet: ${snippet}
           }
         );
 
+        const tavilyDuration =
+          Date.now() - tavilyStart;
+
         console.log(
           "[DEBUG] Tavily HTTP status:",
           response.status
         );
+
+        await logApiUsage({
+          provider: "tavily",
+          service: "search",
+          success: response.ok,
+          statusCode: response.status,
+          durationMs: tavilyDuration,
+          metadata: {
+            query: searchQuery,
+            fallback: true
+          }
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -565,6 +655,24 @@ Content: ${result.content || ""}
           );
         }
       } catch (error) {
+        const tavilyDuration =
+          Date.now() - tavilyStart;
+
+        await logApiUsage({
+          provider: "tavily",
+          service: "search",
+          success: false,
+          statusCode: null,
+          durationMs: tavilyDuration,
+          metadata: {
+            query: searchQuery,
+            fallback: true,
+            error:
+              error?.message ||
+              "Unknown error"
+          }
+        });
+
         console.error(
           "[DEBUG] Tavily search error:",
           error
@@ -885,6 +993,8 @@ WEATHER RESPONSE RULES
       120000
     );
 
+    const geminiStart = Date.now();
+
     let response;
 
     try {
@@ -904,6 +1014,22 @@ WEATHER RESPONSE RULES
         }
       );
     } catch (error) {
+      const geminiDuration =
+        Date.now() - geminiStart;
+
+      await logApiUsage({
+        provider: "gemini",
+        service: "generation",
+        success: false,
+        statusCode: null,
+        durationMs: geminiDuration,
+        metadata: {
+          error:
+            error?.message ||
+            "Unknown error"
+        }
+      });
+
       if (error.name === "AbortError") {
         return res.status(504).json({
           error: "Gemini request timed out",
@@ -921,6 +1047,20 @@ WEATHER RESPONSE RULES
     } finally {
       clearTimeout(geminiTimeout);
     }
+
+    const geminiDuration =
+      Date.now() - geminiStart;
+
+    await logApiUsage({
+      provider: "gemini",
+      service: "generation",
+      success: response.ok,
+      statusCode: response.status,
+      durationMs: geminiDuration,
+      metadata: {
+        model: "gemini-3.6-flash"
+      }
+    });
 
     const data = await response.json();
 
