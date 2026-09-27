@@ -53,6 +53,11 @@ export default async function handler(req, res) {
       (keyword) => text.includes(keyword)
     );
 
+    console.log(
+      "[DEBUG] Weather question:",
+      isWeatherQuestion
+    );
+
     // ==========================================
     // Weather Search Query
     // ==========================================
@@ -109,8 +114,7 @@ export default async function handler(req, res) {
       searchQuery = `${location} 天気 ${day}`;
 
       console.log(
-        "Weather search query:",
-        searchQuery
+        "[DEBUG] Weather search query generated."
       );
     }
 
@@ -119,6 +123,8 @@ export default async function handler(req, res) {
     // ==========================================
 
     if (serperKey) {
+      console.log("[DEBUG] Serper: START");
+
       try {
         const response = await fetch(
           "https://google.serper.dev/search",
@@ -137,8 +143,37 @@ export default async function handler(req, res) {
           }
         );
 
+        console.log(
+          "[DEBUG] Serper HTTP status:",
+          response.status
+        );
+
         if (response.ok) {
           const data = await response.json();
+
+          const organicCount = Array.isArray(data.organic)
+            ? data.organic.length
+            : 0;
+
+          console.log(
+            "[DEBUG] Serper organic count:",
+            organicCount
+          );
+
+          console.log(
+            "[DEBUG] Serper answerBox:",
+            !!data.answerBox
+          );
+
+          console.log(
+            "[DEBUG] Serper knowledgeGraph:",
+            !!data.knowledgeGraph
+          );
+
+          console.log(
+            "[DEBUG] Serper weather:",
+            !!data.weather
+          );
 
           if (data.answerBox) {
             searchContext += `
@@ -183,18 +218,32 @@ Snippet: ${snippet}
 `;
             }
           }
+
+          console.log(
+            "[DEBUG] SearchContext length after Serper:",
+            searchContext.length
+          );
+
+          console.log(
+            "[DEBUG] Sources count after Serper:",
+            sources.length
+          );
         } else {
           console.error(
-            "Serper HTTP error:",
+            "[DEBUG] Serper HTTP error:",
             response.status
           );
         }
       } catch (error) {
         console.error(
-          "Serper search error:",
+          "[DEBUG] Serper search error:",
           error
         );
       }
+    } else {
+      console.log(
+        "[DEBUG] Serper: API key not configured"
+      );
     }
 
     // ==========================================
@@ -202,6 +251,10 @@ Snippet: ${snippet}
     // ==========================================
 
     if (!searchContext && tavilyKey) {
+      console.log(
+        "[DEBUG] Tavily fallback: START"
+      );
+
       try {
         const response = await fetch(
           "https://api.tavily.com/search",
@@ -226,8 +279,28 @@ Snippet: ${snippet}
           }
         );
 
+        console.log(
+          "[DEBUG] Tavily HTTP status:",
+          response.status
+        );
+
         if (response.ok) {
           const data = await response.json();
+
+          const tavilyResultCount =
+            Array.isArray(data.results)
+              ? data.results.length
+              : 0;
+
+          console.log(
+            "[DEBUG] Tavily result count:",
+            tavilyResultCount
+          );
+
+          console.log(
+            "[DEBUG] Tavily answer:",
+            !!data.answer
+          );
 
           if (data.answer) {
             searchContext += `
@@ -256,19 +329,47 @@ Content: ${result.content || ""}
 `;
             }
           }
+
+          console.log(
+            "[DEBUG] SearchContext length after Tavily:",
+            searchContext.length
+          );
+
+          console.log(
+            "[DEBUG] Sources count after Tavily:",
+            sources.length
+          );
         } else {
           console.error(
-            "Tavily HTTP error:",
+            "[DEBUG] Tavily HTTP error:",
             response.status
           );
         }
       } catch (error) {
         console.error(
-          "Tavily search error:",
+          "[DEBUG] Tavily search error:",
           error
         );
       }
+    } else if (!searchContext) {
+      console.log(
+        "[DEBUG] Tavily fallback: NOT USED"
+      );
     }
+
+    // ==========================================
+    // Final Search Debug
+    // ==========================================
+
+    console.log(
+      "[DEBUG] Final searchContext length:",
+      searchContext.length
+    );
+
+    console.log(
+      "[DEBUG] Final sources count:",
+      sources.length
+    );
 
     // ==========================================
     // Gemini Input
@@ -490,6 +591,19 @@ WEATHER RESPONSE RULES
     }
 
     // ==========================================
+    // Gemini Debug
+    // ==========================================
+
+    console.log(
+      "[DEBUG] Gemini input searchContext length:",
+      searchContext.length
+    );
+
+    console.log(
+      "[DEBUG] Gemini request: START"
+    );
+
+    // ==========================================
     // Gemini Interactions API
     // ==========================================
 
@@ -508,6 +622,11 @@ WEATHER RESPONSE RULES
     );
 
     const data = await response.json();
+
+    console.log(
+      "[DEBUG] Gemini HTTP status:",
+      response.status
+    );
 
     if (!response.ok) {
       console.error(
