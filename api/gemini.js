@@ -88,6 +88,23 @@ export default async function handler(req, res) {
 
     let searchQuery = text;
 
+const rawText = String(text || "").trim();
+
+const userMarker = rawText.match(
+  /ユーザー\s*:\s*([\s\S]*?)(?=\n\s*={10,}|$)/
+);
+
+if (userMarker?.[1]) {
+  searchQuery = userMarker[1].trim();
+} else {
+  searchQuery = rawText;
+}
+
+console.log(
+  "[DEBUG] Clean search query:",
+  searchQuery
+);
+
     if (isWeatherQuestion) {
       let location = "札幌市";
 
