@@ -91,7 +91,7 @@ export default async function handler(req, res) {
 const rawText = String(text || "").trim();
 
 const userMarker = rawText.match(
-  /ユーザー\s*:\s*([\s\S]*?)(?=\n\s*={10,}|$)/
+  /(?:ユーザー|今回の真人さんの発言)\s*[:：]\s*([\s\S]*?)(?=\n\s*={10,}|$)/
 );
 
 if (userMarker?.[1]) {
