@@ -889,7 +889,7 @@ WEATHER RESPONSE RULES
 
     try {
       response = await fetch(
-        "https://invalid-gemini-test.invalid/v1/interactions",
+        https://generativelanguage.googleapis.com/v1/interactions
         {
           method: "POST",
 
