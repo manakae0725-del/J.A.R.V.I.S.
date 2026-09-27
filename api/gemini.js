@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method Not Allowed",
@@ -28,20 +28,22 @@ export default async function handler(req, res) {
     }
 
     let searchContext = "";
-    const sources = [];const rawText = String(text || "").trim();
+    const sources = [];
 
-const userMarker = rawText.match(
-  /(?:ユーザー|今回の真人さんの発言)\s*[:：]\s*([\s\S]*?)(?=\n\s*={10,}|$)/
-);
+    const rawText = String(text || "").trim();
 
-const userText = userMarker?.[1]
-  ? userMarker[1].trim()
-  : rawText;
+    const userMarker = rawText.match(
+      /(?:ユーザー|今回の真人さんの発言)\s*[:：]\s*([\s\S]*?)(?=\n\s*={10,}|$)/
+    );
 
-console.log(
-  "[DEBUG] User text:",
-  userText
-);
+    const userText = userMarker?.[1]
+      ? userMarker[1].trim()
+      : rawText;
+
+    console.log(
+      "[DEBUG] User text:",
+      userText
+    );
 
     // ==========================================
     // Weather Detection
@@ -94,34 +96,35 @@ console.log(
       "[DEBUG] News question:",
       isNewsQuestion
     );
-  // ==========================================
-// Search Detection
-// ==========================================
 
-const searchKeywords = [
-  "調べて",
-  "検索して",
-  "探して",
-  "おすすめ",
-  "最新",
-  "現在",
-  "詳しく",
-  "情報",
-  "サイト",
-  "公式",
-];
+    // ==========================================
+    // Search Detection
+    // ==========================================
 
-const isSearchQuestion =
-  isWeatherQuestion ||
-  isNewsQuestion ||
-  searchKeywords.some(
-    (keyword) => userText.includes(keyword)
-  );
+    const searchKeywords = [
+      "調べて",
+      "検索して",
+      "探して",
+      "おすすめ",
+      "最新",
+      "現在",
+      "詳しく",
+      "情報",
+      "サイト",
+      "公式",
+    ];
 
-console.log(
-  "[DEBUG] Search question:",
-  isSearchQuestion
-);
+    const isSearchQuestion =
+      isWeatherQuestion ||
+      isNewsQuestion ||
+      searchKeywords.some(
+        (keyword) => userText.includes(keyword)
+      );
+
+    console.log(
+      "[DEBUG] Search question:",
+      isSearchQuestion
+    );
 
     // ==========================================
     // Weather Search Query
@@ -129,11 +132,10 @@ console.log(
 
     let searchQuery = userText;
 
-
-console.log(
-  "[DEBUG] Clean search query:",
-  searchQuery
-);
+    console.log(
+      "[DEBUG] Clean search query:",
+      searchQuery
+    );
 
     if (isWeatherQuestion) {
       let location = "札幌市";
@@ -195,11 +197,11 @@ console.log(
     // ==========================================
 
     if (isNewsQuestion && !isWeatherQuestion) {
-  console.log(
-    "[DEBUG] News search query:",
-    searchQuery
-  );
-}
+      console.log(
+        "[DEBUG] News search query:",
+        searchQuery
+      );
+    }
 
     // ==========================================
     // Serper Search
@@ -660,6 +662,7 @@ RESPONSE LENGTH
 - 質問されていない情報を勝手に追加しない
 - 同じ内容を別の表現で繰り返さない
 - 回答後に不要な定型文を追加しない
+
 ==============================
 SPEECH TEXT
 ==============================
@@ -680,6 +683,7 @@ reply:
 
 speechText:
 麺屋さいみは札幌市豊平区にある人気店です。
+
 ユーザー:
 ${text}
 `;
@@ -792,11 +796,10 @@ WEATHER RESPONSE RULES
             reply: {
               type: "string",
             },
+
             speechText: {
-
-    type: "string",
-
-  },
+              type: "string",
+            },
 
             memory: {
               type: "object",
@@ -839,7 +842,7 @@ WEATHER RESPONSE RULES
 
           required: [
             "reply",
-　　　　　　　　"speechText",
+            "speechText",
             "memory",
           ],
         },
@@ -873,7 +876,8 @@ WEATHER RESPONSE RULES
 
     // ==========================================
     // Gemini Interactions API
-    
+    // ==========================================
+
     const controller = new AbortController();
 
     const geminiTimeout = setTimeout(
@@ -885,7 +889,7 @@ WEATHER RESPONSE RULES
 
     try {
       response = await fetch(
-        https://invalid-gemini-test.invalid/v1/interactions
+        "https://invalid-gemini-test.invalid/v1/interactions",
         {
           method: "POST",
 
@@ -917,6 +921,7 @@ WEATHER RESPONSE RULES
     } finally {
       clearTimeout(geminiTimeout);
     }
+
     const data = await response.json();
 
     console.log(
@@ -1005,7 +1010,7 @@ WEATHER RESPONSE RULES
     if (
       !result.reply ||
       !result.speechText ||
-　　　 !result.memory ||
+      !result.memory ||
       typeof result.memory.shouldSave !==
         "boolean"
     ) {
@@ -1031,7 +1036,7 @@ WEATHER RESPONSE RULES
 
     return res.status(200).json({
       text: result.reply,
-　　　　speechText: result.speechText,
+      speechText: result.speechText,
       interactionId,
 
       memory: {
@@ -1061,4 +1066,4 @@ WEATHER RESPONSE RULES
       error: "Internal Server Error",
     });
   }
-}
+};
