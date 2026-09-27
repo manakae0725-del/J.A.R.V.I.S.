@@ -59,6 +59,30 @@ export default async function handler(req, res) {
     );
 
     // ==========================================
+    // News Detection
+    // ==========================================
+
+    const newsKeywords = [
+      "ニュース",
+      "最新ニュース",
+      "今日のニュース",
+      "最近のニュース",
+      "速報",
+      "報道",
+      "ニュース記事",
+      "最新情報",
+    ];
+
+    const isNewsQuestion = newsKeywords.some(
+      (keyword) => text.includes(keyword)
+    );
+
+    console.log(
+      "[DEBUG] News question:",
+      isNewsQuestion
+    );
+
+    // ==========================================
     // Weather Search Query
     // ==========================================
 
@@ -114,7 +138,21 @@ export default async function handler(req, res) {
       searchQuery = `${location} 天気 ${day}`;
 
       console.log(
-        "[DEBUG] Weather search query generated."
+        "[DEBUG] Weather search query generated:",
+        searchQuery
+      );
+    }
+
+    // ==========================================
+    // News Search Query
+    // ==========================================
+
+    if (isNewsQuestion && !isWeatherQuestion) {
+      searchQuery = text;
+
+      console.log(
+        "[DEBUG] News search query:",
+        searchQuery
       );
     }
 
@@ -126,8 +164,19 @@ export default async function handler(req, res) {
       console.log("[DEBUG] Serper: START");
 
       try {
+        // News questions use Serper News API.
+        // Weather and normal searches keep using /search.
+        const serperEndpoint = isNewsQuestion
+          ? "https://google.serper.dev/news"
+          : "https://google.serper.dev/search";
+
+        console.log(
+          "[DEBUG] Serper endpoint:",
+          serperEndpoint
+        );
+
         const response = await fetch(
-          "https://google.serper.dev/search",
+          serperEndpoint,
           {
             method: "POST",
             headers: {
@@ -138,7 +187,9 @@ export default async function handler(req, res) {
               q: searchQuery,
               gl: "jp",
               hl: "ja",
-              num: isWeatherQuestion ? 10 : 8,
+              num: isWeatherQuestion || isNewsQuestion
+                ? 10
+                : 8,
             }),
           }
         );
@@ -155,9 +206,18 @@ export default async function handler(req, res) {
             ? data.organic.length
             : 0;
 
+          const newsCount = Array.isArray(data.news)
+            ? data.news.length
+            : 0;
+
           console.log(
             "[DEBUG] Serper organic count:",
             organicCount
+          );
+
+          console.log(
+            "[DEBUG] Serper news count:",
+            newsCount
           );
 
           console.log(
@@ -176,10 +236,39 @@ export default async function handler(req, res) {
           );
 
           // ==========================================
-          // Debug: First 3 Serper Results
+          // Debug: First 3 News Results
           // ==========================================
 
-          if (Array.isArray(data.organic)) {
+          if (isNewsQuestion && Array.isArray(data.news)) {
+            console.log(
+              "[DEBUG] Serper first 3 news results:",
+              data.news.slice(0, 3).map((result) => ({
+                title: result?.title || "",
+                url:
+                  result?.link ||
+                  result?.url ||
+                  "",
+                snippet:
+                  result?.snippet ||
+                  "",
+                source:
+                  result?.source ||
+                  "",
+                date:
+                  result?.date ||
+                  "",
+              }))
+            );
+          }
+
+          // ==========================================
+          // Debug: First 3 Normal Search Results
+          // ==========================================
+
+          if (
+            !isNewsQuestion &&
+            Array.isArray(data.organic)
+          ) {
             console.log(
               "[DEBUG] Serper first 3 results:",
               data.organic.slice(0, 3).map((result) => ({
@@ -215,13 +304,71 @@ ${JSON.stringify(data.weather)}
 `;
           }
 
-          if (Array.isArray(data.organic)) {
+          // ==========================================
+          // News Results
+          // ==========================================
+
+          if (
+            isNewsQuestion &&
+            Array.isArray(data.news)
+          ) {
+            for (const result of data.news) {
+              const url =
+                result?.link ||
+                result?.url ||
+                "";
+
+              if (!url) continue;
+
+              const title =
+                result.title || "";
+
+              const snippet =
+                result.snippet || "";
+
+              const source =
+                result.source || "";
+
+              const date =
+                result.date || "";
+
+              sources.push({
+                title,
+                url,
+                source:
+                  source || "serper-news",
+              });
+
+              searchContext += `
+[Serper News Result]
+Title: ${title}
+Source: ${source}
+Date: ${date}
+URL: ${url}
+Snippet: ${snippet}
+`;
+            }
+          }
+
+          // ==========================================
+          // Normal Organic Results
+          // ==========================================
+
+          if (
+            !isNewsQuestion &&
+            Array.isArray(data.organic)
+          ) {
             for (const result of data.organic) {
               if (!result?.link) continue;
 
-              const title = result.title || "";
-              const url = result.link;
-              const snippet = result.snippet || "";
+              const title =
+                result.title || "";
+
+              const url =
+                result.link;
+
+              const snippet =
+                result.snippet || "";
 
               sources.push({
                 title,
@@ -286,12 +433,14 @@ Snippet: ${snippet}
             body: JSON.stringify({
               query: searchQuery,
               topic: "general",
-              search_depth: isWeatherQuestion
-                ? "advanced"
-                : "basic",
-              max_results: isWeatherQuestion
-                ? 8
-                : 5,
+              search_depth:
+                isWeatherQuestion || isNewsQuestion
+                  ? "advanced"
+                  : "basic",
+              max_results:
+                isWeatherQuestion || isNewsQuestion
+                  ? 8
+                  : 5,
               include_answer: true,
               include_raw_content: false,
             }),
@@ -495,6 +644,32 @@ SEARCH INSTRUCTIONS
 - 検索結果をそのまま読み上げないでください。
 - 必要な情報を整理して、J.A.R.V.I.S.として自然に回答してください。
 - 日本語で回答してください。
+`;
+    }
+
+    // ==========================================
+    // News Response Rules
+    // ==========================================
+
+    if (isNewsQuestion) {
+      geminiInput += `
+
+==============================
+NEWS RESPONSE RULES
+==============================
+
+これはニュース関連の質問です。
+
+- Serper News APIから取得したニュース結果を優先してください。
+- ニュースのタイトル、媒体、日時、内容を確認してください。
+- 質問に関連するニュースだけを使用してください。
+- 複数の記事がある場合は内容を比較してください。
+- ニュース結果に存在しない内容を事実として補完しないでください。
+- 「最新」「今日」など時間依存の質問では、記事の日付を確認してください。
+- ニュース記事をそのまま読み上げないでください。
+- 必要な情報を整理して、J.A.R.V.I.S.として自然に回答してください。
+- ニュースキャスターのような話し方をしないでください。
+- 不要な感想や評価を追加しないでください。
 `;
     }
 
