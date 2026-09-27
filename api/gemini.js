@@ -872,23 +872,51 @@ WEATHER RESPONSE RULES
     );
 
     // ==========================================
-    // Gemini Interactions API
-    // ==========================================
+    // Gemini Interactions 
+    
+    const controller = new AbortController();
 
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1/interactions",
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": geminiKey,
-        },
-
-        body: JSON.stringify(requestBody),
-      }
+    const geminiTimeout = setTimeout(
+      () => controller.abort(),
+      120000
     );
 
+    let response;
+
+    try {
+      response = await fetch(
+        "https://generativelanguage.googleapis.com/v1/interactions",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": geminiKey,
+          },
+
+          body: JSON.stringify(requestBody),
+
+          signal: controller.signal,
+        }
+      );
+    } catch (error) {
+      if (error.name === "AbortError") {
+        return res.status(504).json({
+          error: "Gemini request timed out",
+        });
+      }
+
+      console.error(
+        "Gemini network error:",
+        error
+      );
+
+      return res.status(502).json({
+        error: "Gemini connection failed",
+      });
+    } finally {
+      clearTimeout(geminiTimeout);
+    }
     const data = await response.json();
 
     console.log(
