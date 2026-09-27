@@ -81,6 +81,34 @@ export default async function handler(req, res) {
       "[DEBUG] News question:",
       isNewsQuestion
     );
+  // ==========================================
+// Search Detection
+// ==========================================
+
+const searchKeywords = [
+  "調べて",
+  "検索して",
+  "探して",
+  "おすすめ",
+  "最新",
+  "現在",
+  "詳しく",
+  "情報",
+  "サイト",
+  "公式",
+];
+
+const isSearchQuestion =
+  isWeatherQuestion ||
+  isNewsQuestion ||
+  searchKeywords.some(
+    (keyword) => text.includes(keyword)
+  );
+
+console.log(
+  "[DEBUG] Search question:",
+  isSearchQuestion
+);
 
     // ==========================================
     // Weather Search Query
@@ -175,7 +203,7 @@ console.log(
     // Serper Search
     // ==========================================
 
-    if (serperKey) {
+    if (serperKey && isSearchQuestion) {
       console.log("[DEBUG] Serper: START");
 
       try {
@@ -435,7 +463,7 @@ Snippet: ${snippet}
     // Tavily Fallback
     // ==========================================
 
-    if (!searchContext && tavilyKey) {
+    if (!searchContext && tavilyKey && isSearchQuestion) {
       console.log(
         "[DEBUG] Tavily fallback: START"
       );
