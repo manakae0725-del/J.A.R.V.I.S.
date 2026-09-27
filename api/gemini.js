@@ -148,7 +148,19 @@ export default async function handler(req, res) {
     // ==========================================
 
     if (isNewsQuestion && !isWeatherQuestion) {
-      searchQuery = text;
+      const rawText = String(text || "").trim();
+
+      // フロント側からシステムプロンプト等が混入している場合、
+      // 「ユーザー:」以降の実際の質問だけを抽出する。
+      const userMarker = rawText.match(
+        /ユーザー\s*:\s*([\s\S]*?)(?=\n\s*={10,}|$)/
+      );
+
+      if (userMarker?.[1]) {
+        searchQuery = userMarker[1].trim();
+      } else {
+        searchQuery = rawText;
+      }
 
       console.log(
         "[DEBUG] News search query:",
@@ -187,9 +199,10 @@ export default async function handler(req, res) {
               q: searchQuery,
               gl: "jp",
               hl: "ja",
-              num: isWeatherQuestion || isNewsQuestion
-                ? 10
-                : 8,
+              num:
+                isWeatherQuestion || isNewsQuestion
+                  ? 10
+                  : 8,
             }),
           }
         );
@@ -239,7 +252,10 @@ export default async function handler(req, res) {
           // Debug: First 3 News Results
           // ==========================================
 
-          if (isNewsQuestion && Array.isArray(data.news)) {
+          if (
+            isNewsQuestion &&
+            Array.isArray(data.news)
+          ) {
             console.log(
               "[DEBUG] Serper first 3 news results:",
               data.news.slice(0, 3).map((result) => ({
