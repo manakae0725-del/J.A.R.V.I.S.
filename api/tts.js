@@ -1,3 +1,49 @@
+async function logApiUsage({
+  provider,
+  service,
+  success,
+  statusCode,
+  durationMs,
+  metadata = {}
+}) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey =
+      process.env.SUPABASE_SECRET_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return;
+    }
+
+    await fetch(
+      `${supabaseUrl}/rest/v1/api_usage`,
+      {
+        method: "POST",
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify({
+          provider,
+          service,
+          success,
+          status_code: statusCode,
+          duration_ms: durationMs,
+          metadata
+        })
+      }
+    );
+  } catch (error) {
+    console.error(
+      "[API USAGE] Log failed:",
+      error
+    );
+  }
+}
+
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -217,36 +263,76 @@ TEXT:
 ${spokenText}
 `;
 
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/interactions",
-      {
-        method: "POST",
+    const ttsStart = Date.now();
 
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-          "Api-Revision": "2026-05-20"
-        },
+    let response;
 
-        body: JSON.stringify({
-          model: "gemini-3.1-flash-tts-preview",
+    try {
+      response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/interactions",
+        {
+          method: "POST",
 
-          input: voiceInstruction,
-
-          response_format: {
-            type: "audio"
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+            "Api-Revision": "2026-05-20"
           },
 
-          generation_config: {
-            speech_config: [
-              {
-                voice: "Charon"
-              }
-            ]
-          }
-        })
+          body: JSON.stringify({
+            model: "gemini-3.1-flash-tts-preview",
+
+            input: voiceInstruction,
+
+            response_format: {
+              type: "audio"
+            },
+
+            generation_config: {
+              speech_config: [
+                {
+                  voice: "Charon"
+                }
+              ]
+            }
+          })
+        }
+      );
+    } catch (error) {
+      const durationMs =
+        Date.now() - ttsStart;
+
+      await logApiUsage({
+        provider: "gemini",
+        service: "tts",
+        success: false,
+        statusCode: null,
+        durationMs,
+        metadata: {
+          model: "gemini-3.1-flash-tts-preview",
+          error:
+            error?.message ||
+            "Unknown error"
+        }
+      });
+
+      throw error;
+    }
+
+    const durationMs =
+      Date.now() - ttsStart;
+
+    await logApiUsage({
+      provider: "gemini",
+      service: "tts",
+      success: response.ok,
+      statusCode: response.status,
+      durationMs,
+      metadata: {
+        model: "gemini-3.1-flash-tts-preview",
+        voice: "Charon"
       }
-    );
+    });
 
     const data = await response.json();
 
