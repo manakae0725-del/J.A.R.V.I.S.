@@ -175,6 +175,25 @@ export default async function handler(req, res) {
             !!data.weather
           );
 
+          // ==========================================
+          // Debug: First 3 Serper Results
+          // ==========================================
+
+          if (Array.isArray(data.organic)) {
+            console.log(
+              "[DEBUG] Serper first 3 results:",
+              data.organic.slice(0, 3).map((result) => ({
+                title: result?.title || "",
+                url: result?.link || "",
+                snippet: result?.snippet || "",
+              }))
+            );
+          }
+
+          // ==========================================
+          // Search Context
+          // ==========================================
+
           if (data.answerBox) {
             searchContext += `
 [Serper Answer Box]
