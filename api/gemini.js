@@ -165,25 +165,11 @@ console.log(
     // ==========================================
 
     if (isNewsQuestion && !isWeatherQuestion) {
-      const rawText = String(text || "").trim();
-
-      // フロント側からシステムプロンプト等が混入している場合、
-      // 「ユーザー:」以降の実際の質問だけを抽出する。
-      const userMarker = rawText.match(
-        /ユーザー\s*:\s*([\s\S]*?)(?=\n\s*={10,}|$)/
-      );
-
-      if (userMarker?.[1]) {
-        searchQuery = userMarker[1].trim();
-      } else {
-        searchQuery = rawText;
-      }
-
-      console.log(
-        "[DEBUG] News search query:",
-        searchQuery
-      );
-    }
+  console.log(
+    "[DEBUG] News search query:",
+    searchQuery
+  );
+}
 
     // ==========================================
     // Serper Search
