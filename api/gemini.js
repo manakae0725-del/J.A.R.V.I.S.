@@ -660,7 +660,26 @@ RESPONSE LENGTH
 - 質問されていない情報を勝手に追加しない
 - 同じ内容を別の表現で繰り返さない
 - 回答後に不要な定型文を追加しない
+==============================
+SPEECH TEXT
+==============================
 
+回答とは別に、TTSで読み上げるためのspeechTextを作成してください。
+
+- replyとspeechTextの内容は完全に同じ意味にしてください。
+- speechTextでは、読み間違えやすい固有名詞・店名・地名・人名などを、正しい読みになるようにひらがなへ補正してください。
+- 通常の日本語までひらがなに変換しないでください。
+- 表記として重要な漢字はreply側に残してください。
+- speechTextには説明、注釈、括弧、読み方の説明を追加しないでください。
+- replyに存在しない情報をspeechTextへ追加しないでください。
+
+例：
+
+reply:
+麺屋彩未は札幌市豊平区にある人気店です。
+
+speechText:
+麺屋さいみは札幌市豊平区にある人気店です。
 ユーザー:
 ${text}
 `;
@@ -773,6 +792,11 @@ WEATHER RESPONSE RULES
             reply: {
               type: "string",
             },
+            speechText: {
+
+    type: "string",
+
+  },
 
             memory: {
               type: "object",
@@ -815,6 +839,7 @@ WEATHER RESPONSE RULES
 
           required: [
             "reply",
+　　　　　　　　"speechText",
             "memory",
           ],
         },
@@ -951,7 +976,8 @@ WEATHER RESPONSE RULES
 
     if (
       !result.reply ||
-      !result.memory ||
+      !result.speechText ||
+　　　 !result.memory ||
       typeof result.memory.shouldSave !==
         "boolean"
     ) {
@@ -977,7 +1003,7 @@ WEATHER RESPONSE RULES
 
     return res.status(200).json({
       text: result.reply,
-
+　　　　speechText: result.speechText,
       interactionId,
 
       memory: {
