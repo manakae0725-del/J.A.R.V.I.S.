@@ -28,7 +28,20 @@ export default async function handler(req, res) {
     }
 
     let searchContext = "";
-    const sources = [];
+    const sources = [];const rawText = String(text || "").trim();
+
+const userMarker = rawText.match(
+  /(?:ユーザー|今回の真人さんの発言)\s*[:：]\s*([\s\S]*?)(?=\n\s*={10,}|$)/
+);
+
+const userText = userMarker?.[1]
+  ? userMarker[1].trim()
+  : rawText;
+
+console.log(
+  "[DEBUG] User text:",
+  userText
+);
 
     // ==========================================
     // Weather Detection
@@ -50,7 +63,7 @@ export default async function handler(req, res) {
     ];
 
     const isWeatherQuestion = weatherKeywords.some(
-      (keyword) => text.includes(keyword)
+      (keyword) => userText.includes(keyword)
     );
 
     console.log(
@@ -74,7 +87,7 @@ export default async function handler(req, res) {
     ];
 
     const isNewsQuestion = newsKeywords.some(
-      (keyword) => text.includes(keyword)
+      (keyword) => userText.includes(keyword)
     );
 
     console.log(
@@ -102,7 +115,7 @@ const isSearchQuestion =
   isWeatherQuestion ||
   isNewsQuestion ||
   searchKeywords.some(
-    (keyword) => text.includes(keyword)
+    (keyword) => userText.includes(keyword)
   );
 
 console.log(
@@ -114,19 +127,8 @@ console.log(
     // Weather Search Query
     // ==========================================
 
-    let searchQuery = text;
+    let searchQuery = userText;
 
-const rawText = String(text || "").trim();
-
-const userMarker = rawText.match(
-  /(?:ユーザー|今回の真人さんの発言)\s*[:：]\s*([\s\S]*?)(?=\n\s*={10,}|$)/
-);
-
-if (userMarker?.[1]) {
-  searchQuery = userMarker[1].trim();
-} else {
-  searchQuery = rawText;
-}
 
 console.log(
   "[DEBUG] Clean search query:",
@@ -143,7 +145,7 @@ console.log(
       ];
 
       for (const pattern of locationPatterns) {
-        const match = text.match(pattern);
+        const match = userText.match(pattern);
 
         if (match?.[1]) {
           location = match[1];
@@ -162,20 +164,20 @@ console.log(
       let day = "今日";
 
       if (
-        text.includes("明後日") ||
-        text.includes("あさって")
+        userText.includes("明後日") ||
+        userText.includes("あさって")
       ) {
         day = "明後日";
       } else if (
-        text.includes("明日") ||
-        text.includes("あした")
+        userText.includes("明日") ||
+        userText.includes("あした")
       ) {
         day = "明日";
-      } else if (text.includes("今週")) {
+      } else if (userText.includes("今週")) {
         day = "今週";
       } else if (
-        text.includes("現在") ||
-        text.includes("今")
+        userText.includes("現在") ||
+        userText.includes("今")
       ) {
         day = "現在";
       }
