@@ -872,7 +872,7 @@ WEATHER RESPONSE RULES
     );
 
     // ==========================================
-    // Gemini Interactions 
+    // Gemini Interactions API
     
     const controller = new AbortController();
 
@@ -885,7 +885,7 @@ WEATHER RESPONSE RULES
 
     try {
       response = await fetch(
-        "https://generativelanguage.googleapis.com/v1/interactions",
+        https://invalid-gemini-test.invalid/v1/interactions
         {
           method: "POST",
 
