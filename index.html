@@ -741,59 +741,120 @@ function updateRightHUDConnection() {
 
 async function updateRightHUDWeather() {
 
-    if (!rightHUDWeather || !navigator.geolocation) {
+    if (!rightHUDWeather) {
         return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
+    async function fetchWeather(latitude, longitude) {
 
-            try {
+        const response =
+            await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=celsius&timezone=auto`
+            );
 
-                const latitude =
-                    position.coords.latitude;
+        if (!response.ok) {
+            throw new Error("Weather API error");
+        }
 
-                const longitude =
-                    position.coords.longitude;
+        const data =
+            await response.json();
 
-                const response =
-                    await fetch(
-                        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=celsius&timezone=auto`
+        const temperature =
+            data?.current?.temperature_2m;
+
+        if (typeof temperature !== "number") {
+            throw new Error("Temperature unavailable");
+        }
+
+        rightHUDWeather.textContent =
+            `${temperature.toFixed(1)}°C`;
+    }
+
+    async function fetchByIPLocation() {
+
+        const response =
+            await fetch(
+                "https://ipapi.co/json/"
+            );
+
+        if (!response.ok) {
+            throw new Error("IP location error");
+        }
+
+        const data =
+            await response.json();
+
+        if (
+            typeof data.latitude !== "number" ||
+            typeof data.longitude !== "number"
+        ) {
+            throw new Error("IP location unavailable");
+        }
+
+        await fetchWeather(
+            data.latitude,
+            data.longitude
+        );
+    }
+
+    if (navigator.geolocation) {
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+
+                try {
+
+                    await fetchWeather(
+                        position.coords.latitude,
+                        position.coords.longitude
                     );
 
-                if (!response.ok) {
-                    return;
+                } catch (error) {
+
+                    try {
+                        await fetchByIPLocation();
+                    } catch (fallbackError) {
+                        rightHUDWeather.textContent = "--";
+                        console.error(
+                            "WEATHER ERROR:",
+                            fallbackError
+                        );
+                    }
                 }
+            },
+            async () => {
 
-                const data =
-                    await response.json();
-
-                const temperature =
-                    data?.current?.temperature_2m;
-
-                if (typeof temperature === "number") {
-                    rightHUDWeather.textContent =
-                        `${temperature.toFixed(1)}°C`;
+                try {
+                    await fetchByIPLocation();
+                } catch (error) {
+                    rightHUDWeather.textContent = "--";
+                    console.error(
+                        "WEATHER ERROR:",
+                        error
+                    );
                 }
-
-            } catch (error) {
-                console.error(
-                    "WEATHER ERROR:",
-                    error
-                );
+            },
+            {
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 300000
             }
-        },
-        () => {
-            rightHUDWeather.textContent =
-                "--";
-        },
-        {
-            enableHighAccuracy: false,
-            timeout: 10000,
-            maximumAge: 300000
-        }
-    );
+        );
+
+        return;
+    }
+
+    try {
+        await fetchByIPLocation();
+    } catch (error) {
+        rightHUDWeather.textContent = "--";
+        console.error(
+            "WEATHER ERROR:",
+            error
+        );
+    }
 }
+
 
 window.addEventListener(
     "online",
