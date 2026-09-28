@@ -1179,6 +1179,10 @@ WEATHER RESPONSE RULES
       speechText: result.speechText,
       interactionId,
 
+  searchPerformed:
+    isSearchQuestion &&
+    searchContext.length > 0,
+
       memory: {
         shouldSave:
           result.memory.shouldSave,
