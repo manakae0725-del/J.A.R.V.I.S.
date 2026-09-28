@@ -2363,6 +2363,12 @@ if (isSearchRequest) {
         const data =
             await response.json();
 
+if (rightHUDSearch) {
+    rightHUDSearch.textContent =
+        data.searchPerformed
+            ? "SEARCHED"
+            : "--";
+}
 
         if (!response.ok) {
 
