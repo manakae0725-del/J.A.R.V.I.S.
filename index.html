@@ -2667,6 +2667,18 @@ document.addEventListener(
                 return;
             }
 
+if (
+    leftHUD.classList.contains(
+        "open"
+    )
+) {
+
+    leftHUD.classList.remove(
+        "open"
+    );
+
+    return;
+}
 
             /*
              * 右端40pxからの左スワイプ
