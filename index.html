@@ -2536,171 +2536,202 @@ document.addEventListener(
             return;
         }
 
+        
+/*
+ * =================================================
+ * 縦スワイプ
+ * =================================================
+ *
+ * 基本：VOICE
+ *
+ * 下 → 上
+ * → TEXTを表示
+ *
+ * 上 → 下
+ * → VOICEへ戻す
+ */
 
-        /*
-         * =================================================
-         * 縦スワイプ
-         * =================================================
-         */
+if (absY > absX) {
 
-        if (absY > absX) {
+    /*
+     * 下 → 上
+     */
 
-            /*
-             * 下 → 上
-             *
-             * VOICE ↔ TEXT
-             */
+    if (deltaY < -80) {
 
-            if (deltaY < -80) {
+        setMode("text");
 
-                if (
-                    currentMode === "voice"
-                ) {
-
-                    setMode("text");
-
-                } else if (
-                    currentMode === "text"
-                ) {
-
-                    setMode("voice");
-                }
-            }
-
-            return;
-        }
-
-
-        /*
-         * =================================================
-         * 横スワイプ
-         * =================================================
-         */
-
-        /*
-         * 左スワイプ
-         */
-
-        if (deltaX < -80) {
-
-            /*
-             * 右HUDが開いている場合は閉じる
-             */
-
-            if (
-                rightHUD.classList.contains(
-                    "open"
-                )
-            ) {
-
-                rightHUD.classList.remove(
-                    "open"
-                );
-
-                return;
-            }
-
-
-            /*
-             * 右端からの左スワイプ
-             *
-             * 既存VOICE EXPORTを維持
-             */
-
-            if (
-                touchStartX >
-                window.innerWidth - 40
-            ) {
-
-                leftHUD.classList.remove(
-                    "open"
-                );
-
-                exportPanel.classList.add(
-                    "open"
-                );
-
-                return;
-            }
-
-
-            /*
-             * その他の左スワイプ
-             *
-             * → 左HUD
-             */
-
-            exportPanel.classList.remove(
-                "open"
-            );
-
-            leftHUD.classList.add(
-                "open"
-            );
-
-            return;
-        }
-
-
-        /*
-         * 右スワイプ
-         */
-
-        if (deltaX > 80) {
-
-            /*
-             * VOICE EXPORTが開いている場合
-             *
-             * 既存仕様：右へスワイプして閉じる
-             */
-
-            if (
-                exportPanel.classList.contains(
-                    "open"
-                )
-            ) {
-
-                exportPanel.classList.remove(
-                    "open"
-                );
-
-                return;
-            }
-
-
-            /*
-             * 左HUDが開いている場合は閉じる
-             */
-
-            if (
-                leftHUD.classList.contains(
-                    "open"
-                )
-            ) {
-
-                leftHUD.classList.remove(
-                    "open"
-                );
-
-                return;
-            }
-
-
-            /*
-             * → 右HUD
-             */
-
-            rightHUD.classList.add(
-                "open"
-            );
-        }
-
-    },
-    {
-        passive: true
+        return;
     }
-);
 
+
+    /*
+     * 上 → 下
+     */
+
+    if (deltaY > 80) {
+
+        setMode("voice");
+
+        return;
+    }
+ 
+/*
+ * =================================================
+ * 横スワイプ
+ * =================================================
+ */
+
+
+/*
+ * =================================================
+ * 左スワイプ
+ *
+ * 右 → 左
+ * → 右HUD
+ * =================================================
+ */
+
+if (deltaX < -80) {
+
+    /*
+     * 右HUDが開いている場合は閉じる
+     */
+
+    if (
+        rightHUD.classList.contains(
+            "open"
+        )
+    ) {
+
+        rightHUD.classList.remove(
+            "open"
+        );
+
+        return;
+    }
+
+
+    /*
+     * 右端40pxからの左スワイプ
+     *
+     * 既存VOICE EXPORTを優先
+     */
+
+    if (
+        touchStartX >
+        window.innerWidth - 40
+    ) {
+
+        leftHUD.classList.remove(
+            "open"
+        );
+
+        exportPanel.classList.add(
+            "open"
+        );
+
+        return;
+    }
+
+
+    /*
+     * その他の左スワイプ
+     *
+     * → 右HUD
+     */
+
+    exportPanel.classList.remove(
+        "open"
+    );
+
+    leftHUD.classList.remove(
+        "open"
+    );
+
+    rightHUD.classList.add(
+        "open"
+    );
+
+    return;
+}
+
+
+/*
+ * =================================================
+ * 右スワイプ
+ *
+ * 左 → 右
+ * → 左HUD
+ * =================================================
+ */
+
+if (deltaX > 80) {
+
+    /*
+     * VOICE EXPORTが開いている場合
+     *
+     * 既存仕様：右へスワイプして閉じる
+     */
+
+    if (
+        exportPanel.classList.contains(
+            "open"
+        )
+    ) {
+
+        exportPanel.classList.remove(
+            "open"
+        );
+
+        return;
+    }
+
+
+    /*
+     * 左HUDが開いている場合は閉じる
+     */
+
+    if (
+        leftHUD.classList.contains(
+            "open"
+        )
+    ) {
+
+        leftHUD.classList.remove(
+            "open"
+        );
+
+        return;
+    }
+
+
+    /*
+     * 右HUDが開いている場合も閉じる
+     */
+
+    if (
+        rightHUD.classList.contains(
+            "open"
+        )
+    ) {
+
+        rightHUD.classList.remove(
+            "open"
+        );
+
+        return;
+    }
+
+
+    /*
+     * → 左HUD
+     */
+
+    leftHUD.classList.add(
+        "open"
+    );
+}
 /* =========================================================
    VOICE EXPORT
    ========================================================= */
