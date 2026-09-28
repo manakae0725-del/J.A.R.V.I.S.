@@ -180,6 +180,7 @@ h1 {
     margin-top: 10px;
     color: #aaa;
 }
+
 /* =========================================================
    J.A.R.V.I.S. SIDE HUD
    ========================================================= */
@@ -245,7 +246,8 @@ h1 {
     font-size: 12px;
     line-height: 1.5;
 }
-    /* =========================================================
+
+/* =========================================================
    J.A.R.V.I.S. CORE UI
    ========================================================= */
 
@@ -369,9 +371,11 @@ h1 {
     </button>
 
 </div>
+
 <div id="jarvisCore">
     <div class="coreGlow"></div>
 </div>
+
 <button id="talkButton">🎙️ 話す</button>
 
 <div id="textArea">
@@ -396,6 +400,7 @@ h1 {
 </div>
 
 <pre id="diagnostic"></pre>
+
 <!-- =========================================================
      LEFT HUD
      ========================================================= -->
@@ -417,7 +422,6 @@ h1 {
 
 </div>
 
-
 <!-- =========================================================
      RIGHT HUD
      ========================================================= -->
@@ -438,6 +442,7 @@ h1 {
     </div>
 
 </div>
+
 <div id="exportPanel">
 
     <h2>VOICE EXPORT</h2>
@@ -458,6 +463,10 @@ h1 {
 </div>
 
 <script>
+
+/* =========================================================
+   J.A.R.V.I.S. CORE INITIALIZATION
+   ========================================================= */
 
 const button =
     document.getElementById("talkButton");
@@ -497,6 +506,7 @@ const leftHUD =
 
 const rightHUD =
     document.getElementById("rightHUD");
+
 const SpeechRecognition =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
@@ -1350,7 +1360,10 @@ function pcmToWav(base64) {
                 "audio/wav"
         }
     );
-} /* =========================================================
+}
+
+
+/* =========================================================
    Listening
    ========================================================= */
 
@@ -1422,7 +1435,6 @@ function startListening() {
             );
     }
 }
-
 
 /* =========================================================
    Gemini TTS
@@ -2179,116 +2191,132 @@ if (!SpeechRecognition) {
 
 } else {
 
-    recognition =
-        new SpeechRecognition();
+    try {
+
+        recognition =
+            new SpeechRecognition();
 
 
-    recognition.lang =
-        "ja-JP";
+        recognition.lang =
+            "ja-JP";
 
 
-    recognition.continuous =
-        false;
+        recognition.continuous =
+            false;
 
 
-    recognition.interimResults =
-        false;
+        recognition.interimResults =
+            false;
 
 
-    recognition.onresult =
-        async (event) => {
+        recognition.onresult =
+            async (event) => {
 
-            recognitionRunning =
-                false;
-
-
-            const text =
-                event.results[0][0]
-                    .transcript;
+                recognitionRunning =
+                    false;
 
 
-            status.textContent =
-                "認識：「" +
-                text +
-                "」";
+                const text =
+                    event.results[0][0]
+                        .transcript;
 
-
-            await new Promise(
-                resolve =>
-                    setTimeout(
-                        resolve,
-                        300
-                    )
-            );
-
-
-            if (!conversationActive) {
-                return;
-            }
-
-
-            await sendToGemini(
-                text
-            );
-        };
-
-
-    recognition.onerror =
-        (event) => {
-
-            recognitionRunning =
-                false;
-
-
-            if (
-                currentMode ===
-                "auto"
-            ) {
-
-                textArea.style.display =
-                    "block";
-
-                button.style.display =
-                    "none";
 
                 status.textContent =
-                    "音声入力を使用できないため、文字入力に切り替えました";
-
-                return;
-            }
-
-
-            status.textContent =
-                "音声認識エラー：" +
-                event.error;
+                    "認識：「" +
+                    text +
+                    "」";
 
 
-            if (
-                conversationActive &&
-                event.error !==
-                    "not-allowed" &&
-                event.error !==
-                    "service-not-allowed"
-            ) {
-
-                setTimeout(
-                    () => {
-
-                        startListening();
-
-                    },
-                    500
+                await new Promise(
+                    resolve =>
+                        setTimeout(
+                            resolve,
+                            300
+                        )
                 );
-            }
-        };
 
 
-    recognition.onend =
-        () => {
+                if (!conversationActive) {
+                    return;
+                }
 
-            recognitionRunning =
-                false;
-        };
+
+                await sendToGemini(
+                    text
+                );
+            };
+
+
+        recognition.onerror =
+            (event) => {
+
+                recognitionRunning =
+                    false;
+
+
+                if (
+                    currentMode ===
+                    "auto"
+                ) {
+
+                    textArea.style.display =
+                        "block";
+
+                    button.style.display =
+                        "none";
+
+                    status.textContent =
+                        "音声入力を使用できないため、文字入力に切り替えました";
+
+                    return;
+                }
+
+
+                status.textContent =
+                    "音声認識エラー：" +
+                    event.error;
+
+
+                if (
+                    conversationActive &&
+                    event.error !==
+                        "not-allowed" &&
+                    event.error !==
+                        "service-not-allowed"
+                ) {
+
+                    setTimeout(
+                        () => {
+
+                            startListening();
+
+                        },
+                        500
+                    );
+                }
+            };
+
+
+        recognition.onend =
+            () => {
+
+                recognitionRunning =
+                    false;
+            };
+
+    } catch (error) {
+
+        recognition =
+            null;
+
+        console.error(
+            "SpeechRecognition initialization error:",
+            error
+        );
+
+        status.textContent =
+            "音声認識を初期化できません";
+    }
 }
 
 
@@ -2302,15 +2330,41 @@ button.addEventListener(
 
         if (!audioContext) {
 
-            audioContext =
-                new (
-                    window.AudioContext ||
-                    window.webkitAudioContext
-                )();
+            try {
+
+                audioContext =
+                    new (
+                        window.AudioContext ||
+                        window.webkitAudioContext
+                    )();
+
+            } catch (error) {
+
+                status.textContent =
+                    "AudioContextを初期化できません：" +
+                    getErrorMessage(
+                        error
+                    );
+
+                return;
+            }
         }
 
 
-        await audioContext.resume();
+        try {
+
+            await audioContext.resume();
+
+        } catch (error) {
+
+            status.textContent =
+                "AudioContextを開始できません：" +
+                getErrorMessage(
+                    error
+                );
+
+            return;
+        }
 
 
         if (conversationActive) {
@@ -2535,205 +2589,207 @@ document.addEventListener(
         ) {
             return;
         }
-　　　　　
-        
-/*
- * =================================================
- * 縦スワイプ
- * =================================================
- *
- * 基本：VOICE
- *
- * 下 → 上
- * → TEXTを表示
- *
- * 上 → 下
- * → VOICEへ戻す
- */
 
-if (absY > absX) {
 
-    /*
-     * 下 → 上
-     */
+        /*
+         * =================================================
+         * 縦スワイプ
+         * =================================================
+         *
+         * 基本：VOICE
+         *
+         * 下 → 上
+         * → TEXTを表示
+         *
+         * 上 → 下
+         * → VOICEへ戻す
+         */
 
-    if (deltaY < -80) {
+        if (absY > absX) {
 
-        setMode("text");
+            /*
+             * 下 → 上
+             */
 
-        return;
+            if (deltaY < -80) {
+
+                setMode("text");
+
+                return;
+            }
+
+
+            /*
+             * 上 → 下
+             */
+
+            if (deltaY > 80) {
+
+                setMode("voice");
+
+                return;
+            }
+        }
+
+
+        /*
+         * =================================================
+         * 横スワイプ
+         * =================================================
+         */
+
+
+        /*
+         * =================================================
+         * 左スワイプ
+         *
+         * 右 → 左
+         * → 右HUD
+         * =================================================
+         */
+
+        if (deltaX < -80) {
+
+            /*
+             * 右HUDが開いている場合は閉じる
+             */
+
+            if (
+                rightHUD.classList.contains(
+                    "open"
+                )
+            ) {
+
+                rightHUD.classList.remove(
+                    "open"
+                );
+
+                return;
+            }
+
+
+            /*
+             * 右端40pxからの左スワイプ
+             *
+             * 既存VOICE EXPORTを優先
+             */
+
+            if (
+                touchStartX >
+                window.innerWidth - 40
+            ) {
+
+                leftHUD.classList.remove(
+                    "open"
+                );
+
+                exportPanel.classList.add(
+                    "open"
+                );
+
+                return;
+            }
+
+
+            /*
+             * その他の左スワイプ
+             *
+             * → 右HUD
+             */
+
+            exportPanel.classList.remove(
+                "open"
+            );
+
+            leftHUD.classList.remove(
+                "open"
+            );
+
+            rightHUD.classList.add(
+                "open"
+            );
+
+            return;
+        }
+
+
+        /*
+         * =================================================
+         * 右スワイプ
+         *
+         * 左 → 右
+         * → 左HUD
+         * =================================================
+         */
+
+        if (deltaX > 80) {
+
+            /*
+             * VOICE EXPORTが開いている場合
+             *
+             * 既存仕様：右へスワイプして閉じる
+             */
+
+            if (
+                exportPanel.classList.contains(
+                    "open"
+                )
+            ) {
+
+                exportPanel.classList.remove(
+                    "open"
+                );
+
+                return;
+            }
+
+
+            /*
+             * 左HUDが開いている場合は閉じる
+             */
+
+            if (
+                leftHUD.classList.contains(
+                    "open"
+                )
+            ) {
+
+                leftHUD.classList.remove(
+                    "open"
+                );
+
+                return;
+            }
+
+
+            /*
+             * 右HUDが開いている場合も閉じる
+             */
+
+            if (
+                rightHUD.classList.contains(
+                    "open"
+                )
+            ) {
+
+                rightHUD.classList.remove(
+                    "open"
+                );
+
+                return;
+            }
+
+
+            /*
+             * → 左HUD
+             */
+
+            leftHUD.classList.add(
+                "open"
+            );
+        }
     }
-
-
-    /*
-     * 上 → 下
-     */
-
-    if (deltaY > 80) {
-
-        setMode("voice");
-
-        return;
-    }
- }
-/*
- * =================================================
- * 横スワイプ
- * =================================================
- */
-
-
-/*
- * =================================================
- * 左スワイプ
- *
- * 右 → 左
- * → 右HUD
- * =================================================
- */
-
-if (deltaX < -80) {
-
-    /*
-     * 右HUDが開いている場合は閉じる
-     */
-
-    if (
-        rightHUD.classList.contains(
-            "open"
-        )
-    ) {
-
-        rightHUD.classList.remove(
-            "open"
-        );
-
-        return;
-    }
-
-
-    /*
-     * 右端40pxからの左スワイプ
-     *
-     * 既存VOICE EXPORTを優先
-     */
-
-    if (
-        touchStartX >
-        window.innerWidth - 40
-    ) {
-
-        leftHUD.classList.remove(
-            "open"
-        );
-
-        exportPanel.classList.add(
-            "open"
-        );
-
-        return;
-    }
-
-
-    /*
-     * その他の左スワイプ
-     *
-     * → 右HUD
-     */
-
-    exportPanel.classList.remove(
-        "open"
-    );
-
-    leftHUD.classList.remove(
-        "open"
-    );
-
-    rightHUD.classList.add(
-        "open"
-    );
-
-    return;
-}
-
-
-/*
- * =================================================
- * 右スワイプ
- *
- * 左 → 右
- * → 左HUD
- * =================================================
- */
-
-if (deltaX > 80) {
-
-    /*
-     * VOICE EXPORTが開いている場合
-     *
-     * 既存仕様：右へスワイプして閉じる
-     */
-
-    if (
-        exportPanel.classList.contains(
-            "open"
-        )
-    ) {
-
-        exportPanel.classList.remove(
-            "open"
-        );
-
-        return;
-    }
-
-
-    /*
-     * 左HUDが開いている場合は閉じる
-     */
-
-    if (
-        leftHUD.classList.contains(
-            "open"
-        )
-    ) {
-
-        leftHUD.classList.remove(
-            "open"
-        );
-
-        return;
-    }
-
-
-    /*
-     * 右HUDが開いている場合も閉じる
-     */
-
-    if (
-        rightHUD.classList.contains(
-            "open"
-        )
-    ) {
-
-        rightHUD.classList.remove(
-            "open"
-        );
-
-        return;
-    }
-
-
-    /*
-     * → 左HUD
-     */
-
-    leftHUD.classList.add(
-        "open"
-    );
-}
-}
-/* =========================================================
+); /* =========================================================
    VOICE EXPORT
    ========================================================= */
 
@@ -2799,6 +2855,10 @@ voiceExportButton.addEventListener(
 );
 
 
+/* =========================================================
+   CLOSE EXPORT
+   ========================================================= */
+
 closeExportButton.addEventListener(
     "click",
     () => {
@@ -2807,8 +2867,11 @@ closeExportButton.addEventListener(
             "open"
         );
     }
-); /* =========================================================
-   Initial
+);
+
+
+/* =========================================================
+   INITIAL
    ========================================================= */
 
 setMode(
@@ -2816,6 +2879,15 @@ setMode(
 );
 
 loadMemories();
+
+
+/* =========================================================
+   J.A.R.V.I.S. JS READY
+   ========================================================= */
+
+console.log(
+    "J.A.R.V.I.S. JavaScript READY"
+);
 
 </script>
 
