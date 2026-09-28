@@ -724,6 +724,16 @@ function setCoreState(state) {
         "core-" + state
     );
 
+const rightHUDSearch =
+    document.getElementById("rightHUDSearch");
+
+if (rightHUDSearch) {
+    rightHUDSearch.textContent =
+        state === "searching"
+            ? "SEARCHING"
+            : "--";
+}
+
     const leftHUDStatus =
         document.getElementById("leftHUDStatus");
 
