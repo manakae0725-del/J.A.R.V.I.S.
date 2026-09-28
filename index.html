@@ -688,6 +688,123 @@ const rightHUDWeekday =
 const rightHUDTime =
     document.getElementById("rightHUDTime");
 
+const rightHUDDevice =
+    document.getElementById("rightHUDDevice");
+
+const rightHUDConnection =
+    document.getElementById("rightHUDConnection");
+
+const rightHUDWeather =
+    document.getElementById("rightHUDWeather");
+
+
+/* =========================================================
+   RIGHT HUD DEVICE / CONNECTION / WEATHER
+   ========================================================= */
+
+function updateRightHUDDevice() {
+
+    if (!rightHUDDevice) {
+        return;
+    }
+
+    const userAgent = navigator.userAgent || "";
+    const platform = navigator.platform || "";
+    const maxTouchPoints = navigator.maxTouchPoints || 0;
+
+    let device = "PC";
+
+    if (/iPhone|iPod/i.test(userAgent)) {
+        device = "iPhone";
+    } else if (
+        /iPad/i.test(userAgent) ||
+        (platform === "MacIntel" && maxTouchPoints > 1)
+    ) {
+        device = "iPad";
+    }
+
+    rightHUDDevice.textContent =
+        device;
+}
+
+function updateRightHUDConnection() {
+
+    if (!rightHUDConnection) {
+        return;
+    }
+
+    rightHUDConnection.textContent =
+        navigator.onLine
+            ? "ONLINE"
+            : "OFFLINE";
+}
+
+async function updateRightHUDWeather() {
+
+    if (!rightHUDWeather || !navigator.geolocation) {
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+
+            try {
+
+                const latitude =
+                    position.coords.latitude;
+
+                const longitude =
+                    position.coords.longitude;
+
+                const response =
+                    await fetch(
+                        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=celsius&timezone=auto`
+                    );
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const data =
+                    await response.json();
+
+                const temperature =
+                    data?.current?.temperature_2m;
+
+                if (typeof temperature === "number") {
+                    rightHUDWeather.textContent =
+                        `${temperature.toFixed(1)}°C`;
+                }
+
+            } catch (error) {
+                console.error(
+                    "WEATHER ERROR:",
+                    error
+                );
+            }
+        },
+        () => {
+            rightHUDWeather.textContent =
+                "--";
+        },
+        {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 300000
+        }
+    );
+}
+
+window.addEventListener(
+    "online",
+    updateRightHUDConnection
+);
+
+window.addEventListener(
+    "offline",
+    updateRightHUDConnection
+);
+
 
 /* =========================================================
    CORE 5 STATES
@@ -3229,6 +3346,9 @@ closeExportButton.addEventListener(
 setCoreState("standby");
 
 updateRightHUDDateTime();
+updateRightHUDDevice();
+updateRightHUDConnection();
+updateRightHUDWeather();
 
 setMode(
     "voice"
