@@ -493,16 +493,47 @@ h1 {
 
 <div id="leftHUD" class="sideHUD">
 
-    <h2>LEFT HUD</h2>
+    <h2>J.A.R.V.I.S. CORE</h2>
 
     <div class="hudLine">
-        J.A.R.V.I.S. SYSTEM
+        CORE STATE<br>
+        <span id="leftHUDStatus">
+            STANDBY
+        </span>
     </div>
 
     <div class="hudLine">
-        STATUS<br>
-        <span id="leftHUDStatus">
-            STANDBY
+        SYSTEM<br>
+        <span id="leftHUDSystem">
+            ONLINE
+        </span>
+    </div>
+
+    <div class="hudLine">
+        COMMUNICATION<br>
+        <span id="leftHUDCommunication">
+            ONLINE
+        </span>
+    </div>
+
+    <div class="hudLine">
+        SERVICES<br>
+        <span id="leftHUDServices">
+            READY
+        </span>
+    </div>
+
+    <div class="hudLine">
+        CONNECTION<br>
+        <span id="leftHUDConnection">
+            ACTIVE
+        </span>
+    </div>
+
+    <div class="hudLine">
+        SETTINGS<br>
+        <span id="leftHUDSettings">
+            DEFAULT
         </span>
     </div>
 
@@ -514,16 +545,68 @@ h1 {
 
 <div id="rightHUD" class="sideHUD">
 
-    <h2>RIGHT HUD</h2>
+    <h2>J.A.R.V.I.S. INFO</h2>
 
     <div class="hudLine">
-        J.A.R.V.I.S. SYSTEM
+        DEVICE<br>
+        <span id="rightHUDDevice">
+            iPhone
+        </span>
     </div>
 
     <div class="hudLine">
-        MODE<br>
-        <span id="rightHUDMode">
-            VOICE
+        CONNECTION<br>
+        <span id="rightHUDConnection">
+            ONLINE
+        </span>
+    </div>
+
+    <div class="hudLine">
+        WEATHER<br>
+        <span id="rightHUDWeather">
+            --
+        </span>
+    </div>
+
+<div class="hudLine dateTimeWidget">
+
+    <div class="dateTimeTitle">
+        DATE & TIME
+    </div>
+
+    <div id="rightHUDDate">
+        --
+    </div>
+
+    <div id="rightHUDWeekday">
+        --
+    </div>
+
+    <div id="rightHUDTime">
+        --
+    </div>
+
+</div>
+
+<div class="hudLine">
+    TASKS<br>
+
+        <span id="rightHUDTasks">
+            NONE
+        </span>
+    </div>
+
+    <div class="hudLine">
+        NOTIFICATIONS<br>
+        <span id="rightHUDNotifications">
+            NONE
+        </span>
+    </div>
+
+    <div class="hudLine">
+        SEARCH<br>
+        <span id="rightHUDSearch">
+            --
         </span>
     </div>
 
@@ -596,10 +679,20 @@ const rightHUD =
 const jarvisCore =
     document.getElementById("jarvisCore");
 
+const rightHUDDate =
+    document.getElementById("rightHUDDate");
+
+const rightHUDWeekday =
+    document.getElementById("rightHUDWeekday");
+
+const rightHUDTime =
+    document.getElementById("rightHUDTime");
+
 
 /* =========================================================
    CORE 5 STATES
    ========================================================= */
+
 
 const CORE_STATES = [
     "standby",
@@ -609,7 +702,6 @@ const CORE_STATES = [
     "answering"
 ];
 
-
 function setCoreState(state) {
 
     if (
@@ -617,7 +709,6 @@ function setCoreState(state) {
     ) {
         return;
     }
-
 
     CORE_STATES.forEach(
         (coreState) => {
@@ -629,11 +720,65 @@ function setCoreState(state) {
         }
     );
 
-
     jarvisCore.classList.add(
         "core-" + state
     );
+
+    const leftHUDStatus =
+        document.getElementById("leftHUDStatus");
+
+    if (leftHUDStatus) {
+        leftHUDStatus.textContent =
+            state.toUpperCase();
+    }
 }
+
+
+setInterval(
+ function updateRightHUDDateTime() {
+
+    const now = new Date();
+
+    const date =
+        now.toLocaleDateString(
+            "ja-JP",
+            {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit"
+            }
+        );
+
+    const weekday =
+        now.toLocaleDateString(
+            "ja-JP",
+            {
+                weekday: "long"
+            }
+        );
+
+    const time =
+        now.toLocaleTimeString(
+            "ja-JP",
+            {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+            }
+        );
+
+    rightHUDDate.textContent =
+        date;
+
+    rightHUDWeekday.textContent =
+        weekday;
+
+    rightHUDTime.textContent =
+        time;
+},
+    1000
+);
 
 const SpeechRecognition =
     window.SpeechRecognition ||
@@ -3066,6 +3211,8 @@ closeExportButton.addEventListener(
    ========================================================= */
 
 setCoreState("standby");
+
+updateRightHUDDateTime();
 
 setMode(
     "voice"
