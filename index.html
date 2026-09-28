@@ -181,6 +181,71 @@ h1 {
     color: #aaa;
 }
 /* =========================================================
+   J.A.R.V.I.S. SIDE HUD
+   ========================================================= */
+
+.sideHUD {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 72vw;
+    max-width: 300px;
+    box-sizing: border-box;
+    padding: 30px 20px;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(5, 15, 30, 0.98),
+            rgba(3, 8, 18, 0.98)
+        );
+    border-color: rgba(100, 190, 255, 0.35);
+    z-index: 9000;
+    transition:
+        transform 0.25s ease;
+    text-align: left;
+}
+
+#leftHUD {
+    left: 0;
+    transform: translateX(-100%);
+    border-right: 1px solid
+        rgba(100, 190, 255, 0.35);
+}
+
+#rightHUD {
+    right: 0;
+    transform: translateX(100%);
+    border-left: 1px solid
+        rgba(100, 190, 255, 0.35);
+}
+
+#leftHUD.open {
+    transform: translateX(0);
+}
+
+#rightHUD.open {
+    transform: translateX(0);
+}
+
+.sideHUD h2 {
+    margin: 0 0 25px;
+    color: #bfeaff;
+    font-size: 17px;
+    letter-spacing: 3px;
+}
+
+.sideHUD .hudLine {
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid
+        rgba(100, 190, 255, 0.18);
+    background:
+        rgba(20, 50, 80, 0.18);
+    color: #9edaff;
+    font-size: 12px;
+    line-height: 1.5;
+}
+    /* =========================================================
    J.A.R.V.I.S. CORE UI
    ========================================================= */
 
@@ -331,7 +396,48 @@ h1 {
 </div>
 
 <pre id="diagnostic"></pre>
+<!-- =========================================================
+     LEFT HUD
+     ========================================================= -->
 
+<div id="leftHUD" class="sideHUD">
+
+    <h2>LEFT HUD</h2>
+
+    <div class="hudLine">
+        J.A.R.V.I.S. SYSTEM
+    </div>
+
+    <div class="hudLine">
+        STATUS<br>
+        <span id="leftHUDStatus">
+            STANDBY
+        </span>
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     RIGHT HUD
+     ========================================================= -->
+
+<div id="rightHUD" class="sideHUD">
+
+    <h2>RIGHT HUD</h2>
+
+    <div class="hudLine">
+        J.A.R.V.I.S. SYSTEM
+    </div>
+
+    <div class="hudLine">
+        MODE<br>
+        <span id="rightHUDMode">
+            VOICE
+        </span>
+    </div>
+
+</div>
 <div id="exportPanel">
 
     <h2>VOICE EXPORT</h2>
@@ -386,7 +492,11 @@ const voiceExportButton =
 const closeExportButton =
     document.getElementById("closeExportButton");
 
+const leftHUD =
+    document.getElementById("leftHUD");
 
+const rightHUD =
+    document.getElementById("rightHUD");
 const SpeechRecognition =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
@@ -2360,15 +2470,24 @@ modeButtons.forEach(
    ========================================================= */
 
 let touchStartX = 0;
+let touchStartY = 0;
+
 let touchEndX = 0;
+let touchEndY = 0;
 
 
 document.addEventListener(
     "touchstart",
     (event) => {
 
+        const touch =
+            event.changedTouches[0];
+
         touchStartX =
-            event.changedTouches[0].screenX;
+            touch.screenX;
+
+        touchStartY =
+            touch.screenY;
     },
     {
         passive: true
@@ -2380,52 +2499,207 @@ document.addEventListener(
     "touchend",
     (event) => {
 
+        const touch =
+            event.changedTouches[0];
+
         touchEndX =
-            event.changedTouches[0].screenX;
+            touch.screenX;
+
+        touchEndY =
+            touch.screenY;
 
 
-        const delta =
+        const deltaX =
             touchEndX -
             touchStartX;
 
+        const deltaY =
+            touchEndY -
+            touchStartY;
+
+
+        const absX =
+            Math.abs(deltaX);
+
+        const absY =
+            Math.abs(deltaY);
+
 
         /*
-         * 右端から左へのスワイプ
+         * 小さすぎる移動は無視
          */
 
         if (
-            touchStartX >
-                window.innerWidth - 40 &&
-            delta < -80
+            absX < 80 &&
+            absY < 80
         ) {
-
-            exportPanel.classList.add(
-                "open"
-            );
+            return;
         }
 
 
         /*
-         * パネルを右へ閉じる
+         * =================================================
+         * 縦スワイプ
+         * =================================================
          */
 
-        if (
-            exportPanel.classList.contains(
-                "open"
-            ) &&
-            delta > 80
-        ) {
+        if (absY > absX) {
+
+            /*
+             * 下 → 上
+             *
+             * VOICE ↔ TEXT
+             */
+
+            if (deltaY < -80) {
+
+                if (
+                    currentMode === "voice"
+                ) {
+
+                    setMode("text");
+
+                } else if (
+                    currentMode === "text"
+                ) {
+
+                    setMode("voice");
+                }
+            }
+
+            return;
+        }
+
+
+        /*
+         * =================================================
+         * 横スワイプ
+         * =================================================
+         */
+
+        /*
+         * 左スワイプ
+         */
+
+        if (deltaX < -80) {
+
+            /*
+             * 右HUDが開いている場合は閉じる
+             */
+
+            if (
+                rightHUD.classList.contains(
+                    "open"
+                )
+            ) {
+
+                rightHUD.classList.remove(
+                    "open"
+                );
+
+                return;
+            }
+
+
+            /*
+             * 右端からの左スワイプ
+             *
+             * 既存VOICE EXPORTを維持
+             */
+
+            if (
+                touchStartX >
+                window.innerWidth - 40
+            ) {
+
+                leftHUD.classList.remove(
+                    "open"
+                );
+
+                exportPanel.classList.add(
+                    "open"
+                );
+
+                return;
+            }
+
+
+            /*
+             * その他の左スワイプ
+             *
+             * → 左HUD
+             */
 
             exportPanel.classList.remove(
                 "open"
             );
+
+            leftHUD.classList.add(
+                "open"
+            );
+
+            return;
         }
+
+
+        /*
+         * 右スワイプ
+         */
+
+        if (deltaX > 80) {
+
+            /*
+             * VOICE EXPORTが開いている場合
+             *
+             * 既存仕様：右へスワイプして閉じる
+             */
+
+            if (
+                exportPanel.classList.contains(
+                    "open"
+                )
+            ) {
+
+                exportPanel.classList.remove(
+                    "open"
+                );
+
+                return;
+            }
+
+
+            /*
+             * 左HUDが開いている場合は閉じる
+             */
+
+            if (
+                leftHUD.classList.contains(
+                    "open"
+                )
+            ) {
+
+                leftHUD.classList.remove(
+                    "open"
+                );
+
+                return;
+            }
+
+
+            /*
+             * → 右HUD
+             */
+
+            rightHUD.classList.add(
+                "open"
+            );
+        }
+
     },
     {
         passive: true
     }
 );
-
 
 /* =========================================================
    VOICE EXPORT
