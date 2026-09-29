@@ -591,32 +591,33 @@ h1 {
     width: 39%;
     height: 21%;
     overflow: hidden;
-    opacity: 0.46;
+    opacity: 0.72;
 
     background:
         radial-gradient(
             ellipse at 50% 48%,
-            rgba(90, 205, 255, 0.18) 0%,
-            rgba(40, 150, 235, 0.08) 38%,
+            rgba(115, 220, 255, 0.32) 0%,
+            rgba(45, 165, 245, 0.16) 38%,
             transparent 72%
         ),
         linear-gradient(
             180deg,
-            rgba(40, 160, 255, 0.035),
+            rgba(60, 185, 255, 0.075),
             transparent 70%
         );
 
     border-top:
-        1px solid rgba(130, 225, 255, 0.22);
+        1px solid rgba(150, 235, 255, 0.46);
 
     border-bottom:
-        1px solid rgba(100, 205, 255, 0.14);
+        1px solid rgba(120, 220, 255, 0.34);
 
     box-shadow:
-        0 0 18px rgba(40, 160, 255, 0.06),
-        inset 0 0 18px rgba(50, 170, 255, 0.045);
+        0 0 12px rgba(40, 175, 255, 0.24),
+        0 0 28px rgba(55, 170, 255, 0.16),
+        inset 0 0 24px rgba(70, 190, 255, 0.12);
 
-    filter: blur(0.15px);
+    filter: blur(0.05px);
 }
 
 .worldMap::before {
@@ -628,25 +629,37 @@ h1 {
         linear-gradient(
             90deg,
             transparent 0%,
-            rgba(120, 220, 255, 0.14) 49.6%,
-            rgba(180, 240, 255, 0.28) 50%,
-            rgba(120, 220, 255, 0.14) 50.4%,
+            rgba(130, 225, 255, 0.26) 49.6%,
+            rgba(205, 248, 255, 0.52) 50%,
+            rgba(130, 225, 255, 0.26) 50.4%,
             transparent 100%
         ),
         repeating-linear-gradient(
             90deg,
             transparent 0 19px,
-            rgba(110, 210, 255, 0.065) 20px,
+            rgba(120, 220, 255, 0.13) 20px,
             transparent 21px
         ),
         repeating-linear-gradient(
             0deg,
             transparent 0 10px,
-            rgba(110, 210, 255, 0.075) 11px,
+            rgba(120, 220, 255, 0.14) 11px,
             transparent 12px
+        ),
+        repeating-linear-gradient(
+            32deg,
+            transparent 0 46px,
+            rgba(155, 235, 255, 0.12) 47px,
+            transparent 48px
+        ),
+        repeating-linear-gradient(
+            -32deg,
+            transparent 0 62px,
+            rgba(95, 205, 255, 0.10) 63px,
+            transparent 64px
         );
 
-    opacity: 0.9;
+    opacity: 1;
     pointer-events: none;
 }
 
@@ -658,21 +671,21 @@ h1 {
     width: 2px;
     height: 2px;
     border-radius: 50%;
-    background: rgba(210, 250, 255, 0.95);
+    background: rgba(225, 252, 255, 1);
 
     box-shadow:
-        -72px -22px 0 0 rgba(130, 225, 255, 0.78),
-        -58px -6px 0 0 rgba(160, 235, 255, 0.90),
-        -43px 18px 0 0 rgba(110, 215, 255, 0.72),
-        -27px -17px 0 0 rgba(180, 245, 255, 0.90),
-        -10px 25px 0 0 rgba(100, 210, 255, 0.72),
-        12px -19px 0 0 rgba(190, 245, 255, 0.90),
-        31px 5px 0 0 rgba(130, 225, 255, 0.78),
-        51px -14px 0 0 rgba(175, 240, 255, 0.86),
-        68px 17px 0 0 rgba(110, 215, 255, 0.70);
+        -72px -22px 0 0 rgba(145, 235, 255, 0.96),
+        -58px -6px 0 0 rgba(180, 245, 255, 1),
+        -43px 18px 0 0 rgba(120, 225, 255, 0.90),
+        -27px -17px 0 0 rgba(200, 248, 255, 1),
+        -10px 25px 0 0 rgba(115, 220, 255, 0.90),
+        12px -19px 0 0 rgba(210, 250, 255, 1),
+        31px 5px 0 0 rgba(150, 235, 255, 0.96),
+        51px -14px 0 0 rgba(195, 245, 255, 0.98),
+        68px 17px 0 0 rgba(125, 225, 255, 0.92);
 
-    opacity: 0.9;
-    filter: drop-shadow(0 0 4px rgba(70, 190, 255, 0.65));
+    opacity: 1;
+    filter: drop-shadow(0 0 5px rgba(70, 200, 255, 0.90)) drop-shadow(0 0 12px rgba(45, 150, 255, 0.45));
     animation: hologramNodes 3.8s ease-in-out infinite;
 }
 
@@ -682,35 +695,36 @@ h1 {
     width: 94%;
     height: 90%;
     overflow: visible;
-    opacity: 0.82;
+    opacity: 0.98;
     filter:
-        drop-shadow(0 0 4px rgba(50, 180, 255, 0.38))
-        drop-shadow(0 0 10px rgba(40, 130, 255, 0.16));
+        drop-shadow(0 0 4px rgba(65, 205, 255, 0.72))
+        drop-shadow(0 0 10px rgba(45, 155, 255, 0.42))
+        drop-shadow(0 0 18px rgba(40, 130, 255, 0.20));
 }
 
 .worldMapSvg .mapLand {
-    fill: rgba(55, 165, 235, 0.12);
-    stroke: rgba(125, 225, 255, 0.58);
-    stroke-width: 1.15;
+    fill: rgba(75, 185, 245, 0.23);
+    stroke: rgba(155, 238, 255, 0.92);
+    stroke-width: 1.55;
     vector-effect: non-scaling-stroke;
 }
 
 .worldMapSvg .mapLine {
     fill: none;
-    stroke: rgba(125, 225, 255, 0.38);
-    stroke-width: 0.75;
+    stroke: rgba(145, 232, 255, 0.62);
+    stroke-width: 1.05;
     vector-effect: non-scaling-stroke;
 }
 
 .worldMapSvg .mapNode {
-    fill: rgba(205, 250, 255, 0.92);
-    filter: drop-shadow(0 0 3px rgba(70, 205, 255, 0.9));
+    fill: rgba(225, 252, 255, 1);
+    filter: drop-shadow(0 0 4px rgba(70, 210, 255, 1)) drop-shadow(0 0 9px rgba(50, 170, 255, 0.75));
 }
 
 .worldMapSvg .mapScan {
     fill: none;
-    stroke: rgba(190, 245, 255, 0.42);
-    stroke-width: 1;
+    stroke: rgba(205, 248, 255, 0.78);
+    stroke-width: 1.3;
     stroke-dasharray: 7 8;
     animation: hologramScan 4.5s linear infinite;
 }
@@ -723,7 +737,7 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: rgba(150, 225, 255, 0.62);
+    color: rgba(175, 235, 255, 0.86);
     font-size: 7px;
     letter-spacing: 1.3px;
     text-transform: uppercase;
@@ -732,7 +746,7 @@ h1 {
 }
 
 .worldMapData span:nth-child(2) {
-    color: rgba(190, 242, 255, 0.72);
+    color: rgba(210, 248, 255, 0.96);
 }
 
 .worldMapLeft {
@@ -1252,7 +1266,7 @@ h1 {
     }
 
     .worldMap {
-        opacity: 0.34;
+        opacity: 0.68;
     }
 
     .worldMapData {
