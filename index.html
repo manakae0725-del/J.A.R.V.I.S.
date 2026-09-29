@@ -582,69 +582,206 @@ h1 {
 }
 
 /* ---------------------------------------------------------
-   HOLOGRAPHIC WORLD MAP
+   HOLOGRAPHIC WORLD MAP / UPPER HOLOGRAM
    --------------------------------------------------------- */
 
 .worldMap {
     position: absolute;
-    top: 11%;
-    width: 38%;
-    height: 20%;
-    opacity: 0.38;
+    top: 10.5%;
+    width: 39%;
+    height: 21%;
+    overflow: hidden;
+    opacity: 0.46;
 
     background:
         radial-gradient(
-            ellipse,
-            rgba(100, 210, 255, 0.18),
-            transparent 68%
+            ellipse at 50% 48%,
+            rgba(90, 205, 255, 0.18) 0%,
+            rgba(40, 150, 235, 0.08) 38%,
+            transparent 72%
+        ),
+        linear-gradient(
+            180deg,
+            rgba(40, 160, 255, 0.035),
+            transparent 70%
         );
 
-    filter: blur(0.2px);
-
     border-top:
-        1px solid rgba(120, 215, 255, 0.12);
+        1px solid rgba(130, 225, 255, 0.22);
 
     border-bottom:
-        1px solid rgba(120, 215, 255, 0.08);
+        1px solid rgba(100, 205, 255, 0.14);
+
+    box-shadow:
+        0 0 18px rgba(40, 160, 255, 0.06),
+        inset 0 0 18px rgba(50, 170, 255, 0.045);
+
+    filter: blur(0.15px);
 }
 
 .worldMap::before {
     content: "";
-
     position: absolute;
-    inset: 12%;
+    inset: 7% 3%;
 
-    background-image:
+    background:
         linear-gradient(
             90deg,
-            transparent 0 48%,
-            rgba(120, 220, 255, 0.22) 49%,
-            transparent 50%
+            transparent 0%,
+            rgba(120, 220, 255, 0.14) 49.6%,
+            rgba(180, 240, 255, 0.28) 50%,
+            rgba(120, 220, 255, 0.14) 50.4%,
+            transparent 100%
         ),
-        linear-gradient(
-            rgba(120, 220, 255, 0.10) 1px,
-            transparent 1px
+        repeating-linear-gradient(
+            90deg,
+            transparent 0 19px,
+            rgba(110, 210, 255, 0.065) 20px,
+            transparent 21px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            transparent 0 10px,
+            rgba(110, 210, 255, 0.075) 11px,
+            transparent 12px
         );
 
-    background-size:
-        100% 100%,
-        100% 12px;
+    opacity: 0.9;
+    pointer-events: none;
+}
 
-    opacity: 0.55;
+.worldMap::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: rgba(210, 250, 255, 0.95);
+
+    box-shadow:
+        -72px -22px 0 0 rgba(130, 225, 255, 0.78),
+        -58px -6px 0 0 rgba(160, 235, 255, 0.90),
+        -43px 18px 0 0 rgba(110, 215, 255, 0.72),
+        -27px -17px 0 0 rgba(180, 245, 255, 0.90),
+        -10px 25px 0 0 rgba(100, 210, 255, 0.72),
+        12px -19px 0 0 rgba(190, 245, 255, 0.90),
+        31px 5px 0 0 rgba(130, 225, 255, 0.78),
+        51px -14px 0 0 rgba(175, 240, 255, 0.86),
+        68px 17px 0 0 rgba(110, 215, 255, 0.70);
+
+    opacity: 0.9;
+    filter: drop-shadow(0 0 4px rgba(70, 190, 255, 0.65));
+    animation: hologramNodes 3.8s ease-in-out infinite;
+}
+
+.worldMapSvg {
+    position: absolute;
+    inset: 5% 3%;
+    width: 94%;
+    height: 90%;
+    overflow: visible;
+    opacity: 0.82;
+    filter:
+        drop-shadow(0 0 4px rgba(50, 180, 255, 0.38))
+        drop-shadow(0 0 10px rgba(40, 130, 255, 0.16));
+}
+
+.worldMapSvg .mapLand {
+    fill: rgba(55, 165, 235, 0.12);
+    stroke: rgba(125, 225, 255, 0.58);
+    stroke-width: 1.15;
+    vector-effect: non-scaling-stroke;
+}
+
+.worldMapSvg .mapLine {
+    fill: none;
+    stroke: rgba(125, 225, 255, 0.38);
+    stroke-width: 0.75;
+    vector-effect: non-scaling-stroke;
+}
+
+.worldMapSvg .mapNode {
+    fill: rgba(205, 250, 255, 0.92);
+    filter: drop-shadow(0 0 3px rgba(70, 205, 255, 0.9));
+}
+
+.worldMapSvg .mapScan {
+    fill: none;
+    stroke: rgba(190, 245, 255, 0.42);
+    stroke-width: 1;
+    stroke-dasharray: 7 8;
+    animation: hologramScan 4.5s linear infinite;
+}
+
+.worldMapData {
+    position: absolute;
+    left: 4%;
+    right: 4%;
+    bottom: 2%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: rgba(150, 225, 255, 0.62);
+    font-size: 7px;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.worldMapData span:nth-child(2) {
+    color: rgba(190, 242, 255, 0.72);
 }
 
 .worldMapLeft {
-    left: 4%;
+    left: 3%;
     transform:
         perspective(500px)
         rotateY(20deg);
+    transform-origin: right center;
 }
 
 .worldMapRight {
-    right: 4%;
+    right: 3%;
     transform:
         perspective(500px)
         rotateY(-20deg);
+    transform-origin: left center;
+}
+
+.worldMapRight .worldMapSvg,
+.worldMapRight .worldMapData {
+    transform: scaleX(-1);
+}
+
+@keyframes hologramNodes {
+    0%, 100% {
+        opacity: 0.62;
+        transform: translate(-50%, -50%) scale(0.92);
+    }
+
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.18);
+    }
+}
+
+@keyframes hologramScan {
+    from {
+        transform: translateX(-20px);
+        opacity: 0.15;
+    }
+
+    50% {
+        opacity: 0.75;
+    }
+
+    to {
+        transform: translateX(20px);
+        opacity: 0.15;
+    }
 }
 
 /* ---------------------------------------------------------
@@ -1115,7 +1252,12 @@ h1 {
     }
 
     .worldMap {
-        opacity: 0.28;
+        opacity: 0.34;
+    }
+
+    .worldMapData {
+        font-size: 6px;
+        letter-spacing: 1px;
     }
 
     .worldArchitecture {
@@ -1157,8 +1299,81 @@ h1 {
     <div class="worldGrid"></div>
     <div class="worldLightBeam"></div>
 
-    <div class="worldMap worldMapLeft"></div>
-    <div class="worldMap worldMapRight"></div>
+    <div class="worldMap worldMapLeft">
+        <svg class="worldMapSvg" viewBox="0 0 320 140" aria-hidden="true">
+            <path class="mapLand"
+                d="M18 35 L30 24 L48 20 L60 27 L75 25 L88 34 L101 31
+                   L112 42 L104 52 L91 55 L82 66 L70 63 L60 72 L47 66
+                   L38 55 L27 52 L20 44 Z"/>
+            <path class="mapLand"
+                d="M92 79 L105 75 L116 84 L119 96 L112 105 L108 118
+                   L99 125 L92 117 L95 104 L88 94 Z"/>
+            <path class="mapLand"
+                d="M128 38 L141 31 L155 34 L163 29 L180 32 L191 27
+                   L207 31 L222 29 L239 37 L252 36 L268 45 L284 43
+                   L299 51 L293 60 L278 61 L267 69 L251 66 L238 73
+                   L224 69 L211 77 L198 73 L186 80 L175 72 L163 76
+                   L151 68 L138 67 L132 56 Z"/>
+            <path class="mapLand"
+                d="M161 79 L174 82 L183 94 L181 105 L171 112 L162 107
+                   L157 97 L151 91 Z"/>
+            <path class="mapLine" d="M24 45 L63 42 L91 49 L121 58 L157 52 L190 55 L229 49 L280 54"/>
+            <path class="mapLine" d="M48 29 L74 50 L104 44 L141 38 L174 54 L211 40 L250 55 L286 48"/>
+            <path class="mapLine" d="M70 64 L105 57 L138 67 L170 61 L204 72 L238 60 L270 69"/>
+            <circle class="mapNode" cx="47" cy="31" r="1.7"/>
+            <circle class="mapNode" cx="84" cy="50" r="1.6"/>
+            <circle class="mapNode" cx="111" cy="57" r="1.7"/>
+            <circle class="mapNode" cx="151" cy="39" r="1.7"/>
+            <circle class="mapNode" cx="190" cy="55" r="1.8"/>
+            <circle class="mapNode" cx="229" cy="49" r="1.6"/>
+            <circle class="mapNode" cx="268" cy="55" r="1.8"/>
+            <circle class="mapNode" cx="171" cy="93" r="1.6"/>
+            <ellipse class="mapScan" cx="160" cy="70" rx="146" ry="51"/>
+        </svg>
+        <div class="worldMapData">
+            <span>GLOBAL GRID</span>
+            <span>J.A.R.V.I.S. // 01</span>
+            <span>SYNC 100%</span>
+        </div>
+    </div>
+
+    <div class="worldMap worldMapRight">
+        <svg class="worldMapSvg" viewBox="0 0 320 140" aria-hidden="true">
+            <path class="mapLand"
+                d="M18 35 L30 24 L48 20 L60 27 L75 25 L88 34 L101 31
+                   L112 42 L104 52 L91 55 L82 66 L70 63 L60 72 L47 66
+                   L38 55 L27 52 L20 44 Z"/>
+            <path class="mapLand"
+                d="M92 79 L105 75 L116 84 L119 96 L112 105 L108 118
+                   L99 125 L92 117 L95 104 L88 94 Z"/>
+            <path class="mapLand"
+                d="M128 38 L141 31 L155 34 L163 29 L180 32 L191 27
+                   L207 31 L222 29 L239 37 L252 36 L268 45 L284 43
+                   L299 51 L293 60 L278 61 L267 69 L251 66 L238 73
+                   L224 69 L211 77 L198 73 L186 80 L175 72 L163 76
+                   L151 68 L138 67 L132 56 Z"/>
+            <path class="mapLand"
+                d="M161 79 L174 82 L183 94 L181 105 L171 112 L162 107
+                   L157 97 L151 91 Z"/>
+            <path class="mapLine" d="M24 45 L63 42 L91 49 L121 58 L157 52 L190 55 L229 49 L280 54"/>
+            <path class="mapLine" d="M48 29 L74 50 L104 44 L141 38 L174 54 L211 40 L250 55 L286 48"/>
+            <path class="mapLine" d="M70 64 L105 57 L138 67 L170 61 L204 72 L238 60 L270 69"/>
+            <circle class="mapNode" cx="47" cy="31" r="1.7"/>
+            <circle class="mapNode" cx="84" cy="50" r="1.6"/>
+            <circle class="mapNode" cx="111" cy="57" r="1.7"/>
+            <circle class="mapNode" cx="151" cy="39" r="1.7"/>
+            <circle class="mapNode" cx="190" cy="55" r="1.8"/>
+            <circle class="mapNode" cx="229" cy="49" r="1.6"/>
+            <circle class="mapNode" cx="268" cy="55" r="1.8"/>
+            <circle class="mapNode" cx="171" cy="93" r="1.6"/>
+            <ellipse class="mapScan" cx="160" cy="70" rx="146" ry="51"/>
+        </svg>
+        <div class="worldMapData">
+            <span>GLOBAL GRID</span>
+            <span>J.A.R.V.I.S. // 01</span>
+            <span>SYNC 100%</span>
+        </div>
+    </div>
 
     <div class="worldArchitecture">
         <div class="architectureRing ringOuter"></div>
