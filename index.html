@@ -591,33 +591,101 @@ h1 {
     width: 39%;
     height: 21%;
     overflow: hidden;
-    opacity: 0.72;
+    opacity: 0.90;
 
+    /*
+     * FIRST-PASS EMITTER MODEL
+     * The reference image is not bright because the whole map is bright.
+     * Its field is dark, with small high-energy blue/white emitters.
+     * Keep the base field restrained and let .worldMapEmitter provide
+     * the local illumination.
+     */
     background:
         radial-gradient(
-            ellipse at 50% 48%,
-            rgba(115, 220, 255, 0.32) 0%,
-            rgba(45, 165, 245, 0.16) 38%,
-            transparent 72%
+            ellipse at 50% 50%,
+            rgba(80, 190, 255, 0.10) 0%,
+            rgba(35, 125, 220, 0.045) 12%,
+            transparent 32%
         ),
         linear-gradient(
             180deg,
-            rgba(60, 185, 255, 0.075),
-            transparent 70%
+            rgba(55, 165, 235, 0.045),
+            transparent 72%
         );
 
     border-top:
-        1px solid rgba(150, 235, 255, 0.46);
+        1px solid rgba(190, 248, 255, 0.78);
 
     border-bottom:
-        1px solid rgba(120, 220, 255, 0.34);
+        1px solid rgba(145, 232, 255, 0.50);
 
     box-shadow:
-        0 0 12px rgba(40, 175, 255, 0.24),
-        0 0 28px rgba(55, 170, 255, 0.16),
-        inset 0 0 24px rgba(70, 190, 255, 0.12);
+        0 0 5px rgba(70, 205, 255, 0.22),
+        0 0 12px rgba(45, 170, 255, 0.12),
+        inset 0 0 12px rgba(90, 215, 255, 0.08);
 
-    filter: blur(0.05px);
+    filter: blur(0.01px);
+}
+
+.worldMapEmitter {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    mix-blend-mode: screen;
+
+    /*
+     * Local light only: white/clear-blue core -> short blue glow -> black.
+     * Multiple small emitters reproduce the reference's information density
+     * without turning the entire map into a soft blue panel.
+     */
+    background:
+        radial-gradient(
+            circle at 18% 43%,
+            rgba(255, 255, 255, 0.98) 0%,
+            rgba(205, 248, 255, 0.92) 0.9%,
+            rgba(75, 195, 255, 0.52) 2.4%,
+            rgba(30, 135, 255, 0.14) 5.5%,
+            transparent 9%
+        ),
+        radial-gradient(
+            circle at 36% 58%,
+            rgba(255, 255, 255, 0.94) 0%,
+            rgba(190, 245, 255, 0.82) 0.8%,
+            rgba(65, 185, 255, 0.42) 2.2%,
+            rgba(25, 120, 235, 0.12) 5%,
+            transparent 8%
+        ),
+        radial-gradient(
+            circle at 50% 48%,
+            rgba(255, 255, 255, 1) 0%,
+            rgba(220, 252, 255, 0.95) 0.7%,
+            rgba(70, 195, 255, 0.56) 2.5%,
+            rgba(25, 125, 240, 0.16) 6%,
+            transparent 10%
+        ),
+        radial-gradient(
+            circle at 66% 42%,
+            rgba(255, 255, 255, 0.96) 0%,
+            rgba(205, 249, 255, 0.88) 0.9%,
+            rgba(65, 190, 255, 0.48) 2.3%,
+            rgba(25, 125, 240, 0.13) 5.5%,
+            transparent 9%
+        ),
+        radial-gradient(
+            circle at 82% 54%,
+            rgba(255, 255, 255, 0.98) 0%,
+            rgba(200, 248, 255, 0.88) 0.8%,
+            rgba(65, 190, 255, 0.48) 2.2%,
+            rgba(25, 125, 240, 0.12) 5%,
+            transparent 8%
+        );
+
+    opacity: 0.92;
+    filter:
+        drop-shadow(0 0 2px rgba(155, 235, 255, 0.78))
+        drop-shadow(0 0 6px rgba(45, 175, 255, 0.38));
+    animation: worldMapEmitterPulse 3.8s ease-in-out infinite;
 }
 
 .worldMap::before {
@@ -629,38 +697,39 @@ h1 {
         linear-gradient(
             90deg,
             transparent 0%,
-            rgba(130, 225, 255, 0.26) 49.6%,
-            rgba(205, 248, 255, 0.52) 50%,
-            rgba(130, 225, 255, 0.26) 50.4%,
+            rgba(135, 230, 255, 0.34) 49.6%,
+            rgba(225, 252, 255, 0.72) 50%,
+            rgba(135, 230, 255, 0.34) 50.4%,
             transparent 100%
         ),
         repeating-linear-gradient(
             90deg,
             transparent 0 19px,
-            rgba(120, 220, 255, 0.13) 20px,
+            rgba(135, 225, 255, 0.17) 20px,
             transparent 21px
         ),
         repeating-linear-gradient(
             0deg,
             transparent 0 10px,
-            rgba(120, 220, 255, 0.14) 11px,
+            rgba(135, 225, 255, 0.18) 11px,
             transparent 12px
         ),
         repeating-linear-gradient(
             32deg,
             transparent 0 46px,
-            rgba(155, 235, 255, 0.12) 47px,
+            rgba(175, 240, 255, 0.15) 47px,
             transparent 48px
         ),
         repeating-linear-gradient(
             -32deg,
             transparent 0 62px,
-            rgba(95, 205, 255, 0.10) 63px,
+            rgba(110, 215, 255, 0.13) 63px,
             transparent 64px
         );
 
     opacity: 1;
     pointer-events: none;
+    filter: drop-shadow(0 0 5px rgba(65, 190, 255, 0.38));
 }
 
 .worldMap::after {
@@ -671,60 +740,72 @@ h1 {
     width: 2px;
     height: 2px;
     border-radius: 50%;
-    background: rgba(225, 252, 255, 1);
+    background: rgba(235, 254, 255, 1);
 
     box-shadow:
-        -72px -22px 0 0 rgba(145, 235, 255, 0.96),
-        -58px -6px 0 0 rgba(180, 245, 255, 1),
-        -43px 18px 0 0 rgba(120, 225, 255, 0.90),
-        -27px -17px 0 0 rgba(200, 248, 255, 1),
-        -10px 25px 0 0 rgba(115, 220, 255, 0.90),
-        12px -19px 0 0 rgba(210, 250, 255, 1),
-        31px 5px 0 0 rgba(150, 235, 255, 0.96),
-        51px -14px 0 0 rgba(195, 245, 255, 0.98),
-        68px 17px 0 0 rgba(125, 225, 255, 0.92);
+        -72px -22px 0 0 rgba(165, 242, 255, 1),
+        -58px -6px 0 0 rgba(205, 250, 255, 1),
+        -43px 18px 0 0 rgba(140, 232, 255, 0.98),
+        -27px -17px 0 0 rgba(220, 252, 255, 1),
+        -10px 25px 0 0 rgba(135, 228, 255, 0.98),
+        12px -19px 0 0 rgba(225, 253, 255, 1),
+        31px 5px 0 0 rgba(170, 242, 255, 1),
+        51px -14px 0 0 rgba(215, 251, 255, 1),
+        68px 17px 0 0 rgba(145, 232, 255, 0.98);
 
     opacity: 1;
-    filter: drop-shadow(0 0 5px rgba(70, 200, 255, 0.90)) drop-shadow(0 0 12px rgba(45, 150, 255, 0.45));
+    filter:
+        drop-shadow(0 0 5px rgba(75, 215, 255, 1))
+        drop-shadow(0 0 13px rgba(45, 175, 255, 0.72))
+        drop-shadow(0 0 24px rgba(35, 145, 255, 0.38));
     animation: hologramNodes 3.8s ease-in-out infinite;
 }
 
 .worldMapSvg {
     position: absolute;
     inset: 5% 3%;
+    z-index: 2;
     width: 94%;
     height: 90%;
     overflow: visible;
-    opacity: 0.98;
+    opacity: 1;
+
+    /*
+     * Sharp luminous core first, short controlled glow second.
+     * The previous 20px/34px layers were spreading the light too far.
+     */
     filter:
-        drop-shadow(0 0 4px rgba(65, 205, 255, 0.72))
-        drop-shadow(0 0 10px rgba(45, 155, 255, 0.42))
-        drop-shadow(0 0 18px rgba(40, 130, 255, 0.20));
+        drop-shadow(0 0 1.5px rgba(225, 253, 255, 1))
+        drop-shadow(0 0 5px rgba(70, 205, 255, 0.68))
+        drop-shadow(0 0 11px rgba(35, 155, 255, 0.22));
 }
 
 .worldMapSvg .mapLand {
-    fill: rgba(75, 185, 245, 0.23);
-    stroke: rgba(155, 238, 255, 0.92);
-    stroke-width: 1.55;
+    fill: rgba(65, 170, 235, 0.13);
+    stroke: rgba(218, 250, 255, 1);
+    stroke-width: 1.78;
     vector-effect: non-scaling-stroke;
 }
 
 .worldMapSvg .mapLine {
     fill: none;
-    stroke: rgba(145, 232, 255, 0.62);
-    stroke-width: 1.05;
+    stroke: rgba(210, 249, 255, 0.92);
+    stroke-width: 1.22;
     vector-effect: non-scaling-stroke;
 }
 
 .worldMapSvg .mapNode {
-    fill: rgba(225, 252, 255, 1);
-    filter: drop-shadow(0 0 4px rgba(70, 210, 255, 1)) drop-shadow(0 0 9px rgba(50, 170, 255, 0.75));
+    fill: rgba(255, 255, 255, 1);
+    filter:
+        drop-shadow(0 0 1.5px rgba(235, 255, 255, 1))
+        drop-shadow(0 0 5px rgba(70, 210, 255, 0.92))
+        drop-shadow(0 0 10px rgba(35, 155, 255, 0.36));
 }
 
 .worldMapSvg .mapScan {
     fill: none;
-    stroke: rgba(205, 248, 255, 0.78);
-    stroke-width: 1.3;
+    stroke: rgba(220, 250, 255, 0.90);
+    stroke-width: 1.35;
     stroke-dasharray: 7 8;
     animation: hologramScan 4.5s linear infinite;
 }
@@ -737,16 +818,19 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: rgba(175, 235, 255, 0.86);
+    color: rgba(195, 244, 255, 0.92);
     font-size: 7px;
     letter-spacing: 1.3px;
     text-transform: uppercase;
     white-space: nowrap;
     pointer-events: none;
+    text-shadow:
+        0 0 4px rgba(65, 200, 255, 0.72),
+        0 0 9px rgba(40, 155, 255, 0.42);
 }
 
 .worldMapData span:nth-child(2) {
-    color: rgba(210, 248, 255, 0.96);
+    color: rgba(225, 252, 255, 1);
 }
 
 .worldMapLeft {
@@ -772,13 +856,23 @@ h1 {
 
 @keyframes hologramNodes {
     0%, 100% {
-        opacity: 0.62;
+        opacity: 0.72;
         transform: translate(-50%, -50%) scale(0.92);
     }
 
     50% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1.18);
+        transform: translate(-50%, -50%) scale(1.22);
+    }
+}
+
+@keyframes worldMapEmitterPulse {
+    0%, 100% {
+        opacity: 0.78;
+    }
+
+    50% {
+        opacity: 1;
     }
 }
 
@@ -789,7 +883,7 @@ h1 {
     }
 
     50% {
-        opacity: 0.75;
+        opacity: 0.85;
     }
 
     to {
@@ -1266,7 +1360,7 @@ h1 {
     }
 
     .worldMap {
-        opacity: 0.68;
+        opacity: 0.88;
     }
 
     .worldMapData {
@@ -1314,6 +1408,7 @@ h1 {
     <div class="worldLightBeam"></div>
 
     <div class="worldMap worldMapLeft">
+        <div class="worldMapEmitter" aria-hidden="true"></div>
         <svg class="worldMapSvg" viewBox="0 0 320 140" aria-hidden="true">
             <path class="mapLand"
                 d="M18 35 L30 24 L48 20 L60 27 L75 25 L88 34 L101 31
@@ -1352,6 +1447,7 @@ h1 {
     </div>
 
     <div class="worldMap worldMapRight">
+        <div class="worldMapEmitter" aria-hidden="true"></div>
         <svg class="worldMapSvg" viewBox="0 0 320 140" aria-hidden="true">
             <path class="mapLand"
                 d="M18 35 L30 24 L48 20 L60 27 L75 25 L88 34 L101 31
