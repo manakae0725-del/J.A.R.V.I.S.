@@ -417,28 +417,112 @@ h1 {
     animation: coreRingPianoOuterRotateReverse 19s linear infinite;
 }
 
-/* Eight-piece annular CORE segments: curved ring sections, not capsule/piano shapes */
-.coreRingSegmentSvg {
+.corePianoSegment {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 15%;
+    height: 6%;
+    box-sizing: border-box;
+    border: 1px solid rgba(135, 225, 255, 0.62);
+    border-radius: 42% 42% 36% 36% / 64% 64% 52% 52%;
+    clip-path: polygon(7% 5%, 93% 5%, 100% 50%, 93% 95%, 7% 95%, 0 50%);
+    background:
+        repeating-linear-gradient(
+            90deg,
+            rgba(95, 205, 255, 0.055) 0 1px,
+            transparent 1px 6px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            rgba(95, 205, 255, 0.035) 0 1px,
+            transparent 1px 8px
+        ),
+        linear-gradient(
+            180deg,
+            rgba(35, 155, 245, 0.38) 0%,
+            rgba(18, 112, 220, 0.32) 42%,
+            rgba(5, 62, 165, 0.26) 100%
+        );
+    box-shadow:
+        inset 0 0 7px rgba(95, 205, 255, 0.18),
+        0 0 5px rgba(45, 175, 255, 0.58),
+        0 0 13px rgba(0, 95, 255, 0.28);
+    overflow: hidden;
+    transform:
+        translate(-50%, -50%)
+        rotate(var(--piano-angle))
+        translateY(-105px);
+}
+
+.corePianoSegment::before {
+    content: "";
+    position: absolute;
+    inset: 5px 8px;
+    border-top: 1px solid rgba(125, 225, 255, 0.48);
+    border-bottom: 1px solid rgba(35, 160, 245, 0.42);
+    border-radius: 40% 40% 34% 34% / 60% 60% 48% 48%;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            rgba(95, 205, 255, 0.10) 0 1px,
+            transparent 1px 6px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            rgba(95, 205, 255, 0.045) 0 1px,
+            transparent 1px 8px
+        ),
+        linear-gradient(
+            116deg,
+            transparent 0 39%,
+            rgba(205, 247, 255, 0.34) 39.5% 40%,
+            transparent 40.5% 58%,
+            rgba(125, 225, 255, 0.22) 58.5% 59%,
+            transparent 59.5% 100%
+        );
+    box-shadow:
+        inset 0 0 0 1px rgba(125, 225, 255, 0.18),
+        inset 0 0 5px rgba(95, 205, 255, 0.10);
+}
+
+.corePianoSegment::after {
+    content: "";
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
+    background:
+        linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(105, 220, 255, 0.10) 18%,
+            rgba(205, 247, 255, 0.18) 50%,
+            rgba(105, 220, 255, 0.10) 82%,
+            transparent 100%
+        ),
+        linear-gradient(
+            158deg,
+            transparent 0 23%,
+            rgba(220, 250, 255, 0.34) 23.4% 23.9%,
+            transparent 24.4% 100%
+        ),
+        linear-gradient(
+            28deg,
+            transparent 0 68%,
+            rgba(170, 235, 255, 0.28) 68.4% 68.9%,
+            transparent 69.4% 100%
+        );
+    border-radius: inherit;
+    opacity: 0.58;
 }
 
-.coreRingSegment {
-    fill: url(#coreSegmentTexture);
-    stroke: rgba(135, 225, 255, 0.62);
-    stroke-width: 0.42;
-    filter: url(#coreSegmentGlow);
-}
-
-.coreSegmentScratch {
-    stroke: rgba(125, 225, 255, 0.48);
-    stroke-width: 0.34;
-    stroke-linecap: round;
-    opacity: 0.72;
-}
+.corePianoSegment:nth-child(1) { --piano-angle: 0deg; }
+.corePianoSegment:nth-child(2) { --piano-angle: 45deg; }
+.corePianoSegment:nth-child(3) { --piano-angle: 90deg; }
+.corePianoSegment:nth-child(4) { --piano-angle: 135deg; }
+.corePianoSegment:nth-child(5) { --piano-angle: 180deg; }
+.corePianoSegment:nth-child(6) { --piano-angle: 225deg; }
+.corePianoSegment:nth-child(7) { --piano-angle: 270deg; }
+.corePianoSegment:nth-child(8) { --piano-angle: 315deg; }
 
 /* Fine outer calibration ring, deliberately separated from piano layer */
 .coreRingOuterFine {
@@ -2089,70 +2173,14 @@ h1 {
     <div class="coreVisual" aria-hidden="true">
         <div class="coreRing coreRingMega"></div>
         <div class="coreRingPianoOuter" aria-hidden="true">
-<svg class="coreRingSegmentSvg" viewBox="0 0 100 100" aria-hidden="true">
-  <defs>
-    <linearGradient id="coreSegmentBase" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#239bf5" stop-opacity="0.38"/>
-      <stop offset="42%" stop-color="#1270dc" stop-opacity="0.32"/>
-      <stop offset="100%" stop-color="#053ea5" stop-opacity="0.26"/>
-    </linearGradient>
-    <pattern id="coreSegmentTexture" width="6" height="8" patternUnits="userSpaceOnUse">
-      <rect width="6" height="8" fill="url(#coreSegmentBase)"/>
-      <line x1="0.5" y1="0" x2="0.5" y2="8" stroke="#5fcdff" stroke-opacity="0.055" stroke-width="1"/>
-      <line x1="0" y1="0.5" x2="6" y2="0.5" stroke="#5fcdff" stroke-opacity="0.035" stroke-width="1"/>
-    </pattern>
-    <filter id="coreSegmentGlow" x="-35%" y="-35%" width="170%" height="170%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="0.45" result="b1"/>
-      <feMerge>
-        <feMergeNode in="b1"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-
-  <path class="coreRingSegment" d="M 82.661,45.279 A 33,33 0 0 1 82.661,54.721 L 80.186,54.363 A 30.5,30.5 0 0 0 80.186,45.637 Z"/>
-
-  <path class="coreRingSegment" d="M 76.433,69.756 A 33,33 0 0 1 69.756,76.433 L 68.260,74.430 A 30.5,30.5 0 0 0 74.430,68.260 Z"/>
-
-  <path class="coreRingSegment" d="M 54.721,82.661 A 33,33 0 0 1 45.279,82.661 L 45.637,80.186 A 30.5,30.5 0 0 0 54.363,80.186 Z"/>
-
-  <path class="coreRingSegment" d="M 30.244,76.433 A 33,33 0 0 1 23.567,69.756 L 25.570,68.260 A 30.5,30.5 0 0 0 31.740,74.430 Z"/>
-
-  <path class="coreRingSegment" d="M 17.339,54.721 A 33,33 0 0 1 17.339,45.279 L 19.814,45.637 A 30.5,30.5 0 0 0 19.814,54.363 Z"/>
-
-  <path class="coreRingSegment" d="M 23.567,30.244 A 33,33 0 0 1 30.244,23.567 L 31.740,25.570 A 30.5,30.5 0 0 0 25.570,31.740 Z"/>
-
-  <path class="coreRingSegment" d="M 45.279,17.339 A 33,33 0 0 1 54.721,17.339 L 54.363,19.814 A 30.5,30.5 0 0 0 45.637,19.814 Z"/>
-
-  <path class="coreRingSegment" d="M 69.756,23.567 A 33,33 0 0 1 76.433,30.244 L 74.430,31.740 A 30.5,30.5 0 0 0 68.260,25.570 Z"/>
-
-
-
-  <line class="coreSegmentScratch" x1="88.454" y1="48.119" x2="91.450" y2="47.973"/>
-  <line class="coreSegmentScratch" x1="88.000" y1="50.000" x2="91.800" y2="50.000"/>
-  <line class="coreSegmentScratch" x1="88.454" y1="51.881" x2="91.450" y2="52.027"/>
-  <line class="coreSegmentScratch" x1="78.521" y1="75.861" x2="80.743" y2="77.876"/>
-  <line class="coreSegmentScratch" x1="76.870" y1="76.870" x2="79.557" y2="79.557"/>
-  <line class="coreSegmentScratch" x1="75.861" y1="78.521" x2="77.876" y2="80.743"/>
-  <line class="coreSegmentScratch" x1="51.881" y1="88.454" x2="52.027" y2="91.450"/>
-  <line class="coreSegmentScratch" x1="50.000" y1="88.000" x2="50.000" y2="91.800"/>
-  <line class="coreSegmentScratch" x1="48.119" y1="88.454" x2="47.973" y2="91.450"/>
-  <line class="coreSegmentScratch" x1="24.139" y1="78.521" x2="22.124" y2="80.743"/>
-  <line class="coreSegmentScratch" x1="23.130" y1="76.870" x2="20.443" y2="79.557"/>
-  <line class="coreSegmentScratch" x1="21.479" y1="75.861" x2="19.257" y2="77.876"/>
-  <line class="coreSegmentScratch" x1="11.546" y1="51.881" x2="8.550" y2="52.027"/>
-  <line class="coreSegmentScratch" x1="12.000" y1="50.000" x2="8.200" y2="50.000"/>
-  <line class="coreSegmentScratch" x1="11.546" y1="48.119" x2="8.550" y2="47.973"/>
-  <line class="coreSegmentScratch" x1="21.479" y1="24.139" x2="19.257" y2="22.124"/>
-  <line class="coreSegmentScratch" x1="23.130" y1="23.130" x2="20.443" y2="20.443"/>
-  <line class="coreSegmentScratch" x1="24.139" y1="21.479" x2="22.124" y2="19.257"/>
-  <line class="coreSegmentScratch" x1="48.119" y1="11.546" x2="47.973" y2="8.550"/>
-  <line class="coreSegmentScratch" x1="50.000" y1="12.000" x2="50.000" y2="8.200"/>
-  <line class="coreSegmentScratch" x1="51.881" y1="11.546" x2="52.027" y2="8.550"/>
-  <line class="coreSegmentScratch" x1="75.861" y1="21.479" x2="77.876" y2="19.257"/>
-  <line class="coreSegmentScratch" x1="76.870" y1="23.130" x2="79.557" y2="20.443"/>
-  <line class="coreSegmentScratch" x1="78.521" y1="24.139" x2="80.743" y2="22.124"/>
-</svg>
+            <span class="corePianoSegment"></span>
+            <span class="corePianoSegment"></span>
+            <span class="corePianoSegment"></span>
+            <span class="corePianoSegment"></span>
+            <span class="corePianoSegment"></span>
+            <span class="corePianoSegment"></span>
+            <span class="corePianoSegment"></span>
+            <span class="corePianoSegment"></span>
         </div>
         <div class="coreRing coreRingOuterFine"></div>
         <div class="coreRing coreRingOuter"></div>
