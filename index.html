@@ -424,19 +424,28 @@ h1 {
     width: 15%;
     height: 6%;
     box-sizing: border-box;
-    border: 1px solid rgba(135, 225, 255, 0.62);
-    border-radius: 8px 8px 11px 11px;
+    border: 1px solid rgba(145, 232, 255, 0.82);
+    border-radius: 0;
+    clip-path: polygon(
+        8% 0%,
+        92% 0%,
+        100% 24%,
+        96% 100%,
+        4% 100%,
+        0% 24%
+    );
     background:
         linear-gradient(
             180deg,
-            rgba(35, 155, 245, 0.38) 0%,
-            rgba(18, 112, 220, 0.32) 42%,
-            rgba(5, 62, 165, 0.26) 100%
+            rgba(48, 177, 255, 0.58) 0%,
+            rgba(17, 118, 225, 0.52) 46%,
+            rgba(5, 67, 172, 0.46) 100%
         );
     box-shadow:
-        inset 0 0 7px rgba(95, 205, 255, 0.18),
-        0 0 5px rgba(45, 175, 255, 0.58),
-        0 0 13px rgba(0, 95, 255, 0.28);
+        inset 0 0 8px rgba(115, 225, 255, 0.30),
+        inset 0 -4px 8px rgba(0, 55, 155, 0.22),
+        0 0 5px rgba(55, 190, 255, 0.68),
+        0 0 13px rgba(0, 95, 255, 0.30);
     overflow: hidden;
     transform:
         translate(-50%, -50%)
@@ -448,14 +457,15 @@ h1 {
     content: "";
     position: absolute;
     inset: 3px 7px;
-    border-top: 1px solid rgba(125, 225, 255, 0.48);
-    border-bottom: 1px solid rgba(35, 160, 245, 0.42);
+    border-top: 1px solid rgba(175, 241, 255, 0.62);
+    border-bottom: 1px solid rgba(30, 157, 245, 0.52);
     background:
         repeating-linear-gradient(
             90deg,
-            rgba(95, 205, 255, 0.10) 0 2px,
-            transparent 2px 6px
+            rgba(110, 218, 255, 0.18) 0 1px,
+            transparent 1px 5px
         );
+    opacity: 0.95;
 }
 
 .corePianoSegment::after {
@@ -466,10 +476,11 @@ h1 {
         linear-gradient(
             90deg,
             transparent 0%,
-            rgba(105, 220, 255, 0.16) 50%,
-            transparent 100%
+            rgba(205, 247, 255, 0.22) 42%,
+            rgba(120, 220, 255, 0.34) 50%,
+            transparent 62%
         );
-    opacity: 0.58;
+    opacity: 0.72;
 }
 
 .corePianoSegment:nth-child(1) { --piano-angle: 0deg; }
