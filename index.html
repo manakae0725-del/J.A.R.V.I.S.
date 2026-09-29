@@ -417,6 +417,34 @@ h1 {
     animation: coreRingPianoOuterRotateReverse 19s linear infinite;
 }
 
+/* Eight-piece annular CORE segments: curved ring sections, not capsule/piano shapes */
+.coreRingSegmentSvg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.coreRingSegment {
+    fill: url(#coreSegmentTexture);
+    stroke: rgba(135, 225, 255, 0.62);
+    stroke-width: 0.42;
+    filter: url(#coreSegmentGlow);
+}
+
+.coreRingSegmentInner {
+    fill: none;
+    stroke: rgba(125, 225, 255, 0.48);
+    stroke-width: 0.34;
+}
+
+.coreRingSegmentStructure {
+    fill: none;
+    stroke: rgba(95, 205, 255, 0.10);
+    stroke-width: 0.28;
+}
+
 /* Fine outer calibration ring, deliberately separated from piano layer */
 .coreRingOuterFine {
     width: 86%;
@@ -2065,7 +2093,110 @@ h1 {
 <div id="jarvisCore" class="core-standby">
     <div class="coreVisual" aria-hidden="true">
         <div class="coreRing coreRingMega"></div>
-        <div class="coreRingPianoOuter" aria-hidden="true">        </div>
+        <div class="coreRingPianoOuter" aria-hidden="true">
+<svg class="coreRingSegmentSvg" viewBox="0 0 100 100" aria-hidden="true">
+  <defs>
+    <linearGradient id="coreSegmentBase" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#239bf5" stop-opacity="0.38"/>
+      <stop offset="42%" stop-color="#1270dc" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#053ea5" stop-opacity="0.26"/>
+    </linearGradient>
+    <pattern id="coreSegmentTexture" width="6" height="8" patternUnits="userSpaceOnUse">
+      <rect width="6" height="8" fill="url(#coreSegmentBase)"/>
+      <line x1="0.5" y1="0" x2="0.5" y2="8" stroke="#5fcdff" stroke-opacity="0.055" stroke-width="1"/>
+      <line x1="0" y1="0.5" x2="6" y2="0.5" stroke="#5fcdff" stroke-opacity="0.035" stroke-width="1"/>
+    </pattern>
+    <filter id="coreSegmentGlow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.45" result="b1"/>
+      <feMerge>
+        <feMergeNode in="b1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <path class="coreRingSegment" d="M 82.990,41.775 A 34,34 0 0 1 82.990,58.225 L 76.198,56.532 A 27,27 0 0 0 76.198,43.468 Z"/>
+
+  <path class="coreRingSegmentInner" d="M 81.162,43.660 A 31.8,31.8 0 0 1 81.162,56.340 L 78.614,55.822 A 29.2,29.2 0 0 0 78.614,44.178"/>
+
+  <line class="coreRingSegmentStructure" x1="82.953" y1="45.954" x2="77.990" y2="46.563"/>
+
+  <line class="coreRingSegmentStructure" x1="83.200" y1="50.000" x2="78.200" y2="50.000"/>
+
+  <line class="coreRingSegmentStructure" x1="82.953" y1="54.046" x2="77.990" y2="53.437"/>
+
+  <path class="coreRingSegment" d="M 79.144,67.511 A 34,34 0 0 1 67.511,79.144 L 63.906,73.144 A 27,27 0 0 0 73.144,63.906 Z"/>
+
+  <path class="coreRingSegmentInner" d="M 76.518,67.552 A 31.8,31.8 0 0 1 67.552,76.518 L 66.117,74.349 A 29.2,29.2 0 0 0 74.349,66.117"/>
+
+  <line class="coreRingSegmentStructure" x1="76.162" y1="70.440" x2="72.222" y2="67.362"/>
+
+  <line class="coreRingSegmentStructure" x1="73.476" y1="73.476" x2="69.940" y2="69.940"/>
+
+  <line class="coreRingSegmentStructure" x1="70.440" y1="76.162" x2="67.362" y2="72.222"/>
+
+  <path class="coreRingSegment" d="M 58.225,82.990 A 34,34 0 0 1 41.775,82.990 L 43.468,76.198 A 27,27 0 0 0 56.532,76.198 Z"/>
+
+  <path class="coreRingSegmentInner" d="M 56.340,81.162 A 31.8,31.8 0 0 1 43.660,81.162 L 44.178,78.614 A 29.2,29.2 0 0 0 55.822,78.614"/>
+
+  <line class="coreRingSegmentStructure" x1="54.046" y1="82.953" x2="53.437" y2="77.990"/>
+
+  <line class="coreRingSegmentStructure" x1="50.000" y1="83.200" x2="50.000" y2="78.200"/>
+
+  <line class="coreRingSegmentStructure" x1="45.954" y1="82.953" x2="46.563" y2="77.990"/>
+
+  <path class="coreRingSegment" d="M 32.489,79.144 A 34,34 0 0 1 20.856,67.511 L 26.856,63.906 A 27,27 0 0 0 36.094,73.144 Z"/>
+
+  <path class="coreRingSegmentInner" d="M 32.448,76.518 A 31.8,31.8 0 0 1 23.482,67.552 L 25.651,66.117 A 29.2,29.2 0 0 0 33.883,74.349"/>
+
+  <line class="coreRingSegmentStructure" x1="29.560" y1="76.162" x2="32.638" y2="72.222"/>
+
+  <line class="coreRingSegmentStructure" x1="26.524" y1="73.476" x2="30.060" y2="69.940"/>
+
+  <line class="coreRingSegmentStructure" x1="23.838" y1="70.440" x2="27.778" y2="67.362"/>
+
+  <path class="coreRingSegment" d="M 17.010,58.225 A 34,34 0 0 1 17.010,41.775 L 23.802,43.468 A 27,27 0 0 0 23.802,56.532 Z"/>
+
+  <path class="coreRingSegmentInner" d="M 18.838,56.340 A 31.8,31.8 0 0 1 18.838,43.660 L 21.386,44.178 A 29.2,29.2 0 0 0 21.386,55.822"/>
+
+  <line class="coreRingSegmentStructure" x1="17.047" y1="54.046" x2="22.010" y2="53.437"/>
+
+  <line class="coreRingSegmentStructure" x1="16.800" y1="50.000" x2="21.800" y2="50.000"/>
+
+  <line class="coreRingSegmentStructure" x1="17.047" y1="45.954" x2="22.010" y2="46.563"/>
+
+  <path class="coreRingSegment" d="M 20.856,32.489 A 34,34 0 0 1 32.489,20.856 L 36.094,26.856 A 27,27 0 0 0 26.856,36.094 Z"/>
+
+  <path class="coreRingSegmentInner" d="M 23.482,32.448 A 31.8,31.8 0 0 1 32.448,23.482 L 33.883,25.651 A 29.2,29.2 0 0 0 25.651,33.883"/>
+
+  <line class="coreRingSegmentStructure" x1="23.838" y1="29.560" x2="27.778" y2="32.638"/>
+
+  <line class="coreRingSegmentStructure" x1="26.524" y1="26.524" x2="30.060" y2="30.060"/>
+
+  <line class="coreRingSegmentStructure" x1="29.560" y1="23.838" x2="32.638" y2="27.778"/>
+
+  <path class="coreRingSegment" d="M 41.775,17.010 A 34,34 0 0 1 58.225,17.010 L 56.532,23.802 A 27,27 0 0 0 43.468,23.802 Z"/>
+
+  <path class="coreRingSegmentInner" d="M 43.660,18.838 A 31.8,31.8 0 0 1 56.340,18.838 L 55.822,21.386 A 29.2,29.2 0 0 0 44.178,21.386"/>
+
+  <line class="coreRingSegmentStructure" x1="45.954" y1="17.047" x2="46.563" y2="22.010"/>
+
+  <line class="coreRingSegmentStructure" x1="50.000" y1="16.800" x2="50.000" y2="21.800"/>
+
+  <line class="coreRingSegmentStructure" x1="54.046" y1="17.047" x2="53.437" y2="22.010"/>
+
+  <path class="coreRingSegment" d="M 67.511,20.856 A 34,34 0 0 1 79.144,32.489 L 73.144,36.094 A 27,27 0 0 0 63.906,26.856 Z"/>
+
+  <path class="coreRingSegmentInner" d="M 67.552,23.482 A 31.8,31.8 0 0 1 76.518,32.448 L 74.349,33.883 A 29.2,29.2 0 0 0 66.117,25.651"/>
+
+  <line class="coreRingSegmentStructure" x1="70.440" y1="23.838" x2="67.362" y2="27.778"/>
+
+  <line class="coreRingSegmentStructure" x1="73.476" y1="26.524" x2="69.940" y2="30.060"/>
+
+  <line class="coreRingSegmentStructure" x1="76.162" y1="29.560" x2="72.222" y2="32.638"/>
+
+</svg>
+        </div>
         <div class="coreRing coreRingOuterFine"></div>
         <div class="coreRing coreRingOuter"></div>
         <div class="coreRing coreRingLarge"></div>
