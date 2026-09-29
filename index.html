@@ -45,14 +45,15 @@ h1 {
 }
 
 #talkButton {
-    margin-top: 70px;
-    width: 180px;
-    height: 180px;
+    margin-top: 42px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    border: 2px solid #555;
-    background: #111;
-    color: white;
-    font-size: 20px;
+    border: 1px solid rgba(110, 150, 180, 0.55);
+    background: rgba(10, 12, 16, 0.92);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 9px;
+    padding: 0;
 }
 
 #talkButton:active {
@@ -268,8 +269,8 @@ h1 {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 280px;
-    height: 280px;
+    width: 410px;
+    height: 410px;
     transform: translate(-50%, -50%);
     border-radius: 50%;
     display: flex;
@@ -358,10 +359,91 @@ h1 {
     pointer-events: none;
 }
 
-/* Outer segmented ring — strongest "piano key" structure */
-.coreRingOuter {
+/* ---------------------------------------------------------
+   EXPANDED OUTER CORE ARCHITECTURE
+   New outer layers surround the existing CORE without
+   changing its center position.
+   --------------------------------------------------------- */
+
+/* Large sparse engineering ring */
+.coreRingMega {
     width: 100%;
     height: 100%;
+    border: 1px solid rgba(105, 210, 255, 0.34);
+    box-shadow:
+        0 0 8px rgba(50, 175, 255, 0.24),
+        inset 0 0 12px rgba(40, 140, 255, 0.10);
+    background:
+        repeating-conic-gradient(
+            from 4deg,
+            rgba(145, 230, 255, 0.72) 0deg 0.65deg,
+            transparent 0.65deg 11deg
+        );
+    -webkit-mask:
+        radial-gradient(
+            circle,
+            transparent 0 94%,
+            #000 94.3% 95.1%,
+            transparent 95.5% 100%
+        );
+    mask:
+        radial-gradient(
+            circle,
+            transparent 0 94%,
+            #000 94.3% 95.1%,
+            transparent 95.5% 100%
+        );
+    animation: coreRingMegaRotate 34s linear infinite;
+    z-index: 1;
+}
+
+/* Large new piano-key segment layer */
+.coreRingPianoOuter {
+    width: 92%;
+    height: 92%;
+    background:
+        repeating-conic-gradient(
+            from 9deg,
+            rgba(155, 232, 255, 0.90) 0deg 1.8deg,
+            transparent 1.8deg 7.2deg,
+            rgba(35, 155, 255, 0.58) 7.2deg 8.4deg,
+            transparent 8.4deg 13.5deg
+        );
+    -webkit-mask:
+        radial-gradient(
+            circle,
+            transparent 0 89%,
+            #000 89.5% 95%,
+            transparent 95.5% 100%
+        );
+    mask:
+        radial-gradient(
+            circle,
+            transparent 0 89%,
+            #000 89.5% 95%,
+            transparent 95.5% 100%
+        );
+    filter:
+        drop-shadow(0 0 4px rgba(75, 195, 255, 0.66))
+        drop-shadow(0 0 10px rgba(0, 105, 255, 0.24));
+    animation: coreRingPianoOuterRotateReverse 19s linear infinite;
+    z-index: 2;
+}
+
+/* Fine outer calibration ring, deliberately separated from piano layer */
+.coreRingOuterFine {
+    width: 84%;
+    height: 84%;
+    border: 1px dashed rgba(175, 238, 255, 0.46);
+    box-shadow: 0 0 7px rgba(70, 185, 255, 0.22);
+    animation: coreRingOuterFineRotate 13s linear infinite;
+    z-index: 2;
+}
+
+/* Outer segmented ring — strongest "piano key" structure */
+.coreRingOuter {
+    width: 69%;
+    height: 69%;
     background:
         repeating-conic-gradient(
             from 0deg,
@@ -373,9 +455,9 @@ h1 {
     -webkit-mask:
         radial-gradient(
             circle,
-            transparent 0 87%,
-            #000 87.5% 93%,
-            transparent 93.5% 100%
+            transparent 0 82%,
+            #000 82.5% 96%,
+            transparent 96.5% 100%
         );
     mask:
         radial-gradient(
@@ -393,8 +475,8 @@ h1 {
 
 /* Second segmented ring — different spacing and speed */
 .coreRingLarge {
-    width: 84%;
-    height: 84%;
+    width: 57%;
+    height: 57%;
     background:
         repeating-conic-gradient(
             from 13deg,
@@ -406,9 +488,9 @@ h1 {
     -webkit-mask:
         radial-gradient(
             circle,
-            transparent 0 83%,
-            #000 83.5% 91%,
-            transparent 91.5% 100%
+            transparent 0 80%,
+            #000 80.5% 94%,
+            transparent 94.5% 100%
         );
     mask:
         radial-gradient(
@@ -425,8 +507,8 @@ h1 {
 
 /* Fine engineering ring */
 .coreRingMedium {
-    width: 67%;
-    height: 67%;
+    width: 46%;
+    height: 46%;
     border:
         1px solid rgba(175, 239, 255, 0.62);
     background:
@@ -438,9 +520,9 @@ h1 {
     -webkit-mask:
         radial-gradient(
             circle,
-            transparent 0 80%,
-            #000 80.5% 88%,
-            transparent 88.5% 100%
+            transparent 0 77%,
+            #000 77.5% 91%,
+            transparent 91.5% 100%
         );
     mask:
         radial-gradient(
@@ -457,8 +539,8 @@ h1 {
 
 /* Inner segmented ring */
 .coreRingInner {
-    width: 50%;
-    height: 50%;
+    width: 34%;
+    height: 34%;
     background:
         repeating-conic-gradient(
             from 44deg,
@@ -470,8 +552,8 @@ h1 {
     -webkit-mask:
         radial-gradient(
             circle,
-            transparent 0 78%,
-            #000 78.5% 89%,
+            transparent 0 74%,
+            #000 74.5% 89%,
             transparent 89.5% 100%
         );
     mask:
@@ -489,8 +571,8 @@ h1 {
 
 /* Micro ring / calibration marks */
 .coreRingMicro {
-    width: 41%;
-    height: 41%;
+    width: 28%;
+    height: 28%;
     border:
         1px dashed rgba(190, 242, 255, 0.58);
     box-shadow:
@@ -704,6 +786,33 @@ h1 {
 }
 
 /* Independent layer rotation */
+@keyframes coreRingMegaRotate {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+@keyframes coreRingPianoOuterRotateReverse {
+    from {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+}
+
+@keyframes coreRingOuterFineRotate {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(-360deg);
+    }
+}
+
 @keyframes coreRingOuterRotate {
     from {
         transform: translate(-50%, -50%) rotate(0deg);
@@ -759,8 +868,8 @@ h1 {
     }
 
     .coreVisual {
-        width: 280px;
-        height: 280px;
+        width: 410px;
+        height: 410px;
     }
 
     .coreLabel {
@@ -1966,6 +2075,9 @@ h1 {
 
 <div id="jarvisCore" class="core-standby">
     <div class="coreVisual" aria-hidden="true">
+        <div class="coreRing coreRingMega"></div>
+        <div class="coreRing coreRingPianoOuter"></div>
+        <div class="coreRing coreRingOuterFine"></div>
         <div class="coreRing coreRingOuter"></div>
         <div class="coreRing coreRingLarge"></div>
         <div class="coreRing coreRingMedium"></div>
