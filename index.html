@@ -426,6 +426,13 @@ h1 {
         drop-shadow(0 0 9px rgba(0, 105, 255, 0.32));
 }
 
+.corePianoRail {
+    fill: none;
+    stroke: rgba(185, 242, 255, 0.78);
+    stroke-width: 2.2;
+    vector-effect: non-scaling-stroke;
+}
+
 .corePianoSegment {
     fill: rgba(105, 220, 255, 0.24);
     stroke: rgba(205, 247, 255, 0.94);
@@ -2084,14 +2091,16 @@ h1 {
         <div class="coreRing coreRingMega"></div>
         <div class="coreRingPianoOuter" aria-hidden="true">
             <svg class="corePianoSvg" viewBox="0 0 300 300" aria-hidden="true">
-            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 116.03 37.70 A 122 122 0 0 0 116.03 -37.70 Z" transform="translate(150 150) rotate(0)"/>
-            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 116.03 37.70 A 122 122 0 0 0 116.03 -37.70 Z" transform="translate(150 150) rotate(45)"/>
-            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 116.03 37.70 A 122 122 0 0 0 116.03 -37.70 Z" transform="translate(150 150) rotate(90)"/>
-            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 116.03 37.70 A 122 122 0 0 0 116.03 -37.70 Z" transform="translate(150 150) rotate(135)"/>
-            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 116.03 37.70 A 122 122 0 0 0 116.03 -37.70 Z" transform="translate(150 150) rotate(180)"/>
-            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 116.03 37.70 A 122 122 0 0 0 116.03 -37.70 Z" transform="translate(150 150) rotate(225)"/>
-            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 116.03 37.70 A 122 122 0 0 0 116.03 -37.70 Z" transform="translate(150 150) rotate(270)"/>
-            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 116.03 37.70 A 122 122 0 0 0 116.03 -37.70 Z" transform="translate(150 150) rotate(315)"/>
+            <circle class="corePianoRail" cx="150" cy="150" r="118"/>
+            <circle class="corePianoRail" cx="150" cy="150" r="152"/>
+            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 120.90 37.25 A 124 124 0 0 0 120.90 -37.25 Z" transform="translate(150 150) rotate(0)"/>
+            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 120.90 37.25 A 124 124 0 0 0 120.90 -37.25 Z" transform="translate(150 150) rotate(45)"/>
+            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 120.90 37.25 A 124 124 0 0 0 120.90 -37.25 Z" transform="translate(150 150) rotate(90)"/>
+            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 120.90 37.25 A 124 124 0 0 0 120.90 -37.25 Z" transform="translate(150 150) rotate(135)"/>
+            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 120.90 37.25 A 124 124 0 0 0 120.90 -37.25 Z" transform="translate(150 150) rotate(180)"/>
+            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 120.90 37.25 A 124 124 0 0 0 120.90 -37.25 Z" transform="translate(150 150) rotate(225)"/>
+            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 120.90 37.25 A 124 124 0 0 0 120.90 -37.25 Z" transform="translate(150 150) rotate(270)"/>
+            <path class="corePianoSegment" d="M 143.60 -35.80 A 148 148 0 0 1 143.60 35.80 L 120.90 37.25 A 124 124 0 0 0 120.90 -37.25 Z" transform="translate(150 150) rotate(315)"/>
             </svg>
         </div>
         <div class="coreRing coreRingOuterFine"></div>
