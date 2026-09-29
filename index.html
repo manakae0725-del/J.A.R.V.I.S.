@@ -248,7 +248,7 @@ h1 {
 }
 
 /* =========================================================
-   J.A.R.V.I.S. CORE UI
+   J.A.R.V.I.S. CORE UI — PHASE ⑤ CORE REBUILD
    ========================================================= */
 
 #jarvisCore {
@@ -260,47 +260,46 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
+    isolation: isolate;
 }
 
-#jarvisCore::before {
-    content: "";
+.coreVisual {
     position: absolute;
-    inset: 8px;
+    inset: 0;
     border-radius: 50%;
-    border: 1px solid rgba(120, 180, 255, 0.35);
-    box-shadow:
-        0 0 20px rgba(80, 150, 255, 0.15),
-        inset 0 0 25px rgba(80, 150, 255, 0.08);
-    animation: coreRotate 12s linear infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
 }
 
-#jarvisCore::after {
-    content: "";
-    position: absolute;
-    inset: 25px;
-    border-radius: 50%;
-    border: 1px dashed rgba(140, 190, 255, 0.28);
-    animation: coreRotateReverse 8s linear infinite;
-}
+/* ---------------------------------------------------------
+   CORE ENERGY / FIXED CENTER
+   --------------------------------------------------------- */
 
 .coreGlow {
-    position: relative;
-    width: 92px;
-    height: 92px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 46%;
+    height: 46%;
+    transform: translate(-50%, -50%);
     border-radius: 50%;
     background:
         radial-gradient(
             circle,
-            rgba(220, 245, 255, 0.95) 0%,
-            rgba(100, 180, 255, 0.65) 18%,
-            rgba(40, 100, 180, 0.32) 42%,
-            rgba(10, 30, 60, 0.12) 68%,
-            transparent 75%
+            rgba(225, 249, 255, 0.98) 0%,
+            rgba(105, 210, 255, 0.92) 9%,
+            rgba(30, 145, 255, 0.62) 22%,
+            rgba(0, 75, 190, 0.26) 45%,
+            rgba(0, 30, 90, 0.08) 66%,
+            transparent 76%
         );
     box-shadow:
-        0 0 18px rgba(120, 200, 255, 0.7),
-        0 0 45px rgba(70, 150, 255, 0.35),
-        0 0 80px rgba(40, 100, 200, 0.18);
+        0 0 10px rgba(190, 240, 255, 0.95),
+        0 0 24px rgba(55, 175, 255, 0.72),
+        0 0 48px rgba(0, 105, 255, 0.38);
+    z-index: 7;
     animation: corePulse 3s ease-in-out infinite;
 }
 
@@ -308,19 +307,298 @@ h1 {
 .coreGlow::after {
     content: "";
     position: absolute;
-    inset: 12px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     border-radius: 50%;
-    border: 1px solid rgba(220, 245, 255, 0.5);
+    pointer-events: none;
+}
+
+.coreGlow::before {
+    width: 70%;
+    height: 70%;
+    border: 1px solid rgba(220, 249, 255, 0.72);
+    box-shadow:
+        0 0 7px rgba(145, 225, 255, 0.72),
+        inset 0 0 10px rgba(90, 200, 255, 0.34);
 }
 
 .coreGlow::after {
-    inset: 25px;
-    border-color: rgba(180, 225, 255, 0.7);
+    width: 42%;
+    height: 42%;
+    border: 1px solid rgba(240, 253, 255, 0.92);
+    box-shadow:
+        0 0 8px rgba(150, 230, 255, 0.85);
 }
 
-/* =========================================================
+/* ---------------------------------------------------------
+   CONCENTRIC CORE RINGS
+   --------------------------------------------------------- */
+
+.coreRing {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
+.coreRing::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Outer segmented ring — strongest "piano key" structure */
+.coreRingOuter {
+    width: 96%;
+    height: 96%;
+    background:
+        repeating-conic-gradient(
+            from 0deg,
+            rgba(105, 220, 255, 0.88) 0deg 2.2deg,
+            transparent 2.2deg 8deg,
+            rgba(15, 115, 245, 0.42) 8deg 9.2deg,
+            transparent 9.2deg 14deg
+        );
+    -webkit-mask:
+        radial-gradient(
+            circle,
+            transparent 0 43%,
+            #000 43.5% 49%,
+            transparent 49.5% 100%
+        );
+    mask:
+        radial-gradient(
+            circle,
+            transparent 0 43%,
+            #000 43.5% 49%,
+            transparent 49.5% 100%
+        );
+    filter:
+        drop-shadow(0 0 3px rgba(70, 195, 255, 0.78))
+        drop-shadow(0 0 9px rgba(0, 105, 255, 0.32));
+    animation: coreRingOuterRotate 22s linear infinite;
+    z-index: 2;
+}
+
+/* Second segmented ring — different spacing and speed */
+.coreRingLarge {
+    width: 82%;
+    height: 82%;
+    background:
+        repeating-conic-gradient(
+            from 13deg,
+            rgba(205, 247, 255, 0.92) 0deg 1.4deg,
+            transparent 1.4deg 7deg,
+            rgba(30, 150, 255, 0.58) 7deg 8.6deg,
+            transparent 8.6deg 13deg
+        );
+    -webkit-mask:
+        radial-gradient(
+            circle,
+            transparent 0 38%,
+            #000 38.5% 46%,
+            transparent 46.5% 100%
+        );
+    mask:
+        radial-gradient(
+            circle,
+            transparent 0 38%,
+            #000 38.5% 46%,
+            transparent 46.5% 100%
+        );
+    filter:
+        drop-shadow(0 0 3px rgba(115, 220, 255, 0.72));
+    animation: coreRingLargeRotateReverse 15s linear infinite;
+    z-index: 3;
+}
+
+/* Fine engineering ring */
+.coreRingMedium {
+    width: 69%;
+    height: 69%;
+    border:
+        1px solid rgba(175, 239, 255, 0.62);
+    background:
+        repeating-conic-gradient(
+            from 27deg,
+            rgba(170, 238, 255, 0.82) 0deg 0.8deg,
+            transparent 0.8deg 4.5deg
+        );
+    -webkit-mask:
+        radial-gradient(
+            circle,
+            transparent 0 46%,
+            #000 46.5% 50%,
+            transparent 50.5% 100%
+        );
+    mask:
+        radial-gradient(
+            circle,
+            transparent 0 46%,
+            #000 46.5% 50%,
+            transparent 50.5% 100%
+        );
+    filter:
+        drop-shadow(0 0 2px rgba(130, 225, 255, 0.62));
+    animation: coreRingMediumRotate 10s linear infinite;
+    z-index: 4;
+}
+
+/* Inner segmented ring */
+.coreRingInner {
+    width: 56%;
+    height: 56%;
+    background:
+        repeating-conic-gradient(
+            from 44deg,
+            rgba(220, 250, 255, 0.95) 0deg 2deg,
+            transparent 2deg 10deg,
+            rgba(50, 180, 255, 0.62) 10deg 11deg,
+            transparent 11deg 16deg
+        );
+    -webkit-mask:
+        radial-gradient(
+            circle,
+            transparent 0 42%,
+            #000 43% 51%,
+            transparent 52% 100%
+        );
+    mask:
+        radial-gradient(
+            circle,
+            transparent 0 42%,
+            #000 43% 51%,
+            transparent 52% 100%
+        );
+    filter:
+        drop-shadow(0 0 3px rgba(175, 240, 255, 0.76));
+    animation: coreRingInnerRotateReverse 8s linear infinite;
+    z-index: 5;
+}
+
+/* Micro ring / calibration marks */
+.coreRingMicro {
+    width: 47%;
+    height: 47%;
+    border:
+        1px dashed rgba(190, 242, 255, 0.58);
+    box-shadow:
+        0 0 7px rgba(60, 190, 255, 0.28);
+    animation: coreRingMicroRotate 18s linear infinite;
+    z-index: 6;
+}
+
+/* ---------------------------------------------------------
+   CROSS AXIS / RADIAL ENGINEERING LINES
+   --------------------------------------------------------- */
+
+.coreAxis {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 6;
+}
+
+.coreAxisVertical {
+    width: 1px;
+    height: 100%;
+    background:
+        linear-gradient(
+            180deg,
+            transparent 0%,
+            rgba(150, 235, 255, 0.18) 18%,
+            rgba(215, 250, 255, 0.82) 50%,
+            rgba(150, 235, 255, 0.18) 82%,
+            transparent 100%
+        );
+    box-shadow:
+        0 0 5px rgba(85, 205, 255, 0.46);
+}
+
+.coreAxisHorizontal {
+    width: 100%;
+    height: 1px;
+    background:
+        linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(150, 235, 255, 0.18) 18%,
+            rgba(215, 250, 255, 0.82) 50%,
+            rgba(150, 235, 255, 0.18) 82%,
+            transparent 100%
+        );
+    box-shadow:
+        0 0 5px rgba(85, 205, 255, 0.46);
+}
+
+/* Four short high-energy axis markers */
+.coreAxisMarks {
+    position: absolute;
+    inset: 7%;
+    border-radius: 50%;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.coreAxisMarks::before,
+.coreAxisMarks::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background: rgba(215, 250, 255, 0.92);
+    box-shadow:
+        0 0 5px rgba(90, 210, 255, 0.86),
+        0 0 12px rgba(0, 125, 255, 0.45);
+}
+
+.coreAxisMarks::before {
+    width: 2px;
+    height: 13px;
+    transform: translate(-50%, -50%) translateY(-78px);
+}
+
+.coreAxisMarks::after {
+    width: 13px;
+    height: 2px;
+    transform: translate(-50%, -50%) translateX(78px);
+}
+
+/* ---------------------------------------------------------
+   CENTRAL J.A.R.V.I.S. LABEL
+   --------------------------------------------------------- */
+
+.coreLabel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    color: rgba(188, 241, 255, 0.96);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    white-space: nowrap;
+    text-shadow:
+        0 0 4px rgba(210, 250, 255, 0.95),
+        0 0 10px rgba(50, 180, 255, 0.80),
+        0 0 20px rgba(0, 100, 255, 0.38);
+    pointer-events: none;
+}
+
+/* ---------------------------------------------------------
    CORE 5 STATES
-   ========================================================= */
+   Existing state classes remain intact.
+   Only the energy/brightness response changes.
+   --------------------------------------------------------- */
 
 #jarvisCore.core-standby .coreGlow {
     animation:
@@ -347,92 +625,136 @@ h1 {
         coreAnswering 1.5s ease-in-out infinite;
 }
 
-@keyframes coreListening {
+#jarvisCore.core-listening .coreRingOuter,
+#jarvisCore.core-searching .coreRingOuter {
+    filter:
+        drop-shadow(0 0 4px rgba(105, 225, 255, 0.90))
+        drop-shadow(0 0 12px rgba(0, 125, 255, 0.48));
+}
 
+#jarvisCore.core-searching .coreRingLarge,
+#jarvisCore.core-thinking .coreRingMedium {
+    filter:
+        drop-shadow(0 0 4px rgba(170, 240, 255, 0.92))
+        drop-shadow(0 0 10px rgba(0, 130, 255, 0.52));
+}
+
+@keyframes coreListening {
     0%, 100% {
-        transform: scale(0.92);
+        transform: translate(-50%, -50%) scale(0.92);
         filter: brightness(0.95);
     }
-
     50% {
-        transform: scale(1.10);
+        transform: translate(-50%, -50%) scale(1.10);
         filter: brightness(1.35);
     }
 }
 
 @keyframes coreThinking {
-
     0% {
-        transform: scale(0.96) rotate(0deg);
+        transform: translate(-50%, -50%) scale(0.96) rotate(0deg);
         filter: brightness(1);
     }
-
     50% {
-        transform: scale(1.03) rotate(180deg);
+        transform: translate(-50%, -50%) scale(1.03) rotate(180deg);
         filter: brightness(1.25);
     }
-
     100% {
-        transform: scale(0.96) rotate(360deg);
+        transform: translate(-50%, -50%) scale(0.96) rotate(360deg);
         filter: brightness(1);
     }
 }
 
 @keyframes coreSearching {
-
     0%, 100% {
-        transform: scale(0.90);
+        transform: translate(-50%, -50%) scale(0.90);
         filter: brightness(0.9);
     }
-
     50% {
-        transform: scale(1.12);
+        transform: translate(-50%, -50%) scale(1.12);
         filter: brightness(1.45);
     }
 }
 
 @keyframes coreAnswering {
-
     0%, 100% {
-        transform: scale(0.96);
+        transform: translate(-50%, -50%) scale(0.96);
         filter: brightness(1);
     }
-
     50% {
-        transform: scale(1.08);
+        transform: translate(-50%, -50%) scale(1.08);
         filter: brightness(1.35);
     }
 }
 
 @keyframes corePulse {
     0%, 100% {
-        transform: scale(0.94);
+        transform: translate(-50%, -50%) scale(0.94);
         filter: brightness(0.9);
     }
-
     50% {
-        transform: scale(1.06);
+        transform: translate(-50%, -50%) scale(1.06);
         filter: brightness(1.2);
     }
 }
 
-@keyframes coreRotate {
+/* Independent layer rotation */
+@keyframes coreRingOuterRotate {
     from {
-        transform: rotate(0deg);
+        transform: translate(-50%, -50%) rotate(0deg);
     }
-
     to {
-        transform: rotate(360deg);
+        transform: translate(-50%, -50%) rotate(360deg);
     }
 }
 
-@keyframes coreRotateReverse {
+@keyframes coreRingLargeRotateReverse {
     from {
-        transform: rotate(360deg);
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+}
+
+@keyframes coreRingMediumRotate {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(-360deg);
+    }
+}
+
+@keyframes coreRingInnerRotateReverse {
+    from {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(-360deg);
+    }
+}
+
+@keyframes coreRingMicroRotate {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Mobile density: keep the CORE structure visible without changing
+   the surrounding world design. */
+@media (max-width: 899px) {
+    #jarvisCore {
+        width: 190px;
+        height: 190px;
     }
 
-    to {
-        transform: rotate(0deg);
+    .coreLabel {
+        font-size: 11px;
+        letter-spacing: 3.5px;
     }
 }
 
@@ -1614,7 +1936,6 @@ h1 {
 
 </div>
 
-<h1>J.A.R.V.I.S.</h1>
 
 <div id="modeSelector">
 
@@ -1633,7 +1954,20 @@ h1 {
 </div>
 
 <div id="jarvisCore" class="core-standby">
-    <div class="coreGlow"></div>
+    <div class="coreVisual" aria-hidden="true">
+        <div class="coreRing coreRingOuter"></div>
+        <div class="coreRing coreRingLarge"></div>
+        <div class="coreRing coreRingMedium"></div>
+        <div class="coreRing coreRingInner"></div>
+        <div class="coreRing coreRingMicro"></div>
+
+        <div class="coreAxis coreAxisVertical"></div>
+        <div class="coreAxis coreAxisHorizontal"></div>
+        <div class="coreAxisMarks"></div>
+
+        <div class="coreGlow"></div>
+        <div class="coreLabel">J.A.R.V.I.S.</div>
+    </div>
 </div>
 
 <button id="talkButton">🎙️ 話す</button>
