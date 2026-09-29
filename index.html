@@ -48,6 +48,9 @@ h1 {
     margin-top: 18px;
     width: 44px;
     height: 44px;
+    position: relative;
+    top: 250px;
+    z-index: 20;
     border-radius: 50%;
     border: 1px solid rgba(110, 150, 180, 0.45);
     background: rgba(10, 12, 16, 0.86);
@@ -262,15 +265,15 @@ h1 {
     align-items: center;
     justify-content: center;
     isolation: isolate;
-    transform: translateY(145px);
+    transform: translateY(195px);
 }
 
 .coreVisual {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 410px;
-    height: 410px;
+    width: 330px;
+    height: 330px;
     transform: translate(-50%, -50%);
     border-radius: 50%;
     display: flex;
@@ -369,7 +372,7 @@ h1 {
 .coreRingMega {
     width: 100%;
     height: 100%;
-    border: 3px solid rgba(105, 210, 255, 0.52);
+    border: 4px solid rgba(105, 210, 255, 0.58);
     box-shadow:
         0 0 10px rgba(50, 175, 255, 0.32),
         0 0 22px rgba(30, 135, 255, 0.16),
@@ -400,21 +403,21 @@ h1 {
 
 /* Large new piano-key segment layer — approximately 8 large keys */
 .coreRingPianoOuter {
-    width: 96%;
-    height: 96%;
+    width: 92%;
+    height: 92%;
     background:
         repeating-conic-gradient(
             from 0deg,
-            rgba(190, 242, 255, 0.96) 0deg 30deg,
-            rgba(35, 155, 255, 0.58) 30deg 31.5deg,
-            transparent 31.5deg 45deg
+            rgba(205, 247, 255, 0.98) 0deg 27deg,
+            rgba(65, 180, 255, 0.78) 27deg 30deg,
+            transparent 30deg 45deg
         );
     -webkit-mask:
         radial-gradient(
             circle,
-            transparent 0 84%,
-            #000 84.5% 98%,
-            transparent 98.5% 100%
+            transparent 0 78%,
+            #000 78.5% 97%,
+            transparent 97.5% 100%
         );
     mask:
         radial-gradient(
@@ -430,11 +433,29 @@ h1 {
     z-index: 2;
 }
 
+.coreRingPianoOuter::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+        repeating-conic-gradient(
+            from 0deg,
+            rgba(225, 252, 255, 0.95) 0deg 25deg,
+            transparent 25deg 45deg
+        );
+    -webkit-mask:
+        radial-gradient(circle, transparent 0 78%, #000 78.5% 82%, transparent 82.5% 100%);
+    mask:
+        radial-gradient(circle, transparent 0 78%, #000 78.5% 82%, transparent 82.5% 100%);
+    filter: drop-shadow(0 0 4px rgba(130, 225, 255, 0.85));
+}
+
 /* Fine outer calibration ring, deliberately separated from piano layer */
 .coreRingOuterFine {
-    width: 88%;
-    height: 88%;
-    border: 3px dashed rgba(185, 242, 255, 0.72);
+    width: 84%;
+    height: 84%;
+    border: 5px solid rgba(185, 242, 255, 0.78);
     box-shadow:
         0 0 8px rgba(70, 185, 255, 0.34),
         0 0 18px rgba(30, 135, 255, 0.18);
@@ -444,8 +465,8 @@ h1 {
 
 /* Outer segmented ring — strongest "piano key" structure */
 .coreRingOuter {
-    width: 69%;
-    height: 69%;
+    width: 68%;
+    height: 68%;
     background:
         repeating-conic-gradient(
             from 0deg,
@@ -477,8 +498,8 @@ h1 {
 
 /* Second segmented ring — different spacing and speed */
 .coreRingLarge {
-    width: 57%;
-    height: 57%;
+    width: 55%;
+    height: 55%;
     background:
         repeating-conic-gradient(
             from 13deg,
@@ -509,8 +530,8 @@ h1 {
 
 /* Fine engineering ring */
 .coreRingMedium {
-    width: 46%;
-    height: 46%;
+    width: 45%;
+    height: 45%;
     border:
         1px solid rgba(175, 239, 255, 0.62);
     background:
