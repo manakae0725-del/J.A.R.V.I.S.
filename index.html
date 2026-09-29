@@ -679,7 +679,15 @@ h1 {
             rgba(0, 108, 255, 0.82) 2.2%,
             rgba(0, 48, 210, 0.31) 5%,
             transparent 8%
-        );
+        ),
+        radial-gradient(circle at 10% 28%, rgba(235, 252, 255, 0.98) 0%, rgba(0, 125, 255, 0.90) 1.3%, transparent 4.5%),
+        radial-gradient(circle at 25% 68%, rgba(220, 250, 255, 0.96) 0%, rgba(0, 115, 255, 0.88) 1.2%, transparent 4.2%),
+        radial-gradient(circle at 43% 30%, rgba(245, 254, 255, 0.99) 0%, rgba(0, 130, 255, 0.92) 1.2%, transparent 4.4%),
+        radial-gradient(circle at 58% 70%, rgba(225, 250, 255, 0.96) 0%, rgba(0, 118, 255, 0.88) 1.2%, transparent 4.3%),
+        radial-gradient(circle at 73% 28%, rgba(240, 253, 255, 0.98) 0%, rgba(0, 125, 255, 0.90) 1.2%, transparent 4.4%),
+        radial-gradient(circle at 90% 72%, rgba(220, 250, 255, 0.94) 0%, rgba(0, 112, 255, 0.86) 1.2%, transparent 4.1%),
+        radial-gradient(circle at 33% 38%, rgba(215, 248, 255, 0.92) 0%, rgba(0, 105, 255, 0.82) 1.1%, transparent 3.8%),
+        radial-gradient(circle at 67% 60%, rgba(220, 250, 255, 0.94) 0%, rgba(0, 112, 255, 0.84) 1.1%, transparent 3.9%);
 
     opacity: 1;
     filter:
@@ -790,7 +798,7 @@ h1 {
 .worldMapSvg .mapLine {
     fill: none;
     stroke: rgba(205, 246, 255, 0.98);
-    stroke-width: 1.22;
+    stroke-width: 0.96;
     vector-effect: non-scaling-stroke;
 }
 
@@ -800,6 +808,14 @@ h1 {
         drop-shadow(0 0 1.5px rgba(235, 255, 255, 1))
         drop-shadow(0 0 5px rgba(0, 115, 255, 0.98))
         drop-shadow(0 0 10px rgba(0, 70, 230, 0.46));
+}
+
+.worldMapSvg .mapNodeMinor {
+    fill: rgba(225, 250, 255, 0.98);
+    filter:
+        drop-shadow(0 0 1px rgba(235, 255, 255, 0.98))
+        drop-shadow(0 0 3.5px rgba(0, 120, 255, 0.92))
+        drop-shadow(0 0 7px rgba(0, 75, 235, 0.48));
 }
 
 .worldMapSvg .mapScan {
@@ -1429,6 +1445,11 @@ h1 {
             <path class="mapLine" d="M24 45 L63 42 L91 49 L121 58 L157 52 L190 55 L229 49 L280 54"/>
             <path class="mapLine" d="M48 29 L74 50 L104 44 L141 38 L174 54 L211 40 L250 55 L286 48"/>
             <path class="mapLine" d="M70 64 L105 57 L138 67 L170 61 L204 72 L238 60 L270 69"/>
+            <path class="mapLine" d="M36 58 L76 71 L118 62 L154 76 L198 63 L241 78 L285 63"/>
+            <path class="mapLine" d="M61 22 L96 35 L132 25 L168 43 L205 24 L246 39 L292 27"/>
+            <path class="mapLine" d="M108 91 L137 72 L165 88 L198 82 L226 96 L260 80"/>
+            <path class="mapLine" d="M28 78 L67 67 L99 82 L132 91 L160 78 L192 91 L225 82 L270 91"/>
+            <path class="mapLine" d="M86 112 L119 99 L148 111 L180 101 L213 113 L246 99 L286 108"/>
             <circle class="mapNode" cx="47" cy="31" r="1.7"/>
             <circle class="mapNode" cx="84" cy="50" r="1.6"/>
             <circle class="mapNode" cx="111" cy="57" r="1.7"/>
@@ -1437,6 +1458,18 @@ h1 {
             <circle class="mapNode" cx="229" cy="49" r="1.6"/>
             <circle class="mapNode" cx="268" cy="55" r="1.8"/>
             <circle class="mapNode" cx="171" cy="93" r="1.6"/>
+            <circle class="mapNodeMinor" cx="31" cy="55" r="1.05"/>
+            <circle class="mapNodeMinor" cx="59" cy="69" r="0.95"/>
+            <circle class="mapNodeMinor" cx="73" cy="38" r="1.0"/>
+            <circle class="mapNodeMinor" cx="101" cy="76" r="1.05"/>
+            <circle class="mapNodeMinor" cx="126" cy="31" r="0.95"/>
+            <circle class="mapNodeMinor" cx="136" cy="72" r="1.0"/>
+            <circle class="mapNodeMinor" cx="160" cy="58" r="1.1"/>
+            <circle class="mapNodeMinor" cx="181" cy="38" r="0.95"/>
+            <circle class="mapNodeMinor" cx="204" cy="69" r="1.0"/>
+            <circle class="mapNodeMinor" cx="218" cy="32" r="0.95"/>
+            <circle class="mapNodeMinor" cx="247" cy="68" r="1.05"/>
+            <circle class="mapNodeMinor" cx="279" cy="76" r="0.95"/>
             <ellipse class="mapScan" cx="160" cy="70" rx="146" ry="51"/>
         </svg>
         <div class="worldMapData">
@@ -1468,6 +1501,11 @@ h1 {
             <path class="mapLine" d="M24 45 L63 42 L91 49 L121 58 L157 52 L190 55 L229 49 L280 54"/>
             <path class="mapLine" d="M48 29 L74 50 L104 44 L141 38 L174 54 L211 40 L250 55 L286 48"/>
             <path class="mapLine" d="M70 64 L105 57 L138 67 L170 61 L204 72 L238 60 L270 69"/>
+            <path class="mapLine" d="M36 58 L76 71 L118 62 L154 76 L198 63 L241 78 L285 63"/>
+            <path class="mapLine" d="M61 22 L96 35 L132 25 L168 43 L205 24 L246 39 L292 27"/>
+            <path class="mapLine" d="M108 91 L137 72 L165 88 L198 82 L226 96 L260 80"/>
+            <path class="mapLine" d="M28 78 L67 67 L99 82 L132 91 L160 78 L192 91 L225 82 L270 91"/>
+            <path class="mapLine" d="M86 112 L119 99 L148 111 L180 101 L213 113 L246 99 L286 108"/>
             <circle class="mapNode" cx="47" cy="31" r="1.7"/>
             <circle class="mapNode" cx="84" cy="50" r="1.6"/>
             <circle class="mapNode" cx="111" cy="57" r="1.7"/>
@@ -1476,6 +1514,18 @@ h1 {
             <circle class="mapNode" cx="229" cy="49" r="1.6"/>
             <circle class="mapNode" cx="268" cy="55" r="1.8"/>
             <circle class="mapNode" cx="171" cy="93" r="1.6"/>
+            <circle class="mapNodeMinor" cx="31" cy="55" r="1.05"/>
+            <circle class="mapNodeMinor" cx="59" cy="69" r="0.95"/>
+            <circle class="mapNodeMinor" cx="73" cy="38" r="1.0"/>
+            <circle class="mapNodeMinor" cx="101" cy="76" r="1.05"/>
+            <circle class="mapNodeMinor" cx="126" cy="31" r="0.95"/>
+            <circle class="mapNodeMinor" cx="136" cy="72" r="1.0"/>
+            <circle class="mapNodeMinor" cx="160" cy="58" r="1.1"/>
+            <circle class="mapNodeMinor" cx="181" cy="38" r="0.95"/>
+            <circle class="mapNodeMinor" cx="204" cy="69" r="1.0"/>
+            <circle class="mapNodeMinor" cx="218" cy="32" r="0.95"/>
+            <circle class="mapNodeMinor" cx="247" cy="68" r="1.05"/>
+            <circle class="mapNodeMinor" cx="279" cy="76" r="0.95"/>
             <ellipse class="mapScan" cx="160" cy="70" rx="146" ry="51"/>
         </svg>
         <div class="worldMapData">
