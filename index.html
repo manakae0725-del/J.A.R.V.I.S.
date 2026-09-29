@@ -261,11 +261,16 @@ h1 {
     align-items: center;
     justify-content: center;
     isolation: isolate;
+    transform: translateY(58px);
 }
 
 .coreVisual {
     position: absolute;
-    inset: 0;
+    left: 50%;
+    top: 50%;
+    width: 280px;
+    height: 280px;
+    transform: translate(-50%, -50%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -281,8 +286,8 @@ h1 {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 46%;
-    height: 46%;
+    width: 36%;
+    height: 36%;
     transform: translate(-50%, -50%);
     border-radius: 50%;
     background:
@@ -355,29 +360,29 @@ h1 {
 
 /* Outer segmented ring — strongest "piano key" structure */
 .coreRingOuter {
-    width: 96%;
-    height: 96%;
+    width: 100%;
+    height: 100%;
     background:
         repeating-conic-gradient(
             from 0deg,
-            rgba(105, 220, 255, 0.88) 0deg 2.2deg,
-            transparent 2.2deg 8deg,
-            rgba(15, 115, 245, 0.42) 8deg 9.2deg,
-            transparent 9.2deg 14deg
+            rgba(105, 220, 255, 0.90) 0deg 2.0deg,
+            transparent 2.0deg 7.5deg,
+            rgba(15, 115, 245, 0.48) 7.5deg 8.8deg,
+            transparent 8.8deg 13.5deg
         );
     -webkit-mask:
         radial-gradient(
             circle,
-            transparent 0 43%,
-            #000 43.5% 49%,
-            transparent 49.5% 100%
+            transparent 0 87%,
+            #000 87.5% 93%,
+            transparent 93.5% 100%
         );
     mask:
         radial-gradient(
             circle,
-            transparent 0 43%,
-            #000 43.5% 49%,
-            transparent 49.5% 100%
+            transparent 0 87%,
+            #000 87.5% 93%,
+            transparent 93.5% 100%
         );
     filter:
         drop-shadow(0 0 3px rgba(70, 195, 255, 0.78))
@@ -388,29 +393,29 @@ h1 {
 
 /* Second segmented ring — different spacing and speed */
 .coreRingLarge {
-    width: 82%;
-    height: 82%;
+    width: 84%;
+    height: 84%;
     background:
         repeating-conic-gradient(
             from 13deg,
-            rgba(205, 247, 255, 0.92) 0deg 1.4deg,
-            transparent 1.4deg 7deg,
-            rgba(30, 150, 255, 0.58) 7deg 8.6deg,
-            transparent 8.6deg 13deg
+            rgba(205, 247, 255, 0.94) 0deg 1.3deg,
+            transparent 1.3deg 7deg,
+            rgba(30, 150, 255, 0.60) 7deg 8.4deg,
+            transparent 8.4deg 13deg
         );
     -webkit-mask:
         radial-gradient(
             circle,
-            transparent 0 38%,
-            #000 38.5% 46%,
-            transparent 46.5% 100%
+            transparent 0 83%,
+            #000 83.5% 91%,
+            transparent 91.5% 100%
         );
     mask:
         radial-gradient(
             circle,
-            transparent 0 38%,
-            #000 38.5% 46%,
-            transparent 46.5% 100%
+            transparent 0 83%,
+            #000 83.5% 91%,
+            transparent 91.5% 100%
         );
     filter:
         drop-shadow(0 0 3px rgba(115, 220, 255, 0.72));
@@ -420,29 +425,29 @@ h1 {
 
 /* Fine engineering ring */
 .coreRingMedium {
-    width: 69%;
-    height: 69%;
+    width: 67%;
+    height: 67%;
     border:
         1px solid rgba(175, 239, 255, 0.62);
     background:
         repeating-conic-gradient(
             from 27deg,
-            rgba(170, 238, 255, 0.82) 0deg 0.8deg,
-            transparent 0.8deg 4.5deg
+            rgba(170, 238, 255, 0.82) 0deg 0.75deg,
+            transparent 0.75deg 4.5deg
         );
     -webkit-mask:
         radial-gradient(
             circle,
-            transparent 0 46%,
-            #000 46.5% 50%,
-            transparent 50.5% 100%
+            transparent 0 80%,
+            #000 80.5% 88%,
+            transparent 88.5% 100%
         );
     mask:
         radial-gradient(
             circle,
-            transparent 0 46%,
-            #000 46.5% 50%,
-            transparent 50.5% 100%
+            transparent 0 80%,
+            #000 80.5% 88%,
+            transparent 88.5% 100%
         );
     filter:
         drop-shadow(0 0 2px rgba(130, 225, 255, 0.62));
@@ -452,29 +457,29 @@ h1 {
 
 /* Inner segmented ring */
 .coreRingInner {
-    width: 56%;
-    height: 56%;
+    width: 50%;
+    height: 50%;
     background:
         repeating-conic-gradient(
             from 44deg,
-            rgba(220, 250, 255, 0.95) 0deg 2deg,
-            transparent 2deg 10deg,
+            rgba(220, 250, 255, 0.95) 0deg 1.8deg,
+            transparent 1.8deg 10deg,
             rgba(50, 180, 255, 0.62) 10deg 11deg,
             transparent 11deg 16deg
         );
     -webkit-mask:
         radial-gradient(
             circle,
-            transparent 0 42%,
-            #000 43% 51%,
-            transparent 52% 100%
+            transparent 0 78%,
+            #000 78.5% 89%,
+            transparent 89.5% 100%
         );
     mask:
         radial-gradient(
             circle,
-            transparent 0 42%,
-            #000 43% 51%,
-            transparent 52% 100%
+            transparent 0 78%,
+            #000 78.5% 89%,
+            transparent 89.5% 100%
         );
     filter:
         drop-shadow(0 0 3px rgba(175, 240, 255, 0.76));
@@ -484,8 +489,8 @@ h1 {
 
 /* Micro ring / calibration marks */
 .coreRingMicro {
-    width: 47%;
-    height: 47%;
+    width: 41%;
+    height: 41%;
     border:
         1px dashed rgba(190, 242, 255, 0.58);
     box-shadow:
@@ -583,9 +588,9 @@ h1 {
     transform: translate(-50%, -50%);
     z-index: 10;
     color: rgba(188, 241, 255, 0.96);
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 500;
-    letter-spacing: 4px;
+    letter-spacing: 4.5px;
     white-space: nowrap;
     text-shadow:
         0 0 4px rgba(210, 250, 255, 0.95),
@@ -750,11 +755,17 @@ h1 {
     #jarvisCore {
         width: 190px;
         height: 190px;
+        transform: translateY(58px);
+    }
+
+    .coreVisual {
+        width: 280px;
+        height: 280px;
     }
 
     .coreLabel {
-        font-size: 11px;
-        letter-spacing: 3.5px;
+        font-size: 15px;
+        letter-spacing: 4.5px;
     }
 }
 
