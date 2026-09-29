@@ -582,6 +582,56 @@ h1 {
 }
 
 /* ---------------------------------------------------------
+   GLOBAL HOLOGRAPHIC LIGHT POINT FIELD
+   --------------------------------------------------------- */
+
+.worldAmbientPoints {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.78;
+
+    background:
+        radial-gradient(circle at 5% 14%, rgba(238,252,255,0.98) 0 0.65px, rgba(0,128,255,0.86) 0.95px, transparent 2.4px),
+        radial-gradient(circle at 12% 31%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,118,255,0.82) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 19% 8%, rgba(245,254,255,0.98) 0 0.7px, rgba(0,135,255,0.88) 1px, transparent 2.5px),
+        radial-gradient(circle at 27% 22%, rgba(220,248,255,0.92) 0 0.55px, rgba(0,115,255,0.78) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 34% 12%, rgba(240,253,255,0.98) 0 0.65px, rgba(0,128,255,0.84) 0.95px, transparent 2.4px),
+        radial-gradient(circle at 43% 27%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,120,255,0.82) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 52% 9%, rgba(242,254,255,0.98) 0 0.7px, rgba(0,132,255,0.88) 1px, transparent 2.5px),
+        radial-gradient(circle at 61% 24%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,118,255,0.80) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 70% 11%, rgba(238,252,255,0.98) 0 0.65px, rgba(0,128,255,0.86) 0.95px, transparent 2.4px),
+        radial-gradient(circle at 79% 28%, rgba(220,248,255,0.92) 0 0.55px, rgba(0,115,255,0.80) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 88% 15%, rgba(245,254,255,0.98) 0 0.7px, rgba(0,135,255,0.88) 1px, transparent 2.5px),
+        radial-gradient(circle at 96% 34%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,120,255,0.82) 0.9px, transparent 2.2px),
+
+        radial-gradient(circle at 7% 47%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,118,255,0.80) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 15% 59%, rgba(240,253,255,0.98) 0 0.65px, rgba(0,128,255,0.86) 0.95px, transparent 2.4px),
+        radial-gradient(circle at 23% 42%, rgba(220,248,255,0.92) 0 0.55px, rgba(0,115,255,0.78) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 31% 55%, rgba(242,254,255,0.98) 0 0.7px, rgba(0,132,255,0.88) 1px, transparent 2.5px),
+        radial-gradient(circle at 39% 45%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,120,255,0.82) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 47% 61%, rgba(238,252,255,0.98) 0 0.65px, rgba(0,128,255,0.84) 0.95px, transparent 2.4px),
+        radial-gradient(circle at 56% 48%, rgba(220,248,255,0.92) 0 0.55px, rgba(0,115,255,0.80) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 64% 58%, rgba(245,254,255,0.98) 0 0.7px, rgba(0,135,255,0.88) 1px, transparent 2.5px),
+        radial-gradient(circle at 73% 43%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,118,255,0.82) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 82% 57%, rgba(240,253,255,0.98) 0 0.65px, rgba(0,128,255,0.86) 0.95px, transparent 2.4px),
+        radial-gradient(circle at 91% 46%, rgba(220,248,255,0.92) 0 0.55px, rgba(0,115,255,0.78) 0.9px, transparent 2.2px),
+
+        radial-gradient(circle at 10% 74%, rgba(242,254,255,0.98) 0 0.7px, rgba(0,132,255,0.88) 1px, transparent 2.5px),
+        radial-gradient(circle at 18% 87%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,120,255,0.82) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 26% 69%, rgba(238,252,255,0.98) 0 0.65px, rgba(0,128,255,0.84) 0.95px, transparent 2.4px),
+        radial-gradient(circle at 35% 83%, rgba(220,248,255,0.92) 0 0.55px, rgba(0,115,255,0.80) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 44% 73%, rgba(245,254,255,0.98) 0 0.7px, rgba(0,135,255,0.88) 1px, transparent 2.5px),
+        radial-gradient(circle at 53% 88%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,118,255,0.82) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 62% 71%, rgba(240,253,255,0.98) 0 0.65px, rgba(0,128,255,0.86) 0.95px, transparent 2.4px),
+        radial-gradient(circle at 71% 84%, rgba(220,248,255,0.92) 0 0.55px, rgba(0,115,255,0.78) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 80% 70%, rgba(242,254,255,0.98) 0 0.7px, rgba(0,132,255,0.88) 1px, transparent 2.5px),
+        radial-gradient(circle at 89% 86%, rgba(225,250,255,0.94) 0 0.55px, rgba(0,120,255,0.82) 0.9px, transparent 2.2px),
+        radial-gradient(circle at 97% 72%, rgba(238,252,255,0.98) 0 0.65px, rgba(0,128,255,0.84) 0.95px, transparent 2.4px);
+}
+
+/* ---------------------------------------------------------
    HOLOGRAPHIC WORLD MAP / UPPER HOLOGRAM
    --------------------------------------------------------- */
 
@@ -1414,6 +1464,7 @@ h1 {
     <div class="worldFineGrid"></div>
     <div class="worldGrid"></div>
     <div class="worldLightBeam"></div>
+    <div class="worldAmbientPoints"></div>
 
     <div class="worldMap worldMapLeft">
         <div class="worldMapEmitter" aria-hidden="true"></div>
