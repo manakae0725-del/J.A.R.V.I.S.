@@ -425,26 +425,15 @@ h1 {
     height: 6%;
     box-sizing: border-box;
     border: 1px solid rgba(135, 225, 255, 0.62);
-    border-radius: 22px 22px 17px 17px / 34% 34% 30% 30%;
+    border-radius: 10px 18px 12px 18px / 34% 44% 32% 44%;
+    clip-path: polygon(8% 18%, 18% 6%, 82% 6%, 92% 18%, 97% 50%, 92% 82%, 82% 94%, 18% 94%, 8% 82%, 3% 50%);
     background:
-        repeating-linear-gradient(
-            90deg,
-            rgba(95, 205, 255, 0.055) 0 1px,
-            transparent 1px 6px
-        ),
-        repeating-linear-gradient(
-            0deg,
-            rgba(95, 205, 255, 0.035) 0 1px,
-            transparent 1px 8px
-        ),
-        linear-gradient(
-            180deg,
-            rgba(35, 155, 245, 0.38) 0%,
-            rgba(18, 112, 220, 0.32) 42%,
-            rgba(5, 62, 165, 0.26) 100%
-        );
+        repeating-linear-gradient(90deg, rgba(95, 205, 255, 0.055) 0 1px, transparent 1px 5px),
+        repeating-linear-gradient(0deg, rgba(95, 205, 255, 0.035) 0 1px, transparent 1px 7px),
+        linear-gradient(180deg, rgba(35, 155, 245, 0.38) 0%, rgba(18, 112, 220, 0.32) 42%, rgba(5, 62, 165, 0.26) 100%);
     box-shadow:
         inset 0 0 7px rgba(95, 205, 255, 0.18),
+        inset 0 0 0 1px rgba(125, 225, 255, 0.18),
         0 0 5px rgba(45, 175, 255, 0.58),
         0 0 13px rgba(0, 95, 255, 0.28);
     overflow: hidden;
@@ -457,21 +446,16 @@ h1 {
 .corePianoSegment::before {
     content: "";
     position: absolute;
-    inset: 4px 7px;
-    border-top: 1px solid rgba(125, 225, 255, 0.48);
+    inset: 5px 7px;
+    border: 1px solid rgba(125, 225, 255, 0.38);
+    border-top: 1px solid rgba(150, 235, 255, 0.58);
     border-bottom: 1px solid rgba(35, 160, 245, 0.42);
-    border-radius: 18px 18px 14px 14px / 28% 28% 24% 24%;
+    border-radius: 8px 14px 10px 14px / 30% 40% 28% 40%;
+    clip-path: polygon(8% 14%, 18% 4%, 82% 4%, 92% 14%, 96% 50%, 92% 86%, 82% 96%, 18% 96%, 8% 86%, 4% 50%);
     background:
-        repeating-linear-gradient(
-            90deg,
-            rgba(95, 205, 255, 0.10) 0 1px,
-            transparent 1px 6px
-        ),
-        repeating-linear-gradient(
-            0deg,
-            rgba(95, 205, 255, 0.045) 0 1px,
-            transparent 1px 8px
-        );
+        repeating-linear-gradient(90deg, rgba(95, 205, 255, 0.10) 0 1px, transparent 1px 5px),
+        repeating-linear-gradient(0deg, rgba(95, 205, 255, 0.045) 0 1px, transparent 1px 7px),
+        linear-gradient(90deg, transparent 0%, rgba(105, 220, 255, 0.05) 16%, rgba(125, 225, 255, 0.10) 50%, rgba(105, 220, 255, 0.05) 84%, transparent 100%);
 }
 
 .corePianoSegment::after {
@@ -479,14 +463,8 @@ h1 {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(
-            90deg,
-            transparent 0%,
-            rgba(105, 220, 255, 0.10) 18%,
-            rgba(205, 247, 255, 0.18) 50%,
-            rgba(105, 220, 255, 0.10) 82%,
-            transparent 100%
-        );
+        linear-gradient(90deg, transparent 0%, rgba(105, 220, 255, 0.10) 14%, rgba(205, 247, 255, 0.18) 50%, rgba(105, 220, 255, 0.10) 86%, transparent 100%),
+        repeating-linear-gradient(90deg, transparent 0 13px, rgba(170, 240, 255, 0.10) 13px 14px, transparent 14px 26px);
     border-radius: inherit;
     opacity: 0.58;
 }
