@@ -173,545 +173,114 @@ h1 {
 }
 
 /* =========================================================
-   J.A.R.V.I.S. CORE UI — PHASE ⑤ CORE REBUILD
-   ========================================================= */
-
-/* ---------------------------------------------------------
-   EXPANDED OUTER CORE ARCHITECTURE
-   New outer layers surround the existing CORE without
-   changing its center position.
-   --------------------------------------------------------- */
-
-/* Eight independent piano/mechanical segments.
-   The segments are intentionally separated so the CORE reads as a
-   mechanical 8-part structure rather than one continuous ring. */
-
-/* Fine outer calibration ring, deliberately separated from piano layer */
-
-/* Outer segmented ring — strongest "piano key" structure */
-
-/* Second segmented ring — different spacing and speed */
-
-/* Fine engineering ring */
-
-/* Inner segmented ring */
-
-/* Micro ring / calibration marks */
-
-/* ---------------------------------------------------------
-   CROSS AXIS / RADIAL ENGINEERING LINES
-   --------------------------------------------------------- */
-
-/* Four short high-energy axis markers */
-
-/* ---------------------------------------------------------
-   CORE 5 STATES
-   Existing state classes remain intact.
-   Only the energy/brightness response changes.
-   --------------------------------------------------------- */
-
-/* =========================================================
-   J.A.R.V.I.S. CORE — VISUAL ONLY
+   J.A.R.V.I.S. CORE — REFERENCE STRUCTURE
    ========================================================= */
 
 .jarvis-core {
     position: relative;
-    width: 360px;
-    height: 360px;
+    width: 600px;
+    height: 600px;
     margin: 0 auto;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    isolation: isolate;
+}
+
+.jarvis-core svg {
+    width: 100%;
+    height: 100%;
+    display: block;
     overflow: visible;
-    filter:
-        drop-shadow(0 0 8px rgba(0,180,255,0.35));
 }
 
-
-/* =========================================================
-   OUTER SHELL
-   ========================================================= */
-
-.core-shell {
-    position: absolute;
-    inset: 5px;
-    border-radius: 50%;
-    border:
-        1px solid rgba(91,205,255,0.65);
-    box-shadow:
-        0 0 5px rgba(0,175,255,0.35),
-        inset 0 0 8px rgba(0,175,255,0.18);
+.core-bg {
+    fill: #020812;
 }
 
-.core-shell::before,
-.core-shell::after {
-    content: "";
-    position: absolute;
-    inset: 12px;
-    border-radius: 50%;
-    border:
-        1px solid rgba(91,205,255,0.32);
+.core-ring {
+    fill: none;
+    stroke: #168ed0;
 }
 
-.core-shell::after {
-    inset: 20px;
-    border:
-        1px solid rgba(91,205,255,0.18);
+.core-ring-thin {
+    fill: none;
+    stroke: #39d9ff;
 }
 
-
-/* =========================================================
-   OUTER DOT RING
-   ========================================================= */
-
-.core-dot-ring {
-    position: absolute;
-    inset: 16px;
-    border-radius: 50%;
-    border:
-        2px dotted rgba(100,215,255,0.55);
+.core-ring-white {
+    fill: none;
+    stroke: rgba(255,255,255,0.85);
 }
 
-
-/* =========================================================
-   TICK RING
-   ========================================================= */
-
-.core-tick-ring {
-    position: absolute;
-    inset: 22px;
-    border-radius: 50%;
-    background:
-        repeating-conic-gradient(
-            from 0deg,
-            rgba(135,225,255,0.8) 0deg 1deg,
-            transparent 1deg 7deg
-        );
-    -webkit-mask:
-        radial-gradient(
-            circle,
-            transparent 0 94%,
-            #000 94% 100%
-        );
-    mask:
-        radial-gradient(
-            circle,
-            transparent 0 94%,
-            #000 94% 100%
-        );
+.core-ring-dim {
+    fill: none;
+    stroke: rgba(65,160,220,0.35);
 }
-
-
-/* =========================================================
-   OUTER SEGMENT RING
-   ========================================================= */
-
-.core-segment-ring {
-    position: absolute;
-    border-radius: 50%;
-}
-
-.core-segment-outer {
-    inset: 35px;
-}
-
-.core-segment-outer span {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 4px;
-    height: 54px;
-    transform-origin: 50% 145px;
-    background:
-        linear-gradient(
-            to bottom,
-            rgba(185,240,255,0.95),
-            rgba(40,175,235,0.65),
-            rgba(5,55,95,0.8)
-        );
-    box-shadow:
-        0 0 6px rgba(0,190,255,0.6);
-    clip-path:
-        polygon(
-            25% 0,
-            75% 0,
-            100% 12%,
-            78% 100%,
-            22% 100%,
-            0 12%
-        );
-}
-
-.core-segment-outer span:nth-child(1) {
-    transform: translate(-50%,-145px) rotate(0deg);
-}
-
-.core-segment-outer span:nth-child(2) {
-    transform: translate(-50%,-145px) rotate(45deg);
-}
-
-.core-segment-outer span:nth-child(3) {
-    transform: translate(-50%,-145px) rotate(90deg);
-}
-
-.core-segment-outer span:nth-child(4) {
-    transform: translate(-50%,-145px) rotate(135deg);
-}
-
-.core-segment-outer span:nth-child(5) {
-    transform: translate(-50%,-145px) rotate(180deg);
-}
-
-.core-segment-outer span:nth-child(6) {
-    transform: translate(-50%,-145px) rotate(225deg);
-}
-
-.core-segment-outer span:nth-child(7) {
-    transform: translate(-50%,-145px) rotate(270deg);
-}
-
-.core-segment-outer span:nth-child(8) {
-    transform: translate(-50%,-145px) rotate(315deg);
-}
-
-
-/* =========================================================
-   FINE OUTER LINE
-   ========================================================= */
-
-.core-line-ring {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-.core-line-outer {
-    inset: 48px;
-    border:
-        1px solid rgba(100,220,255,0.75);
-    box-shadow:
-        0 0 5px rgba(0,170,255,0.35);
-}
-
-
-/* =========================================================
-   LARGE GLOW SEGMENTS
-   ========================================================= */
-
-.core-glow-segments {
-    position: absolute;
-    inset: 58px;
-    border-radius: 50%;
-}
-
-.core-glow-segments span {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 9px;
-    height: 48px;
-    transform-origin: 50% 122px;
-    background:
-        linear-gradient(
-            to bottom,
-            rgba(210,250,255,1),
-            rgba(60,205,255,0.9),
-            rgba(0,100,180,0.3)
-        );
-    box-shadow:
-        0 0 8px rgba(0,200,255,0.9),
-        0 0 18px rgba(0,150,255,0.45);
-    clip-path:
-        polygon(
-            15% 0,
-            85% 0,
-            100% 18%,
-            78% 100%,
-            22% 100%,
-            0 18%
-        );
-}
-
-.core-glow-segments span:nth-child(1) {
-    transform: translate(-50%,-122px) rotate(15deg);
-}
-
-.core-glow-segments span:nth-child(2) {
-    transform: translate(-50%,-122px) rotate(75deg);
-}
-
-.core-glow-segments span:nth-child(3) {
-    transform: translate(-50%,-122px) rotate(135deg);
-}
-
-.core-glow-segments span:nth-child(4) {
-    transform: translate(-50%,-122px) rotate(195deg);
-}
-
-.core-glow-segments span:nth-child(5) {
-    transform: translate(-50%,-122px) rotate(255deg);
-}
-
-.core-glow-segments span:nth-child(6) {
-    transform: translate(-50%,-122px) rotate(315deg);
-}
-
-
-/* =========================================================
-   MIDDLE TICKS
-   ========================================================= */
-
-.core-tick-middle {
-    inset: 70px;
-    background:
-        repeating-conic-gradient(
-            from 0deg,
-            rgba(130,230,255,0.75) 0deg 1deg,
-            transparent 1deg 5deg
-        );
-    -webkit-mask:
-        radial-gradient(
-            circle,
-            transparent 0 91%,
-            #000 91% 100%
-        );
-    mask:
-        radial-gradient(
-            circle,
-            transparent 0 91%,
-            #000 91% 100%
-        );
-}
-
-
-/* =========================================================
-   MIDDLE RING
-   ========================================================= */
-
-.core-line-middle {
-    inset: 82px;
-    border:
-        1px solid rgba(80,205,255,0.75);
-    box-shadow:
-        0 0 8px rgba(0,180,255,0.35),
-        inset 0 0 5px rgba(0,180,255,0.15);
-}
-
-
-/* =========================================================
-   MIDDLE SEGMENTS
-   ========================================================= */
-
-.core-segment-middle {
-    inset: 88px;
-}
-
-.core-segment-middle span {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 7px;
-    height: 35px;
-    transform-origin: 50% 92px;
-    background:
-        linear-gradient(
-            to bottom,
-            rgba(190,245,255,0.95),
-            rgba(25,165,230,0.65),
-            rgba(0,60,100,0.25)
-        );
-    box-shadow:
-        0 0 6px rgba(0,190,255,0.75);
-}
-
-.core-segment-middle span:nth-child(1) {
-    transform: translate(-50%,-92px) rotate(0deg);
-}
-
-.core-segment-middle span:nth-child(2) {
-    transform: translate(-50%,-92px) rotate(90deg);
-}
-
-.core-segment-middle span:nth-child(3) {
-    transform: translate(-50%,-92px) rotate(180deg);
-}
-
-.core-segment-middle span:nth-child(4) {
-    transform: translate(-50%,-92px) rotate(270deg);
-}
-
-
-/* =========================================================
-   INNER RINGS
-   ========================================================= */
-
-.core-line-inner {
-    inset: 105px;
-    border:
-        1px solid rgba(125,225,255,0.7);
-}
-
-.core-dot-inner {
-    inset: 112px;
-    border:
-        2px dotted rgba(125,230,255,0.65);
-}
-
-
-/* =========================================================
-   ENERGY RING
-   ========================================================= */
-
-.core-energy-ring {
-    position: absolute;
-    inset: 120px;
-    border-radius: 50%;
-    border:
-        2px solid rgba(150,240,255,0.95);
-    box-shadow:
-        0 0 8px rgba(0,210,255,0.85),
-        0 0 22px rgba(0,150,255,0.55),
-        inset 0 0 12px rgba(170,245,255,0.55);
-}
-
-
-/* =========================================================
-   CENTRAL CORE
-   ========================================================= */
 
 .core-center {
-    position: absolute;
-    width: 92px;
-    height: 92px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background:
-        radial-gradient(
-            circle,
-            rgba(225,252,255,1) 0%,
-            rgba(135,235,255,0.98) 12%,
-            rgba(35,185,245,0.95) 30%,
-            rgba(4,100,165,0.95) 57%,
-            rgba(1,35,60,0.98) 78%,
-            rgba(0,12,22,1) 100%
-        );
-    border:
-        2px solid rgba(180,245,255,0.95);
-    box-shadow:
-        0 0 12px rgba(0,205,255,0.95),
-        0 0 30px rgba(0,150,255,0.65),
-        inset 0 0 18px rgba(205,250,255,0.8);
-    z-index: 10;
+    fill: #02070d;
+    stroke: #32cfff;
+    stroke-width: 2;
 }
 
-.core-center-ring {
-    position: absolute;
-    inset: 11px;
-    border-radius: 50%;
-    border:
-        1px solid rgba(220,250,255,0.9);
-    box-shadow:
-        0 0 7px rgba(110,225,255,0.85),
-        inset 0 0 10px rgba(170,245,255,0.7);
-}
-
-.core-center-glow {
-    position: absolute;
-    inset: 20px;
-    border-radius: 50%;
-    background:
-        radial-gradient(
-            circle,
-            rgba(245,255,255,1),
-            rgba(120,230,255,0.8) 35%,
-            rgba(0,130,220,0.25) 70%,
-            transparent 100%
-        );
-    filter: blur(1px);
+.core-center-inner {
+    fill: none;
+    stroke: rgba(255,255,255,0.9);
+    stroke-width: 2;
+    stroke-dasharray: 1 7;
+    stroke-linecap: round;
 }
 
 .core-title {
-    position: relative;
-    z-index: 3;
-    color: #e8fbff;
-    font-family: Arial, sans-serif;
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-shadow:
-        0 0 5px rgba(190,250,255,1),
-        0 0 12px rgba(0,200,255,0.9);
+    fill: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 32px;
+    font-weight: 300;
+    letter-spacing: 7px;
+    text-anchor: middle;
+    dominant-baseline: middle;
 }
 
-
-/* =========================================================
-   AXIS
-   ========================================================= */
-
-.core-axis {
-    position: absolute;
-    background:
-        rgba(110,220,255,0.28);
-    z-index: 3;
-    pointer-events: none;
+.core-arc {
+    fill: none;
+    stroke: #19dfff;
+    stroke-width: 18;
+    stroke-linecap: butt;
 }
 
-.core-axis-horizontal {
-    width: 285px;
-    height: 1px;
+.core-arc-bright {
+    fill: none;
+    stroke: #37e8ff;
+    stroke-width: 10;
+    stroke-linecap: butt;
 }
 
-.core-axis-vertical {
-    width: 1px;
-    height: 285px;
+.core-arc-blue {
+    fill: none;
+    stroke: #148cff;
+    stroke-width: 15;
+    stroke-linecap: butt;
 }
 
-
-/* =========================================================
-   OUTER MARKERS
-   ========================================================= */
-
-.core-marker {
-    position: absolute;
-    width: 24px;
-    height: 2px;
-    background:
-        rgba(170,240,255,0.95);
-    box-shadow:
-        0 0 7px rgba(0,200,255,0.85);
-    z-index: 12;
+.core-tick {
+    stroke: #56d8ff;
+    stroke-width: 2;
 }
 
-.core-marker-top {
-    top: 9px;
-    left: 50%;
-    transform: translateX(-50%);
+.core-tick-bright {
+    stroke: #ffffff;
+    stroke-width: 3;
 }
 
-.core-marker-right {
-    right: 9px;
-    top: 50%;
-    transform:
-        translateY(-50%)
-        rotate(90deg);
+.core-node {
+    fill: #55dcff;
 }
 
-.core-marker-bottom {
-    bottom: 9px;
-    left: 50%;
-    transform: translateX(-50%);
+.core-node-line {
+    stroke: rgba(70,190,255,0.28);
+    stroke-width: 1;
 }
 
-.core-marker-left {
-    left: 9px;
-    top: 50%;
-    transform:
-        translateY(-50%)
-        rotate(90deg);
+.core-cross {
+    stroke: rgba(255,255,255,0.7);
+    stroke-width: 1.5;
 }
 
 </style>
@@ -727,79 +296,252 @@ h1 {
 
 <div id="jarvisCore" class="jarvis-core">
 
-    <!-- 外周ハウジング -->
-    <div class="core-shell"></div>
+<svg viewBox="0 0 600 600">
 
-    <!-- 外周ドット -->
-    <div class="core-dot-ring"></div>
+    <circle
+        class="core-bg"
+        cx="300"
+        cy="300"
+        r="232"
+    />
 
-    <!-- 外周目盛り -->
-    <div class="core-tick-ring"></div>
+    <circle
+        class="core-ring-dim"
+        cx="300"
+        cy="300"
+        r="246"
+        stroke-width="1"
+    />
 
-    <!-- 外側セグメント -->
-    <div class="core-segment-ring core-segment-outer">
-        <span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span>
-    </div>
+    <circle
+        class="core-ring"
+        cx="300"
+        cy="300"
+        r="228"
+        stroke-width="1"
+    />
 
-    <!-- 外側細線 -->
-    <div class="core-line-ring core-line-outer"></div>
+    <circle
+        class="core-ring-dim"
+        cx="300"
+        cy="300"
+        r="216"
+        stroke-width="1"
+    />
 
-    <!-- 大型発光セグメント -->
-    <div class="core-glow-segments">
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-    </div>
+    <path
+        class="core-arc-blue"
+        d="M 115 198 A 230 230 0 0 1 245 78"
+    />
 
-    <!-- 中間目盛り -->
-    <div class="core-tick-ring core-tick-middle"></div>
+    <path
+        class="core-arc-blue"
+        d="M 382 78 A 230 230 0 0 1 500 186"
+    />
 
-    <!-- 中間リング -->
-    <div class="core-line-ring core-line-middle"></div>
+    <path
+        class="core-arc-blue"
+        d="M 490 406 A 230 230 0 0 1 394 512"
+    />
 
-    <!-- 中間発光セグメント -->
-    <div class="core-segment-ring core-segment-middle">
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-    </div>
+    <path
+        class="core-arc-blue"
+        d="M 205 512 A 230 230 0 0 1 112 414"
+    />
 
-    <!-- 内側細線リング -->
-    <div class="core-line-ring core-line-inner"></div>
+    <circle
+        class="core-ring"
+        cx="300"
+        cy="300"
+        r="205"
+        stroke-width="1"
+    />
 
-    <!-- 内側ドットリング -->
-    <div class="core-dot-ring core-dot-inner"></div>
+    <g>
+        <line class="core-tick" x1="300" y1="91" x2="300" y2="103"/>
+        <line class="core-tick" x1="326" y1="93" x2="325" y2="105"/>
+        <line class="core-tick" x1="352" y1="96" x2="350" y2="108"/>
+        <line class="core-tick" x1="378" y1="101" x2="375" y2="113"/>
+        <line class="core-tick" x1="403" y1="109" x2="399" y2="121"/>
+        <line class="core-tick" x1="428" y1="119" x2="423" y2="131"/>
+        <line class="core-tick" x1="451" y1="132" x2="445" y2="143"/>
+        <line class="core-tick" x1="472" y1="147" x2="465" y2="158"/>
+        <line class="core-tick" x1="491" y1="165" x2="481" y2="174"/>
+        <line class="core-tick" x1="509" y1="185" x2="498" y2="192"/>
+        <line class="core-tick" x1="523" y1="208" x2="512" y2="213"/>
+        <line class="core-tick" x1="534" y1="232" x2="522" y2="236"/>
+        <line class="core-tick" x1="541" y1="258" x2="529" y2="260"/>
+        <line class="core-tick-bright" x1="544" y1="286" x2="532" y2="286"/>
 
-    <!-- 内側発光リング -->
-    <div class="core-energy-ring"></div>
+        <line class="core-tick" x1="544" y1="314" x2="532" y2="314"/>
+        <line class="core-tick" x1="541" y1="342" x2="529" y2="340"/>
+        <line class="core-tick" x1="534" y1="368" x2="522" y2="364"/>
+        <line class="core-tick" x1="523" y1="392" x2="512" y2="387"/>
+        <line class="core-tick" x1="509" y1="415" x2="498" y2="408"/>
+        <line class="core-tick" x1="491" y1="435" x2="481" y2="426"/>
+        <line class="core-tick" x1="472" y1="453" x2="465" y2="442"/>
+        <line class="core-tick" x1="451" y1="468" x2="445" y2="457"/>
+        <line class="core-tick" x1="428" y1="481" x2="423" y2="469"/>
+        <line class="core-tick" x1="403" y1="491" x2="399" y2="479"/>
+        <line class="core-tick" x1="378" y1="499" x2="375" y2="487"/>
+        <line class="core-tick" x1="352" y1="504" x2="350" y2="492"/>
+        <line class="core-tick" x1="326" y1="507" x2="325" y2="495"/>
+        <line class="core-tick-bright" x1="300" y1="509" x2="300" y2="497"/>
 
-    <!-- 中央CORE -->
-    <div class="core-center">
+        <line class="core-tick" x1="274" y1="507" x2="275" y2="495"/>
+        <line class="core-tick" x1="248" y1="504" x2="250" y2="492"/>
+        <line class="core-tick" x1="222" y1="499" x2="225" y2="487"/>
+        <line class="core-tick" x1="197" y1="491" x2="201" y2="479"/>
+        <line class="core-tick" x1="172" y1="481" x2="177" y2="469"/>
+        <line class="core-tick" x1="149" y1="468" x2="155" y2="457"/>
+        <line class="core-tick" x1="128" y1="453" x2="135" y2="442"/>
+        <line class="core-tick" x1="109" y1="435" x2="119" y2="426"/>
+        <line class="core-tick" x1="91" y1="415" x2="102" y2="408"/>
+        <line class="core-tick" x1="77" y1="392" x2="88" y2="387"/>
+        <line class="core-tick" x1="66" y1="368" x2="78" y2="364"/>
+        <line class="core-tick" x1="59" y1="342" x2="71" y2="340"/>
+        <line class="core-tick" x1="56" y1="314" x2="68" y2="314"/>
+        <line class="core-tick-bright" x1="56" y1="286" x2="68" y2="286"/>
 
-        <div class="core-center-ring"></div>
+        <line class="core-tick" x1="59" y1="258" x2="71" y2="260"/>
+        <line class="core-tick" x1="66" y1="232" x2="78" y2="236"/>
+        <line class="core-tick" x1="77" y1="208" x2="88" y2="213"/>
+        <line class="core-tick" x1="91" y1="185" x2="102" y2="192"/>
+        <line class="core-tick" x1="109" y1="165" x2="119" y2="174"/>
+        <line class="core-tick" x1="128" y1="147" x2="135" y2="158"/>
+        <line class="core-tick" x1="149" y1="132" x2="155" y2="143"/>
+        <line class="core-tick" x1="172" y1="119" x2="177" y2="131"/>
+        <line class="core-tick" x1="197" y1="109" x2="201" y2="121"/>
+        <line class="core-tick" x1="222" y1="101" x2="225" y2="113"/>
+        <line class="core-tick" x1="248" y1="96" x2="250" y2="108"/>
+        <line class="core-tick" x1="274" y1="93" x2="275" y2="105"/>
+    </g>
 
-        <div class="core-center-glow"></div>
+    <circle
+        class="core-ring-thin"
+        cx="300"
+        cy="300"
+        r="181"
+        stroke-width="2"
+    />
 
-        <div class="core-title">
-            JARVIS
-        </div>
+    <circle
+        class="core-ring-dim"
+        cx="300"
+        cy="300"
+        r="171"
+        stroke-width="1"
+    />
 
-    </div>
+    <path class="core-arc"
+        d="M 161 202 A 171 171 0 0 1 203 154"/>
 
-    <!-- 十字基準線 -->
-    <div class="core-axis core-axis-horizontal"></div>
-    <div class="core-axis core-axis-vertical"></div>
+    <path class="core-arc"
+        d="M 323 132 A 171 171 0 0 1 383 145"/>
 
-    <!-- 外周方向マーカー -->
-    <div class="core-marker core-marker-top"></div>
-    <div class="core-marker core-marker-right"></div>
-    <div class="core-marker core-marker-bottom"></div>
-    <div class="core-marker core-marker-left"></div>
+    <path class="core-arc"
+        d="M 458 264 A 171 171 0 0 1 447 332"/>
+
+    <path class="core-arc"
+        d="M 381 453 A 171 171 0 0 1 319 468"/>
+
+    <path class="core-arc"
+        d="M 208 448 A 171 171 0 0 1 164 410"/>
+
+    <circle
+        class="core-ring-white"
+        cx="300"
+        cy="300"
+        r="146"
+        stroke-width="1.5"
+    />
+
+    <circle
+        class="core-ring-thin"
+        cx="300"
+        cy="300"
+        r="137"
+        stroke-width="2"
+    />
+
+    <circle
+        class="core-ring-white"
+        cx="300"
+        cy="300"
+        r="126"
+        stroke-width="5"
+        stroke-dasharray="1 8"
+        stroke-linecap="round"
+    />
+
+    <circle
+        class="core-ring-dim"
+        cx="300"
+        cy="300"
+        r="108"
+        stroke-width="2"
+    />
+
+    <circle
+        class="core-ring"
+        cx="300"
+        cy="300"
+        r="98"
+        stroke-width="2"
+    />
+
+    <path class="core-arc-bright"
+        d="M 230 227 A 98 98 0 0 1 263 208"/>
+
+    <path class="core-arc-bright"
+        d="M 329 205 A 98 98 0 0 1 356 218"/>
+
+    <path class="core-arc-bright"
+        d="M 396 278 A 98 98 0 0 1 395 313"/>
+
+    <path class="core-arc-bright"
+        d="M 342 386 A 98 98 0 0 1 307 397"/>
+
+    <path class="core-arc-bright"
+        d="M 250 389 A 98 98 0 0 1 222 365"/>
+
+    <circle
+        class="core-center"
+        cx="300"
+        cy="300"
+        r="76"
+    />
+
+    <circle
+        class="core-center-inner"
+        cx="300"
+        cy="300"
+        r="70"
+    />
+
+    <line
+        class="core-cross"
+        x1="300"
+        y1="221"
+        x2="300"
+        y2="379"
+    />
+
+    <line
+        class="core-cross"
+        x1="221"
+        y1="300"
+        x2="379"
+        y2="300"
+    />
+
+    <text
+        class="core-title"
+        x="300"
+        y="300"
+    >JARVIS</text>
+
+</svg>
 
 </div>
 
