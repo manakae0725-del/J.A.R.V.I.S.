@@ -224,259 +224,494 @@ h1 {
     align-items: center;
     justify-content: center;
     isolation: isolate;
+    overflow: visible;
+    filter:
+        drop-shadow(0 0 8px rgba(0,180,255,0.35));
 }
 
-/* 中央の青い発光 */
-.core-glow {
+
+/* =========================================================
+   OUTER SHELL
+   ========================================================= */
+
+.core-shell {
     position: absolute;
-    width: 150px;
-    height: 150px;
+    inset: 5px;
+    border-radius: 50%;
+    border:
+        1px solid rgba(91,205,255,0.65);
+    box-shadow:
+        0 0 5px rgba(0,175,255,0.35),
+        inset 0 0 8px rgba(0,175,255,0.18);
+}
+
+.core-shell::before,
+.core-shell::after {
+    content: "";
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    border:
+        1px solid rgba(91,205,255,0.32);
+}
+
+.core-shell::after {
+    inset: 20px;
+    border:
+        1px solid rgba(91,205,255,0.18);
+}
+
+
+/* =========================================================
+   OUTER DOT RING
+   ========================================================= */
+
+.core-dot-ring {
+    position: absolute;
+    inset: 16px;
+    border-radius: 50%;
+    border:
+        2px dotted rgba(100,215,255,0.55);
+}
+
+
+/* =========================================================
+   TICK RING
+   ========================================================= */
+
+.core-tick-ring {
+    position: absolute;
+    inset: 22px;
     border-radius: 50%;
     background:
+        repeating-conic-gradient(
+            from 0deg,
+            rgba(135,225,255,0.8) 0deg 1deg,
+            transparent 1deg 7deg
+        );
+    -webkit-mask:
         radial-gradient(
             circle,
-            rgba(170,235,255,0.95) 0%,
-            rgba(60,190,255,0.8) 18%,
-            rgba(0,130,220,0.35) 42%,
-            rgba(0,80,150,0.08) 65%,
-            transparent 75%
+            transparent 0 94%,
+            #000 94% 100%
         );
-    filter: blur(2px);
-    z-index: 1;
+    mask:
+        radial-gradient(
+            circle,
+            transparent 0 94%,
+            #000 94% 100%
+        );
 }
 
-/* 共通リング */
-.core-ring {
+
+/* =========================================================
+   OUTER SEGMENT RING
+   ========================================================= */
+
+.core-segment-ring {
     position: absolute;
-    inset: 0;
     border-radius: 50%;
-    pointer-events: none;
 }
 
-/* 外周 */
-.ring-outer {
-    inset: 8px;
-    border: 1px solid rgba(100,205,255,0.7);
-    box-shadow:
-        0 0 8px rgba(0,180,255,0.35),
-        inset 0 0 8px rgba(0,180,255,0.15);
+.core-segment-outer {
+    inset: 35px;
 }
 
-/* 外周の細かい目盛り */
-.ring-outer i {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 2px;
-    height: 12px;
-    transform-origin: 50% 172px;
-    background: rgba(130,220,255,0.75);
-}
-
-.ring-outer i:nth-child(1)  { transform: translate(-50%,-172px) rotate(0deg); }
-.ring-outer i:nth-child(2)  { transform: translate(-50%,-172px) rotate(30deg); }
-.ring-outer i:nth-child(3)  { transform: translate(-50%,-172px) rotate(60deg); }
-.ring-outer i:nth-child(4)  { transform: translate(-50%,-172px) rotate(90deg); }
-.ring-outer i:nth-child(5)  { transform: translate(-50%,-172px) rotate(120deg); }
-.ring-outer i:nth-child(6)  { transform: translate(-50%,-172px) rotate(150deg); }
-.ring-outer i:nth-child(7)  { transform: translate(-50%,-172px) rotate(180deg); }
-.ring-outer i:nth-child(8)  { transform: translate(-50%,-172px) rotate(210deg); }
-.ring-outer i:nth-child(9)  { transform: translate(-50%,-172px) rotate(240deg); }
-.ring-outer i:nth-child(10) { transform: translate(-50%,-172px) rotate(270deg); }
-.ring-outer i:nth-child(11) { transform: translate(-50%,-172px) rotate(300deg); }
-.ring-outer i:nth-child(12) { transform: translate(-50%,-172px) rotate(330deg); }
-
-
-/* =========================================================
-   機械式セグメント
-   ========================================================= */
-
-.ring-mechanical {
-    inset: 30px;
-}
-
-.ring-mechanical i {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 10px;
-    height: 82px;
-    transform-origin: 50% 120px;
-    background:
-        linear-gradient(
-            to bottom,
-            rgba(160,225,255,0.9),
-            rgba(35,135,190,0.8) 45%,
-            rgba(5,45,75,0.95)
-        );
-    border: 1px solid rgba(120,220,255,0.8);
-    box-shadow:
-        0 0 5px rgba(0,170,255,0.35);
-    clip-path: polygon(
-        20% 0,
-        80% 0,
-        100% 12%,
-        85% 100%,
-        15% 100%,
-        0 12%
-    );
-}
-
-.ring-mechanical i:nth-child(1)  { transform: translate(-50%,-120px) rotate(0deg); }
-.ring-mechanical i:nth-child(2)  { transform: translate(-50%,-120px) rotate(22.5deg); }
-.ring-mechanical i:nth-child(3)  { transform: translate(-50%,-120px) rotate(45deg); }
-.ring-mechanical i:nth-child(4)  { transform: translate(-50%,-120px) rotate(67.5deg); }
-.ring-mechanical i:nth-child(5)  { transform: translate(-50%,-120px) rotate(90deg); }
-.ring-mechanical i:nth-child(6)  { transform: translate(-50%,-120px) rotate(112.5deg); }
-.ring-mechanical i:nth-child(7)  { transform: translate(-50%,-120px) rotate(135deg); }
-.ring-mechanical i:nth-child(8)  { transform: translate(-50%,-120px) rotate(157.5deg); }
-.ring-mechanical i:nth-child(9)  { transform: translate(-50%,-120px) rotate(180deg); }
-.ring-mechanical i:nth-child(10) { transform: translate(-50%,-120px) rotate(202.5deg); }
-.ring-mechanical i:nth-child(11) { transform: translate(-50%,-120px) rotate(225deg); }
-.ring-mechanical i:nth-child(12) { transform: translate(-50%,-120px) rotate(247.5deg); }
-.ring-mechanical i:nth-child(13) { transform: translate(-50%,-120px) rotate(270deg); }
-.ring-mechanical i:nth-child(14) { transform: translate(-50%,-120px) rotate(292.5deg); }
-.ring-mechanical i:nth-child(15) { transform: translate(-50%,-120px) rotate(315deg); }
-.ring-mechanical i:nth-child(16) { transform: translate(-50%,-120px) rotate(337.5deg); }
-
-
-/* =========================================================
-   精密リング
-   ========================================================= */
-
-.ring-fine {
-    inset: 55px;
-    border:
-        1px solid rgba(95,205,255,0.65);
-    box-shadow:
-        0 0 5px rgba(0,170,255,0.25),
-        inset 0 0 5px rgba(0,170,255,0.15);
-}
-
-.ring-inner {
-    inset: 78px;
-    border: 2px solid rgba(75,190,255,0.8);
-    box-shadow:
-        0 0 10px rgba(0,170,255,0.45),
-        inset 0 0 10px rgba(0,170,255,0.2);
-}
-
-.ring-inner i {
+.core-segment-outer span {
     position: absolute;
     left: 50%;
     top: 50%;
     width: 4px;
-    height: 18px;
-    background: rgba(140,230,255,0.9);
-    transform-origin: 50% 100px;
-}
-
-.ring-inner i:nth-child(1) { transform: translate(-50%,-100px) rotate(0deg); }
-.ring-inner i:nth-child(2) { transform: translate(-50%,-100px) rotate(45deg); }
-.ring-inner i:nth-child(3) { transform: translate(-50%,-100px) rotate(90deg); }
-.ring-inner i:nth-child(4) { transform: translate(-50%,-100px) rotate(135deg); }
-.ring-inner i:nth-child(5) { transform: translate(-50%,-100px) rotate(180deg); }
-.ring-inner i:nth-child(6) { transform: translate(-50%,-100px) rotate(225deg); }
-.ring-inner i:nth-child(7) { transform: translate(-50%,-100px) rotate(270deg); }
-.ring-inner i:nth-child(8) { transform: translate(-50%,-100px) rotate(315deg); }
-
-
-/* =========================================================
-   十字軸
-   ========================================================= */
-
-.core-axis {
-    position: absolute;
-    background: rgba(100,210,255,0.3);
-    z-index: 2;
-}
-
-.axis-h {
-    width: 230px;
-    height: 1px;
-}
-
-.axis-v {
-    width: 1px;
-    height: 230px;
-}
-
-
-/* =========================================================
-   四方向マーカー
-   ========================================================= */
-
-.core-marker {
-    position: absolute;
-    width: 28px;
-    height: 3px;
-    background: rgba(150,230,255,0.9);
+    height: 54px;
+    transform-origin: 50% 145px;
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(185,240,255,0.95),
+            rgba(40,175,235,0.65),
+            rgba(5,55,95,0.8)
+        );
     box-shadow:
-        0 0 7px rgba(0,180,255,0.8);
-    z-index: 5;
+        0 0 6px rgba(0,190,255,0.6);
+    clip-path:
+        polygon(
+            25% 0,
+            75% 0,
+            100% 12%,
+            78% 100%,
+            22% 100%,
+            0 12%
+        );
 }
 
-.marker-top {
-    top: 52px;
-    left: 50%;
-    transform: translateX(-50%);
+.core-segment-outer span:nth-child(1) {
+    transform: translate(-50%,-145px) rotate(0deg);
 }
 
-.marker-right {
-    right: 52px;
-    top: 50%;
-    transform: translateY(-50%) rotate(90deg);
+.core-segment-outer span:nth-child(2) {
+    transform: translate(-50%,-145px) rotate(45deg);
 }
 
-.marker-bottom {
-    bottom: 52px;
-    left: 50%;
-    transform: translateX(-50%);
+.core-segment-outer span:nth-child(3) {
+    transform: translate(-50%,-145px) rotate(90deg);
 }
 
-.marker-left {
-    left: 52px;
-    top: 50%;
-    transform: translateY(-50%) rotate(90deg);
+.core-segment-outer span:nth-child(4) {
+    transform: translate(-50%,-145px) rotate(135deg);
+}
+
+.core-segment-outer span:nth-child(5) {
+    transform: translate(-50%,-145px) rotate(180deg);
+}
+
+.core-segment-outer span:nth-child(6) {
+    transform: translate(-50%,-145px) rotate(225deg);
+}
+
+.core-segment-outer span:nth-child(7) {
+    transform: translate(-50%,-145px) rotate(270deg);
+}
+
+.core-segment-outer span:nth-child(8) {
+    transform: translate(-50%,-145px) rotate(315deg);
 }
 
 
 /* =========================================================
-   中央CORE
+   FINE OUTER LINE
+   ========================================================= */
+
+.core-line-ring {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.core-line-outer {
+    inset: 48px;
+    border:
+        1px solid rgba(100,220,255,0.75);
+    box-shadow:
+        0 0 5px rgba(0,170,255,0.35);
+}
+
+
+/* =========================================================
+   LARGE GLOW SEGMENTS
+   ========================================================= */
+
+.core-glow-segments {
+    position: absolute;
+    inset: 58px;
+    border-radius: 50%;
+}
+
+.core-glow-segments span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9px;
+    height: 48px;
+    transform-origin: 50% 122px;
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(210,250,255,1),
+            rgba(60,205,255,0.9),
+            rgba(0,100,180,0.3)
+        );
+    box-shadow:
+        0 0 8px rgba(0,200,255,0.9),
+        0 0 18px rgba(0,150,255,0.45);
+    clip-path:
+        polygon(
+            15% 0,
+            85% 0,
+            100% 18%,
+            78% 100%,
+            22% 100%,
+            0 18%
+        );
+}
+
+.core-glow-segments span:nth-child(1) {
+    transform: translate(-50%,-122px) rotate(15deg);
+}
+
+.core-glow-segments span:nth-child(2) {
+    transform: translate(-50%,-122px) rotate(75deg);
+}
+
+.core-glow-segments span:nth-child(3) {
+    transform: translate(-50%,-122px) rotate(135deg);
+}
+
+.core-glow-segments span:nth-child(4) {
+    transform: translate(-50%,-122px) rotate(195deg);
+}
+
+.core-glow-segments span:nth-child(5) {
+    transform: translate(-50%,-122px) rotate(255deg);
+}
+
+.core-glow-segments span:nth-child(6) {
+    transform: translate(-50%,-122px) rotate(315deg);
+}
+
+
+/* =========================================================
+   MIDDLE TICKS
+   ========================================================= */
+
+.core-tick-middle {
+    inset: 70px;
+    background:
+        repeating-conic-gradient(
+            from 0deg,
+            rgba(130,230,255,0.75) 0deg 1deg,
+            transparent 1deg 5deg
+        );
+    -webkit-mask:
+        radial-gradient(
+            circle,
+            transparent 0 91%,
+            #000 91% 100%
+        );
+    mask:
+        radial-gradient(
+            circle,
+            transparent 0 91%,
+            #000 91% 100%
+        );
+}
+
+
+/* =========================================================
+   MIDDLE RING
+   ========================================================= */
+
+.core-line-middle {
+    inset: 82px;
+    border:
+        1px solid rgba(80,205,255,0.75);
+    box-shadow:
+        0 0 8px rgba(0,180,255,0.35),
+        inset 0 0 5px rgba(0,180,255,0.15);
+}
+
+
+/* =========================================================
+   MIDDLE SEGMENTS
+   ========================================================= */
+
+.core-segment-middle {
+    inset: 88px;
+}
+
+.core-segment-middle span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 35px;
+    transform-origin: 50% 92px;
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(190,245,255,0.95),
+            rgba(25,165,230,0.65),
+            rgba(0,60,100,0.25)
+        );
+    box-shadow:
+        0 0 6px rgba(0,190,255,0.75);
+}
+
+.core-segment-middle span:nth-child(1) {
+    transform: translate(-50%,-92px) rotate(0deg);
+}
+
+.core-segment-middle span:nth-child(2) {
+    transform: translate(-50%,-92px) rotate(90deg);
+}
+
+.core-segment-middle span:nth-child(3) {
+    transform: translate(-50%,-92px) rotate(180deg);
+}
+
+.core-segment-middle span:nth-child(4) {
+    transform: translate(-50%,-92px) rotate(270deg);
+}
+
+
+/* =========================================================
+   INNER RINGS
+   ========================================================= */
+
+.core-line-inner {
+    inset: 105px;
+    border:
+        1px solid rgba(125,225,255,0.7);
+}
+
+.core-dot-inner {
+    inset: 112px;
+    border:
+        2px dotted rgba(125,230,255,0.65);
+}
+
+
+/* =========================================================
+   ENERGY RING
+   ========================================================= */
+
+.core-energy-ring {
+    position: absolute;
+    inset: 120px;
+    border-radius: 50%;
+    border:
+        2px solid rgba(150,240,255,0.95);
+    box-shadow:
+        0 0 8px rgba(0,210,255,0.85),
+        0 0 22px rgba(0,150,255,0.55),
+        inset 0 0 12px rgba(170,245,255,0.55);
+}
+
+
+/* =========================================================
+   CENTRAL CORE
    ========================================================= */
 
 .core-center {
     position: absolute;
-    width: 88px;
-    height: 88px;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(
+            circle,
+            rgba(225,252,255,1) 0%,
+            rgba(135,235,255,0.98) 12%,
+            rgba(35,185,245,0.95) 30%,
+            rgba(4,100,165,0.95) 57%,
+            rgba(1,35,60,0.98) 78%,
+            rgba(0,12,22,1) 100%
+        );
+    border:
+        2px solid rgba(180,245,255,0.95);
+    box-shadow:
+        0 0 12px rgba(0,205,255,0.95),
+        0 0 30px rgba(0,150,255,0.65),
+        inset 0 0 18px rgba(205,250,255,0.8);
+    z-index: 10;
+}
+
+.core-center-ring {
+    position: absolute;
+    inset: 11px;
+    border-radius: 50%;
+    border:
+        1px solid rgba(220,250,255,0.9);
+    box-shadow:
+        0 0 7px rgba(110,225,255,0.85),
+        inset 0 0 10px rgba(170,245,255,0.7);
+}
+
+.core-center-glow {
+    position: absolute;
+    inset: 20px;
     border-radius: 50%;
     background:
         radial-gradient(
             circle,
-            #d8f8ff 0%,
-            #8de8ff 12%,
-            #20baff 32%,
-            #0875b5 58%,
-            #032c4b 78%,
-            #001522 100%
+            rgba(245,255,255,1),
+            rgba(120,230,255,0.8) 35%,
+            rgba(0,130,220,0.25) 70%,
+            transparent 100%
         );
-    border: 2px solid rgba(145,235,255,0.95);
-    box-shadow:
-        0 0 12px rgba(0,190,255,0.9),
-        0 0 30px rgba(0,150,255,0.6),
-        inset 0 0 15px rgba(190,245,255,0.7);
-    z-index: 6;
+    filter: blur(1px);
 }
 
-.core-center-inner {
+.core-title {
+    position: relative;
+    z-index: 3;
+    color: #e8fbff;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow:
+        0 0 5px rgba(190,250,255,1),
+        0 0 12px rgba(0,200,255,0.9);
+}
+
+
+/* =========================================================
+   AXIS
+   ========================================================= */
+
+.core-axis {
     position: absolute;
-    inset: 17px;
-    border-radius: 50%;
-    border:
-        1px solid rgba(190,245,255,0.95);
+    background:
+        rgba(110,220,255,0.28);
+    z-index: 3;
+    pointer-events: none;
+}
+
+.core-axis-horizontal {
+    width: 285px;
+    height: 1px;
+}
+
+.core-axis-vertical {
+    width: 1px;
+    height: 285px;
+}
+
+
+/* =========================================================
+   OUTER MARKERS
+   ========================================================= */
+
+.core-marker {
+    position: absolute;
+    width: 24px;
+    height: 2px;
+    background:
+        rgba(170,240,255,0.95);
     box-shadow:
-        0 0 8px rgba(120,230,255,0.9),
-        inset 0 0 12px rgba(180,245,255,0.7);
+        0 0 7px rgba(0,200,255,0.85);
+    z-index: 12;
+}
+
+.core-marker-top {
+    top: 9px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.core-marker-right {
+    right: 9px;
+    top: 50%;
+    transform:
+        translateY(-50%)
+        rotate(90deg);
+}
+
+.core-marker-bottom {
+    bottom: 9px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.core-marker-left {
+    left: 9px;
+    top: 50%;
+    transform:
+        translateY(-50%)
+        rotate(90deg);
 }
 
 </style>
@@ -486,41 +721,86 @@ h1 {
 
 <div id="response"></div>
 
-<!-- J.A.R.V.I.S. CORE -->
+<!-- =========================================================
+     J.A.R.V.I.S. CORE
+     ========================================================= -->
+
 <div id="jarvisCore" class="jarvis-core">
-    <div class="core-glow"></div>
 
-    <div class="core-ring ring-outer">
-        <i></i><i></i><i></i><i></i>
-        <i></i><i></i><i></i><i></i>
-        <i></i><i></i><i></i><i></i>
+    <!-- 外周ハウジング -->
+    <div class="core-shell"></div>
+
+    <!-- 外周ドット -->
+    <div class="core-dot-ring"></div>
+
+    <!-- 外周目盛り -->
+    <div class="core-tick-ring"></div>
+
+    <!-- 外側セグメント -->
+    <div class="core-segment-ring core-segment-outer">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
     </div>
 
-    <div class="core-ring ring-mechanical">
-        <i></i><i></i><i></i><i></i>
-        <i></i><i></i><i></i><i></i>
-        <i></i><i></i><i></i><i></i>
-        <i></i><i></i><i></i><i></i>
+    <!-- 外側細線 -->
+    <div class="core-line-ring core-line-outer"></div>
+
+    <!-- 大型発光セグメント -->
+    <div class="core-glow-segments">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
     </div>
 
-    <div class="core-ring ring-fine"></div>
+    <!-- 中間目盛り -->
+    <div class="core-tick-ring core-tick-middle"></div>
 
-    <div class="core-ring ring-inner">
-        <i></i><i></i><i></i><i></i>
-        <i></i><i></i><i></i><i></i>
+    <!-- 中間リング -->
+    <div class="core-line-ring core-line-middle"></div>
+
+    <!-- 中間発光セグメント -->
+    <div class="core-segment-ring core-segment-middle">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
     </div>
 
-    <div class="core-axis axis-h"></div>
-    <div class="core-axis axis-v"></div>
+    <!-- 内側細線リング -->
+    <div class="core-line-ring core-line-inner"></div>
 
-    <div class="core-marker marker-top"></div>
-    <div class="core-marker marker-right"></div>
-    <div class="core-marker marker-bottom"></div>
-    <div class="core-marker marker-left"></div>
+    <!-- 内側ドットリング -->
+    <div class="core-dot-ring core-dot-inner"></div>
 
+    <!-- 内側発光リング -->
+    <div class="core-energy-ring"></div>
+
+    <!-- 中央CORE -->
     <div class="core-center">
-        <div class="core-center-inner"></div>
+
+        <div class="core-center-ring"></div>
+
+        <div class="core-center-glow"></div>
+
+        <div class="core-title">
+            JARVIS
+        </div>
+
     </div>
+
+    <!-- 十字基準線 -->
+    <div class="core-axis core-axis-horizontal"></div>
+    <div class="core-axis core-axis-vertical"></div>
+
+    <!-- 外周方向マーカー -->
+    <div class="core-marker core-marker-top"></div>
+    <div class="core-marker core-marker-right"></div>
+    <div class="core-marker core-marker-bottom"></div>
+    <div class="core-marker core-marker-left"></div>
+
 </div>
 
 <pre id="diagnostic"></pre>
