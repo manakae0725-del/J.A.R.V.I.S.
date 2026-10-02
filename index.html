@@ -237,12 +237,6 @@ h1 {
     text-anchor: middle;
     dominant-baseline: middle;
 
-    filter:
-        drop-shadow(0 0 3px #37e8ff)
-        drop-shadow(0 0 7px #19dfff)
-        drop-shadow(0 0 14px rgba(25,223,255,0.8));
-}
-
 .core-arc {
     fill: none;
     stroke: #19dfff;
@@ -302,6 +296,28 @@ h1 {
 <div id="jarvisCore" class="jarvis-core">
 
 <svg viewBox="0 0 600 600">
+
+<defs>
+    <filter id="jarvisGlow"
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="200%">
+        <feGaussianBlur
+            stdDeviation="3"
+            result="blur1" />
+        <feGaussianBlur
+            in="SourceGraphic"
+            stdDeviation="7"
+            result="blur2" />
+
+        <feMerge>
+            <feMergeNode in="blur1" />
+            <feMergeNode in="blur2" />
+            <feMergeNode in="SourceGraphic" />
+        </feMerge>
+    </filter>
+</defs>
 
     <circle
         class="core-bg"
@@ -540,11 +556,12 @@ h1 {
         y2="300"
     />
 
-    <text
-        class="core-title"
-        x="300"
-        y="300"
-    >JARVIS</text>
+  <text
+    class="core-title"
+    x="300"
+    y="300"
+    filter="url(#jarvisGlow)"
+>JARVIS</text>
 
 </svg>
 
