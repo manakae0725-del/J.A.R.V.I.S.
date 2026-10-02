@@ -356,10 +356,15 @@ h1 {
         operator="in"
         result="blueEdge" />
 
-    <feMerge>
-        <feMergeNode in="blueEdge" />
-        <feMergeNode in="SourceGraphic" />
-    </feMerge>
+<feGaussianBlur
+    in="blueEdge"
+    stdDeviation="1.2"
+    result="softBlueEdge" />
+
+<feMerge>
+    <feMergeNode in="softBlueEdge" />
+    <feMergeNode in="SourceGraphic" />
+</feMerge>
 
 </filter>
 
