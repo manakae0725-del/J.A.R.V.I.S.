@@ -210,12 +210,318 @@ h1 {
    Only the energy/brightness response changes.
    --------------------------------------------------------- */
 
+/* =========================================================
+   J.A.R.V.I.S. CORE — VISUAL ONLY
+   ========================================================= */
+
+.jarvis-core {
+    position: relative;
+    width: 360px;
+    height: 360px;
+    margin: 0 auto;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    isolation: isolate;
+}
+
+/* 中央の青い発光 */
+.core-glow {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background:
+        radial-gradient(
+            circle,
+            rgba(170,235,255,0.95) 0%,
+            rgba(60,190,255,0.8) 18%,
+            rgba(0,130,220,0.35) 42%,
+            rgba(0,80,150,0.08) 65%,
+            transparent 75%
+        );
+    filter: blur(2px);
+    z-index: 1;
+}
+
+/* 共通リング */
+.core-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* 外周 */
+.ring-outer {
+    inset: 8px;
+    border: 1px solid rgba(100,205,255,0.7);
+    box-shadow:
+        0 0 8px rgba(0,180,255,0.35),
+        inset 0 0 8px rgba(0,180,255,0.15);
+}
+
+/* 外周の細かい目盛り */
+.ring-outer i {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: 12px;
+    transform-origin: 50% 172px;
+    background: rgba(130,220,255,0.75);
+}
+
+.ring-outer i:nth-child(1)  { transform: translate(-50%,-172px) rotate(0deg); }
+.ring-outer i:nth-child(2)  { transform: translate(-50%,-172px) rotate(30deg); }
+.ring-outer i:nth-child(3)  { transform: translate(-50%,-172px) rotate(60deg); }
+.ring-outer i:nth-child(4)  { transform: translate(-50%,-172px) rotate(90deg); }
+.ring-outer i:nth-child(5)  { transform: translate(-50%,-172px) rotate(120deg); }
+.ring-outer i:nth-child(6)  { transform: translate(-50%,-172px) rotate(150deg); }
+.ring-outer i:nth-child(7)  { transform: translate(-50%,-172px) rotate(180deg); }
+.ring-outer i:nth-child(8)  { transform: translate(-50%,-172px) rotate(210deg); }
+.ring-outer i:nth-child(9)  { transform: translate(-50%,-172px) rotate(240deg); }
+.ring-outer i:nth-child(10) { transform: translate(-50%,-172px) rotate(270deg); }
+.ring-outer i:nth-child(11) { transform: translate(-50%,-172px) rotate(300deg); }
+.ring-outer i:nth-child(12) { transform: translate(-50%,-172px) rotate(330deg); }
+
+
+/* =========================================================
+   機械式セグメント
+   ========================================================= */
+
+.ring-mechanical {
+    inset: 30px;
+}
+
+.ring-mechanical i {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 10px;
+    height: 82px;
+    transform-origin: 50% 120px;
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(160,225,255,0.9),
+            rgba(35,135,190,0.8) 45%,
+            rgba(5,45,75,0.95)
+        );
+    border: 1px solid rgba(120,220,255,0.8);
+    box-shadow:
+        0 0 5px rgba(0,170,255,0.35);
+    clip-path: polygon(
+        20% 0,
+        80% 0,
+        100% 12%,
+        85% 100%,
+        15% 100%,
+        0 12%
+    );
+}
+
+.ring-mechanical i:nth-child(1)  { transform: translate(-50%,-120px) rotate(0deg); }
+.ring-mechanical i:nth-child(2)  { transform: translate(-50%,-120px) rotate(22.5deg); }
+.ring-mechanical i:nth-child(3)  { transform: translate(-50%,-120px) rotate(45deg); }
+.ring-mechanical i:nth-child(4)  { transform: translate(-50%,-120px) rotate(67.5deg); }
+.ring-mechanical i:nth-child(5)  { transform: translate(-50%,-120px) rotate(90deg); }
+.ring-mechanical i:nth-child(6)  { transform: translate(-50%,-120px) rotate(112.5deg); }
+.ring-mechanical i:nth-child(7)  { transform: translate(-50%,-120px) rotate(135deg); }
+.ring-mechanical i:nth-child(8)  { transform: translate(-50%,-120px) rotate(157.5deg); }
+.ring-mechanical i:nth-child(9)  { transform: translate(-50%,-120px) rotate(180deg); }
+.ring-mechanical i:nth-child(10) { transform: translate(-50%,-120px) rotate(202.5deg); }
+.ring-mechanical i:nth-child(11) { transform: translate(-50%,-120px) rotate(225deg); }
+.ring-mechanical i:nth-child(12) { transform: translate(-50%,-120px) rotate(247.5deg); }
+.ring-mechanical i:nth-child(13) { transform: translate(-50%,-120px) rotate(270deg); }
+.ring-mechanical i:nth-child(14) { transform: translate(-50%,-120px) rotate(292.5deg); }
+.ring-mechanical i:nth-child(15) { transform: translate(-50%,-120px) rotate(315deg); }
+.ring-mechanical i:nth-child(16) { transform: translate(-50%,-120px) rotate(337.5deg); }
+
+
+/* =========================================================
+   精密リング
+   ========================================================= */
+
+.ring-fine {
+    inset: 55px;
+    border:
+        1px solid rgba(95,205,255,0.65);
+    box-shadow:
+        0 0 5px rgba(0,170,255,0.25),
+        inset 0 0 5px rgba(0,170,255,0.15);
+}
+
+.ring-inner {
+    inset: 78px;
+    border: 2px solid rgba(75,190,255,0.8);
+    box-shadow:
+        0 0 10px rgba(0,170,255,0.45),
+        inset 0 0 10px rgba(0,170,255,0.2);
+}
+
+.ring-inner i {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px;
+    height: 18px;
+    background: rgba(140,230,255,0.9);
+    transform-origin: 50% 100px;
+}
+
+.ring-inner i:nth-child(1) { transform: translate(-50%,-100px) rotate(0deg); }
+.ring-inner i:nth-child(2) { transform: translate(-50%,-100px) rotate(45deg); }
+.ring-inner i:nth-child(3) { transform: translate(-50%,-100px) rotate(90deg); }
+.ring-inner i:nth-child(4) { transform: translate(-50%,-100px) rotate(135deg); }
+.ring-inner i:nth-child(5) { transform: translate(-50%,-100px) rotate(180deg); }
+.ring-inner i:nth-child(6) { transform: translate(-50%,-100px) rotate(225deg); }
+.ring-inner i:nth-child(7) { transform: translate(-50%,-100px) rotate(270deg); }
+.ring-inner i:nth-child(8) { transform: translate(-50%,-100px) rotate(315deg); }
+
+
+/* =========================================================
+   十字軸
+   ========================================================= */
+
+.core-axis {
+    position: absolute;
+    background: rgba(100,210,255,0.3);
+    z-index: 2;
+}
+
+.axis-h {
+    width: 230px;
+    height: 1px;
+}
+
+.axis-v {
+    width: 1px;
+    height: 230px;
+}
+
+
+/* =========================================================
+   四方向マーカー
+   ========================================================= */
+
+.core-marker {
+    position: absolute;
+    width: 28px;
+    height: 3px;
+    background: rgba(150,230,255,0.9);
+    box-shadow:
+        0 0 7px rgba(0,180,255,0.8);
+    z-index: 5;
+}
+
+.marker-top {
+    top: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.marker-right {
+    right: 52px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+}
+
+.marker-bottom {
+    bottom: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.marker-left {
+    left: 52px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+}
+
+
+/* =========================================================
+   中央CORE
+   ========================================================= */
+
+.core-center {
+    position: absolute;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background:
+        radial-gradient(
+            circle,
+            #d8f8ff 0%,
+            #8de8ff 12%,
+            #20baff 32%,
+            #0875b5 58%,
+            #032c4b 78%,
+            #001522 100%
+        );
+    border: 2px solid rgba(145,235,255,0.95);
+    box-shadow:
+        0 0 12px rgba(0,190,255,0.9),
+        0 0 30px rgba(0,150,255,0.6),
+        inset 0 0 15px rgba(190,245,255,0.7);
+    z-index: 6;
+}
+
+.core-center-inner {
+    position: absolute;
+    inset: 17px;
+    border-radius: 50%;
+    border:
+        1px solid rgba(190,245,255,0.95);
+    box-shadow:
+        0 0 8px rgba(120,230,255,0.9),
+        inset 0 0 12px rgba(180,245,255,0.7);
+}
+
 </style>
 </head>
 
 <body>
 
 <div id="response"></div>
+
+<!-- J.A.R.V.I.S. CORE -->
+<div id="jarvisCore" class="jarvis-core">
+    <div class="core-glow"></div>
+
+    <div class="core-ring ring-outer">
+        <i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+    </div>
+
+    <div class="core-ring ring-mechanical">
+        <i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+    </div>
+
+    <div class="core-ring ring-fine"></div>
+
+    <div class="core-ring ring-inner">
+        <i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
+    </div>
+
+    <div class="core-axis axis-h"></div>
+    <div class="core-axis axis-v"></div>
+
+    <div class="core-marker marker-top"></div>
+    <div class="core-marker marker-right"></div>
+    <div class="core-marker marker-bottom"></div>
+    <div class="core-marker marker-left"></div>
+
+    <div class="core-center">
+        <div class="core-center-inner"></div>
+    </div>
+</div>
 
 <pre id="diagnostic"></pre>
 
