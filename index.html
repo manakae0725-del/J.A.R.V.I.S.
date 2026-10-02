@@ -324,6 +324,35 @@ h1 {
     <feMergeNode in="SourceGraphic" />
 </feMerge>
     </filter>
+
+</filter>
+
+<filter id="coreTitleGlow"
+        x="-100%"
+        y="-100%"
+        width="300%"
+        height="300%">
+
+    <feGaussianBlur
+        in="SourceGraphic"
+        stdDeviation="3"
+        result="blur1" />
+
+    <feGaussianBlur
+        in="SourceGraphic"
+        stdDeviation="8"
+        result="blur2" />
+
+    <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+    </feMerge>
+
+</filter>
+
+</defs>
+
 </defs>
 
     <circle
@@ -567,7 +596,7 @@ h1 {
     class="core-title"
     x="300"
     y="300"
-    filter="url(#jarvisGlow)"
+    filter="url(#coreTitleGlow)"
 >JARVIS</text>
 
 </svg>
