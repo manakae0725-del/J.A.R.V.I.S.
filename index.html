@@ -229,7 +229,7 @@ h1 {
 }
 
 .core-title {
-    fill: #FFFFFF;
+    fill:#FFFFFF;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 32px;
     font-weight: 300;
@@ -304,7 +304,7 @@ h1 {
             width="200%"
             height="200%">
  <feFlood
-    flood-color="#008CFF"
+    flood="#008CFF"
     flood-opacity="1"
     result="glowColor" />
 
@@ -328,24 +328,36 @@ h1 {
 </filter>
 
 <filter id="coreTitleGlow"
-        x="-100%"
-        y="-100%"
-        width="300%"
-        height="300%">
+        x="-50%"
+        y="-50%"
+        width="200%"
+        height="200%">
 
-    <feGaussianBlur
-        in="SourceGraphic"
-        stdDeviation="3"
-        result="blur1" />
+    <feMorphology
+        in="SourceAlpha"
+        operator="dilate"
+        radius="2"
+        result="dilated" />
 
-    <feGaussianBlur
-        in="SourceGraphic"
-        stdDeviation="8"
-        result="blur2" />
+    <feComposite
+        in="dilated"
+        in2="SourceAlpha"
+        operator="out"
+        result="edge" />
+
+    <feFlood
+        flood-color="#19DFFF"
+        flood-opacity="1"
+        result="blue" />
+
+    <feComposite
+        in="blue"
+        in2="edge"
+        operator="in"
+        result="blueEdge" />
 
     <feMerge>
-        <feMergeNode in="blur2" />
-        <feMergeNode in="blur1" />
+        <feMergeNode in="blueEdge" />
         <feMergeNode in="SourceGraphic" />
     </feMerge>
 
