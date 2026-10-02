@@ -229,7 +229,7 @@ h1 {
 }
 
 .core-title {
-    fill: #8FE8FF;
+    fill: #FFFFFF;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 32px;
     font-weight: 300;
@@ -303,19 +303,26 @@ h1 {
             y="-50%"
             width="200%"
             height="200%">
-        <feGaussianBlur
-            stdDeviation="3"
-            result="blur1" />
-        <feGaussianBlur
-            in="SourceGraphic"
-            stdDeviation="7"
-            result="blur2" />
+ <feFlood
+    flood-color="#19DFFF"
+    flood-opacity="1"
+    result="glowColor" />
 
-        <feMerge>
-            <feMergeNode in="blur1" />
-            <feMergeNode in="blur2" />
-            <feMergeNode in="SourceGraphic" />
-        </feMerge>
+<feComposite
+    in="glowColor"
+    in2="SourceAlpha"
+    operator="in"
+    result="glowShape" />
+
+<feGaussianBlur
+    in="glowShape"
+    stdDeviation="5"
+    result="glowBlur" />
+
+<feMerge>
+    <feMergeNode in="glowBlur" />
+    <feMergeNode in="SourceGraphic" />
+</feMerge>
     </filter>
 </defs>
 
