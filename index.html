@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>J.A.R.V.I.S. Core Terminal</title>
+<title>J.A.R.V.I.S. Core V2</title>
 <script src="https://tailwindcss.com"></script>
 <style>
-/* 映画の研究所のように完全に真っ黒な背景 */
 body {
     margin: 0;
     background-color: #000000;
@@ -14,99 +13,83 @@ body {
     font-family: 'Courier New', Courier, monospace;
     overflow: hidden;
 }
+.glow-cyan { filter: drop-shadow(0 0 5px #00b9ff) drop-shadow(0 0 15px #0055ff); }
+.glow-text { color: #ffffff; text-shadow: 0 0 4px #fff, 0 0 10px #00d2ff, 0 0 20px #0044ff; }
 
-/* 画像にあった「強烈な青いネオンの発光（グロー）」を再現 */
-.glow-cyan {
-    filter: drop-shadow(0 0 5px #00b9ff) drop-shadow(0 0 15px #0055ff);
-}
-.glow-text {
-    color: #ffffff;
-    text-shadow: 0 0 4px #fff, 0 0 10px #00d2ff, 0 0 20px #0044ff;
-}
-
-/* 多層リングをそれぞれ違う速度で滑らかに回転させる */
+/* 回転アニメーション */
 .rotate-fast { animation: spin-clockwise 3s linear infinite; transform-origin: 300px 300px; }
 .rotate-medium { animation: spin-counter 7s linear infinite; transform-origin: 300px 300px; }
 .rotate-slow { animation: spin-clockwise 12s linear infinite; transform-origin: 300px 300px; }
 .rotate-outer { animation: spin-counter 20s linear infinite; transform-origin: 300px 300px; }
-
 @keyframes spin-clockwise { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes spin-counter { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
 
-/* ボスの声を聴いている（マイク起動中）の警告アラート発光（赤） */
-.listening-state .glow-cyan {
-    filter: drop-shadow(0 0 6px #ff0055) drop-shadow(0 0 20px #ff0000);
-}
-.listening-state .glow-text {
-    color: #ff3377;
-    text-shadow: 0 0 4px #fff, 0 0 10px #ff0055, 0 0 25px #ff0000;
-}
+/* 音声入力中の強烈な赤アラート発光 */
+.listening-state .glow-cyan { filter: drop-shadow(0 0 6px #ff0055) drop-shadow(0 0 20px #ff0000); }
+.listening-state .glow-text { color: #ff3377; text-shadow: 0 0 4px #fff, 0 0 10px #ff0055, 0 0 25px #ff0000; }
 .listening-state .core-ring-main { stroke: #ff0055; }
 .listening-state .core-ring-pulse { stroke: #ff3377; }
 </style>
 </head>
 <body class="h-screen flex flex-col justify-between p-4 select-none">
 
-    <!-- HUDヘッダー（近未来ステータス） -->
+    <!-- HUDヘッダー -->
     <header class="w-full flex justify-between items-center px-4 py-2 border-b border-cyan-950/40 text-[10px] tracking-widest text-cyan-500/70">
         <div>SYS_LOC: ANCHOR_CORE</div>
         <div id="status" class="text-cyan-400 font-bold animate-pulse">STATUS: ONLINE</div>
-        <div>SECURE_LINE_V2</div>
+        <div>SECURE_LINE_V3</div>
     </header>
 
-    <!-- メイン：画像通りの3~4列の電子アークリアクター -->
+    <!-- メイン：電子アークリアクター -->
     <main class="flex-1 flex flex-col items-center justify-center relative">
-        <!-- 背景に薄く流れるシステムログ -->
         <div id="sys-log" class="absolute top-2 text-[9px] text-cyan-900/60 text-center pointer-events-none w-full max-h-[60px] overflow-hidden">
-            INITIALIZING MATRIX... CONNECTED TO GEMINI_FLASH_MODEL... Ready.
+            SYSTEM READY. TAP CORES TO COMMAND.
         </div>
 
-        <!-- タップ可能なJARVISコア本体 -->
-        <button id="jarvisCore" class="w-[290px] h-[290px] bg-transparent focus:outline-none active:scale-95 transition-transform relative">
+        <!-- タップ領域：iOS対応のため、ボタンではなくdivのクリックイベントを直接奪います -->
+        <div id="jarvisCore" class="w-[290px] h-[290px] bg-transparent cursor-pointer active:scale-95 transition-transform relative">
             <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible">
-                <!-- 漆黒のコアベース -->
                 <circle cx="300" cy="300" r="240" fill="#000000" />
                 
-                <!-- 列4：最外周のクリアブルーの電子目盛りリング -->
+                <!-- リング4 -->
                 <g class="rotate-outer glow-cyan">
                     <circle cx="300" cy="300" r="235" fill="none" stroke="#0044ff" stroke-width="1" stroke-dasharray="2 6" opacity="0.5"/>
                     <circle cx="300" cy="300" r="225" fill="none" stroke="#00b9ff" stroke-width="2" stroke-dasharray="40 180 20 40" />
                 </g>
 
-                <!-- 列3：濃い青の極細ダッシュリング -->
+                <!-- リング3 -->
                 <g class="rotate-slow glow-cyan">
                     <circle cx="300" cy="300" r="195" fill="none" stroke="#0022cc" stroke-width="1.5" stroke-dasharray="6 4" />
                     <circle cx="300" cy="300" r="185" fill="none" stroke="#00b9ff" stroke-width="1" stroke-dasharray="150 20" opacity="0.7" />
                 </g>
 
-                <!-- 列2：クリアブルー＆白が混ざるメインアークセクター -->
+                <!-- リング2 -->
                 <g class="rotate-medium glow-cyan">
                     <circle class="core-ring-main" cx="300" cy="300" r="155" fill="none" stroke="#00d2ff" stroke-width="4" stroke-dasharray="80 20 40 30 120 40" />
                     <circle cx="300" cy="300" r="145" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-dasharray="10 10" />
                 </g>
 
-                <!-- 列1：中心の最も強い光を発するインナーコア -->
+                <!-- リング1 -->
                 <g class="rotate-fast glow-cyan">
                     <circle class="core-ring-pulse" cx="300" cy="300" r="110" fill="none" stroke="#00d2ff" stroke-width="3" />
                     <circle cx="300" cy="300" r="98" fill="none" stroke="#0044ff" stroke-width="2" stroke-dasharray="4 8" />
                 </g>
                 
-                <!-- コアの中心文字「JARVIS」強烈なグロー効果 -->
                 <text id="core-text" class="glow-text font-sans font-black tracking-[0.2em]" x="300" y="308" text-anchor="middle" font-size="38">JARVIS</text>
             </svg>
-        </button>
+        </div>
     </main>
 
-    <!-- フッター：映画のホログラム字幕風のテキスト領域 -->
+    <!-- フッター：字幕＆確実なAPI確定エリア -->
     <footer class="w-full flex flex-col items-center justify-center pb-6 gap-4">
-        <!-- ボスの声とJARVISの応答が浮かび上がるシネマティックエリア -->
-        <div id="response" class="text-center text-sm font-sans font-medium max-w-xs text-cyan-100 min-h-[45px] px-4 drop-shadow-[0_0_10px_rgba(0,229,255,0.8)]">
-            パワードスーツの準備はいつでも万全です、ボス。
+        <div id="response" class="text-center text-sm font-sans font-medium max-w-xs text-cyan-100 min-h-[50px] px-4 drop-shadow-[0_0_10px_rgba(0,229,255,0.8)]">
+            【システム】下部にAPIキーを入力し、「確定」ボタンを押してください、ボス。
         </div>
 
-        <!-- APIキー入力（LocalStorageに保存されるため、流出せず安全です） -->
-        <div class="w-full max-w-xs opacity-15 hover:opacity-90 transition-opacity">
-            <input type="password" id="api-key-input" placeholder="ENTER GEMINI_API_KEY" class="w-full bg-black border border-cyan-950 rounded px-3 py-1.5 text-[9px] text-center text-cyan-400 focus:outline-none focus:border-cyan-500 tracking-widest">
+        <!-- 明示的なAPI確定フォーム -->
+        <div class="w-full max-w-xs flex gap-2">
+            <input type="password" id="api-key-input" placeholder="ENTER GEMINI_API_KEY" class="flex-1 bg-neutral-950 border border-cyan-900 rounded px-3 py-2 text-[10px] text-center text-cyan-400 focus:outline-none focus:border-cyan-500 tracking-widest">
+            <button id="save-key-btn" class="bg-cyan-950/60 border border-cyan-500 text-cyan-400 rounded px-3 py-1 text-xs font-bold active:bg-cyan-500 active:text-black transition-colors">確定</button>
         </div>
     </footer>
 
@@ -116,10 +99,12 @@ body {
         const statusText = document.getElementById('status');
         const responseDiv = document.getElementById('response');
         const apiKeyInput = document.getElementById('api-key-input');
+        const saveKeyBtn = document.getElementById('save-key-btn');
         const sysLog = document.getElementById('sys-log');
 
         if (localStorage.getItem('gemini_key')) {
             apiKeyInput.value = localStorage.getItem('gemini_key');
+            responseDiv.innerText = "パワードスーツの準備はいつでも万全です、ボス。コアをタップしてください。";
         }
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -127,28 +112,47 @@ body {
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.lang = 'ja-JP';
+            recognition.continuous = false; // iOS安定化のため一回ごとに切る
         } else {
-            responseDiv.innerText = "ブラウザが音声認識に対応していません。Safariで開いてください。";
+            responseDiv.innerText = "エラー: Safariブラウザを使用してください。";
         }
+
+        // キー確定ボタンの処理
+        saveKeyBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // コアのタップイベントと混ざるのを防止
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('gemini_key', key);
+                responseDiv.innerText = "APIキーをシステムに格納しました。コアをタップして指示をどうぞ、ボス。";
+                apiKeyInput.blur(); // キーボードを閉じる
+            } else {
+                responseDiv.innerText = "有効なキーを入力してください、ボス。";
+            }
+        });
 
         function speak(text) {
             window.speechSynthesis.cancel();
             const uttr = new SpeechSynthesisUtterance(text);
             uttr.lang = 'ja-JP';
-            uttr.pitch = 0.86; // 重厚な執事の声
+            uttr.pitch = 0.86;
             uttr.rate = 1.05;
             window.speechSynthesis.speak(uttr);
         }
 
-        function log(msg) {
-            sysLog.innerHTML = `<div>>> ${msg}</div>` + sysLog.innerHTML;
-        }
-
         if (recognition) {
-            // コアをタップして音声入力を開始
+            // アークリアクターをタップした瞬間、他の処理を挟まず100%直結でマイク起動
             jarvisCore.addEventListener('click', () => {
+                const key = localStorage.getItem('gemini_key') || apiKeyInput.value.trim();
+                if (!key) {
+                    responseDiv.innerText = "APIキーを入力して「確定」を押してください、ボス。";
+                    return;
+                }
                 window.speechSynthesis.cancel();
-                recognition.start();
+                try {
+                    recognition.start();
+                } catch(e) {
+                    console.log("Already started");
+                }
             });
 
             recognition.onstart = () => {
@@ -156,8 +160,7 @@ body {
                 coreText.textContent = "LISTEN";
                 statusText.innerText = "STATUS: VOICE_CAPTURING";
                 statusText.className = "text-red-500 font-bold animate-pulse";
-                responseDiv.innerText = "ボスの声を解析中...";
-                log("VOICE CAPTURE STARTED");
+                responseDiv.innerText = "ボスの指示を聴いています...";
             };
 
             recognition.onend = () => {
@@ -167,24 +170,13 @@ body {
             };
 
             recognition.onresult = async (event) => {
-                const userText = event.results.transcript;
+                const userText = event.results[0][0].transcript;
                 responseDiv.innerText = `「 ${userText} 」`;
                 statusText.innerText = "STATUS: GEMINI_THINKING";
-                log(`USER_INPUT: ${userText}`);
 
-                const key = apiKeyInput.value.trim();
-                localStorage.setItem('gemini_key', key);
-
-                if (!key) {
-                    const errMsg = "APIキーがロードされていません、ボス。";
-                    responseDiv.innerText = errMsg;
-                    speak(errMsg);
-                    statusText.innerText = "STATUS: ERROR";
-                    return;
-                }
+                const key = localStorage.getItem('gemini_key');
 
                 try {
-                    // 最新の超高速モデル Gemini 2.5 Flash API に直結
                     const res = await fetch(`https://googleapis.com{key}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -194,20 +186,16 @@ body {
                     });
 
                     const data = await res.json();
-                    const aiText = data.candidates.content.parts.text;
+                    const aiText = data.candidates[0].content.parts[0].text;
 
                     responseDiv.innerText = aiText;
                     statusText.innerText = "STATUS: ONLINE";
-                    log(`JARVIS_RESPONSE: SUCCESS`);
                     speak(aiText);
 
                 } catch (err) {
                     console.error(err);
-                    const errMsg = "申し訳ありません、メインサーバーとの通信に失敗しました。";
-                    responseDiv.innerText = errMsg;
-                    speak(errMsg);
+                    responseDiv.innerText = "メインサーバーの応答に失敗しました。キーが正しいか確認してください、ボス。";
                     statusText.innerText = "STATUS: LINK_DOWN";
-                    log("API_FETCH_ERROR");
                 }
             };
         }
