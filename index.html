@@ -197,4 +197,14 @@ body {
                         statusText.innerText = "ERROR";
                         return;
                     }
+                    const aiText = data.candidates.content.parts.text;
+responseDiv.innerText = aiText;
+statusText.innerText = "MARK_XXV";
+speak(aiText);
+} catch (err) {
+responseDiv.innerText = "通信エラーです。キーに間違いがないか、もう一度ご確認ください、ボス。";
+statusText.innerText = "LINK_DOWN";
+}
+};
+}
 
