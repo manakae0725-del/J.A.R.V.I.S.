@@ -259,7 +259,6 @@ h1 {
 
 .core-arc-blue {
     fill: none;
-    stroke: url(#blueArcGradient);
     stroke-width: 8;
     stroke-linecap: butt;
 }
@@ -374,26 +373,48 @@ h1 {
 
 </filter>
 
-<linearGradient id="blueArcGradient"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%">
-    <stop offset="0%"
-          stop-color="#006FE8"
-          stop-opacity="0.55" />
-    <stop offset="35%"
-          stop-color="#00B9FF"
-          stop-opacity="0.9" />
-    <stop offset="50%"
-          stop-color="#FFFFFF"
-          stop-opacity="1" />
-    <stop offset="65%"
-          stop-color="#00B9FF"
-          stop-opacity="0.9" />
-    <stop offset="100%"
-          stop-color="#006FE8"
-          stop-opacity="0.55" />
+<linearGradient id="blueArcGradient1"
+                gradientUnits="userSpaceOnUse"
+                x1="115" y1="198"
+                x2="245" y2="78">
+    <stop offset="0%" stop-color="#006FE8" stop-opacity="0.55"/>
+    <stop offset="35%" stop-color="#00B9FF" stop-opacity="0.9"/>
+    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="1"/>
+    <stop offset="65%" stop-color="#00B9FF" stop-opacity="0.9"/>
+    <stop offset="100%" stop-color="#006FE8" stop-opacity="0.55"/>
+</linearGradient>
+
+<linearGradient id="blueArcGradient2"
+                gradientUnits="userSpaceOnUse"
+                x1="382" y1="78"
+                x2="500" y2="186">
+    <stop offset="0%" stop-color="#006FE8" stop-opacity="0.55"/>
+    <stop offset="35%" stop-color="#00B9FF" stop-opacity="0.9"/>
+    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="1"/>
+    <stop offset="65%" stop-color="#00B9FF" stop-opacity="0.9"/>
+    <stop offset="100%" stop-color="#006FE8" stop-opacity="0.55"/>
+</linearGradient>
+
+<linearGradient id="blueArcGradient3"
+                gradientUnits="userSpaceOnUse"
+                x1="490" y1="406"
+                x2="394" y2="512">
+    <stop offset="0%" stop-color="#006FE8" stop-opacity="0.55"/>
+    <stop offset="35%" stop-color="#00B9FF" stop-opacity="0.9"/>
+    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="1"/>
+    <stop offset="65%" stop-color="#00B9FF" stop-opacity="0.9"/>
+    <stop offset="100%" stop-color="#006FE8" stop-opacity="0.55"/>
+</linearGradient>
+
+<linearGradient id="blueArcGradient4"
+                gradientUnits="userSpaceOnUse"
+                x1="205" y1="512"
+                x2="112" y2="414">
+    <stop offset="0%" stop-color="#006FE8" stop-opacity="0.55"/>
+    <stop offset="35%" stop-color="#00B9FF" stop-opacity="0.9"/>
+    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="1"/>
+    <stop offset="65%" stop-color="#00B9FF" stop-opacity="0.9"/>
+    <stop offset="100%" stop-color="#006FE8" stop-opacity="0.55"/>
 </linearGradient>
 
 </defs>
@@ -433,21 +454,25 @@ h1 {
 
     <path
         class="core-arc-blue"
+        stroke="url(#blueArcGradient1)"
         d="M 115 198 A 230 230 0 0 1 245 78"
     />
 
     <path
         class="core-arc-blue"
+        stroke="url(#blueArcGradient2)"
         d="M 382 78 A 230 230 0 0 1 500 186"
     />
 
     <path
         class="core-arc-blue"
+        stroke="url(#blueArcGradient3)"
         d="M 490 406 A 230 230 0 0 1 394 512"
     />
 
     <path
         class="core-arc-blue"
+        stroke="url(#blueArcGradient4)"
         d="M 205 512 A 230 230 0 0 1 112 414"
     />
 
