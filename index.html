@@ -343,6 +343,18 @@ h1 {
     <stop offset="100%" stop-color="#006FE8"/>
 </linearGradient>
 
+<filter id="coreArcGlow"
+        x="-50%"
+        y="-50%"
+        width="200%"
+        height="200%">
+    <feGaussianBlur stdDeviation="8" result="blur"/>
+    <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+</filter>
+
 </defs>
 
     <circle
@@ -381,6 +393,7 @@ h1 {
     <path
         class="core-arc-blue"
         stroke="url(#blueArcGradient1)"
+　　filter="url(#coreArcGlow)"
         d="M 115 198 A 230 230 0 0 1 245 78"
     />
 
