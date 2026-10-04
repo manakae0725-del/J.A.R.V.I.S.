@@ -1,218 +1,76 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>J.A.R.V.I.S. Ambient 3D Core</title>
-<script src="https://tailwindcss.com"></script>
-<style>
-/* 設計図通り：無限の奥行きを感じさせる、濃紺から漆黒への美しいグラデーション空間 */
-body {
-    margin: 0;
-    background: radial-gradient(circle at center, #000511 0%, #000000 100%);
-    overflow: hidden;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    perspective: 1200px; /* 3D空間のパース（遠近感）を固定 */
-}
+import React, { useState } from 'react';
 
-/* 設計図通り：光量を70〜80%に抑えた、目に刺さらない上品なクリアブルーの潤う発光効果 */
-.ambient-glow {
-    filter: drop-shadow(0 0 4px #00b9ff) drop-shadow(0 0 15px rgba(0, 110, 255, 0.5));
-}
-/* 中央のJARVISロゴ：白〜淡青に小さく、美しくマイルドに輝くホワイトグロー */
-.text-core-glow {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-weight: 800;
-    letter-spacing: 3px;
-    fill: #ffffff;
-    filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 8px rgba(0, 210, 255, 0.8));
-}
+export default function JarvisUI() {
+  const [isListening, setIsListening] = useState(false);
 
-/* =========================================================
-   BACKGROUND PARTICLES (設計図通り：少量かつかなり細かい光の粒子)
-   ========================================================= */
-.space { position: absolute; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-.particle { position: absolute; background: #00f0ff; border-radius: 50%; opacity: 0; box-shadow: 0 0 6px #00b9ff; animation: fly-subtle 8s linear infinite; }
-.p1 { left: 25%; top: 20%; width: 1.5px; height: 1.5px; animation-delay: 0s; }
-.p2 { left: 75%; top: 30%; width: 1px; height: 1px; animation-delay: 2.5s; animation-duration: 6s; }
-.p3 { left: 40%; top: 70%; width: 1.2px; height: 1.2px; animation-delay: 4.5s; }
-.p4 { left: 80%; top: 65%; width: 1px; height: 1px; animation-delay: 1.5s; animation-duration: 7s; }
-@keyframes fly-subtle { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 50% { opacity: 0.3; } 100% { transform: translateY(-10vh) scale(1.5); opacity: 0; } }
+  return (
+    // 1. 背景：映画風の完全な漆黒（#000000）
+    <div className="min-h-screen bg-black text-cyan-400 font-mono flex flex-col justify-between p-6 relative overflow-hidden">
+      
+      {/* 背景のうっすらとした近未来風グリッド（装飾） */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#111_1px,transparent_1px),linear-gradient(to_bottom,#111_1px,transparent_1px)] bg-[size:40px_40px] opacity-30 pointer-events-none"></div>
 
-/* =========================================================
-   3D GYRO SYSTEM (1つのSVG内の軸を完全固定し、一括で斜めに傾ける)
-   ========================================================= */
-.gyro-system {
-    position: relative;
-    width: 320px;
-    height: 320px;
-    z-index: 10;
-    transform-style: preserve-3d;
-    /* 画像の通り、アークリアクターが画面に対して斜めに美しく傾いている立体遠近感 */
-    transform: rotateX(60deg) rotateY(-12deg);
-    animation: floating-ambient 4.5s ease-in-out infinite;
-}
+      {/* 2. PC（27インチ大画面）の時だけ「自動出現」する左サイドバー */}
+      <div className="hidden lg:flex lg:w-64 flex-col justify-start space-y-6 border-r border-cyan-900/50 p-4 absolute left-0 top-0 h-full bg-black/80 backdrop-blur-sm z-10 transition-all">
+        <div className="text-xs text-cyan-600 border-b border-cyan-900/50 pb-2">SYSTEM STATUS</div>
+        <div className="text-sm">📈 売上グラフ (スプレッドシート連動予定)</div>
+        <div className="text-sm">💰 家計簿メーター (マネーフォワード連動予定)</div>
+      </div>
 
-@keyframes floating-ambient {
-    0%, 100% { transform: rotateX(60deg) rotateY(-12deg) translateY(0px); }
-    50% { transform: rotateX(59deg) rotateY(-10deg) translateY(-6px); }
-}
+      {/* ─── メインコンテンツエリア（iPhone時はここが画面いっぱいになる） ─── */}
+      <div className="flex-1 flex flex-col items-center justify-center lg:ml-64 transition-all">
+        
+        {/* 上部ヘッダー表示 */}
+        <div className="text-center mb-8 animate-pulse">
+          <h1 className="text-xl tracking-[0.5em] font-bold text-cyan-300">J.A.R.V.I.S.</h1>
+          <p className="text-xs text-cyan-600 mt-1">A.I. INTERFACE V1.0</p>
+        </div>
 
-/* 設計図通り：2〜3層に絞った薄いリングをバラバラの速度で滑らかに回転 */
-.spin-slow { animation: rot-cw 45s linear infinite; transform-origin: 300px 300px; }
-.spin-medium { animation: rot-ccw 22s linear infinite; transform-origin: 300px 300px; }
-.spin-fast { animation: rot-cw 10s linear infinite; transform-origin: 300px 300px; }
+        {/* 3. CORE（中心の光るサークル・生命線） */}
+        <div className="relative flex items-center justify-center my-auto">
+          {/* 外側の回転する光るリング */}
+          <div className="w-56 h-56 rounded-full border border-cyan-500/30 absolute animate-[spin_10s_linear_infinite] shadow-[0_0_20px_rgba(6,182,212,0.1)]"></div>
+          
+          {/* 内側のパルス（波打つ）するリング */}
+          <div className="w-44 h-44 rounded-full border border-cyan-400/50 absolute animate-ping opacity-25"></div>
+          
+          {/* コアの中心（一番光る丸いボタン） */}
+          <button 
+            onClick={() => setIsListening(!isListening)}
+            className={`w-36 h-36 rounded-full bg-gradient-to-br from-cyan-900 to-black border-2 transition-all duration-500 flex flex-col items-center justify-center cursor-pointer group z-20
+              ${isListening 
+                ? 'border-cyan-400 shadow-[0_0_40px_rgba(34,211,238,0.6)] scale-105' 
+                : 'border-cyan-600 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]'
+              }`}
+          >
+            {/* コア内部のSF風デザイン */}
+            <div className={`w-12 h-12 rounded-full border border-cyan-400/70 flex items-center justify-center
+              ${isListening ? 'animate-pulse' : ''}`}
+            >
+              <div className="w-4 h-4 rounded-full bg-cyan-400"></div>
+            </div>
+            <span className="text-[10px] tracking-widest text-cyan-400/80 mt-3 group-hover:text-cyan-300">
+              {isListening ? 'LISTENING' : 'TAP TO TALK'}
+            </span>
+          </button>
+        </div>
 
-@keyframes rot-cw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes rot-ccw { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+        {/* 音声波形テキストエリア */}
+        <div className="w-full max-w-sm mt-8 p-4 bg-cyan-950/20 border border-cyan-900/50 rounded-lg text-center backdrop-blur-sm">
+          <p className="text-xs text-cyan-500/70 tracking-wider">
+            {isListening ? '「お疲れ様です、マスター」' : 'JARVIS 待機中...'}
+          </p>
+        </div>
 
-/* ボスの声を聴いている（マイクON）瞬間の、上品なディープローズレッドへの一斉カラーシフト */
-.listening-state .ambient-glow { filter: drop-shadow(0 0 4px #ff0055) drop-shadow(0 0 15px rgba(255, 0, 50, 0.5)); }
-.listening-state .color-bind { stroke: #ff0055 !important; }
-.listening-state .text-core-glow { fill: #ffcbdc; filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 10px #ff0055); }
-.listening-state .particle { background: #ff0055 !important; box-shadow: 0 0 6px #ff0000; }
-</style>
-</head>
-<body class="select-none">
+      </div>
 
-    <!-- 背景層：漂う極小粒子 -->
-    <div class="space">
-        <div class="particle p1"></div>
-        <div class="particle p2"></div>
-        <div class="particle p3"></div>
-        <div class="particle p4"></div>
+      {/* 4. PC（27インチ大画面）の時だけ「自動出現」する右サイドバー */}
+      <div className="hidden lg:flex lg:w-64 flex-col justify-start space-y-6 border-l border-cyan-900/50 p-4 absolute right-0 top-0 h-full bg-black/80 backdrop-blur-sm z-10 transition-all">
+        <div className="text-xs text-cyan-600 border-b border-cyan-900/50 pb-2">SCHEDULE & TASKS</div>
+        <div className="text-sm">📅 今日の予定 (Googleカレンダー連動予定)</div>
+        <div className="text-sm">✂️ サロン予約 (ホットペッパー抽出予定)</div>
+      </div>
+
     </div>
-
-    <!-- メイン：中心軸が絶対にズレない、立体HUDアークリアクター -->
-    <div id="jarvisCore" class="gyro-system">
-        <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible ambient-glow">
-            
-            <!-- 【設計図：薄い反射リング（土台台座）】一番下で立体感を支える濃紺のベースサークル -->
-            <circle class="color-bind" cx="300" cy="300" r="275" fill="none" stroke="#001a66" stroke-width="4" stroke-dasharray="80 20 20 20" opacity="0.35" />
-            <circle cx="300" cy="300" r="260" fill="none" stroke="rgba(0, 185, 255, 0.15)" stroke-width="1" />
-
-            <!-- 【設計図：2〜3層の薄いリング / 外周レイヤー】濃紺 ➔ クリアブルーを表現する細いダッシュ円 -->
-            <g class="spin-slow">
-                <circle class="color-bind" cx="300" cy="300" r="230" fill="none" stroke="#0088ff" stroke-width="2" stroke-dasharray="160 40 40 40" opacity="0.7" />
-                <circle cx="300" cy="300" r="215" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-dasharray="6 12" />
-            </g>
-
-            <!-- 【設計図：薄い浮遊リング / 中周レイヤー】前後の重なりを生み出すクリアブルーのメインアーク -->
-            <g class="spin-medium">
-                <circle class="color-bind" cx="300" cy="300" r="185" fill="none" stroke="#00c8ff" stroke-width="3" stroke-dasharray="220 50 30 40" />
-                <circle cx="300" cy="300" r="172" fill="none" stroke="#0033cc" stroke-width="1.5" opacity="0.5" />
-            </g>
-
-            <!-- 【設計図：シンプルなコア / 内周レイヤー】中心に向かってエネルギーを綺麗にまとめるリング -->
-            <g class="spin-fast">
-                <circle class="color-bind" cx="300" cy="300" r="125" fill="#000000" stroke="#00c8ff" stroke-width="2.5" />
-                <circle cx="300" cy="300" r="110" fill="none" stroke="#0022cc" stroke-width="1.5" stroke-dasharray="8 12" />
-                <circle cx="300" cy="300" r="100" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1" stroke-dasharray="40 10" />
-            </g>
-            
-            <!-- 【設計図：中央に小さく白〜淡青のJARVISロゴ】1ミリもブレずに真ん中にロック -->
-            <text class="text-core-glow" x="300" y="306" text-anchor="middle" font-size="19">JARVIS</text>
-            
-        </svg>
-    </div>
-
-    <!-- ※裏で静かに稼働する、デザインを完全に邪魔しない超薄型の字幕インジケーター（最下部に配置） -->
-    <div id="response" class="absolute bottom-8 left-0 right-0 text-center text-[10px] tracking-[0.25em] font-sans text-cyan-400/40 pointer-events-none px-6">
-        CORE_SYNCHRONIZED // Mark-XXV
-    </div>
-
-    <!-- 隠しAPI登録フォーム（一度キーを設定すれば、二度と触る必要はありません。背景に完全に溶け込んでいます） -->
-    <div class="absolute bottom-2 opacity-5 hover:opacity-75 transition-opacity duration-500 w-full max-w-xs flex gap-2 left-1/2 -translate-x-1/2">
-        <input type="password" id="api-key-input" placeholder="GEMINI_KEY" class="flex-1 bg-black border border-neutral-900 rounded px-2 py-1 text-[8px] text-center text-cyan-600 focus:outline-none">
-        <button id="save-key-btn" class="bg-black border border-neutral-800 text-cyan-700 rounded px-2 text-[8px] font-mono">SET</button>
-    </div>
-
-    <script>
-        const jarvisCore = document.getElementById('jarvisCore');
-        const responseDiv = document.getElementById('response');
-        const apiKeyInput = document.getElementById('api-key-input');
-        const saveKeyBtn = document.getElementById('save-key-btn');
-
-        if (localStorage.getItem('gemini_key')) {
-            apiKeyInput.value = localStorage.getItem('gemini_key');
-            responseDiv.innerText = "SYSTEM_ONLINE // STANDBY";
-        }
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null;
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.lang = 'ja-JP';
-            recognition.continuous = false;
-        }
-
-        saveKeyBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            let key = apiKeyInput.value.trim().replace(/[\n\r\s]/g, "");
-            if (key) {
-                localStorage.setItem('gemini_key', key);
-                responseDiv.innerText = "KEY_STORED // ONLINE";
-                apiKeyInput.blur();
-            }
-        });
-
-        function speak(text) {
-            window.speechSynthesis.cancel();
-            const uttr = new SpeechSynthesisUtterance(text);
-            uttr.lang = 'ja-JP';
-            uttr.pitch = 0.86;
-            uttr.rate = 1.05;
-            window.speechSynthesis.speak(uttr);
-        }
-
-        if (recognition) {
-            jarvisCore.addEventListener('click', () => {
-                const key = localStorage.getItem('gemini_key') || apiKeyInput.value.trim();
-                if (!key) {
-                    responseDiv.innerText = "ERROR: INPUT KEY AND TAP SET";
-                    return;
-                }
-                window.speechSynthesis.cancel();
-                try { recognition.start(); } catch(e) {}
-            });
-
-            recognition.onstart = () => {
-                document.body.classList.add('listening-state');
-                responseDiv.innerText = "LISTENING_TO_BOSS...";
-            };
-
-            recognition.onend = () => {
-                document.body.classList.remove('listening-state');
-            };
-
-            recognition.onresult = async (event) => {
-                const userText = event.results.transcript;
-                responseDiv.innerText = `「 ${userText} 」`;
-                const key = localStorage.getItem('gemini_key');
-
-                try {
-                    const res = await fetch(`https://googleapis.com{key}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: `あなたは映画アイアンマンのAIアシスタント「JARVIS」です。主人である「ボス」に忠実に、最高に知的で簡潔な大人のセリフ（1〜2文）で答えてください。語尾は必ず「〜です、ボス」「〜でしょうか、ボス」にしてください。質問：${userText}` }] }]
-                        })
-                    });
-                    const data = await res.json();
-                    
-                    if(data.error) {
-                        responseDiv.innerText = `API_ERROR: KEY_CHECK_REQUIRED`;
-                        return;
-                    }
-const aiText = data.candidates.content.parts.text;
-responseDiv.innerText = aiText;
-speak(aiText);
-} catch (err) {
-responseDiv.innerText = "SERVER_LINK_FAILED";
+  );
 }
-};
-}
-
