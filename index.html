@@ -352,7 +352,9 @@ NONE
 SEARCH
 --
 JARVIS
+</div>
 
+<script>
 var canvas = document.getElementById("bgDustCanvas");
 var ctx = canvas.getContext("2d");
 var particles = [];
@@ -446,3 +448,4 @@ rightHUDDate.textContent = now.toLocaleDateString("ja-JP", { year: "numeric", mo
 rightHUDWeekday.textContent = now.toLocaleDateString("ja-JP", { weekday: "long" });
 rightHUDTime.textContent = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 }, 1000);
+</script>
