@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JARVIS - Exact Hologram Core UI</title>
+    <title>JARVIS - 3D Meridian Rings Core UI</title>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -20,7 +20,6 @@
             color: #00d9ff;
         }
 
-        /* 画面全体の中央に垂直軸システムを配置 */
         .jarvis-screen {
             position: relative;
             width: 100vw;
@@ -42,9 +41,7 @@
             z-index: 1;
         }
 
-        /* ==========================================
-           完全な同軸上縦型ホログラム装置全体コンテナ
-           ========================================== */
+        /* 縦型ホログラム装置全体コンテナ */
         .hologram-vertical-system {
             position: relative;
             width: 380px;
@@ -64,7 +61,7 @@
         }
 
         /* ==========================================
-           1. 真上の浮遊円盤状リング
+           1. 上部固定リング（回転せず静止）
            ========================================== */
         .hologram-disc-top {
             position: relative;
@@ -73,7 +70,6 @@
             border-radius: 50%;
             transform: rotateX(68deg);
             transform-style: preserve-3d;
-            animation: rotateCW 18s linear infinite;
             box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
         }
 
@@ -90,7 +86,7 @@
         .disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
 
         /* ==========================================
-           2. 中央 Core ユニット（完全な正円形HUD ＆ スフィア）
+           2. 中央 Core ユニット ＋ 斜め楕円リング（3D経線構造）
            ========================================== */
         .core-unit-center {
             position: relative;
@@ -99,6 +95,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            perspective: 1000px;
         }
 
         @media (min-width: 768px) {
@@ -114,52 +111,40 @@
             background: linear-gradient(to bottom, transparent, rgba(0,217,255,0.7), #ffffff, rgba(0,217,255,0.7), transparent);
             box-shadow: 0 0 25px #00d9ff, 0 0 50px #00d9ff;
             pointer-events: none;
-            z-index: 5;
+            z-index: 3;
         }
 
-        /* 多重同心円HUDリング (SVG描画による精密な正円構造) */
-        .hud-svg-ring {
+        /* 地球儀の経線のようにCoreを包み込む斜め傾斜の楕円リング群 */
+        .meridian-orbit-ring {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-        .ring-spin-cw-1 { animation: rotateCW 25s linear infinite; transform-origin: center; }
-        .ring-spin-ccw-1 { animation: rotateCCW 30s linear infinite; transform-origin: center; opacity: 0.85; }
-        .ring-spin-cw-2 { animation: rotateCW 12s linear infinite; transform-origin: center; opacity: 0.95; }
-
-        /* CSSによる同心円アーク・セグメント */
-        .hud-css-ring {
-            position: absolute;
+            width: 210px;
+            height: 290px;
+            border: 2px solid rgba(0, 217, 255, 0.65);
             border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.35), inset 0 0 15px rgba(0, 217, 255, 0.25);
             pointer-events: none;
-        }
-        .hud-arc-outer {
-            width: 94%;
-            height: 94%;
-            border: 2px solid transparent;
-            border-top: 3px solid rgba(0, 217, 255, 0.9);
-            border-bottom: 3px solid rgba(0, 217, 255, 0.9);
-            box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
-            animation: rotateCW 15s linear infinite;
-        }
-        .hud-dashed-circle {
-            width: 82%;
-            height: 82%;
-            border: 2px dashed rgba(0, 217, 255, 0.4);
-            animation: rotateCCW 22s linear infinite;
-        }
-        .hud-block-segments {
-            width: 68%;
-            height: 68%;
-            border: 3px solid transparent;
-            border-left: 5px solid #00d9ff;
-            border-right: 5px solid #00d9ff;
-            box-shadow: 0 0 20px rgba(0, 217, 255, 0.6);
-            animation: rotateCW 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            z-index: 4;
         }
 
-        /* 中央の最も眩しく光る正円Coreサークル */
+        .meridian-1 {
+            transform: rotate3d(1, 0.8, 0, 55deg);
+            animation: orbitRotate1 18s linear infinite;
+        }
+
+        .meridian-2 {
+            transform: rotate3d(0.5, -1, 0.5, 70deg);
+            animation: orbitRotate2 24s linear infinite;
+        }
+
+        .meridian-3 {
+            transform: rotate3d(-0.8, 0.5, 1, 40deg);
+            animation: orbitRotate3 20s linear infinite;
+            border-color: rgba(255, 255, 255, 0.7);
+            border-width: 1.5px;
+            border-style: dashed;
+        }
+
+        /* 中央の正円Coreスフィア */
         .core-sphere-nucleus {
             position: absolute;
             width: 140px;
@@ -171,7 +156,7 @@
             justify-content: center;
             align-items: center;
             animation: corePulse 3.5s ease-in-out infinite;
-            z-index: 6;
+            z-index: 5;
         }
 
         @media (min-width: 768px) {
@@ -185,12 +170,12 @@
             letter-spacing: 0.4em;
             color: #ffffff;
             text-shadow: 0 0 10px #00d9ff, 0 0 20px #00d9ff, 0 0 35px #00d9ff;
-            z-index: 7;
+            z-index: 6;
             animation: textGlow 4s ease-in-out infinite;
         }
 
         /* ==========================================
-           3. 真下の浮遊円盤状リング
+           3. 下部固定リング（回転せず静止）
            ========================================== */
         .hologram-disc-bottom {
             position: relative;
@@ -199,21 +184,25 @@
             border-radius: 50%;
             transform: rotateX(68deg);
             transform-style: preserve-3d;
-            animation: rotateCCW 20s linear infinite;
             box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
         }
 
         /* ==========================================
            アニメーション定義
            ========================================== */
-        @keyframes rotateCW {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes orbitRotate1 {
+            0% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(0deg); }
+            100% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(360deg); }
         }
 
-        @keyframes rotateCCW {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(-360deg); }
+        @keyframes orbitRotate2 {
+            0% { transform: rotate3d(0.5, -1, 0.5, 70deg) rotateZ(0deg); }
+            100% { transform: rotate3d(0.5, -1, 0.5, 70deg) rotateZ(-360deg); }
+        }
+
+        @keyframes orbitRotate3 {
+            0% { transform: rotate3d(-0.8, 0.5, 1, 40deg) rotateZ(0deg); }
+            100% { transform: rotate3d(-0.8, 0.5, 1, 40deg) rotateZ(360deg); }
         }
 
         @keyframes corePulse {
@@ -239,10 +228,10 @@
         <!-- 背景の発光・浮遊ダストパーティクル -->
         <canvas id="bgDustCanvas"></canvas>
 
-        <!-- 同軸縦型ホログラム装置システム -->
+        <!-- 縦型ホログラム装置システム -->
         <div class="hologram-vertical-system" id="verticalSystem">
             
-            <!-- 上部浮遊円盤リング -->
+            <!-- 上部固定リング -->
             <div class="hologram-disc-top">
                 <div class="disc-ring-line"></div>
                 <div class="disc-ring-line"></div>
@@ -250,30 +239,15 @@
                 <div class="disc-ring-line"></div>
             </div>
 
-            <!-- 中央 Core ユニット（縦エネルギー軸 ＆ 同心円HUD ＆ 正円スフィア） -->
+            <!-- 中央 Core ユニット（縦エネルギー軸 ＋ 斜め楕円リング3本 ＋ 正円スフィア） -->
             <div class="core-unit-center">
                 <!-- 垂直エネルギービーム -->
                 <div class="vertical-light-beam"></div>
 
-                <!-- SVG精密同心円リング -->
-                <svg class="hud-svg-ring ring-spin-cw-1" viewBox="0 0 300 300">
-                    <circle cx="150" cy="150" r="142" fill="none" stroke="rgba(0,217,255,0.3)" stroke-width="1.5" stroke-dasharray="12 6 3 6"/>
-                    <circle cx="150" cy="150" r="130" fill="none" stroke="rgba(0,217,255,0.6)" stroke-width="2" stroke-dasharray="45 20 5 15"/>
-                </svg>
-
-                <svg class="hud-svg-ring ring-spin-ccw-1" viewBox="0 0 300 300">
-                    <circle cx="150" cy="150" r="115" fill="none" stroke="rgba(0,217,255,0.4)" stroke-width="1" stroke-dasharray="6 12"/>
-                    <circle cx="150" cy="150" r="100" fill="none" stroke="rgba(0,217,255,0.7)" stroke-width="2" stroke-dasharray="80 40 20 10"/>
-                </svg>
-
-                <svg class="hud-svg-ring ring-spin-cw-2" viewBox="0 0 300 300">
-                    <circle cx="150" cy="150" r="84" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-dasharray="15 30 10 15"/>
-                </svg>
-
-                <!-- CSSセグメントリング -->
-                <div class="hud-css-ring hud-arc-outer"></div>
-                <div class="hud-css-ring hud-dashed-circle"></div>
-                <div class="hud-css-ring hud-block-segments"></div>
+                <!-- 地球儀の経線のような斜め傾斜の楕円リング（3本） -->
+                <div class="meridian-orbit-ring meridian-1"></div>
+                <div class="meridian-orbit-ring meridian-2"></div>
+                <div class="meridian-orbit-ring meridian-3"></div>
 
                 <!-- 中央正円スフィア ＆ JARVISロゴ -->
                 <div class="core-sphere-nucleus">
@@ -281,7 +255,7 @@
                 </div>
             </div>
 
-            <!-- 下部浮遊円盤リング -->
+            <!-- 下部固定リング -->
             <div class="hologram-disc-bottom">
                 <div class="disc-ring-line"></div>
                 <div class="disc-ring-line"></div>
