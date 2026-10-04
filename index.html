@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JARVIS - 3D Meridian Rings Core UI</title>
+    <title>JARVIS - 3D Meridian Rings Core UI with HUD</title>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -114,7 +114,7 @@
             z-index: 3;
         }
 
-        /* 斜め楕円リング（エッジにごく薄いシアンの鋭い反射ハイライトを追加） */
+        /* 斜め楕円リング */
         .meridian-orbit-ring {
             position: absolute;
             width: 170px;
@@ -145,7 +145,7 @@
             box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 200, 255, 0.5), 0 0 5px rgba(0, 230, 255, 0.6);
         }
 
-        /* 中央正円Coreスフィア（濃い青の明るさと質感を維持しつつ、ごく薄い金属のエッジ感） */
+        /* 中央正円Coreスフィア */
         .core-sphere-nucleus {
             position: absolute;
             width: 115px;
@@ -190,8 +190,77 @@
         }
 
         /* ==========================================
-           アニメーション定義
+           【流用パーツ】J.A.R.V.I.S. SIDE HUD（スライドパネル）
+           あなたのコードのデザイン・透過率・ネオンブルーをそのまま再現
            ========================================== */
+        .sideHUD {
+            position: fixed;
+            top: 0;
+            width: 280px;
+            height: 100%;
+            box-sizing: border-box;
+            padding: 30px 20px;
+            background: rgba(0, 10, 20, 0.92);
+            border-color: rgba(100, 190, 255, 0.35);
+            z-index: 9000;
+            transition: transform 0.25s ease;
+            text-align: left;
+        }
+
+        #leftHUD {
+            left: 0;
+            transform: translateX(-100%);
+            border-right: 1px solid rgba(100, 190, 255, 0.35);
+        }
+
+        #rightHUD {
+            right: 0;
+            transform: translateX(100%);
+            border-left: 1px solid rgba(100, 190, 255, 0.35);
+        }
+
+        #leftHUD.open, #rightHUD.open {
+            transform: translateX(0);
+        }
+
+        .sideHUD h2 {
+            margin: 0 0 25px;
+            color: #bfeaff;
+            font-size: 17px;
+            letter-spacing: 3px;
+        }
+
+        .sideHUD .hudLine {
+            margin-bottom: 14px;
+            padding: 12px;
+            border: 1px solid rgba(100, 190, 255, 0.18);
+            color: #9edaff;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .dateTimeTitle {
+            color: #bfeaff;
+            font-size: 11px;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        /* 下部レスポンス・ステータス表示エリア（あなたのコードの受け皿） */
+        #response {
+            position: absolute;
+            top: 30px;
+            width: 100%;
+            padding: 0 20px;
+            color: white;
+            font-size: 16px;
+            word-break: break-word;
+            line-height: 1.7;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* アニメーション定義 */
         @keyframes orbitRotate1 {
             0% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(0deg); }
             100% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(360deg); }
@@ -227,116 +296,136 @@
 <body>
 
     <div class="jarvis-screen">
-        <!-- 背景の発光・浮遊ダストパーティクル -->
+        <!-- 背景ダストパーティクル用Canvas -->
         <canvas id="bgDustCanvas"></canvas>
 
-        <!-- 縦型ホログラム装置システム -->
-        <div class="hologram-vertical-system" id="verticalSystem">
-            
-            <!-- 上部固定リング -->
-            <div class="hologram-disc-top">
-                <div class="disc-ring-line"></div>
-                <div class="disc-ring-line"></div>
-                <div class="disc-ring-line"></div>
-                <div class="disc-ring-line"></div>
-            </div>
+        <!-- テキスト表示エリア -->
+        <div id="response"></div>
 
-            <!-- 中央 Core ユニット -->
-            <div class="core-unit-center">
-                <!-- 垂直エネルギービーム -->
-                <div class="vertical-light-beam"></div>
+        <!-- ==========================================
+           【流用パーツ】左HUD（サイドパネル）
+========================================== -->
 
-                <!-- 斜め楕円リング（3本） -->
-                <div class="meridian-orbit-ring meridian-1"></div>
-                <div class="meridian-orbit-ring meridian-2"></div>
-                <div class="meridian-orbit-ring meridian-3"></div>
+J.A.R.V.I.S. CORE
+CORE STATE
+STANDBY
+SYSTEM
+ONLINE
+COMMUNICATION
+ONLINE
+SERVICES
+READY
+CONNECTION
+ACTIVE
+SETTINGS
+DEFAULT
+J.A.R.V.I.S. INFO
+DEVICE
+iPhone
+CONNECTION
+ONLINE
+WEATHER
+--°C
 
-                <!-- 中央正円スフィア ＆ JARVISロゴ -->
-                <div class="core-sphere-nucleus">
-                    <div class="jarvis-text-logo">JARVIS</div>
-                </div>
-            </div>
+DATE & TIME
 
-            <!-- 下部固定リング -->
-            <div class="hologram-disc-bottom">
-                <div class="disc-ring-line"></div>
-                <div class="disc-ring-line"></div>
-                <div class="disc-ring-line"></div>
-                <div class="disc-ring-line"></div>
-            </div>
 
-        </div>
-    </div>
 
-    <script>
-        // 背景パーティクル（微粒子エフェクト）
-        const canvas = document.getElementById('bgDustCanvas');
-        const ctx = canvas.getContext('2d');
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+TASKS
+NONE
+NOTIFICATIONS
+NONE
+SEARCH
+--
+JARVIS
 
-        const particles = [];
-        const particleCount = 50;
+// ─── パーティクル背景の超軽量シミュレーション ───
+const canvas = document.getElementById('bgDustCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resizeCanvas() {
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+class Particle {
+constructor() {
+this.x = Math.random() * canvas.width;
+this.y = Math.random() * canvas.height;
+this.size = Math.random() * 1.5 + 0.5;
+this.speedY = Math.random() * -0.3 - 0.1;
+this.opacity = Math.random() * 0.5 + 0.2;
+}
+update() {
+this.y += this.speedY;
+if (this.y < 0) {
+this.y = canvas.height;
+this.x = Math.random() * canvas.width;
+}
+}
+draw() {
+ctx.fillStyle = rgba(0, 153, 255, ${this.opacity});
+ctx.beginPath();
+ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+ctx.fill();
+}
+}
+for (let i = 0; i < 30; i++) { particles.push(new Particle()); }
+function animate() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+particles.forEach(p => { p.update(); p.draw(); });
+requestAnimationFrame(animate);
+}
+animate();
+// ─── 【流用パーツ】iPhone専用スワイプ検知ロジック ───
+const leftHUD = document.getElementById("leftHUD");
+const rightHUD = document.getElementById("rightHUD");
+let touchStartX = 0;
+let touchStartY = 0;
+document.addEventListener("touchstart", (e) => {
+touchStartX = e.changedTouches[0].screenX;
+touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+document.addEventListener("touchend", (e) => {
+const touchEndX = e.changedTouches[0].screenX;
+const touchEndY = e.changedTouches[0].screenY;
+const deltaX = touchEndX - touchStartX;
+const deltaY = touchEndY - touchStartY;
+const absX = Math.abs(deltaX);
+const absY = Math.abs(deltaY);
+if (absX < 80 && absY < 80) return; // 小さな動きはスルー
+// 横スワイプ判定
+if (absX > absY) {
+if (deltaX < -80) { // 左スワイプ（右から左へ）
+if (rightHUD.classList.contains("open")) {
+rightHUD.classList.remove("open");
+} else if (leftHUD.classList.contains("open")) {
+leftHUD.classList.remove("open");
+} else {
+rightHUD.classList.add("open");
+}
+} else if (deltaX > 80) { // 右スワイプ（左から右へ）
+if (leftHUD.classList.contains("open")) {
+leftHUD.classList.remove("open");
+} else if (rightHUD.classList.contains("open")) {
+rightHUD.classList.remove("open");
+} else {
+leftHUD.classList.add("open");
+}
+}
+}
+});
+// ─── 時計ウィジェットの自動更新（あなたのコードをそのまま移行） ───
+const rightHUDDate = document.getElementById("rightHUDDate");
+const rightHUDWeekday = document.getElementById("rightHUDWeekday");
+const rightHUDTime = document.getElementById("rightHUDTime");
 
-        for (let i = 0; i < particleCount; i++) {
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                radius: Math.random() * 1.5 + 0.4,
-                color: Math.random() > 0.3 ? 'rgba(0, 136, 255, ' : 'rgba(255, 255, 255, ',
-                alpha: Math.random() * 0.7 + 0.2,
-                speedY: (Math.random() * 0.4 - 0.2),
-                speedX: (Math.random() * 0.2 - 0.1)
-            });
-        }
 
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            particles.forEach(p => {
-                p.y += p.speedY;
-                p.x += p.speedX;
-
-                if (p.y < 0) p.y = canvas.height;
-                if (p.y > canvas.height) p.y = 0;
-                if (p.x < 0) p.x = canvas.width;
-                if (p.x > canvas.width) p.x = 0;
-
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fillStyle = p.color + p.alpha + ')';
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = '#0077ff';
-                ctx.fill();
-            });
-
-            requestAnimationFrame(animateParticles);
-        }
-        animateParticles();
-
-        // 画面サイズに応じた自動スケーリング制御
-        function updateSystemScale() {
-            const w = window.innerWidth;
-            const system = document.getElementById('verticalSystem');
-            let scale = 1;
-
-            if (w < 400) {
-                scale = 0.8;
-            } else if (w >= 1400) {
-                scale = 1.2;
-            } else {
-                scale = 1.0;
-            }
-            system.style.setProperty('--system-scale', scale);
-        }
-
-        window.addEventListener('resize', updateSystemScale);
-        updateSystemScale();
-    </script>
-</body>
-</html>
+setInterval(() => {
+const now = new Date();
+rightHUDDate.textContent = now.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
+rightHUDWeekday.textContent = now.toLocaleDateString("ja-JP", { weekday: "long" });
+rightHUDTime.textContent = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+}, 1000);
