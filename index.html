@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -190,8 +190,7 @@
         }
 
         /* ==========================================
-           【流用パーツ】J.A.R.V.I.S. SIDE HUD（スライドパネル）
-           あなたのコードのデザイン・透過率・ネオンブルーをそのまま再現
+           SIDE HUD（スライドパネル）
            ========================================== */
         .sideHUD {
             position: fixed;
@@ -246,7 +245,6 @@
             letter-spacing: 1px;
         }
 
-        /* 下部レスポンス・ステータス表示エリア（あなたのコードの受け皿） */
         #response {
             position: absolute;
             top: 30px;
@@ -296,21 +294,14 @@
 <body>
 
     <div class="jarvis-screen">
-        <!-- 背景ダストパーティクル用Canvas -->
         <canvas id="bgDustCanvas"></canvas>
-
-        <!-- テキスト表示エリア -->
         <div id="response"></div>
 
-        <!-- ==========================================
-           【流用パーツ】左HUD（サイドパネル）
-========================================== -->
-
-J.A.R.V.I.S. CORE
-CORE STATE
-STANDBY
-SYSTEM
-ONLINE
+        <!-- 左HUD -->
+        <div id="leftHUD" class="sideHUD">
+            <h2>J.A.R.V.I.S. CORE</h2>
+            <div class="hudLine">CORE STATE<br><span id="leftHUDStatus">STANDBY</span></div>
+            <div class="hudLine">SYSTEM<br><span id="leftHUDSystem">ONLINE</span></div>
 COMMUNICATION
 ONLINE
 SERVICES
@@ -340,7 +331,7 @@ SEARCH
 --
 JARVIS
 
-// ─── パーティクル背景の超軽量シミュレーション ───
+// ─── パーティクル背景の実装 ───
 const canvas = document.getElementById('bgDustCanvas');
 const ctx = canvas.getContext('2d');
 let particles = [];
@@ -366,7 +357,7 @@ this.x = Math.random() * canvas.width;
 }
 }
 draw() {
-ctx.fillStyle = rgba(0, 153, 255, ${this.opacity});
+ctx.fillStyle = 'rgba(0, 153, 255, ' + this.opacity + ')';
 ctx.beginPath();
 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
 ctx.fill();
@@ -379,7 +370,7 @@ particles.forEach(p => { p.update(); p.draw(); });
 requestAnimationFrame(animate);
 }
 animate();
-// ─── 【流用パーツ】iPhone専用スワイプ検知ロジック ───
+// ─── iPhone専用スワイプ検知ロジック ───
 const leftHUD = document.getElementById("leftHUD");
 const rightHUD = document.getElementById("rightHUD");
 let touchStartX = 0;
@@ -395,10 +386,9 @@ const deltaX = touchEndX - touchStartX;
 const deltaY = touchEndY - touchStartY;
 const absX = Math.abs(deltaX);
 const absY = Math.abs(deltaY);
-if (absX < 80 && absY < 80) return; // 小さな動きはスルー
-// 横スワイプ判定
+if (absX < 80 && absY < 80) return;
 if (absX > absY) {
-if (deltaX < -80) { // 左スワイプ（右から左へ）
+if (deltaX < -80) { // 左スワイプ（右から左）
 if (rightHUD.classList.contains("open")) {
 rightHUD.classList.remove("open");
 } else if (leftHUD.classList.contains("open")) {
@@ -406,7 +396,7 @@ leftHUD.classList.remove("open");
 } else {
 rightHUD.classList.add("open");
 }
-} else if (deltaX > 80) { // 右スワイプ（左から右へ）
+} else if (deltaX > 80) { // 右スワイプ（左から右）
 if (leftHUD.classList.contains("open")) {
 leftHUD.classList.remove("open");
 } else if (rightHUD.classList.contains("open")) {
@@ -417,12 +407,10 @@ leftHUD.classList.add("open");
 }
 }
 });
-// ─── 時計ウィジェットの自動更新（あなたのコードをそのまま移行） ───
+// ─── 時計ウィジェットの自動更新 ───
 const rightHUDDate = document.getElementById("rightHUDDate");
 const rightHUDWeekday = document.getElementById("rightHUDWeekday");
 const rightHUDTime = document.getElementById("rightHUDTime");
-
-
 setInterval(() => {
 const now = new Date();
 rightHUDDate.textContent = now.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
