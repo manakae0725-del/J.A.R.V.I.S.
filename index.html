@@ -77,8 +77,8 @@
             position: absolute;
             inset: 0;
             border-radius: 50%;
-            border: 1px solid rgba(0, 136, 255, 0.75);
-            box-shadow: inset 0 0 12px rgba(0, 136, 255, 0.5);
+            border: 1px solid rgba(0, 136, 255, 0.85);
+            box-shadow: inset 0 0 10px rgba(0, 136, 255, 0.5), 0 0 3px rgba(0, 200, 255, 0.3);
         }
         .disc-ring-line:nth-child(1) { inset: 0px; border-width: 2px; border-style: dashed; }
         .disc-ring-line:nth-child(2) { inset: 12px; border-width: 1px; }
@@ -86,7 +86,7 @@
         .disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
 
         /* ==========================================
-           2. 中央 Core ユニット ＋ 斜めリング
+           2. 中央 Core ユニット ＋ 硬質な青い金属質感
            ========================================== */
         .core-unit-center {
             position: relative;
@@ -114,14 +114,14 @@
             z-index: 3;
         }
 
-        /* 斜め楕円リング */
+        /* 斜め楕円リング（エッジにごく薄いシアンの鋭い反射ハイライトを追加） */
         .meridian-orbit-ring {
             position: absolute;
             width: 170px;
             height: 235px;
-            border: 1.2px solid rgba(0, 136, 255, 0.85);
+            border: 1.2px solid rgba(0, 136, 255, 0.9);
             border-radius: 50%;
-            box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 14px rgba(0, 119, 255, 0.45);
+            box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 180, 255, 0.4), 0 0 4px rgba(0, 220, 255, 0.5);
             pointer-events: none;
             z-index: 4;
         }
@@ -139,12 +139,13 @@
         .meridian-3 {
             transform: rotate3d(-0.8, 0.5, 1, 40deg);
             animation: orbitRotate3 20s linear infinite;
-            border-color: rgba(255, 255, 255, 0.85);
+            border-color: rgba(0, 200, 255, 0.85);
             border-width: 1px;
             border-style: dashed;
+            box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 200, 255, 0.5), 0 0 5px rgba(0, 230, 255, 0.6);
         }
 
-        /* 中央正円Coreスフィア */
+        /* 中央正円Coreスフィア（濃い青の明るさと質感を維持しつつ、ごく薄い金属のエッジ感） */
         .core-sphere-nucleus {
             position: absolute;
             width: 115px;
@@ -157,6 +158,7 @@
             align-items: center;
             animation: corePulse 3.5s ease-in-out infinite;
             z-index: 5;
+            border: 1px solid rgba(0, 200, 255, 0.4);
         }
 
         @media (min-width: 768px) {
