@@ -3,120 +3,179 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>J.A.R.V.I.S. PURE COMPASS</title>
+<title>J.A.R.V.I.S. 3D CORE</title>
 <script src="https://tailwindcss.com"></script>
 <style>
-/* 画像通りの完全な漆黒 */
+/* 無限の奥行きを感じさせるディープブラック背景 */
 body {
     margin: 0;
-    background-color: #000000;
-    color: #00f0ff;
-    font-family: 'Courier New', Courier, monospace;
+    background: radial-gradient(circle at center, #000814 0%, #000000 100%);
     overflow: hidden;
+    height: 100vh;
+    perspective: 1000px; /* 画面全体に3Dの遠近感を付与 */
 }
 
-/* 画像の「細く、鋭く、それでいて上品に潤うクリアブルーの光」を再現 */
+/* 圧倒的なクリアブルーの発光効果 */
 .laser-glow {
-    filter: drop-shadow(0 0 2px #00b9ff) drop-shadow(0 0 8px rgba(0, 136, 255, 0.6));
+    filter: drop-shadow(0 0 4px #00b9ff) drop-shadow(0 0 15px rgba(0, 136, 255, 0.6));
+}
+.core-text-glow {
+    fill: #ffffff;
+    font-family: 'Arial Black', sans-serif;
+    font-weight: 900;
+    letter-spacing: 4px;
+    text-shadow: 0 0 5px #fff, 0 0 12px #00d2ff, 0 0 25px #0044ff;
 }
 
-/* 目の負担にならない、息をのむほど静かで滑らかな超・超低速回転 */
-.rot-slowest { animation: spin-counter 120s linear infinite; transform-origin: 300px 300px; }
-.rot-outer { animation: spin-clockwise 80s linear infinite; transform-origin: 300px 300px; }
-.rot-medium { animation: spin-counter 45s linear infinite; transform-origin: 300px 300px; }
-.rot-inner { animation: spin-clockwise 25s linear infinite; transform-origin: 300px 300px; }
-.pulse-ambient { animation: core-pulse 4s ease-in-out infinite; }
+/* =========================================================
+   BACKGROUND PARTICLES (奥から手前に流れる光の粒子)
+   ========================================================= */
+.space {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+.particle {
+    position: absolute;
+    background: #00f0ff;
+    border-radius: 50%;
+    opacity: 0;
+    box-shadow: 0 0 8px #00b9ff;
+    animation: fly-forward 6s linear infinite;
+}
+/* それぞれの粒子の配置とスピードをバラバラにして立体感を出す */
+.p1 { left: 20%; top: 30%; width: 2px; height: 2px; animation-delay: 0s; }
+.p2 { left: 75%; top: 15%; width: 3px; height: 3px; animation-delay: 1.5s; animation-duration: 4s; }
+.p3 { left: 40%; top: 80%; width: 1.5px; height: 1.5px; animation-delay: 3s; animation-duration: 8s; }
+.p4 { left: 85%; top: 70%; width: 2.5px; height: 2.5px; animation-delay: 4.5s; animation-duration: 5s; }
+.p5 { left: 10%; top: 65%; width: 2px; height: 2px; animation-delay: 2s; animation-duration: 7s; }
 
-@keyframes spin-clockwise { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes spin-counter { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
-@keyframes core-pulse { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
+@keyframes fly-forward {
+    0% { transform: translateZ(-500px) scale(0); opacity: 0; }
+    20% { opacity: 0.4; }
+    80% { opacity: 0.8; }
+    100% { transform: translateZ(300px) scale(2); opacity: 0; }
+}
 
-/* マイクON時の警告発光も、極細ラインが引き立つディープクリムゾンレッドへ切り替え */
+/* =========================================================
+   3D HOROGRAM RE-ACTOR (斜め立体回転＆ジャイロ構造)
+   ========================================================= */
+.hologram-container {
+    position: relative;
+    width: 320px;
+    height: 320px;
+    z-index: 10;
+    transform-style: preserve-3d;
+}
+
+/* ボスが教えてくれた「斜めにゆっくり回転する2本のリング」 */
+.gyro-ring-1 {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform: rotateX(65deg) rotateY(20deg); /* 傾いた軌道 */
+    animation: spin-gyro-1 25s linear infinite;
+}
+.gyro-ring-2 {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform: rotateX(-45deg) rotateY(-35deg); /* 交差する逆傾き軌道 */
+    animation: spin-gyro-2 18s linear infinite;
+}
+
+/* 中心に鎮座する、手前に飛び出して見える立体コア */
+.center-core-box {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform: translateZ(40px); /* 40ピクセル分、完全に手前に浮かび上がらせる */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes spin-gyro-1 {
+    from { transform: rotateX(65deg) rotateY(20deg) rotateZ(0deg); }
+    to { transform: rotateX(65deg) rotateY(20deg) rotateZ(360deg); }
+}
+@keyframes spin-gyro-2 {
+    from { transform: rotateX(-45deg) rotateY(-35deg) rotateZ(360deg); }
+    to { transform: rotateX(-45deg) rotateY(-35deg) rotateZ(0deg); }
+}
+
+/* 音声入力時の強烈なレッドアラートモード（100%自動で切り替わります） */
 .listening-state .laser-glow {
-    filter: drop-shadow(0 0 2px #ff0055) drop-shadow(0 0 10px rgba(255, 0, 50, 0.5));
+    filter: drop-shadow(0 0 4px #ff0055) drop-shadow(0 0 18px rgba(255, 0, 0, 0.7));
 }
-.listening-state .color-line { stroke: #ff0055; }
-.listening-state .color-sub { stroke: #ff3377; }
-.listening-state .color-ticks { stroke: rgba(255, 0, 85, 0.25); }
+.listening-state .core-text-glow {
+    fill: #ffcbdc;
+    text-shadow: 0 0 5px #fff, 0 0 12px #ff0055, 0 0 30px #ff0000;
+}
+.listening-state .color-bind { stroke: #ff0055 !important; }
+.listening-state .particle { background: #ff0055 !important; box-shadow: 0 0 8px #ff0000; }
 </style>
 </head>
-<body class="h-screen flex flex-col justify-between p-6 select-none">
+<body class="flex items-center justify-center select-none">
 
-    <!-- HUDヘッダー：画像の静寂感を邪魔しない極小テキスト -->
-    <header class="w-full flex justify-between items-center px-2 text-[8px] tracking-[0.3em] text-cyan-800/40 font-mono">
-        <div>VECTOR_MATRIX_SYSTEM</div>
-        <div id="status" class="text-cyan-500 opacity-60">ANALYZE_MODE</div>
-    </header>
+    <!-- 背景層：漂う光の粒子 -->
+    <div class="space">
+        <div class="particle p1"></div>
+        <div class="particle p2"></div>
+        <div class="particle p3"></div>
+        <div class="particle p4"></div>
+        <div class="particle p5"></div>
+    </div>
 
-    <!-- メイン：送っていただいた1枚の画像を完璧に具現化したコア -->
-    <main class="flex-1 flex flex-col items-center justify-center relative">
-        <!-- タップ領域 -->
-        <div id="jarvisCore" class="w-[315px] h-[315px] bg-transparent cursor-pointer relative pulse-ambient active:scale-95 transition-transform">
+    <!-- メイン：文字を一切排除した、3Dホログラム・アークリアクター -->
+    <div id="jarvisCore" class="hologram-container cursor-pointer active:scale-95 transition-transform duration-200">
+        
+        <!-- 【再現1】斜め立体回転リング 1本目 -->
+        <div class="gyro-ring-1">
             <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible laser-glow">
-                
-                <!-- 背景ベース -->
-                <circle cx="300" cy="300" r="280" fill="#000000" />
-                
-                <!-- 【再現1】最外周の極細円と、画像にあるかすかなガイドライン -->
-                <g class="rot-slowest">
-                    <circle class="color-line" cx="300" cy="300" r="270" fill="none" stroke="#0033cc" stroke-width="1" opacity="0.3" />
-                    <circle class="color-line" cx="300" cy="300" r="260" fill="none" stroke="#00b9ff" stroke-width="1" stroke-dasharray="4 200 40 200" opacity="0.5" />
-                </g>
-
-                <!-- 【再現2】外周：画像で最も美しい「定規のように精密に敷き詰められた高密度なデジタル目盛り（15度刻み）」 -->
-                <g class="rot-outer">
-                    <g class="color-ticks" stroke="rgba(0, 185, 255, 0.3)" stroke-width="1">
-                        <line x1="300" y1="50" x2="300" y2="65" transform="rotate(0 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(15 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(30 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(45 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(60 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(75 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(90 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(105 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(120 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(135 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(150 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(165 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(180 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(195 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(210 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(225 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(240 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(255 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(270 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(285 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(300 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(315 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(330 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(345 300 300)" />
-                    </g>
-                    <!-- 画像のメインとなる細いクリアブルーサークル -->
-                    <circle class="color-line" cx="300" cy="300" r="230" fill="none" stroke="#00b9ff" stroke-width="1.5" stroke-dasharray="180 40 90 20" />
-                </g>
-
-                <!-- 【再現3】中周：細い隙間を開けて並ぶ、もう一層のダッシュリング構造 -->
-                <g class="rot-medium">
-                    <circle class="color-line" cx="300" cy="300" r="195" fill="none" stroke="#0044ff" stroke-width="1" stroke-dasharray="10 15" opacity="0.6" />
-                    <circle class="color-sub" cx="300" cy="300" r="180" fill="none" stroke="#00d2ff" stroke-width="1.5" stroke-dasharray="120 30 40 30" />
-                </g>
-
-                <!-- 【再現4】内周＆最中心：文字を無くし、完全に画像と一致させた中空のシャープコア -->
-                <g class="rot-inner">
-                    <circle class="color-line" cx="300" cy="300" r="140" fill="none" stroke="#0022cc" stroke-width="1" />
-                    <!-- 画像の中心部にある、ひときわ明るい白青のダブルインナーサークル -->
-                    <circle cx="300" cy="300" r="125" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-dasharray="40 10 10 10" />
-                    <circle class="color-sub" cx="300" cy="300" r="110" fill="none" stroke="#00b9ff" stroke-width="2" />
-                    <circle cx="300" cy="300" r="70" fill="none" stroke="#0044ff" stroke-width="1" stroke-dasharray="2 4" opacity="0.4" />
-                </g>
-                
+                <circle class="color-bind" cx="300" cy="300" r="240" fill="none" stroke="#00b9ff" stroke-width="2.5" stroke-dasharray="160 40 40 40 80 20" />
+                <circle cx="300" cy="300" r="225" fill="none" stroke="rgba(0,185,255,0.3)" stroke-width="1" stroke-dasharray="4 8" />
             </svg>
         </div>
-    </main>
 
-    <!-- フッター：画像のミニマリズムを極限まで引き立てる字幕＆APIフォーム -->
-    <footer class="w-full flex flex-col items-center justify-center pb-6 gap-5">
-        <!-- 映画の字幕のように美しく静かに佇むシネマテキスト -->
-        <div id="response" class="text-center text-xs font-sans text-cyan-300/80 min-h-[40px] px-6 tracking-widest leading-relaxed drop-shadow-[0_0_6px_rgba(0,240,255,0.5)]">
-            PURE_CORE_CONNECTED. READY FOR COMMAND, BOSS.
+        <!-- 【再現2】斜め立体回転リング 2本目（交差して逆回転） -->
+        <div class="gyro-ring-2">
+            <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible laser-glow">
+                <circle class="color-bind" cx="300" cy="300" r="210" fill="none" stroke="#0055ff" stroke-width="2" stroke-dasharray="200 60 10 30" />
+                <circle class="color-bind" cx="300" cy="300" r="195" fill="none" stroke="#00b9ff" stroke-width="1.5" stroke-dasharray="5 5" opacity="0.6" />
+            </svg>
         </div>
 
-        <!-- 景観を絶対に崩さない超ミニマルなAPI確定枠 -->
-        <div class="w-full max-w-xs flex gap-2 opacity-5 hover:opacity-80 transition-opacity duration-500">
-            <input type="password" id="api-key-input" placeholder="ENTER_GEMINI_KEY" class="flex-1 bg-black border border-neutral-900 rounded px-3 py-2 text-[8px] text-center text-cyan-600 focus:outline-none focus:border-cyan-800 tracking-widest">
-            <button id="save-key-btn" class="bg-black border border-neutral-800 text-cyan-700 rounded px-3 py-1 text-[10px] font-mono active:bg-cyan-950 transition-colors">SET</button>
+        <!-- 【再現3】一番下にどっしりと構える、固定された重厚な「台座（ベース）リング」 -->
+        <div class="absolute inset-0 transform rotateX(80deg) translateZ(-60px)">
+            <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible laser-glow" opacity="0.5">
+                <!-- 地面に水平に広がる太いベース台座 -->
+                <circle class="color-bind" cx="300" cy="300" r="270" fill="none" stroke="#0033aa" stroke-width="6" stroke-dasharray="30 10 10 10" />
+                <circle cx="300" cy="300" r="285" fill="none" stroke="#00b9ff" stroke-width="1" stroke-dasharray="4 4" />
+            </svg>
         </div>
-    </footer>
 
+        <!-- 【再現4】最も手前に浮かび上がる「中心の小さいコア」＆「JARVIS」ロゴ -->
+        <div class="center-core-box">
+            <svg viewBox="0 0 200 200" class="w-[120px] h-[120px] overflow-visible laser-glow">
+                <!-- 小さい中心コアサークル -->
+                <circle class="color-bind" cx="100" cy="100" r="75" fill="#000000" stroke="#00b9ff" stroke-width="3" />
+                <circle cx="100" cy="100" r="65" fill="none" stroke="#0044ff" stroke-width="1.5" stroke-dasharray="4 8" />
+                <circle cx="100" cy="100" r="55" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1" stroke-dasharray="40 10" />
+                <!-- コアの中の中心文字「JARVIS」 -->
+                <text class="core-text-glow" x="100" y="106" text-anchor="middle" font-size="16">JARVIS</text>
+            </svg>
+        </div>
+
+    </div>
+
+    <!-- ※裏で動く音声連動スクリプト（画面上には一切表示されません） -->
     <script>
         const jarvisCore = document.getElementById('jarvisCore');
-        const statusText = document.getElementById('status');
-        const responseDiv = document.getElementById('response');
-        const apiKeyInput = document.getElementById('api-key-input');
-        const saveKeyBtn = document.getElementById('save-key-btn');
-
-        if (localStorage.getItem('gemini_key')) {
-            apiKeyInput.value = localStorage.getItem('gemini_key');
-            responseDiv.innerText = "SYSTEM_ONLINE. CORE TAP ENGAGED.";
-        }
-
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
         if (SpeechRecognition) {
@@ -124,16 +183,6 @@ body {
             recognition.lang = 'ja-JP';
             recognition.continuous = false;
         }
-
-        saveKeyBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            let key = apiKeyInput.value.trim().replace(/[\n\r\s]/g, "");
-            if (key) {
-                localStorage.setItem('gemini_key', key);
-                responseDiv.innerText = "KEY_STORED. READY TO TEST.";
-                apiKeyInput.blur();
-            }
-        });
 
         function speak(text) {
             window.speechSynthesis.cancel();
@@ -145,54 +194,49 @@ body {
         }
 
         if (recognition) {
+            // 文字やボタンが無くても、この美しいアークリアクターをタップすれば100%マイクが起動します
             jarvisCore.addEventListener('click', () => {
-                const key = localStorage.getItem('gemini_key') || apiKeyInput.value.trim();
-                if (!key) {
-                    responseDiv.innerText = "INPUT KEY AND TAP SET.";
-                    return;
-                }
                 window.speechSynthesis.cancel();
                 try { recognition.start(); } catch(e) {}
             });
 
             recognition.onstart = () => {
                 document.body.classList.add('listening-state');
-                statusText.innerText = "CAPTURING";
-                statusText.className = "text-red-500 font-bold";
-                responseDiv.innerText = "LISTENING TO BOSS...";
             };
 
             recognition.onend = () => {
                 document.body.classList.remove('listening-state');
-                statusText.innerText = "ANALYZE_MODE";
-                statusText.className = "text-cyan-500";
             };
-recognition.onresult = async (event) => {
-const userText = event.results.transcript;
-responseDiv.innerText = 「 ${userText} 」;
-statusText.innerText = "THINKING";
-const key = localStorage.getItem('gemini_key');
-try {
-const res = await fetch(https://googleapis.com{key}, {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-contents: [{ parts: [{ text: あなたは映画アイアンマンのAIアシスタント「JARVIS」です。主人である「ボス」に忠実に、最高に知的で簡潔な大人のセリフ（1〜2文）で答えてください。語尾は必ず「〜です、ボス」「〜でしょうか、ボス」にしてください。質問：${userText} }] }]
-})
-});
-const data = await res.json();
-if(data.error) {
-responseDiv.innerText = API_ERROR: ${data.error.message};
-statusText.innerText = "ERROR";
-return;
-}
-const aiText = data.candidates.content.parts.text;
-responseDiv.innerText = aiText;
-statusText.innerText = "ANALYZE_MODE";
-speak(aiText);
-} catch (err) {
-responseDiv.innerText = "LINK_FAILED.";
-statusText.innerText = "LINK_DOWN";
-}
-};
-}
+
+            recognition.onresult = async (event) => {
+                const userText = event.results.transcript;
+                const key = localStorage.getItem('gemini_key') || ""; // 事前に格納されたキーを使用
+
+                if (!key) {
+                    speak("APIキーが未設定です、ボス。");
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`https://googleapis.com{key}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `あなたは映画アイアンマンのAIアシスタント「JARVIS」です。主人である「ボス」に忠実に、最高に知的で簡潔な大人のセリフ（1〜2文）で答えてください。語尾は必ず「〜です、ボス」「〜でしょうか、ボス」にしてください。質問：${userText}` }] }]
+                        })
+                    });
+                    const data = await res.json();
+                    if(!data.error) {
+                        const aiText = data.candidates.content.parts.text;
+                        speak(aiText);
+                    } else {
+                        speak("通信エラーのようです、ボス。");
+                    }
+                } catch (err) {
+                    speak("サーバーへの接続に失敗しました、ボス。");
+                }
+            };
+        }
+    </script>
+</body>
+</html>
