@@ -3,45 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>J.A.R.V.I.S. ANCHOR CORE</title>
+<title>J.A.R.V.I.S. Ambient Core</title>
 <script src="https://tailwindcss.com"></script>
 <style>
 /* 漆黒の闇（完全な黒） */
 body {
     margin: 0;
     background-color: #000000;
-    color: #00f0ff;
+    color: #00c8ff;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     overflow: hidden;
 }
 
-/* 画像の「重厚で圧倒的なクリアブルーの発光」を再現する多層グラデーションフィルター */
+/* 目に優しく、しっとりとした上質な発光（チカチカ感を排除） */
 .reactor-glow {
-    filter: drop-shadow(0 0 8px #00b9ff) drop-shadow(0 0 25px #0055ff) drop-shadow(0 0 50px rgba(0, 185, 255, 0.4));
+    filter: drop-shadow(0 0 4px #0099ff) drop-shadow(0 0 15px rgba(0, 132, 255, 0.5));
 }
 .text-glow {
     color: #ffffff;
-    text-shadow: 0 0 6px #fff, 0 0 15px #00d2ff, 0 0 35px #0044ff, 0 0 60px #0011aa;
+    text-shadow: 0 0 4px #fff, 0 0 12px #00b9ff, 0 0 30px rgba(0, 68, 255, 0.6);
 }
 
-/* 劇的なスピード差をつけた滑らかな立体3D回転 */
-.rot-outer { animation: spin-counter 30s linear infinite; transform-origin: 300px 300px; }
-.rot-main { animation: spin-clockwise 10s linear infinite; transform-origin: 300px 300px; }
-.rot-inner { animation: spin-counter 5s linear infinite; transform-origin: 300px 300px; }
-.rot-core { animation: spin-clockwise 2s linear infinite; transform-origin: 300px 300px; }
-.pulse-ambient { animation: core-pulse 2.5s ease-in-out infinite; }
+/* 超・低速回転（通常の3倍以上の時間をかけて、静かに、滑らかに回します） */
+.rot-outer { animation: spin-counter 60s linear infinite; transform-origin: 300px 300px; }
+.rot-main { animation: spin-clockwise 35s linear infinite; transform-origin: 300px 300px; }
+.rot-inner { animation: spin-counter 20s linear infinite; transform-origin: 300px 300px; }
+.rot-core { animation: spin-clockwise 10s linear infinite; transform-origin: 300px 300px; }
+.pulse-ambient { animation: core-pulse 3s ease-in-out infinite; }
 
 @keyframes spin-clockwise { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes spin-counter { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
-@keyframes core-pulse { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.02); opacity: 1; } }
+@keyframes core-pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
 
-/* ボスの声を聴いている時（マイクON）の、強烈な超高熱・赤アラート発光への一斉切り替え */
+/* 聞き取り時（マイクON）のアラート発光も、目に刺さらない上品なディープローズレッドへ */
 .listening-state .reactor-glow {
-    filter: drop-shadow(0 0 10px #ff0055) drop-shadow(0 0 30px #ff0000) drop-shadow(0 0 60px rgba(255, 0, 0, 0.4));
+    filter: drop-shadow(0 0 5px #ff0055) drop-shadow(0 0 20px rgba(255, 0, 0, 0.5));
 }
 .listening-state .text-glow {
-    color: #ffcbdc;
-    text-shadow: 0 0 6px #fff, 0 0 15px #ff0055, 0 0 40px #ff0000;
+    color: #ffe6ee;
+    text-shadow: 0 0 4px #fff, 0 0 12px #ff0055, 0 0 25px rgba(255, 0, 0, 0.6);
 }
 .listening-state .color-bind-1 { stroke: #ff0055; }
 .listening-state .color-bind-2 { stroke: #ff3377; }
@@ -49,62 +49,62 @@ body {
 </head>
 <body class="h-screen flex flex-col justify-between p-6 select-none">
 
-    <!-- HUDヘッダー：シンプルで洗練されたSF表示 -->
-    <header class="w-full flex justify-between items-center px-2 text-[9px] tracking-[0.25em] text-cyan-600/60 font-mono">
-        <div>CORE_SYS // ONLINE</div>
-        <div id="status" class="text-cyan-400 font-bold animate-pulse">MARK_XXV</div>
+    <!-- HUDヘッダー（極めて控えめでスタイリッシュな文字情報） -->
+    <header class="w-full flex justify-between items-center px-2 text-[8px] tracking-[0.3em] text-cyan-700/50 font-mono">
+        <div>AMBIENT_MODE // ENGAGED</div>
+        <div id="status" class="text-cyan-500 font-bold opacity-80">MARK_XXV</div>
     </header>
 
-    <!-- メイン：画像のデザインを完全に具現化したアークリアクター -->
+    <!-- メイン：画像をベースにしつつ、目に優しいトーンに仕上げたアークリアクター -->
     <main class="flex-1 flex flex-col items-center justify-center relative">
-        <div id="jarvisCore" class="w-[310px] h-[310px] bg-transparent cursor-pointer relative pulse-ambient active:scale-95 transition-transform">
+        <div id="jarvisCore" class="w-[300px] h-[300px] bg-transparent cursor-pointer relative pulse-ambient active:scale-95 transition-transform">
             <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible reactor-glow">
                 
                 <!-- 背景ベース -->
                 <circle cx="300" cy="300" r="260" fill="#000000" />
                 
-                <!-- Layer 4: 最外周の極細デザインサークル -->
+                <!-- Layer 4: 最外周（上品な極細ダッシュライン） -->
                 <g class="rot-outer">
-                    <circle cx="300" cy="300" r="250" fill="none" stroke="rgba(0, 185, 255, 0.2)" stroke-width="1" />
-                    <circle cx="300" cy="300" r="242" fill="none" stroke="#0044ff" stroke-width="1.5" stroke-dasharray="4 12 40 12" opacity="0.6" />
+                    <circle cx="300" cy="300" r="248" fill="none" stroke="rgba(0, 150, 255, 0.15)" stroke-width="1" />
+                    <circle cx="300" cy="300" r="240" fill="none" stroke="#0033cc" stroke-width="1.5" stroke-dasharray="8 20 80 20" opacity="0.5" />
                 </g>
 
-                <!-- Layer 3: 画像で最も印象的な「太い分割クリアブルーアーク」 -->
+                <!-- Layer 3: アルバム画像より、美しく途切れるセミワイドなアークブロック -->
                 <g class="rot-main">
-                    <!-- 太さ14pxの重厚な光のブロック -->
-                    <circle class="color-bind-1" cx="300" cy="300" r="215" fill="none" stroke="#00b9ff" stroke-width="14" stroke-dasharray="140 40 80 50 180 40" stroke-linecap="butt" />
-                    <circle cx="300" cy="300" r="195" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-dasharray="6 6" />
+                    <!-- 線幅を少し抑えた10pxに調整し、圧迫感を減らしました -->
+                    <circle class="color-bind-1" cx="300" cy="300" r="215" fill="none" stroke="#0099ff" stroke-width="10" stroke-dasharray="160 50 60 40 120 70" stroke-linecap="round" />
+                    <circle cx="300" cy="300" r="198" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-dasharray="4 8" />
                 </g>
 
-                <!-- Layer 2: 濃い青とクリアブルーが交差するインナーバリア -->
+                <!-- Layer 2: ディープブルーの落ち着いたセクターレイヤー -->
                 <g class="rot-inner">
-                    <circle class="color-bind-1" cx="300" cy="300" r="170" fill="none" stroke="#0022cc" stroke-width="6" stroke-dasharray="200 40 50 30" />
-                    <circle class="color-bind-2" cx="300" cy="300" r="152" fill="none" stroke="#00d2ff" stroke-width="3" stroke-dasharray="10 15" />
+                    <circle class="color-bind-1" cx="300" cy="300" r="172" fill="none" stroke="#0011aa" stroke-width="5" stroke-dasharray="180 60" />
+                    <circle class="color-bind-2" cx="300" cy="300" r="155" fill="none" stroke="#0088ff" stroke-width="2" stroke-dasharray="20 10" opacity="0.8" />
                 </g>
 
-                <!-- Layer 1: 最中心部・エネルギーが凝縮するホワイトインナーサークル -->
+                <!-- Layer 1: 最中心（エネルギーが静かに収束するホワイトコア） -->
                 <g class="rot-core">
-                    <circle cx="300" cy="300" r="125" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-dasharray="40 10 15 10" />
-                    <circle class="color-bind-2" cx="300" cy="300" r="110" fill="none" stroke="#00b9ff" stroke-width="4" />
-                    <circle cx="300" cy="300" r="95" fill="none" stroke="#0044ff" stroke-width="2" stroke-dasharray="2 4" />
+                    <circle cx="300" cy="300" r="130" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2" stroke-dasharray="50 15" />
+                    <circle class="color-bind-2" cx="300" cy="300" r="115" fill="none" stroke="#0099ff" stroke-width="3" />
+                    <circle cx="300" cy="300" r="100" fill="none" stroke="#0022cc" stroke-width="1.5" stroke-dasharray="2 4" />
                 </g>
 
-                <!-- コアの中心文字「JARVIS」 圧倒的なホワイトグロー -->
-                <text id="core-text" class="text-glow font-sans font-black tracking-[0.2em]" x="303" y="310" text-anchor="middle" font-size="40">JARVIS</text>
+                <!-- コアの中心文字「JARVIS」 輝きを上品に抑えたホワイトグロー -->
+                <text id="core-text" class="text-glow font-sans font-black tracking-[0.2em]" x="303" y="310" text-anchor="middle" font-size="38">JARVIS</text>
             </svg>
         </div>
     </main>
 
-    <!-- フッター：映画のシネマティックなホログラム字幕領域（デザイン重視で極めてスタイリッシュに） -->
+    <!-- フッター：映画風のシネマティックなホログラム字幕領域（テキストの輝きもマイルドに） -->
     <footer class="w-full flex flex-col items-center justify-center pb-6 gap-5">
-        <div id="response" class="text-center text-sm font-sans font-medium max-w-xs text-cyan-100 min-h-[45px] px-4 tracking-wide leading-relaxed drop-shadow-[0_0_12px_rgba(0,240,255,0.85)]">
-            パワードスーツ、アークリアクター共調完了。いつでもどうぞ、ボス。
+        <div id="response" class="text-center text-sm font-sans font-medium max-w-xs text-cyan-200/90 min-h-[45px] px-4 tracking-wide leading-relaxed drop-shadow-[0_0_8px_rgba(0,180,255,0.6)]">
+            アンビエント・モード稼働。目の負担を軽減しました、ボス。
         </div>
 
-        <!-- 隠し味：超ミニマルなAPI確定フォーム（デザインを邪魔しない漆黒スタイル） -->
-        <div class="w-full max-w-xs flex gap-2 opacity-20 hover:opacity-100 transition-opacity duration-300">
-            <input type="password" id="api-key-input" placeholder="ENTER GEMINI_API_KEY" class="flex-1 bg-neutral-950 border border-cyan-950 rounded px-3 py-2 text-[9px] text-center text-cyan-400 focus:outline-none focus:border-cyan-500 tracking-widest">
-            <button id="save-key-btn" class="bg-cyan-950/40 border border-cyan-900 text-cyan-500 rounded px-3 py-1 text-xs font-bold active:bg-cyan-500 active:text-black transition-colors">確定</button>
+        <!-- ミニマルなAPI確定フォーム（背景に完全に溶け込む漆黒スタイル） -->
+        <div class="w-full max-w-xs flex gap-2 opacity-10 hover:opacity-90 transition-opacity duration-300">
+            <input type="password" id="api-key-input" placeholder="ENTER GEMINI_API_KEY" class="flex-1 bg-neutral-950 border border-neutral-900 rounded px-3 py-2 text-[9px] text-center text-cyan-500 focus:outline-none focus:border-cyan-700 tracking-widest">
+            <button id="save-key-btn" class="bg-neutral-950 border border-neutral-800 text-cyan-600 countries rounded px-3 py-1 text-xs font-bold active:bg-cyan-600 active:text-black transition-colors">確定</button>
         </div>
     </footer>
 
@@ -118,7 +118,7 @@ body {
 
         if (localStorage.getItem('gemini_key')) {
             apiKeyInput.value = localStorage.getItem('gemini_key');
-            responseDiv.innerText = "全システム、スタンドバイ。コアをタップしてください、ボス。";
+            responseDiv.innerText = "全システム、正常稼働中。いつでもどうぞ、ボス。";
         }
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -134,7 +134,7 @@ body {
             let key = apiKeyInput.value.trim().replace(/[\n\r\s]/g, "");
             if (key) {
                 localStorage.setItem('gemini_key', key);
-                responseDiv.innerText = "APIキーをシステムに格納しました。コアをタップしてテストしてください、ボス。";
+                responseDiv.innerText = "APIキーを格納。コアをタップして起動してください、ボス。";
                 apiKeyInput.blur();
             } else {
                 responseDiv.innerText = "有効なキーを入力してください、ボス。";
@@ -165,7 +165,7 @@ body {
                 document.body.classList.add('listening-state');
                 coreText.textContent = "LISTEN";
                 statusText.innerText = "CAPTURING";
-                statusText.className = "text-red-500 font-bold animate-pulse";
+                statusText.className = "text-red-500 font-bold";
                 responseDiv.innerText = "ボスの指示を聴いています...";
             };
 
@@ -173,7 +173,7 @@ body {
                 document.body.classList.remove('listening-state');
                 coreText.textContent = "JARVIS";
                 statusText.innerText = "MARK_XXV";
-                statusText.className = "text-cyan-400 font-bold animate-pulse";
+                statusText.className = "text-cyan-500 font-bold";
             };
 
             recognition.onresult = async (event) => {
@@ -197,9 +197,10 @@ body {
                         statusText.innerText = "ERROR";
                         return;
                     }
+
                     const aiText = data.candidates.content.parts.text;
-responseDiv.innerText = aiText;
-statusText.innerText = "MARK_XXV";
+                    responseDiv.innerText = aiText;
+                    statusText.innerText = "MARK_XXV";
 speak(aiText);
 } catch (err) {
 responseDiv.innerText = "通信エラーです。キーに間違いがないか、もう一度ご確認ください、ボス。";
@@ -207,4 +208,3 @@ statusText.innerText = "LINK_DOWN";
 }
 };
 }
-
