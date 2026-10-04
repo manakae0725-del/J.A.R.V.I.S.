@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JARVIS - High-Precision Core UI</title>
+    <title>JARVIS - Exact Hologram Core UI</title>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -14,24 +14,25 @@
         body, html {
             width: 100%;
             height: 100%;
-            background-color: #000205;
+            background-color: #000103;
             overflow: hidden;
             font-family: 'Courier New', Courier, monospace;
-            color: #00e1ff;
+            color: #00d9ff;
         }
 
-        .jarvis-container {
+        /* 画面全体の中央に垂直軸システムを配置 */
+        .jarvis-screen {
             position: relative;
             width: 100vw;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: radial-gradient(circle at center, #030c1b 0%, #000308 75%, #000000 100%);
+            background: radial-gradient(circle at center, #041022 0%, #000205 70%, #000000 100%);
         }
 
-        /* 背景ダスト・パーティクル */
-        #bgCanvas {
+        /* 背景ダストパーティクル用Canvas */
+        #bgDustCanvas {
             position: absolute;
             top: 0;
             left: 0;
@@ -41,359 +42,284 @@
             z-index: 1;
         }
 
-        /* 全体スケールコンテナ */
-        .jarvis-core-system {
+        /* ==========================================
+           完全な同軸上縦型ホログラム装置全体コンテナ
+           ========================================== */
+        .hologram-vertical-system {
             position: relative;
-            width: 360px;
-            height: 600px;
+            width: 380px;
+            height: 620px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            transform: scale(var(--ui-scale, 1));
+            transform: scale(var(--system-scale, 1));
             transition: transform 0.3s ease;
             z-index: 2;
-            filter: drop-shadow(0 0 30px rgba(0, 215, 255, 0.35));
+            filter: drop-shadow(0 0 35px rgba(0, 217, 255, 0.4));
         }
 
         @media (min-width: 768px) {
-            .jarvis-core-system { width: 440px; height: 680px; }
+            .hologram-vertical-system { width: 440px; height: 700px; }
         }
 
         /* ==========================================
-           1. 上下ホログラムプラットフォーム
+           1. 真上の浮遊円盤状リング
            ========================================== */
-        .platform-top, .platform-bottom {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%) rotateX(75deg);
+        .hologram-disc-top {
+            position: relative;
+            width: 260px;
+            height: 70px;
+            border-radius: 50%;
+            transform: rotateX(68deg);
             transform-style: preserve-3d;
-            pointer-events: none;
+            animation: rotateCW 18s linear infinite;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
         }
 
-        .platform-top {
-            top: 15px;
-            width: 280px;
-            height: 280px;
-            animation: spinCW 25s linear infinite;
-        }
-
-        .platform-bottom {
-            bottom: 15px;
-            width: 320px;
-            height: 320px;
-            animation: spinCCW 30s linear infinite;
-        }
-
-        .p-ring {
+        .disc-ring-line {
             position: absolute;
+            inset: 0;
             border-radius: 50%;
-            border: 1px solid rgba(0, 225, 255, 0.4);
-            box-shadow: 0 0 12px rgba(0, 225, 255, 0.25), inset 0 0 12px rgba(0, 225, 255, 0.25);
+            border: 1px solid rgba(0, 217, 255, 0.5);
+            box-shadow: inset 0 0 10px rgba(0, 217, 255, 0.3);
         }
-
-        .p-ring:nth-child(1) { inset: 0px; border-width: 2px; border-style: dashed; border-color: rgba(0,225,255,0.3); }
-        .p-ring:nth-child(2) { inset: 30px; border-width: 1px; }
-        .p-ring:nth-child(3) { inset: 65px; border-width: 3px; border-color: rgba(0,225,255,0.7); border-left-color: transparent; border-right-color: transparent; }
-        .p-ring:nth-child(4) { inset: 95px; border-width: 1px; border-style: dotted; }
-        .p-ring:nth-child(5) { inset: 110px; border-width: 4px; border-color: #ffffff; box-shadow: 0 0 20px #00e1ff; }
+        .disc-ring-line:nth-child(1) { inset: 0px; border-width: 2px; border-style: dashed; }
+        .disc-ring-line:nth-child(2) { inset: 12px; border-width: 1px; }
+        .disc-ring-line:nth-child(3) { inset: 26px; border-width: 3px; border-color: #00d9ff; border-left-color: transparent; border-right-color: transparent; }
+        .disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
 
         /* ==========================================
-           2. 中央垂直エネルギービーム（上下をつなぐ光の柱）
+           2. 中央 Core ユニット（完全な正円形HUD ＆ スフィア）
            ========================================== */
-        .vertical-beam-container {
-            position: absolute;
-            width: 100%;
-            height: 100%;
+        .core-unit-center {
+            position: relative;
+            width: 340px;
+            height: 340px;
             display: flex;
             justify-content: center;
             align-items: center;
+        }
+
+        @media (min-width: 768px) {
+            .core-unit-center { width: 400px; height: 400px; }
+        }
+
+        /* 縦軸を貫くエネルギー柱の光線 */
+        .vertical-light-beam {
+            position: absolute;
+            width: 4px;
+            height: 140%;
+            top: -20%;
+            background: linear-gradient(to bottom, transparent, rgba(0,217,255,0.7), #ffffff, rgba(0,217,255,0.7), transparent);
+            box-shadow: 0 0 25px #00d9ff, 0 0 50px #00d9ff;
             pointer-events: none;
-            z-index: 3;
+            z-index: 5;
         }
 
-        .energy-beam {
-            position: absolute;
-            width: 6px;
-            height: 90%;
-            background: linear-gradient(to bottom, 
-                transparent 0%, 
-                rgba(0, 225, 255, 0.8) 25%, 
-                #ffffff 50%, 
-                rgba(0, 225, 255, 0.8) 75%, 
-                transparent 100%);
-            box-shadow: 0 0 25px #00e1ff, 0 0 50px #00e1ff, inset 0 0 10px #ffffff;
-            filter: blur(0.5px);
-        }
-
-        .beam-particles {
-            position: absolute;
-            width: 2px;
-            height: 100%;
-            background: repeating-linear-gradient(to bottom, #fff, #fff 4px, transparent 4px, transparent 16px);
-            animation: beamFlow 1.5s linear infinite;
-        }
-
-        /* ==========================================
-           3. 中央 Core（ホログラフィック・スフィア＆HUDリング）
-           ========================================== */
-        .core-sphere-wrapper {
-            position: absolute;
-            width: 320px;
-            height: 320px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 4;
-        }
-
-        /* 多重円形HUDリング（SVGおよびCSSによる精密セグメント） */
-        .hud-svg-layer {
+        /* 多重同心円HUDリング (SVG描画による精密な正円構造) */
+        .hud-svg-ring {
             position: absolute;
             width: 100%;
             height: 100%;
             pointer-events: none;
         }
+        .ring-spin-cw-1 { animation: rotateCW 25s linear infinite; transform-origin: center; }
+        .ring-spin-ccw-1 { animation: rotateCCW 30s linear infinite; transform-origin: center; opacity: 0.85; }
+        .ring-spin-cw-2 { animation: rotateCW 12s linear infinite; transform-origin: center; opacity: 0.95; }
 
-        .svg-ring-1 { animation: spinCW 18s linear infinite; transform-origin: center; }
-        .svg-ring-2 { animation: spinCCW 24s linear infinite; transform-origin: center; opacity: 0.85; }
-        .svg-ring-3 { animation: spinCW 12s linear infinite; transform-origin: center; opacity: 0.9; }
-
-        /* 外側の太いセグメント・アーク群 */
-        .segment-ring-outer {
+        /* CSSによる同心円アーク・セグメント */
+        .hud-css-ring {
             position: absolute;
-            width: 100%;
-            height: 100%;
             border-radius: 50%;
+            pointer-events: none;
+        }
+        .hud-arc-outer {
+            width: 94%;
+            height: 94%;
             border: 2px solid transparent;
-            border-top: 4px solid #00e1ff;
-            border-bottom: 4px solid #00e1ff;
-            box-shadow: 0 0 15px rgba(0, 225, 255, 0.5);
-            animation: spinCW 15s linear infinite;
+            border-top: 3px solid rgba(0, 217, 255, 0.9);
+            border-bottom: 3px solid rgba(0, 217, 255, 0.9);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+            animation: rotateCW 15s linear infinite;
         }
-
-        .segment-ring-dashed {
-            position: absolute;
-            width: 86%;
-            height: 86%;
-            border-radius: 50%;
-            border: 2px dashed rgba(0, 225, 255, 0.5);
-            animation: spinCCW 20s linear infinite;
+        .hud-dashed-circle {
+            width: 82%;
+            height: 82%;
+            border: 2px dashed rgba(0, 217, 255, 0.4);
+            animation: rotateCCW 22s linear infinite;
         }
-
-        .segment-arc-blocks {
-            position: absolute;
-            width: 72%;
-            height: 72%;
-            border-radius: 50%;
+        .hud-block-segments {
+            width: 68%;
+            height: 68%;
             border: 3px solid transparent;
-            border-left: 6px solid rgba(0, 225, 255, 0.9);
-            border-right: 6px solid rgba(0, 225, 255, 0.9);
-            box-shadow: 0 0 20px rgba(0, 225, 255, 0.4);
-            animation: spinCW 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            border-left: 5px solid #00d9ff;
+            border-right: 5px solid #00d9ff;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.6);
+            animation: rotateCW 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
 
-        /* 最内側の発光コアサークル */
-        .core-nucleus {
+        /* 中央の最も眩しく光る正円Coreサークル */
+        .core-sphere-nucleus {
             position: absolute;
             width: 140px;
             height: 140px;
             border-radius: 50%;
-            background: radial-gradient(circle, #ffffff 0%, #00d2ff 35%, #0048cc 75%, #010c24 100%);
-            box-shadow: 0 0 40px #00e1ff, 0 0 80px rgba(0, 225, 255, 0.7), inset 0 0 25px #ffffff;
+            background: radial-gradient(circle, #ffffff 0%, #00d9ff 35%, #0048cc 75%, #010a1a 100%);
+            box-shadow: 0 0 40px #00d9ff, 0 0 80px rgba(0, 217, 255, 0.8), inset 0 0 25px #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
             animation: corePulse 3.5s ease-in-out infinite;
+            z-index: 6;
         }
 
-        /* 内部のテックギミック線 */
-        .core-nucleus::before {
-            content: '';
-            position: absolute;
-            inset: 6px;
-            border-radius: 50%;
-            border: 1px dashed rgba(255, 255, 255, 0.6);
-            animation: spinCCW 10s linear infinite;
+        @media (min-width: 768px) {
+            .core-sphere-nucleus { width: 160px; height: 160px; }
         }
 
-        /* JARVIS ロゴ文字 */
-        .jarvis-brand {
-            position: relative;
-            font-size: 1.25rem;
+        /* JARVIS ロゴタイポグラフィ */
+        .jarvis-text-logo {
+            font-size: 1.2rem;
             font-weight: 900;
             letter-spacing: 0.4em;
             color: #ffffff;
-            text-shadow: 0 0 10px #00e1ff, 0 0 20px #00e1ff, 0 0 35px #00e1ff;
-            z-index: 5;
+            text-shadow: 0 0 10px #00d9ff, 0 0 20px #00d9ff, 0 0 35px #00d9ff;
+            z-index: 7;
             animation: textGlow 4s ease-in-out infinite;
         }
 
-        /* 左右のレンズフレア・光芒 */
-        .horizontal-flare {
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(0, 225, 255, 0.8), #ffffff, rgba(0, 225, 255, 0.8), transparent);
-            box-shadow: 0 0 25px #00e1ff;
-            pointer-events: none;
-            z-index: 4;
+        /* ==========================================
+           3. 真下の浮遊円盤状リング
+           ========================================== */
+        .hologram-disc-bottom {
+            position: relative;
+            width: 280px;
+            height: 75px;
+            border-radius: 50%;
+            transform: rotateX(68deg);
+            transform-style: preserve-3d;
+            animation: rotateCCW 20s linear infinite;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
         }
 
         /* ==========================================
-           4. アニメーション定義
+           アニメーション定義
            ========================================== */
-        @keyframes spinCW {
+        @keyframes rotateCW {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
 
-        @keyframes spinCCW {
+        @keyframes rotateCCW {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(-360deg); }
-        }
-
-        @keyframes beamFlow {
-            0% { background-position: 0 0; }
-            100% { background-position: 0 40px; }
         }
 
         @keyframes corePulse {
             0%, 100% {
                 transform: scale(0.96);
-                box-shadow: 0 0 35px #00e1ff, 0 0 70px rgba(0, 225, 255, 0.6), inset 0 0 20px #ffffff;
+                box-shadow: 0 0 35px #00d9ff, 0 0 70px rgba(0, 217, 255, 0.6), inset 0 0 20px #ffffff;
             }
             50% {
                 transform: scale(1.04);
-                box-shadow: 0 0 50px #00e1ff, 0 0 100px rgba(0, 225, 255, 0.9), inset 0 0 35px #ffffff;
+                box-shadow: 0 0 50px #00d9ff, 0 0 100px rgba(0, 217, 255, 0.9), inset 0 0 35px #ffffff;
             }
         }
 
         @keyframes textGlow {
-            0%, 100% { text-shadow: 0 0 10px #00e1ff, 0 0 20px #00e1ff; opacity: 0.9; }
-            50% { text-shadow: 0 0 15px #00e1ff, 0 0 30px #ffffff, 0 0 45px #00e1ff; opacity: 1; }
-        }
-
-        /* 将来の左右パネル用グリッド拡張エリア（PC表示時） */
-        .side-panel-left, .side-panel-right {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 280px;
-            height: 75vh;
-            display: none;
-            z-index: 10;
-            pointer-events: none;
-        }
-        .side-panel-left { left: 40px; }
-        .side-panel-right { right: 40px; }
-
-        @media (min-width: 1280px) {
-            .side-panel-left, .side-panel-right { display: block; }
+            0%, 100% { text-shadow: 0 0 10px #00d9ff, 0 0 20px #00d9ff; opacity: 0.9; }
+            50% { text-shadow: 0 0 15px #00d9ff, 0 0 30px #ffffff, 0 0 45px #00d9ff; opacity: 1; }
         }
     </style>
 </head>
 <body>
 
-    <div class="jarvis-container">
-        <!-- 背景ダストパーティクル -->
-        <canvas id="bgCanvas"></canvas>
+    <div class="jarvis-screen">
+        <!-- 背景の発光・浮遊ダストパーティクル -->
+        <canvas id="bgDustCanvas"></canvas>
 
-        <!-- 将来の拡張パネル（左） -->
-        <div class="side-panel-left"></div>
-
-        <!-- JARVIS Core UI システム本体 -->
-        <div class="jarvis-core-system" id="coreSystem">
+        <!-- 同軸縦型ホログラム装置システム -->
+        <div class="hologram-vertical-system" id="verticalSystem">
             
-            <!-- 上部ホログラムプラットフォーム -->
-            <div class="platform-top">
-                <div class="p-ring"></div>
-                <div class="p-ring"></div>
-                <div class="p-ring"></div>
-                <div class="p-ring"></div>
-                <div class="p-ring"></div>
+            <!-- 上部浮遊円盤リング -->
+            <div class="hologram-disc-top">
+                <div class="disc-ring-line"></div>
+                <div class="disc-ring-line"></div>
+                <div class="disc-ring-line"></div>
+                <div class="disc-ring-line"></div>
             </div>
 
-            <!-- 下部ホログラムプラットフォーム -->
-            <div class="platform-bottom">
-                <div class="p-ring"></div>
-                <div class="p-ring"></div>
-                <div class="p-ring"></div>
-                <div class="p-ring"></div>
-                <div class="p-ring"></div>
-            </div>
+            <!-- 中央 Core ユニット（縦エネルギー軸 ＆ 同心円HUD ＆ 正円スフィア） -->
+            <div class="core-unit-center">
+                <!-- 垂直エネルギービーム -->
+                <div class="vertical-light-beam"></div>
 
-            <!-- 垂直エネルギー柱 -->
-            <div class="vertical-beam-container">
-                <div class="energy-beam">
-                    <div class="beam-particles"></div>
+                <!-- SVG精密同心円リング -->
+                <svg class="hud-svg-ring ring-spin-cw-1" viewBox="0 0 300 300">
+                    <circle cx="150" cy="150" r="142" fill="none" stroke="rgba(0,217,255,0.3)" stroke-width="1.5" stroke-dasharray="12 6 3 6"/>
+                    <circle cx="150" cy="150" r="130" fill="none" stroke="rgba(0,217,255,0.6)" stroke-width="2" stroke-dasharray="45 20 5 15"/>
+                </svg>
+
+                <svg class="hud-svg-ring ring-spin-ccw-1" viewBox="0 0 300 300">
+                    <circle cx="150" cy="150" r="115" fill="none" stroke="rgba(0,217,255,0.4)" stroke-width="1" stroke-dasharray="6 12"/>
+                    <circle cx="150" cy="150" r="100" fill="none" stroke="rgba(0,217,255,0.7)" stroke-width="2" stroke-dasharray="80 40 20 10"/>
+                </svg>
+
+                <svg class="hud-svg-ring ring-spin-cw-2" viewBox="0 0 300 300">
+                    <circle cx="150" cy="150" r="84" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-dasharray="15 30 10 15"/>
+                </svg>
+
+                <!-- CSSセグメントリング -->
+                <div class="hud-css-ring hud-arc-outer"></div>
+                <div class="hud-css-ring hud-dashed-circle"></div>
+                <div class="hud-css-ring hud-block-segments"></div>
+
+                <!-- 中央正円スフィア ＆ JARVISロゴ -->
+                <div class="core-sphere-nucleus">
+                    <div class="jarvis-text-logo">JARVIS</div>
                 </div>
             </div>
 
-            <!-- 左右水平レンズフレア -->
-            <div class="horizontal-flare"></div>
-
-            <!-- 中央 Core 構造 -->
-            <div class="core-sphere-wrapper">
-                <!-- SVGによる精密なデジタルHUDリング -->
-                <svg class="hud-svg-layer svg-ring-1" viewBox="0 0 300 300">
-                    <circle cx="150" cy="150" r="142" fill="none" stroke="rgba(0,225,255,0.3)" stroke-width="1.5" stroke-dasharray="10 5 2 5"/>
-                    <circle cx="150" cy="150" r="130" fill="none" stroke="rgba(0,225,255,0.6)" stroke-width="2" stroke-dasharray="40 20 5 15"/>
-                </svg>
-
-                <svg class="hud-svg-layer svg-ring-2" viewBox="0 0 300 300">
-                    <circle cx="150" cy="150" r="115" fill="none" stroke="rgba(0,225,255,0.4)" stroke-width="1" stroke-dasharray="5 10"/>
-                    <circle cx="150" cy="150" r="100" fill="none" stroke="rgba(0,225,255,0.7)" stroke-width="2" stroke-dasharray="80 40 20 10"/>
-                </svg>
-
-                <svg class="hud-svg-layer svg-ring-3" viewBox="0 0 300 300">
-                    <circle cx="150" cy="150" r="85" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-dasharray="15 30 10 15"/>
-                </svg>
-
-                <!-- CSS幾何学ブロックセグメント -->
-                <div class="segment-ring-outer"></div>
-                <div class="segment-ring-dashed"></div>
-                <div class="segment-arc-blocks"></div>
-
-                <!-- 中央発光コアサークル ＆ ロゴ -->
-                <div class="core-nucleus">
-                    <div class="jarvis-brand">JARVIS</div>
-                </div>
+            <!-- 下部浮遊円盤リング -->
+            <div class="hologram-disc-bottom">
+                <div class="disc-ring-line"></div>
+                <div class="disc-ring-line"></div>
+                <div class="disc-ring-line"></div>
+                <div class="disc-ring-line"></div>
             </div>
 
         </div>
-
-        <!-- 将来の拡張パネル（右） -->
-        <div class="side-panel-right"></div>
     </div>
 
     <script>
-        // 背景の浮遊・発光パーティクル描画処理
-        const canvas = document.getElementById('bgCanvas');
+        // 背景パーティクル（微粒子エフェクト）
+        const canvas = document.getElementById('bgDustCanvas');
         const ctx = canvas.getContext('2d');
 
-        function initCanvas() {
+        function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
-        window.addEventListener('resize', initCanvas);
-        initCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
         const particles = [];
-        const count = 55;
+        const particleCount = 50;
 
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < particleCount; i++) {
             particles.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                radius: Math.random() * 1.6 + 0.4,
-                color: Math.random() > 0.25 ? 'rgba(0, 225, 255, ' : 'rgba(255, 255, 255, ',
+                radius: Math.random() * 1.5 + 0.4,
+                color: Math.random() > 0.3 ? 'rgba(0, 217, 255, ' : 'rgba(255, 255, 255, ',
                 alpha: Math.random() * 0.7 + 0.2,
-                speedY: (Math.random() * 0.5 - 0.25),
-                speedX: (Math.random() * 0.3 - 0.15)
+                speedY: (Math.random() * 0.4 - 0.2),
+                speedX: (Math.random() * 0.2 - 0.1)
             });
         }
 
-        function renderParticles() {
+        function animateParticles() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             particles.forEach(p => {
@@ -408,19 +334,19 @@
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
                 ctx.fillStyle = p.color + p.alpha + ')';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#00e1ff';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#00d9ff';
                 ctx.fill();
             });
 
-            requestAnimationFrame(renderParticles);
+            requestAnimationFrame(animateParticles);
         }
-        renderParticles();
+        animateParticles();
 
-        // 画面サイズに応じた自動スケーリング（iPhone最適化 ＆ 大画面対応）
-        function adjustScale() {
+        // 画面サイズに応じた自動スケーリング制御
+        function updateSystemScale() {
             const w = window.innerWidth;
-            const system = document.getElementById('coreSystem');
+            const system = document.getElementById('verticalSystem');
             let scale = 1;
 
             if (w < 400) {
@@ -430,11 +356,11 @@
             } else {
                 scale = 1.0;
             }
-            system.style.setProperty('--ui-scale', scale);
+            system.style.setProperty('--system-scale', scale);
         }
 
-        window.addEventListener('resize', adjustScale);
-        adjustScale();
+        window.addEventListener('resize', updateSystemScale);
+        updateSystemScale();
     </script>
 </body>
 </html>
