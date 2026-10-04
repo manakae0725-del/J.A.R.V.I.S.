@@ -30,7 +30,6 @@
             background: radial-gradient(circle at center, #010814 0%, #000205 70%, #000000 100%);
         }
 
-        /* 背景ダストパーティクル用Canvas */
         #bgDustCanvas {
             position: absolute;
             top: 0;
@@ -41,7 +40,6 @@
             z-index: 1;
         }
 
-        /* 縦型ホログラム装置全体コンテナ */
         .hologram-vertical-system {
             position: relative;
             width: 380px;
@@ -60,9 +58,6 @@
             .hologram-vertical-system { width: 440px; height: 700px; }
         }
 
-        /* ==========================================
-           1. 上部固定リング
-           ========================================== */
         .hologram-disc-top {
             position: relative;
             width: 260px;
@@ -85,9 +80,6 @@
         .disc-ring-line:nth-child(3) { inset: 26px; border-width: 3px; border-color: #0088ff; border-left-color: transparent; border-right-color: transparent; }
         .disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
 
-        /* ==========================================
-           2. 中央 Core ユニット ＋ 硬質な青い金属質感
-           ========================================== */
         .core-unit-center {
             position: relative;
             width: 340px;
@@ -102,7 +94,6 @@
             .core-unit-center { width: 400px; height: 400px; }
         }
 
-        /* 縦方向の中心線 */
         .vertical-light-beam {
             position: absolute;
             width: 1.5px;
@@ -114,7 +105,6 @@
             z-index: 3;
         }
 
-        /* 斜め楕円リング */
         .meridian-orbit-ring {
             position: absolute;
             width: 170px;
@@ -145,7 +135,6 @@
             box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 200, 255, 0.5), 0 0 5px rgba(0, 230, 255, 0.6);
         }
 
-        /* 中央正円Coreスフィア */
         .core-sphere-nucleus {
             position: absolute;
             width: 115px;
@@ -165,7 +154,6 @@
             .core-sphere-nucleus { width: 135px; height: 135px; }
         }
 
-        /* JARVIS ロゴタイポグラフィ */
         .jarvis-text-logo {
             font-size: 1.05rem;
             font-weight: 900;
@@ -176,9 +164,6 @@
             animation: textGlow 4s ease-in-out infinite;
         }
 
-        /* ==========================================
-           3. 下部固定リング
-           ========================================== */
         .hologram-disc-bottom {
             position: relative;
             width: 280px;
@@ -189,9 +174,6 @@
             box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
         }
 
-        /* ==========================================
-           SIDE HUD（スライドパネル）
-           ========================================== */
         .sideHUD {
             position: fixed;
             top: 0;
@@ -258,7 +240,6 @@
             pointer-events: none;
         }
 
-        /* アニメーション定義 */
         @keyframes orbitRotate1 {
             0% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(0deg); }
             100% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(360deg); }
@@ -297,27 +278,22 @@
         <canvas id="bgDustCanvas"></canvas>
         <div id="response"></div>
 
-        <!-- 左HUD -->
         <div id="leftHUD" class="sideHUD">
             <h2>J.A.R.V.I.S. CORE</h2>
             <div class="hudLine">CORE STATE<br><span id="leftHUDStatus">STANDBY</span></div>
             <div class="hudLine">SYSTEM<br><span id="leftHUDSystem">ONLINE</span></div>
-COMMUNICATION
-ONLINE
-SERVICES
-READY
-CONNECTION
-ACTIVE
-SETTINGS
-DEFAULT
-J.A.R.V.I.S. INFO
-DEVICE
-iPhone
-CONNECTION
-ONLINE
-WEATHER
---°C
+            <div class="hudLine">COMMUNICATION<br><span id="leftHUDCommunication">ONLINE</span></div>
+            <div class="hudLine">SERVICES<br><span id="leftHUDServices">READY</span></div>
+            <div class="hudLine">CONNECTION<br><span id="leftHUDConnection">ACTIVE</span></div>
+            <div class="hudLine">SETTINGS<br><span id="leftHUDSettings">DEFAULT</span></div>
+        </div>
 
+        <div id="rightHUD" class="sideHUD">
+            <h2>J.A.R.V.I.S. INFO</h2>
+            <div class="hudLine">DEVICE<br><span id="rightHUDDevice">iPhone</span></div>
+            <div class="hudLine">CONNECTION<br><span id="rightHUDConnection">ONLINE</span></div>
+            <div class="hudLine">WEATHER<br><span id="rightHUDWeather">--°C</span></div>
+            <div class="hudLine dateTimeWidget">
 DATE & TIME
 
 
@@ -331,64 +307,65 @@ SEARCH
 --
 JARVIS
 
-// ─── パーティクル背景の実装 ───
-const canvas = document.getElementById('bgDustCanvas');
-const ctx = canvas.getContext('2d');
-let particles = [];
+var canvas = document.getElementById("bgDustCanvas");
+var ctx = canvas.getContext("2d");
+var particles = [];
 function resizeCanvas() {
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 }
-window.addEventListener('resize', resizeCanvas);
+window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
-class Particle {
-constructor() {
+function Particle() {
 this.x = Math.random() * canvas.width;
 this.y = Math.random() * canvas.height;
 this.size = Math.random() * 1.5 + 0.5;
 this.speedY = Math.random() * -0.3 - 0.1;
 this.opacity = Math.random() * 0.5 + 0.2;
 }
-update() {
+Particle.prototype.update = function() {
 this.y += this.speedY;
 if (this.y < 0) {
 this.y = canvas.height;
 this.x = Math.random() * canvas.width;
 }
-}
-draw() {
-ctx.fillStyle = 'rgba(0, 153, 255, ' + this.opacity + ')';
+};
+Particle.prototype.draw = function() {
+ctx.fillStyle = "rgba(0, 153, 255, " + this.opacity + ")";
 ctx.beginPath();
 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
 ctx.fill();
+};
+for (var i = 0; i < 30; i++) {
+particles.push(new Particle());
 }
-}
-for (let i = 0; i < 30; i++) { particles.push(new Particle()); }
 function animate() {
 ctx.clearRect(0, 0, canvas.width, canvas.height);
-particles.forEach(p => { p.update(); p.draw(); });
+for (var j = 0; j < particles.length; j++) {
+particles[j].update();
+particles[j].draw();
+}
 requestAnimationFrame(animate);
 }
 animate();
-// ─── iPhone専用スワイプ検知ロジック ───
-const leftHUD = document.getElementById("leftHUD");
-const rightHUD = document.getElementById("rightHUD");
-let touchStartX = 0;
-let touchStartY = 0;
-document.addEventListener("touchstart", (e) => {
+var leftHUD = document.getElementById("leftHUD");
+var rightHUD = document.getElementById("rightHUD");
+var touchStartX = 0;
+var touchStartY = 0;
+document.addEventListener("touchstart", function(e) {
 touchStartX = e.changedTouches[0].screenX;
 touchStartY = e.changedTouches[0].screenY;
 }, { passive: true });
-document.addEventListener("touchend", (e) => {
-const touchEndX = e.changedTouches[0].screenX;
-const touchEndY = e.changedTouches[0].screenY;
-const deltaX = touchEndX - touchStartX;
-const deltaY = touchEndY - touchStartY;
-const absX = Math.abs(deltaX);
-const absY = Math.abs(deltaY);
+document.addEventListener("touchend", function(e) {
+var touchEndX = e.changedTouches[0].screenX;
+var touchEndY = e.changedTouches[0].screenY;
+var deltaX = touchEndX - touchStartX;
+var deltaY = touchEndY - touchStartY;
+var absX = Math.abs(deltaX);
+var absY = Math.abs(deltaY);
 if (absX < 80 && absY < 80) return;
 if (absX > absY) {
-if (deltaX < -80) { // 左スワイプ（右から左）
+if (deltaX < -80) {
 if (rightHUD.classList.contains("open")) {
 rightHUD.classList.remove("open");
 } else if (leftHUD.classList.contains("open")) {
@@ -396,7 +373,7 @@ leftHUD.classList.remove("open");
 } else {
 rightHUD.classList.add("open");
 }
-} else if (deltaX > 80) { // 右スワイプ（左から右）
+} else if (deltaX > 80) {
 if (leftHUD.classList.contains("open")) {
 leftHUD.classList.remove("open");
 } else if (rightHUD.classList.contains("open")) {
@@ -407,12 +384,11 @@ leftHUD.classList.add("open");
 }
 }
 });
-// ─── 時計ウィジェットの自動更新 ───
-const rightHUDDate = document.getElementById("rightHUDDate");
-const rightHUDWeekday = document.getElementById("rightHUDWeekday");
-const rightHUDTime = document.getElementById("rightHUDTime");
-setInterval(() => {
-const now = new Date();
+var rightHUDDate = document.getElementById("rightHUDDate");
+var rightHUDWeekday = document.getElementById("rightHUDWeekday");
+var rightHUDTime = document.getElementById("rightHUDTime");
+setInterval(function() {
+var now = new Date();
 rightHUDDate.textContent = now.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
 rightHUDWeekday.textContent = now.toLocaleDateString("ja-JP", { weekday: "long" });
 rightHUDTime.textContent = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
