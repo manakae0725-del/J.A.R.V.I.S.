@@ -1,369 +1,580 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JARVIS - 3D Meridian Rings Core UI with HUD</title>
-    <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JARVIS - 3D Meridian Rings Core UI with HUD</title>
+<style>
+*, *::before, *::after {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body, html {
+width: 100%;
+height: 100%;
+background-color: #000103;
+overflow: hidden;
+font-family: 'Courier New', Courier, monospace;
+color: #0099ff;
+}
+.jarvis-screen {
+position: relative;
+width: 100vw;
+height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+background: radial-gradient(circle at center, #010814 0%, #000205 70%, #000000 100%);
+}
+#bgDustCanvas {
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+pointer-events: none;
+z-index: 1;
+}
+.hologram-vertical-system {
+position: relative;
+width: 380px;
+height: 620px;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+align-items: center;
+transform: scale(var(--system-scale, 1));
+transition: transform 0.3s ease;
+z-index: 2;
+filter: drop-shadow(0 0 35px rgba(0, 119, 255, 0.7));
+}
+@media (min-width: 768px) {
+.hologram-vertical-system { width: 440px; height: 700px; }
+}
+/* 上部固定リング */
+.hologram-disc-top {
+position: relative;
+width: 260px;
+height: 70px;
+border-radius: 50%;
+transform: rotateX(68deg);
+transform-style: preserve-3d;
+box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
+}
+.disc-ring-line {
+position: absolute;
+inset: 0;
+border-radius: 50%;
+border: 1px solid rgba(0, 136, 255, 0.85);
+box-shadow: inset 0 0 10px rgba(0, 136, 255, 0.5), 0 0 3px rgba(0, 200, 255, 0.3);
+}
+.disc-ring-line:nth-child(1) { inset: 0px; border-width: 2px; border-style: dashed; }
+.disc-ring-line:nth-child(2) { inset: 12px; border-width: 1px; }
+.disc-ring-line:nth-child(3) { inset: 26px; border-width: 3px; border-color: #0088ff; border-left-color: transparent; border-right-color: transparent; }
+.disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            background-color: #000103;
-            overflow: hidden;
-            font-family: 'Courier New', Courier, monospace;
-            color: #0099ff;
-        }
+/* 中央 Core ユニット */
+.core-unit-center {
+position: relative;
+width: 340px;
+height: 340px;
+display: flex;
+justify-content: center;
+align-items: center;
+perspective: 1000px;
+}
+@media (min-width: 768px) {
+.core-unit-center { width: 400px; height: 400px; }
+}
+.vertical-light-beam {
+position: absolute;
+width: 1.5px;
+height: 140%;
+top: -20%;
+background: linear-gradient(to bottom, transparent, rgba(0,136,255,0.9), #ffffff, rgba(0,136,255,0.9), transparent);
+box-shadow: 0 0 20px #0088ff, 0 0 40px #0055ff;
+pointer-events: none;
+z-index: 3;
+}
+.meridian-orbit-ring {
+position: absolute;
+width: 170px;
+height: 235px;
+border: 1.2px solid rgba(0, 136, 255, 0.9);
+border-radius: 50%;
+box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 180, 255, 0.4), 0 0 4px rgba(0, 220, 255, 0.5);
+pointer-events: none;
+z-index: 4;
+}
+.meridian-1 {
+transform: rotate3d(1, 0.8, 0, 55deg);
+animation: orbitRotate1 18s linear infinite;
+}
+.meridian-2 {
+transform: rotate3d(0.5, -1, 0.5, 70deg);
+animation: orbitRotate2 24s linear infinite;
+}
+.meridian-3 {
+transform: rotate3d(-0.8, 0.5, 1, 40deg);
+animation: orbitRotate3 20s linear infinite;
+border-color: rgba(0, 200, 255, 0.85);
+border-width: 1px;
+border-style: dashed;
+box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 200, 255, 0.5), 0 0 5px rgba(0, 230, 255, 0.6);
+}
+.core-sphere-nucleus {
+position: absolute;
+width: 115px;
+height: 115px;
+border-radius: 50%;
+background: radial-gradient(circle, #ffffff 0%, #0088ff 30%, #0022aa 75%, #000411 100%);
+box-shadow: 0 0 38px #0077ff, 0 0 75px rgba(0, 85, 255, 0.95), inset 0 0 20px #ffffff;
+display: flex;
+justify-content: center;
+align-items: center;
+animation: corePulse 3.5s ease-in-out infinite;
+z-index: 5;
+border: 1px solid rgba(0, 200, 255, 0.4);
+}
+@media (min-width: 768px) {
+.core-sphere-nucleus { width: 135px; height: 135px; }
+}
+.jarvis-text-logo {
+font-size: 1.05rem;
+font-weight: 900;
+letter-spacing: 0.35em;
+color: #ffffff;
+text-shadow: 0 0 10px #0088ff, 0 0 20px #0066ff, 0 0 35px #0044ff;
+z-index: 6;
+animation: textGlow 4s ease-in-out infinite;
+}
 
-        .jarvis-screen {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle at center, #010814 0%, #000205 70%, #000000 100%);
-        }
+/* 下部固定リング */
+.hologram-disc-bottom {
+position: relative;
+width: 280px;
+height: 75px;
+border-radius: 50%;
+transform: rotateX(68deg);
+transform-style: preserve-3d;
+box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
+}
 
-        #bgDustCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
+/* SIDE HUD PANEL (画像デザインに特化したリファデザイン) */
+.sideHUD {
+position: fixed;
+top: 0;
+width: 310px;
+height: 100%;
+box-sizing: border-box;
+padding: 25px 15px;
+background: rgba(1, 10, 22, 0.94);
+border-color: rgba(0, 153, 255, 0.3);
+z-index: 9000;
+transition: transform 0.25s ease;
+text-align: left;
+overflow-y: auto;
+}
+#leftHUD {
+left: 0;
+transform: translateX(-100%);
+border-right: 1px solid rgba(0, 153, 255, 0.35);
+box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+}
+#rightHUD {
+right: 0;
+transform: translateX(100%);
+border-left: 1px solid rgba(0, 153, 255, 0.35);
+box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+}
+#leftHUD.open, #rightHUD.open {
+transform: translateX(0);
+}
 
-        .hologram-vertical-system {
-            position: relative;
-            width: 380px;
-            height: 620px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            transform: scale(var(--system-scale, 1));
-            transition: transform 0.3s ease;
-            z-index: 2;
-            filter: drop-shadow(0 0 35px rgba(0, 119, 255, 0.7));
-        }
+/* HUD内部カード・モジュール */
+.hud-card {
+position: relative;
+background: rgba(0, 25, 50, 0.4);
+border: 1px solid rgba(0, 153, 255, 0.25);
+border-radius: 4px;
+padding: 12px;
+margin-bottom: 15px;
+box-shadow: inset 0 0 10px rgba(0, 136, 255, 0.1);
+}
+.hud-card-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 10px;
+border-bottom: 1px solid rgba(0, 153, 255, 0.2);
+padding-bottom: 6px;
+}
+.hud-card-title {
+color: #bfeaff;
+font-size: 13px;
+font-weight: bold;
+letter-spacing: 2px;
+}
+.hud-dots {
+color: #0099ff;
+letter-spacing: 2px;
+font-size: 12px;
+}
 
-        @media (min-width: 768px) {
-            .hologram-vertical-system { width: 440px; height: 700px; }
-        }
+/* 左HUD用：横棒グラフスタイル */
+.status-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 8px;
+font-size: 11px;
+}
+.status-label-group {
+display: flex;
+align-items: center;
+gap: 6px;
+color: #8acfff;
+width: 95px;
+}
+.status-bar-bg {
+flex-grow: 1;
+height: 6px;
+background: rgba(0, 80, 160, 0.2);
+border-radius: 2px;
+overflow: hidden;
+margin: 0 8px;
+border: 1px solid rgba(0, 153, 255, 0.3);
+}
+.status-bar-fill {
+height: 100%;
+background: linear-gradient(90deg, #0077ff, #00d2ff);
+box-shadow: 0 0 6px #0099ff;
+}
+.status-value {
+width: 32px;
+text-align: right;
+color: #e0f2ff;
+font-weight: bold;
+}
 
-        /* 上部固定リング */
-        .hologram-disc-top {
-            position: relative;
-            width: 260px;
-            height: 70px;
-            border-radius: 50%;
-            transform: rotateX(68deg);
-            transform-style: preserve-3d;
-            box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
-        }
+/* デバイスステータス用 */
+.device-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 8px;
+font-size: 11px;
+}
+.device-info-left {
+display: flex;
+align-items: center;
+gap: 6px;
+color: #8acfff;
+}
+.device-status-right {
+display: flex;
+align-items: center;
+gap: 5px;
+color: #00ffcc;
+font-weight: bold;
+}
+.status-dot {
+width: 6px;
+height: 6px;
+background-color: #00ffcc;
+border-radius: 50%;
+box-shadow: 0 0 6px #00ffcc;
+}
+.battery-inline-container {
+display: flex;
+align-items: center;
+gap: 6px;
+}
+.mini-battery-frame {
+width: 24px;
+height: 11px;
+border: 1px solid rgba(0, 153, 255, 0.6);
+border-radius: 2px;
+padding: 1px;
+display: flex;
+align-items: center;
+}
+.mini-battery-inner {
+width: 82%;
+height: 100%;
+background: #00d2ff;
+box-shadow: 0 0 4px #00d2ff;
+}
 
-        .disc-ring-line {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 1px solid rgba(0, 136, 255, 0.85);
-            box-shadow: inset 0 0 10px rgba(0, 136, 255, 0.5), 0 0 3px rgba(0, 200, 255, 0.3);
-        }
-        .disc-ring-line:nth-child(1) { inset: 0px; border-width: 2px; border-style: dashed; }
-        .disc-ring-line:nth-child(2) { inset: 12px; border-width: 1px; }
-        .disc-ring-line:nth-child(3) { inset: 26px; border-width: 3px; border-color: #0088ff; border-left-color: transparent; border-right-color: transparent; }
-        .disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
+/* 右HUD用：天気予報スタイル */
+.weather-main-box {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 12px;
+}
+.weather-location {
+font-size: 12px;
+color: #bfeaff;
+margin-bottom: 2px;
+}
+.weather-temp-display {
+font-size: 20px;
+font-weight: bold;
+color: #ffffff;
+text-shadow: 0 0 8px rgba(0,153,255,0.8);
+}
+.weather-condition-text {
+font-size: 11px;
+color: #8acfff;
+}
+.weather-high-low {
+font-size: 11px;
+color: #a0d8ff;
+text-align: right;
+line-height: 1.3;
+}
+.hourly-forecast-grid {
+display: flex;
+justify-content: space-between;
+border-top: 1px dashed rgba(0, 153, 255, 0.2);
+padding-top: 8px;
+text-align: center;
+}
+.hourly-col {
+font-size: 9px;
+color: #7ab8ff;
+display: flex;
+flex-direction: column;
+gap: 3px;
+}
 
-        /* 中央 Core ユニット ＋ 硬質な青い金属質感 */
-        .core-unit-center {
-            position: relative;
-            width: 340px;
-            height: 340px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            perspective: 1000px;
-        }
+/* 通知・ログリストスタイル */
+.notif-item {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 8px;
+font-size: 11px;
+}
+.notif-left {
+display: flex;
+align-items: center;
+gap: 6px;
+color: #a0d8ff;
+}
+.notif-dot {
+width: 5px;
+height: 5px;
+background: #0099ff;
+border-radius: 50%;
+box-shadow: 0 0 4px #0099ff;
+}
+.notif-time {
+font-size: 10px;
+color: #61a6ff;
+}
 
-        @media (min-width: 768px) {
-            .core-unit-center { width: 400px; height: 400px; }
-        }
+#response {
+position: absolute;
+top: 30px;
+width: 100%;
+padding: 0 20px;
+color: white;
+font-size: 16px;
+word-break: break-word;
+line-height: 1.7;
+z-index: 10;
+pointer-events: none;
+}
 
-        /* 縦方向の中心線 */
-        .vertical-light-beam {
-            position: absolute;
-            width: 1.5px;
-            height: 140%;
-            top: -20%;
-            background: linear-gradient(to bottom, transparent, rgba(0,136,255,0.9), #ffffff, rgba(0,136,255,0.9), transparent);
-            box-shadow: 0 0 20px #0088ff, 0 0 40px #0055ff;
-            pointer-events: none;
-            z-index: 3;
-        }
-
-        /* 斜め楕円リング */
-        .meridian-orbit-ring {
-            position: absolute;
-            width: 170px;
-            height: 235px;
-            border: 1.2px solid rgba(0, 136, 255, 0.9);
-            border-radius: 50%;
-            box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 180, 255, 0.4), 0 0 4px rgba(0, 220, 255, 0.5);
-            pointer-events: none;
-            z-index: 4;
-        }
-
-        .meridian-1 {
-            transform: rotate3d(1, 0.8, 0, 55deg);
-            animation: orbitRotate1 18s linear infinite;
-        }
-
-        .meridian-2 {
-            transform: rotate3d(0.5, -1, 0.5, 70deg);
-            animation: orbitRotate2 24s linear infinite;
-        }
-
-        .meridian-3 {
-            transform: rotate3d(-0.8, 0.5, 1, 40deg);
-            animation: orbitRotate3 20s linear infinite;
-            border-color: rgba(0, 200, 255, 0.85);
-            border-width: 1px;
-            border-style: dashed;
-            box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 200, 255, 0.5), 0 0 5px rgba(0, 230, 255, 0.6);
-        }
-
-        /* 中央正円Coreスフィア */
-        .core-sphere-nucleus {
-            position: absolute;
-            width: 115px;
-            height: 115px;
-            border-radius: 50%;
-            background: radial-gradient(circle, #ffffff 0%, #0088ff 30%, #0022aa 75%, #000411 100%);
-            box-shadow: 0 0 38px #0077ff, 0 0 75px rgba(0, 85, 255, 0.95), inset 0 0 20px #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            animation: corePulse 3.5s ease-in-out infinite;
-            z-index: 5;
-            border: 1px solid rgba(0, 200, 255, 0.4);
-        }
-
-        @media (min-width: 768px) {
-            .core-sphere-nucleus { width: 135px; height: 135px; }
-        }
-
-        /* JARVIS ロゴタイポグラフィ */
-        .jarvis-text-logo {
-            font-size: 1.05rem;
-            font-weight: 900;
-            letter-spacing: 0.35em;
-            color: #ffffff;
-            text-shadow: 0 0 10px #0088ff, 0 0 20px #0066ff, 0 0 35px #0044ff;
-            z-index: 6;
-            animation: textGlow 4s ease-in-out infinite;
-        }
-
-        /* 下部固定リング */
-        .hologram-disc-bottom {
-            position: relative;
-            width: 280px;
-            height: 75px;
-            border-radius: 50%;
-            transform: rotateX(68deg);
-            transform-style: preserve-3d;
-            box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
-        }
-
-        /* SIDE HUD PANEL */
-        .sideHUD {
-            position: fixed;
-            top: 0;
-            width: 280px;
-            height: 100%;
-            box-sizing: border-box;
-            padding: 30px 20px;
-            background: rgba(0, 10, 20, 0.92);
-            border-color: rgba(100, 190, 255, 0.35);
-            z-index: 9000;
-            transition: transform 0.25s ease;
-            text-align: left;
-        }
-
-        #leftHUD {
-            left: 0;
-            transform: translateX(-100%);
-            border-right: 1px solid rgba(100, 190, 255, 0.35);
-        }
-
-        #rightHUD {
-            right: 0;
-            transform: translateX(100%);
-            border-left: 1px solid rgba(100, 190, 255, 0.35);
-        }
-
-        #leftHUD.open, #rightHUD.open {
-            transform: translateX(0);
-        }
-
-        .sideHUD h2 {
-            margin: 0 0 25px;
-            color: #bfeaff;
-            font-size: 17px;
-            letter-spacing: 3px;
-        }
-
-        .sideHUD .hudLine {
-            margin-bottom: 14px;
-            padding: 12px;
-            border: 1px solid rgba(100, 190, 255, 0.18);
-            color: #9edaff;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .dateTimeTitle {
-            color: #bfeaff;
-            font-size: 11px;
-            margin-bottom: 5px;
-            letter-spacing: 1px;
-        }
-
-        #response {
-            position: absolute;
-            top: 30px;
-            width: 100%;
-            padding: 0 20px;
-            color: white;
-            font-size: 16px;
-            word-break: break-word;
-            line-height: 1.7;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        @keyframes orbitRotate1 {
-            0% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(0deg); }
-            100% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(360deg); }
-        }
-
-        @keyframes orbitRotate2 {
-            0% { transform: rotate3d(0.5, -1, 0.5, 70deg) rotateZ(0deg); }
-            100% { transform: rotate3d(0.5, -1, 0.5, 70deg) rotateZ(-360deg); }
-        }
-
-        @keyframes orbitRotate3 {
-            0% { transform: rotate3d(-0.8, 0.5, 1, 40deg) rotateZ(0deg); }
-            100% { transform: rotate3d(-0.8, 0.5, 1, 40deg) rotateZ(360deg); }
-        }
-
-        @keyframes corePulse {
-            0%, 100% {
-                transform: scale(0.96);
-                box-shadow: 0 0 32px #0077ff, 0 0 65px rgba(0, 85, 255, 0.8), inset 0 0 18px #ffffff;
-            }
-            50% {
-                transform: scale(1.04);
-                box-shadow: 0 0 48px #0088ff, 0 0 95px rgba(0, 102, 255, 1), inset 0 0 30px #ffffff;
-            }
-        }
-
-        @keyframes textGlow {
-            0%, 100% { text-shadow: 0 0 10px #0088ff, 0 0 20px #0066ff; opacity: 0.9; }
-            50% { text-shadow: 0 0 15px #0088ff, 0 0 28px #ffffff, 0 0 40px #0044ff; opacity: 1; }
-        }
-    </style>
+@keyframes orbitRotate1 {
+0% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(0deg); }
+100% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(360deg); }
+}
+@keyframes orbitRotate2 {
+0% { transform: rotate3d(0.5, -1, 0.5, 70deg) rotateZ(0deg); }
+100% { transform: rotate3d(0.5, -1, 0.5, 70deg) rotateZ(-360deg); }
+}
+@keyframes orbitRotate3 {
+0% { transform: rotate3d(-0.8, 0.5, 1, 40deg) rotateZ(0deg); }
+100% { transform: rotate3d(-0.8, 0.5, 1, 40deg) rotateZ(360deg); }
+}
+@keyframes corePulse {
+0%, 100% {
+transform: scale(0.96);
+box-shadow: 0 0 32px #0077ff, 0 0 65px rgba(0, 85, 255, 0.8), inset 0 0 18px #ffffff;
+}
+50% {
+transform: scale(1.04);
+box-shadow: 0 0 48px #0088ff, 0 0 95px rgba(0, 102, 255, 1), inset 0 0 30px #ffffff;
+}
+}
+@keyframes textGlow {
+0%, 100% { text-shadow: 0 0 10px #0088ff, 0 0 20px #0066ff; opacity: 0.9; }
+50% { text-shadow: 0 0 15px #0088ff, 0 0 28px #ffffff, 0 0 40px #0044ff; opacity: 1; }
+}
+</style>
 </head>
 <body>
-
-    <div class="jarvis-screen">
-        <canvas id="bgDustCanvas"></canvas>
-        <div id="response"></div>
+<div class="jarvis-screen">
+<canvas id="bgDustCanvas"></canvas>
+<div id="response"></div>
 
 <div class="hologram-vertical-system" id="verticalSystem">
-
-    <!-- 上部固定リング -->
-    <div class="hologram-disc-top">
-        <div class="disc-ring-line"></div>
-        <div class="disc-ring-line"></div>
-        <div class="disc-ring-line"></div>
-        <div class="disc-ring-line"></div>
-    </div>
-
-    <!-- 中央 Core ユニット -->
-    <div class="core-unit-center">
-        <div class="vertical-light-beam"></div>
-
-        <div class="meridian-orbit-ring meridian-1"></div>
-        <div class="meridian-orbit-ring meridian-2"></div>
-        <div class="meridian-orbit-ring meridian-3"></div>
-
-        <div class="core-sphere-nucleus">
-            <div class="jarvis-text-logo">JARVIS</div>
-        </div>
-    </div>
-
-    <!-- 下部固定リング -->
-    <div class="hologram-disc-bottom">
-        <div class="disc-ring-line"></div>
-        <div class="disc-ring-line"></div>
-        <div class="disc-ring-line"></div>
-        <div class="disc-ring-line"></div>
-    </div>
-
+<!-- 上部固定リング -->
+<div class="hologram-disc-top">
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
 </div>
 
-        <!-- 左HUD -->
-        <div id="leftHUD" class="sideHUD">
-            <h2>J.A.R.V.I.S. CORE</h2>
-            <div class="hudLine">CORE STATE<br><span id="leftHUDStatus">STANDBY</span></div>
-            <div class="hudLine">SYSTEM<br><span id="leftHUDSystem">ONLINE</span></div>
-            <div class="hudLine">COMMUNICATION<br><span id="leftHUDCommunication">ONLINE</span></div>
-            <div class="hudLine">SERVICES<br><span id="leftHUDServices">READY</span></div>
-            <div class="hudLine">CONNECTION<br><span id="leftHUDConnection">ACTIVE</span></div>
-            <div class="hudLine">SETTINGS<br><span id="leftHUDSettings">DEFAULT</span></div>
-        </div>
+<!-- 中央 Core ユニット -->
+<div class="core-unit-center">
+<div class="vertical-light-beam"></div>
+<div class="meridian-orbit-ring meridian-1"></div>
+<div class="meridian-orbit-ring meridian-2"></div>
+<div class="meridian-orbit-ring meridian-3"></div>
+<div class="core-sphere-nucleus">
+<div class="jarvis-text-logo">JARVIS</div>
+</div>
+</div>
 
-        <!-- 右HUD -->
-        <div id="rightHUD" class="sideHUD">
-            <h2>J.A.R.V.I.S. INFO</h2>
-DEVICE
-iPhone
-CONNECTION
-ONLINE
-WEATHER
---°C
+<!-- 下部固定リング -->
+<div class="hologram-disc-bottom">
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+</div>
+</div>
+</div>
 
-DATE & TIME
+<!-- 左HUD：システム & デバイスステータス -->
+<div id="leftHUD" class="sideHUD">
+<div class="hud-card">
+<div class="hud-card-header">
+<span class="hud-card-title">⚙️ SYSTEM STATUS</span>
+<span class="hud-dots">•••</span>
+</div>
+<div class="status-row">
+<div class="status-label-group"><span>🌐</span> NETWORK</div>
+<div class="status-bar-bg"><div class="status-bar-fill" style="width: 98%;"></div></div>
+<div class="status-value">98%</div>
+</div>
+<div class="status-row">
+<div class="status-label-group"><span>📶</span> SIGNAL</div>
+<div class="status-bar-bg"><div class="status-bar-fill" style="width: 86%;"></div></div>
+<div class="status-value">86%</div>
+</div>
+<div class="status-row">
+<div class="status-label-group"><span>💻</span> SYS LOAD</div>
+<div class="status-bar-bg"><div class="status-bar-fill" style="width: 42%;"></div></div>
+<div class="status-value">42%</div>
+</div>
+<div class="status-row">
+<div class="status-label-group"><span>⚡</span> ACTIVITY</div>
+<div class="status-bar-bg"><div class="status-bar-fill" style="width: 24%;"></div></div>
+<div class="status-value">24%</div>
+</div>
+</div>
 
+<div class="hud-card">
+<div class="hud-card-header">
+<span class="hud-card-title">📱 DEVICE STATUS</span>
+<span class="hud-dots">•••</span>
+</div>
+<div class="device-row">
+<div class="device-info-left"><span>📱</span> DEVICE</div>
+<div class="device-status-right"><span class="status-dot"></span>ONLINE</div>
+</div>
+<div class="device-row">
+<div class="device-info-left"><span>🛜</span> Wi-Fi</div>
+<div class="device-status-right"><span class="status-dot"></span>CONNECTED</div>
+</div>
+<div class="device-row">
+<div class="device-info-left"><span>📶</span> Bluetooth</div>
+<div class="device-status-right"><span class="status-dot"></span>ON</div>
+</div>
+<div class="device-row">
+<div class="device-info-left"><span>🔋</span> BATTERY</div>
+<div class="battery-inline-container">
+<span style="font-size: 11px; color:#e0f2ff; font-weight:bold;">82%</span>
+<div class="mini-battery-frame"><div class="mini-battery-inner"></div></div>
+</div>
+</div>
+<div class="device-row">
+<div class="device-info-left"><span>⚡</span> POWER</div>
+<div class="device-status-right"><span class="status-dot"></span>CHARGING</div>
+</div>
+</div>
+</div>
 
+<!-- 右HUD：天気予報 & 通知 -->
+<div id="rightHUD" class="sideHUD">
+<div class="hud-card">
+<div class="hud-card-header">
+<span class="hud-card-title">🌤️ WEATHER</span>
+<span class="hud-dots">•••</span>
+</div>
+<div class="weather-main-box">
+<div>
+<div class="weather-location" id="weatherLocation">東京</div>
+<div class="weather-temp-display" id="weatherTemp">13°C</div>
+<div class="weather-condition-text">☁️ くもり</div>
+</div>
+<div class="weather-high-low">
+<div>H: 15°C</div>
+<div>L: 8°C</div>
+</div>
+</div>
+<div class="hourly-forecast-grid">
+<div class="hourly-col"><span>10:00</span><span>13°C</span><span>☁️</span></div>
+<div class="hourly-col"><span>13:00</span><span>14°C</span><span>☁️</span></div>
+<div class="hourly-col"><span>16:00</span><span>15°C</span><span>☀️</span></div>
+<div class="hourly-col"><span>19:00</span><span>12°C</span><span>☁️</span></div>
+<div class="hourly-col"><span>22:00</span><span>11°C</span><span>🌙</span></div>
+</div>
+</div>
 
-
-TASKS
-NONE
-NOTIFICATIONS
-NONE
-SEARCH
---
-JARVIS
+<div class="hud-card">
+<div class="hud-card-header">
+<span class="hud-card-title">🔔 NOTIFICATION</span>
+<span class="hud-dots">•••</span>
+</div>
+<div class="notif-item">
+<div class="notif-left"><div class="notif-dot"></div>スケジュールの確認</div>
+<div class="notif-time">10:32</div>
+</div>
+<div class="notif-item">
+<div class="notif-left"><div class="notif-dot"></div>天気情報を取得しました</div>
+<div class="notif-time">10:28</div>
+</div>
+<div class="notif-item">
+<div class="notif-left"><div class="notif-dot"></div>新着メール：3件</div>
+<div class="notif-time">10:15</div>
+</div>
+<div class="notif-item">
+<div class="notif-left"><div class="notif-dot"></div>タスクの処理が完了しました</div>
+<div class="notif-time">09:54</div>
+</div>
+</div>
 </div>
 
 <script>
 var canvas = document.getElementById("bgDustCanvas");
 var ctx = canvas.getContext("2d");
 var particles = [];
+
 function resizeCanvas() {
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+
 function Particle() {
 this.x = Math.random() * canvas.width;
 this.y = Math.random() * canvas.height;
@@ -396,10 +607,12 @@ particles[j].draw();
 requestAnimationFrame(animate);
 }
 animate();
+
 var leftHUD = document.getElementById("leftHUD");
 var rightHUD = document.getElementById("rightHUD");
 var touchStartX = 0;
 var touchStartY = 0;
+
 document.addEventListener("touchstart", function(e) {
 var touches = e.changedTouches;
 if (touches && touches.length > 0) {
@@ -407,6 +620,7 @@ touchStartX = touches.item(0).screenX;
 touchStartY = touches.item(0).screenY;
 }
 }, { passive: true });
+
 document.addEventListener("touchend", function(e) {
 var touches = e.changedTouches;
 if (!touches || touches.length === 0) return;
@@ -416,6 +630,7 @@ var deltaX = touchEndX - touchStartX;
 var deltaY = touchEndY - touchStartY;
 var absX = Math.abs(deltaX);
 var absY = Math.abs(deltaY);
+
 if (absX < 80 && absY < 80) return;
 if (absX > absY) {
 if (deltaX < -80) {
@@ -437,15 +652,6 @@ leftHUD.classList.add("open");
 }
 }
 });
-var rightHUDDate = document.getElementById("rightHUDDate");
-var rightHUDWeekday = document.getElementById("rightHUDWeekday");
-var rightHUDTime = document.getElementById("rightHUDTime");
-
-
-setInterval(function() {
-var now = new Date();
-rightHUDDate.textContent = now.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
-rightHUDWeekday.textContent = now.toLocaleDateString("ja-JP", { weekday: "long" });
-rightHUDTime.textContent = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-}, 1000);
 </script>
+</body>
+</html>
