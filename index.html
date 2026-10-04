@@ -61,7 +61,7 @@
         }
 
         /* ==========================================
-           1. 上部固定リング（硬質なエッジ反射を追加）
+           1. 上部固定リング
            ========================================== */
         .hologram-disc-top {
             position: relative;
@@ -78,8 +78,7 @@
             inset: 0;
             border-radius: 50%;
             border: 1px solid rgba(0, 136, 255, 0.75);
-            /* 硬質なハイライト反射をインセットシャドウで付与 */
-            box-shadow: inset 0 0 8px rgba(0, 136, 255, 0.6), 0 0 4px rgba(200, 240, 255, 0.5);
+            box-shadow: inset 0 0 12px rgba(0, 136, 255, 0.5);
         }
         .disc-ring-line:nth-child(1) { inset: 0px; border-width: 2px; border-style: dashed; }
         .disc-ring-line:nth-child(2) { inset: 12px; border-width: 1px; }
@@ -87,7 +86,7 @@
         .disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
 
         /* ==========================================
-           2. 中央 Core ユニット ＋ 硬質メタリック質感
+           2. 中央 Core ユニット ＋ 斜めリング
            ========================================== */
         .core-unit-center {
             position: relative;
@@ -103,26 +102,26 @@
             .core-unit-center { width: 400px; height: 400px; }
         }
 
-        /* 縦方向の中心線（シャープな輝きとエッジを追加） */
+        /* 縦方向の中心線 */
         .vertical-light-beam {
             position: absolute;
             width: 1.5px;
             height: 140%;
             top: -20%;
             background: linear-gradient(to bottom, transparent, rgba(0,136,255,0.9), #ffffff, rgba(0,136,255,0.9), transparent);
-            box-shadow: 0 0 15px #0088ff, 0 0 30px #ffffff, inset 0 0 2px #ffffff;
+            box-shadow: 0 0 20px #0088ff, 0 0 40px #0055ff;
             pointer-events: none;
             z-index: 3;
         }
 
-        /* 斜め楕円リング（金属・ガラスのシャープな反射エッジ） */
+        /* 斜め楕円リング */
         .meridian-orbit-ring {
             position: absolute;
             width: 170px;
             height: 235px;
-            border: 1.2px solid rgba(0, 136, 255, 0.9);
+            border: 1.2px solid rgba(0, 136, 255, 0.85);
             border-radius: 50%;
-            box-shadow: 0 0 10px rgba(0, 136, 255, 0.6), inset 0 0 8px rgba(150, 220, 255, 0.7), 0 0 3px rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 14px rgba(0, 119, 255, 0.45);
             pointer-events: none;
             z-index: 4;
         }
@@ -140,26 +139,24 @@
         .meridian-3 {
             transform: rotate3d(-0.8, 0.5, 1, 40deg);
             animation: orbitRotate3 20s linear infinite;
-            border-color: rgba(220, 245, 255, 0.95);
+            border-color: rgba(255, 255, 255, 0.85);
             border-width: 1px;
             border-style: dashed;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.7), inset 0 0 10px rgba(0, 200, 255, 0.8);
         }
 
-        /* 中央正円Coreスフィア（硬質なハイテクガラス・金属反射のシャープな映り込み） */
+        /* 中央正円Coreスフィア */
         .core-sphere-nucleus {
             position: absolute;
             width: 115px;
             height: 115px;
             border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, #ffffff 0%, #80deff 20%, #0088ff 45%, #0022aa 75%, #000411 100%);
-            box-shadow: 0 0 35px #0077ff, 0 0 70px rgba(0, 85, 255, 0.9), inset 0 0 15px #ffffff, inset 0 0 25px rgba(255, 255, 255, 0.6);
+            background: radial-gradient(circle, #ffffff 0%, #0088ff 30%, #0022aa 75%, #000411 100%);
+            box-shadow: 0 0 38px #0077ff, 0 0 75px rgba(0, 85, 255, 0.95), inset 0 0 20px #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
             animation: corePulse 3.5s ease-in-out infinite;
             z-index: 5;
-            border: 1px solid rgba(200, 240, 255, 0.6);
         }
 
         @media (min-width: 768px) {
@@ -172,13 +169,13 @@
             font-weight: 900;
             letter-spacing: 0.35em;
             color: #ffffff;
-            text-shadow: 0 0 8px #0088ff, 0 0 16px #ffffff, 0 0 25px #0044ff;
+            text-shadow: 0 0 10px #0088ff, 0 0 20px #0066ff, 0 0 35px #0044ff;
             z-index: 6;
             animation: textGlow 4s ease-in-out infinite;
         }
 
         /* ==========================================
-           3. 下部固定リング（硬質なエッジ反射を追加）
+           3. 下部固定リング
            ========================================== */
         .hologram-disc-bottom {
             position: relative;
@@ -211,17 +208,17 @@
         @keyframes corePulse {
             0%, 100% {
                 transform: scale(0.96);
-                box-shadow: 0 0 30px #0077ff, 0 0 60px rgba(0, 85, 255, 0.75), inset 0 0 15px #ffffff, inset 0 0 25px rgba(255,255,255,0.5);
+                box-shadow: 0 0 32px #0077ff, 0 0 65px rgba(0, 85, 255, 0.8), inset 0 0 18px #ffffff;
             }
             50% {
                 transform: scale(1.04);
-                box-shadow: 0 0 45px #0088ff, 0 0 90px rgba(0, 102, 255, 0.95), inset 0 0 20px #ffffff, inset 0 0 35px rgba(255,255,255,0.7);
+                box-shadow: 0 0 48px #0088ff, 0 0 95px rgba(0, 102, 255, 1), inset 0 0 30px #ffffff;
             }
         }
 
         @keyframes textGlow {
-            0%, 100% { text-shadow: 0 0 8px #0088ff, 0 0 16px #ffffff; opacity: 0.9; }
-            50% { text-shadow: 0 0 12px #0088ff, 0 0 24px #ffffff, 0 0 35px #0044ff; opacity: 1; }
+            0%, 100% { text-shadow: 0 0 10px #0088ff, 0 0 20px #0066ff; opacity: 0.9; }
+            50% { text-shadow: 0 0 15px #0088ff, 0 0 28px #ffffff, 0 0 40px #0044ff; opacity: 1; }
         }
     </style>
 </head>
