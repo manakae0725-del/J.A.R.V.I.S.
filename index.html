@@ -40,6 +40,7 @@
             z-index: 1;
         }
 
+        /* 縦型ホログラム装置全体コンテナ */
         .hologram-vertical-system {
             position: relative;
             width: 380px;
@@ -58,6 +59,7 @@
             .hologram-vertical-system { width: 440px; height: 700px; }
         }
 
+        /* 上部固定リング */
         .hologram-disc-top {
             position: relative;
             width: 260px;
@@ -80,6 +82,7 @@
         .disc-ring-line:nth-child(3) { inset: 26px; border-width: 3px; border-color: #0088ff; border-left-color: transparent; border-right-color: transparent; }
         .disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
 
+        /* 中央 Core ユニット ＋ 硬質な青い金属質感 */
         .core-unit-center {
             position: relative;
             width: 340px;
@@ -94,6 +97,7 @@
             .core-unit-center { width: 400px; height: 400px; }
         }
 
+        /* 縦方向の中心線 */
         .vertical-light-beam {
             position: absolute;
             width: 1.5px;
@@ -105,6 +109,7 @@
             z-index: 3;
         }
 
+        /* 斜め楕円リング */
         .meridian-orbit-ring {
             position: absolute;
             width: 170px;
@@ -135,6 +140,7 @@
             box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 200, 255, 0.5), 0 0 5px rgba(0, 230, 255, 0.6);
         }
 
+        /* 中央正円Coreスフィア */
         .core-sphere-nucleus {
             position: absolute;
             width: 115px;
@@ -154,6 +160,7 @@
             .core-sphere-nucleus { width: 135px; height: 135px; }
         }
 
+        /* JARVIS ロゴタイポグラフィ */
         .jarvis-text-logo {
             font-size: 1.05rem;
             font-weight: 900;
@@ -164,6 +171,7 @@
             animation: textGlow 4s ease-in-out infinite;
         }
 
+        /* 下部固定リング */
         .hologram-disc-bottom {
             position: relative;
             width: 280px;
@@ -174,6 +182,7 @@
             box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
         }
 
+        /* SIDE HUD PANEL */
         .sideHUD {
             position: fixed;
             top: 0;
@@ -278,6 +287,7 @@
         <canvas id="bgDustCanvas"></canvas>
         <div id="response"></div>
 
+        <!-- 左HUD -->
         <div id="leftHUD" class="sideHUD">
             <h2>J.A.R.V.I.S. CORE</h2>
             <div class="hudLine">CORE STATE<br><span id="leftHUDStatus">STANDBY</span></div>
@@ -288,12 +298,16 @@
             <div class="hudLine">SETTINGS<br><span id="leftHUDSettings">DEFAULT</span></div>
         </div>
 
+        <!-- 右HUD -->
         <div id="rightHUD" class="sideHUD">
             <h2>J.A.R.V.I.S. INFO</h2>
-            <div class="hudLine">DEVICE<br><span id="rightHUDDevice">iPhone</span></div>
-            <div class="hudLine">CONNECTION<br><span id="rightHUDConnection">ONLINE</span></div>
-            <div class="hudLine">WEATHER<br><span id="rightHUDWeather">--°C</span></div>
-            <div class="hudLine dateTimeWidget">
+DEVICE
+iPhone
+CONNECTION
+ONLINE
+WEATHER
+--°C
+
 DATE & TIME
 
 
@@ -365,7 +379,7 @@ var absX = Math.abs(deltaX);
 var absY = Math.abs(deltaY);
 if (absX < 80 && absY < 80) return;
 if (absX > absY) {
-if (deltaX < -80) {
+if (deltaX < -80) { // 左スワイプ
 if (rightHUD.classList.contains("open")) {
 rightHUD.classList.remove("open");
 } else if (leftHUD.classList.contains("open")) {
@@ -373,7 +387,7 @@ leftHUD.classList.remove("open");
 } else {
 rightHUD.classList.add("open");
 }
-} else if (deltaX > 80) {
+} else if (deltaX > 80) { // 右スワイプ
 if (leftHUD.classList.contains("open")) {
 leftHUD.classList.remove("open");
 } else if (rightHUD.classList.contains("open")) {
