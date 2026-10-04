@@ -73,7 +73,6 @@ box-shadow: inset 0 0 10px rgba(0, 136, 255, 0.5), 0 0 3px rgba(0, 200, 255, 0.3
 .disc-ring-line:nth-child(2) { inset: 12px; border-width: 1px; }
 .disc-ring-line:nth-child(3) { inset: 26px; border-width: 3px; border-color: #0088ff; border-left-color: transparent; border-right-color: transparent; }
 .disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
-
 /* 中央 Core ユニット */
 .core-unit-center {
 position: relative;
@@ -149,7 +148,6 @@ text-shadow: 0 0 10px #0088ff, 0 0 20px #0066ff, 0 0 35px #0044ff;
 z-index: 6;
 animation: textGlow 4s ease-in-out infinite;
 }
-
 /* 下部固定リング */
 .hologram-disc-bottom {
 position: relative;
@@ -160,8 +158,7 @@ transform: rotateX(68deg);
 transform-style: preserve-3d;
 box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
 }
-
-/* SIDE HUD PANEL (画像デザインに特化したリファデザイン) */
+/* SIDE HUD PANEL */
 .sideHUD {
 position: fixed;
 top: 0;
@@ -191,8 +188,7 @@ box-shadow: -10px 0 30px rgba(0,0,0,0.8);
 #leftHUD.open, #rightHUD.open {
 transform: translateX(0);
 }
-
-/* HUD内部カード・モジュール */
+/* HUD 内部カード・モジュール */
 .hud-card {
 position: relative;
 background: rgba(0, 25, 50, 0.4);
@@ -221,8 +217,19 @@ color: #0099ff;
 letter-spacing: 2px;
 font-size: 12px;
 }
-
-/* 左HUD用：横棒グラフスタイル */
+/* SVG アイコン共通スタイル */
+.hud-icon {
+width: 16px;
+height: 16px;
+stroke: #00d4ff;
+fill: none;
+stroke-width: 1.5;
+stroke-linecap: round;
+stroke-linejoin: round;
+filter: drop-shadow(0 0 4px rgba(0, 180, 255, 0.8));
+flex-shrink: 0;
+}
+/* 左HUD用: 横棒グラフスタイル */
 .status-row {
 display: flex;
 align-items: center;
@@ -233,9 +240,9 @@ font-size: 11px;
 .status-label-group {
 display: flex;
 align-items: center;
-gap: 6px;
+gap: 8px;
 color: #8acfff;
-width: 95px;
+width: 115px;
 }
 .status-bar-bg {
 flex-grow: 1;
@@ -257,7 +264,6 @@ text-align: right;
 color: #e0f2ff;
 font-weight: bold;
 }
-
 /* デバイスステータス用 */
 .device-row {
 display: flex;
@@ -269,7 +275,7 @@ font-size: 11px;
 .device-info-left {
 display: flex;
 align-items: center;
-gap: 6px;
+gap: 8px;
 color: #8acfff;
 }
 .device-status-right {
@@ -306,8 +312,7 @@ height: 100%;
 background: #00d2ff;
 box-shadow: 0 0 4px #00d2ff;
 }
-
-/* 右HUD用：天気予報スタイル */
+/* 右HUD用:天気予報スタイル */
 .weather-main-box {
 display: flex;
 justify-content: space-between;
@@ -328,6 +333,9 @@ text-shadow: 0 0 8px rgba(0,153,255,0.8);
 .weather-condition-text {
 font-size: 11px;
 color: #8acfff;
+display: flex;
+align-items: center;
+gap: 5px;
 }
 .weather-high-low {
 font-size: 11px;
@@ -347,9 +355,9 @@ font-size: 9px;
 color: #7ab8ff;
 display: flex;
 flex-direction: column;
-gap: 3px;
+align-items: center;
+gap: 4px;
 }
-
 /* 通知・ログリストスタイル */
 .notif-item {
 display: flex;
@@ -361,21 +369,13 @@ font-size: 11px;
 .notif-left {
 display: flex;
 align-items: center;
-gap: 6px;
+gap: 8px;
 color: #a0d8ff;
-}
-.notif-dot {
-width: 5px;
-height: 5px;
-background: #0099ff;
-border-radius: 50%;
-box-shadow: 0 0 4px #0099ff;
 }
 .notif-time {
 font-size: 10px;
 color: #61a6ff;
 }
-
 #response {
 position: absolute;
 top: 30px;
@@ -388,7 +388,6 @@ line-height: 1.7;
 z-index: 10;
 pointer-events: none;
 }
-
 @keyframes orbitRotate1 {
 0% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(0deg); }
 100% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(360deg); }
@@ -421,7 +420,6 @@ box-shadow: 0 0 48px #0088ff, 0 0 95px rgba(0, 102, 255, 1), inset 0 0 30px #fff
 <div class="jarvis-screen">
 <canvas id="bgDustCanvas"></canvas>
 <div id="response"></div>
-
 <div class="hologram-vertical-system" id="verticalSystem">
 <!-- 上部固定リング -->
 <div class="hologram-disc-top">
@@ -430,7 +428,6 @@ box-shadow: 0 0 48px #0088ff, 0 0 95px rgba(0, 102, 255, 1), inset 0 0 30px #fff
 <div class="disc-ring-line"></div>
 <div class="disc-ring-line"></div>
 </div>
-
 <!-- 中央 Core ユニット -->
 <div class="core-unit-center">
 <div class="vertical-light-beam"></div>
@@ -441,7 +438,6 @@ box-shadow: 0 0 48px #0088ff, 0 0 95px rgba(0, 102, 255, 1), inset 0 0 30px #fff
 <div class="jarvis-text-logo">JARVIS</div>
 </div>
 </div>
-
 <!-- 下部固定リング -->
 <div class="hologram-disc-bottom">
 <div class="disc-ring-line"></div>
@@ -451,79 +447,106 @@ box-shadow: 0 0 48px #0088ff, 0 0 95px rgba(0, 102, 255, 1), inset 0 0 30px #fff
 </div>
 </div>
 </div>
-
-<!-- 左HUD：システム & デバイスステータス -->
+<!-- 左HUD: システム&デバイスステータス -->
 <div id="leftHUD" class="sideHUD">
 <div class="hud-card">
 <div class="hud-card-header">
-<span class="hud-card-title">⚙️ SYSTEM STATUS</span>
-<span class="hud-dots">•••</span>
+<span class="hud-card-title">SYSTEM STATUS</span>
+<span class="hud-dots">...</span>
 </div>
 <div class="status-row">
-<div class="status-label-group"><span>🌐</span> NETWORK</div>
+<div class="status-label-group">
+<svg class="hud-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15.3 15.3 0 0 1 4 18M12 3a15.3 15.3 0 0 0-4 18"/></svg>
+NETWORK
+</div>
 <div class="status-bar-bg"><div class="status-bar-fill" style="width: 98%;"></div></div>
 <div class="status-value">98%</div>
 </div>
 <div class="status-row">
-<div class="status-label-group"><span>📶</span> SIGNAL</div>
+<div class="status-label-group">
+<svg class="hud-icon" viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+SIGNAL
+</div>
 <div class="status-bar-bg"><div class="status-bar-fill" style="width: 86%;"></div></div>
 <div class="status-value">86%</div>
 </div>
 <div class="status-row">
-<div class="status-label-group"><span>💻</span> SYS LOAD</div>
+<div class="status-label-group">
+<svg class="hud-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9zM9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>
+SYS LOAD
+</div>
 <div class="status-bar-bg"><div class="status-bar-fill" style="width: 42%;"></div></div>
 <div class="status-value">42%</div>
 </div>
 <div class="status-row">
-<div class="status-label-group"><span>⚡</span> ACTIVITY</div>
+<div class="status-label-group">
+<svg class="hud-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+ACTIVITY
+</div>
 <div class="status-bar-bg"><div class="status-bar-fill" style="width: 24%;"></div></div>
 <div class="status-value">24%</div>
 </div>
 </div>
-
 <div class="hud-card">
 <div class="hud-card-header">
-<span class="hud-card-title">📱 DEVICE STATUS</span>
-<span class="hud-dots">•••</span>
+<span class="hud-card-title">DEVICE STATUS</span>
+<span class="hud-dots">...</span>
 </div>
 <div class="device-row">
-<div class="device-info-left"><span>📱</span> DEVICE</div>
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+DEVICE
+</div>
 <div class="device-status-right"><span class="status-dot"></span>ONLINE</div>
 </div>
 <div class="device-row">
-<div class="device-info-left"><span>🛜</span> Wi-Fi</div>
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+Wi-Fi
+</div>
 <div class="device-status-right"><span class="status-dot"></span>CONNECTED</div>
 </div>
 <div class="device-row">
-<div class="device-info-left"><span>📶</span> Bluetooth</div>
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24"><path d="m6.5 6.5 11 11L12 23V1l5.5 5.5-11 11"/></svg>
+Bluetooth
+</div>
 <div class="device-status-right"><span class="status-dot"></span>ON</div>
 </div>
 <div class="device-row">
-<div class="device-info-left"><span>🔋</span> BATTERY</div>
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/></svg>
+BATTERY
+</div>
 <div class="battery-inline-container">
 <span style="font-size: 11px; color:#e0f2ff; font-weight:bold;">82%</span>
 <div class="mini-battery-frame"><div class="mini-battery-inner"></div></div>
 </div>
 </div>
 <div class="device-row">
-<div class="device-info-left"><span>⚡</span> POWER</div>
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+POWER
+</div>
 <div class="device-status-right"><span class="status-dot"></span>CHARGING</div>
 </div>
 </div>
 </div>
-
-<!-- 右HUD：天気予報 & 通知 -->
+<!-- 右HUD:天気予報&通知 -->
 <div id="rightHUD" class="sideHUD">
 <div class="hud-card">
 <div class="hud-card-header">
-<span class="hud-card-title">🌤️ WEATHER</span>
-<span class="hud-dots">•••</span>
+<span class="hud-card-title">WEATHER</span>
+<span class="hud-dots">...</span>
 </div>
 <div class="weather-main-box">
 <div>
 <div class="weather-location" id="weatherLocation">東京</div>
 <div class="weather-temp-display" id="weatherTemp">13°C</div>
-<div class="weather-condition-text">☁️ くもり</div>
+<div class="weather-condition-text">
+<svg class="hud-icon" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+くもり
+</div>
 </div>
 <div class="weather-high-low">
 <div>H: 15°C</div>
@@ -531,50 +554,78 @@ box-shadow: 0 0 48px #0088ff, 0 0 95px rgba(0, 102, 255, 1), inset 0 0 30px #fff
 </div>
 </div>
 <div class="hourly-forecast-grid">
-<div class="hourly-col"><span>10:00</span><span>13°C</span><span>☁️</span></div>
-<div class="hourly-col"><span>13:00</span><span>14°C</span><span>☁️</span></div>
-<div class="hourly-col"><span>16:00</span><span>15°C</span><span>☀️</span></div>
-<div class="hourly-col"><span>19:00</span><span>12°C</span><span>☁️</span></div>
-<div class="hourly-col"><span>22:00</span><span>11°C</span><span>🌙</span></div>
+<div class="hourly-col">
+<span>10:00</span>
+<span>13°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+</div>
+<div class="hourly-col">
+<span>13:00</span>
+<span>14°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+</div>
+<div class="hourly-col">
+<span>16:00</span>
+<span>15°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+</div>
+<div class="hourly-col">
+<span>19:00</span>
+<span>12°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+</div>
+<div class="hourly-col">
+<span>22:00</span>
+<span>11°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
 </div>
 </div>
-
+</div>
 <div class="hud-card">
 <div class="hud-card-header">
-<span class="hud-card-title">🔔 NOTIFICATION</span>
-<span class="hud-dots">•••</span>
+<span class="hud-card-title">NOTIFICATION</span>
+<span class="hud-dots">...</span>
 </div>
 <div class="notif-item">
-<div class="notif-left"><div class="notif-dot"></div>スケジュールの確認</div>
+<div class="notif-left">
+<svg class="hud-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+スケジュールの確認
+</div>
 <div class="notif-time">10:32</div>
 </div>
 <div class="notif-item">
-<div class="notif-left"><div class="notif-dot"></div>天気情報を取得しました</div>
+<div class="notif-left">
+<svg class="hud-icon" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+天気情報を取得しました
+</div>
 <div class="notif-time">10:28</div>
 </div>
 <div class="notif-item">
-<div class="notif-left"><div class="notif-dot"></div>新着メール：3件</div>
+<div class="notif-left">
+<svg class="hud-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
+新着メール:3件
+</div>
 <div class="notif-time">10:15</div>
 </div>
 <div class="notif-item">
-<div class="notif-left"><div class="notif-dot"></div>タスクの処理が完了しました</div>
+<div class="notif-left">
+<svg class="hud-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+タスクの処理が完了しました
+</div>
 <div class="notif-time">09:54</div>
 </div>
 </div>
 </div>
-
 <script>
 var canvas = document.getElementById("bgDustCanvas");
 var ctx = canvas.getContext("2d");
 var particles = [];
-
 function resizeCanvas() {
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
-
 function Particle() {
 this.x = Math.random() * canvas.width;
 this.y = Math.random() * canvas.height;
@@ -630,7 +681,6 @@ var deltaX = touchEndX - touchStartX;
 var deltaY = touchEndY - touchStartY;
 var absX = Math.abs(deltaX);
 var absY = Math.abs(deltaY);
-
 if (absX < 80 && absY < 80) return;
 if (absX > absY) {
 if (deltaX < -80) {
