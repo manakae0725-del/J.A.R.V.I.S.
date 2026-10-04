@@ -17,7 +17,7 @@
             background-color: #000103;
             overflow: hidden;
             font-family: 'Courier New', Courier, monospace;
-            color: #00d9ff;
+            color: #00bfff;
         }
 
         .jarvis-screen {
@@ -27,7 +27,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: radial-gradient(circle at center, #041022 0%, #000205 70%, #000000 100%);
+            background: radial-gradient(circle at center, #020b18 0%, #000205 70%, #000000 100%);
         }
 
         /* 背景ダストパーティクル用Canvas */
@@ -53,7 +53,7 @@
             transform: scale(var(--system-scale, 1));
             transition: transform 0.3s ease;
             z-index: 2;
-            filter: drop-shadow(0 0 35px rgba(0, 217, 255, 0.4));
+            filter: drop-shadow(0 0 35px rgba(0, 162, 255, 0.5));
         }
 
         @media (min-width: 768px) {
@@ -61,7 +61,7 @@
         }
 
         /* ==========================================
-           1. 上部固定リング（回転せず静止）
+           1. 上部固定リング（変更なし）
            ========================================== */
         .hologram-disc-top {
             position: relative;
@@ -70,23 +70,23 @@
             border-radius: 50%;
             transform: rotateX(68deg);
             transform-style: preserve-3d;
-            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 162, 255, 0.35);
         }
 
         .disc-ring-line {
             position: absolute;
             inset: 0;
             border-radius: 50%;
-            border: 1px solid rgba(0, 217, 255, 0.5);
-            box-shadow: inset 0 0 10px rgba(0, 217, 255, 0.3);
+            border: 1px solid rgba(0, 162, 255, 0.6);
+            box-shadow: inset 0 0 10px rgba(0, 162, 255, 0.35);
         }
         .disc-ring-line:nth-child(1) { inset: 0px; border-width: 2px; border-style: dashed; }
         .disc-ring-line:nth-child(2) { inset: 12px; border-width: 1px; }
-        .disc-ring-line:nth-child(3) { inset: 26px; border-width: 3px; border-color: #00d9ff; border-left-color: transparent; border-right-color: transparent; }
+        .disc-ring-line:nth-child(3) { inset: 26px; border-width: 3px; border-color: #00bfff; border-left-color: transparent; border-right-color: transparent; }
         .disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
 
         /* ==========================================
-           2. 中央 Core ユニット ＋ 斜め楕円リング（3D経線構造）
+           2. 中央 Core ユニット ＋ 斜め楕円リング微調整
            ========================================== */
         .core-unit-center {
             position: relative;
@@ -102,26 +102,26 @@
             .core-unit-center { width: 400px; height: 400px; }
         }
 
-        /* 縦軸を貫くエネルギー柱の光線 */
+        /* 縦方向の光線（中心線）をさらに細く修正 */
         .vertical-light-beam {
             position: absolute;
-            width: 4px;
+            width: 1.5px;
             height: 140%;
             top: -20%;
-            background: linear-gradient(to bottom, transparent, rgba(0,217,255,0.7), #ffffff, rgba(0,217,255,0.7), transparent);
-            box-shadow: 0 0 25px #00d9ff, 0 0 50px #00d9ff;
+            background: linear-gradient(to bottom, transparent, rgba(0,191,255,0.8), #ffffff, rgba(0,191,255,0.8), transparent);
+            box-shadow: 0 0 18px #00bfff, 0 0 35px #00bfff;
             pointer-events: none;
             z-index: 3;
         }
 
-        /* 地球儀の経線のようにCoreを包み込む斜め傾斜の楕円リング群 */
+        /* 斜めリングを細くし、サイズを小さくしてCoreに近づける調整 */
         .meridian-orbit-ring {
             position: absolute;
-            width: 210px;
-            height: 290px;
-            border: 2px solid rgba(0, 217, 255, 0.65);
+            width: 170px;
+            height: 235px;
+            border: 1.2px solid rgba(0, 191, 255, 0.75);
             border-radius: 50%;
-            box-shadow: 0 0 15px rgba(0, 217, 255, 0.35), inset 0 0 15px rgba(0, 217, 255, 0.25);
+            box-shadow: 0 0 12px rgba(0, 191, 255, 0.4), inset 0 0 12px rgba(0, 191, 255, 0.3);
             pointer-events: none;
             z-index: 4;
         }
@@ -139,19 +139,19 @@
         .meridian-3 {
             transform: rotate3d(-0.8, 0.5, 1, 40deg);
             animation: orbitRotate3 20s linear infinite;
-            border-color: rgba(255, 255, 255, 0.7);
-            border-width: 1.5px;
+            border-color: rgba(255, 255, 255, 0.8);
+            border-width: 1px;
             border-style: dashed;
         }
 
-        /* 中央の正円Coreスフィア */
+        /* 中央の正円Coreスフィア（サイズを気持ちだけ小さく修正 ＆ 青味を強化） */
         .core-sphere-nucleus {
             position: absolute;
-            width: 140px;
-            height: 140px;
+            width: 115px;
+            height: 115px;
             border-radius: 50%;
-            background: radial-gradient(circle, #ffffff 0%, #00d9ff 35%, #0048cc 75%, #010a1a 100%);
-            box-shadow: 0 0 40px #00d9ff, 0 0 80px rgba(0, 217, 255, 0.8), inset 0 0 25px #ffffff;
+            background: radial-gradient(circle, #ffffff 0%, #00bfff 32%, #0033cc 75%, #000814 100%);
+            box-shadow: 0 0 35px #00bfff, 0 0 70px rgba(0, 162, 255, 0.85), inset 0 0 20px #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -160,22 +160,22 @@
         }
 
         @media (min-width: 768px) {
-            .core-sphere-nucleus { width: 160px; height: 160px; }
+            .core-sphere-nucleus { width: 135px; height: 135px; }
         }
 
         /* JARVIS ロゴタイポグラフィ */
         .jarvis-text-logo {
-            font-size: 1.2rem;
+            font-size: 1.05rem;
             font-weight: 900;
-            letter-spacing: 0.4em;
+            letter-spacing: 0.35em;
             color: #ffffff;
-            text-shadow: 0 0 10px #00d9ff, 0 0 20px #00d9ff, 0 0 35px #00d9ff;
+            text-shadow: 0 0 10px #00bfff, 0 0 20px #00bfff, 0 0 30px #00bfff;
             z-index: 6;
             animation: textGlow 4s ease-in-out infinite;
         }
 
         /* ==========================================
-           3. 下部固定リング（回転せず静止）
+           3. 下部固定リング（変更なし）
            ========================================== */
         .hologram-disc-bottom {
             position: relative;
@@ -184,7 +184,7 @@
             border-radius: 50%;
             transform: rotateX(68deg);
             transform-style: preserve-3d;
-            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 162, 255, 0.35);
         }
 
         /* ==========================================
@@ -208,17 +208,17 @@
         @keyframes corePulse {
             0%, 100% {
                 transform: scale(0.96);
-                box-shadow: 0 0 35px #00d9ff, 0 0 70px rgba(0, 217, 255, 0.6), inset 0 0 20px #ffffff;
+                box-shadow: 0 0 30px #00bfff, 0 0 60px rgba(0, 162, 255, 0.65), inset 0 0 18px #ffffff;
             }
             50% {
                 transform: scale(1.04);
-                box-shadow: 0 0 50px #00d9ff, 0 0 100px rgba(0, 217, 255, 0.9), inset 0 0 35px #ffffff;
+                box-shadow: 0 0 45px #00bfff, 0 0 90px rgba(0, 162, 255, 0.9), inset 0 0 30px #ffffff;
             }
         }
 
         @keyframes textGlow {
-            0%, 100% { text-shadow: 0 0 10px #00d9ff, 0 0 20px #00d9ff; opacity: 0.9; }
-            50% { text-shadow: 0 0 15px #00d9ff, 0 0 30px #ffffff, 0 0 45px #00d9ff; opacity: 1; }
+            0%, 100% { text-shadow: 0 0 10px #00bfff, 0 0 20px #00bfff; opacity: 0.9; }
+            50% { text-shadow: 0 0 15px #00bfff, 0 0 28px #ffffff, 0 0 40px #00bfff; opacity: 1; }
         }
     </style>
 </head>
@@ -239,12 +239,12 @@
                 <div class="disc-ring-line"></div>
             </div>
 
-            <!-- 中央 Core ユニット（縦エネルギー軸 ＋ 斜め楕円リング3本 ＋ 正円スフィア） -->
+            <!-- 中央 Core ユニット（細くなった縦軸 ＋ 接近した細い斜めリング3本 ＋ やや小さめのCore） -->
             <div class="core-unit-center">
-                <!-- 垂直エネルギービーム -->
+                <!-- 垂直エネルギービーム（細線化） -->
                 <div class="vertical-light-beam"></div>
 
-                <!-- 地球儀の経線のような斜め傾斜の楕円リング（3本） -->
+                <!-- 斜め楕円リング（細くしてCoreに接近） -->
                 <div class="meridian-orbit-ring meridian-1"></div>
                 <div class="meridian-orbit-ring meridian-2"></div>
                 <div class="meridian-orbit-ring meridian-3"></div>
@@ -286,7 +286,7 @@
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
                 radius: Math.random() * 1.5 + 0.4,
-                color: Math.random() > 0.3 ? 'rgba(0, 217, 255, ' : 'rgba(255, 255, 255, ',
+                color: Math.random() > 0.3 ? 'rgba(0, 191, 255, ' : 'rgba(255, 255, 255, ',
                 alpha: Math.random() * 0.7 + 0.2,
                 speedY: (Math.random() * 0.4 - 0.2),
                 speedX: (Math.random() * 0.2 - 0.1)
@@ -309,7 +309,7 @@
                 ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
                 ctx.fillStyle = p.color + p.alpha + ')';
                 ctx.shadowBlur = 8;
-                ctx.shadowColor = '#00d9ff';
+                ctx.shadowColor = '#00bfff';
                 ctx.fill();
             });
 
