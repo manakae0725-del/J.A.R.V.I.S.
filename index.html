@@ -3,79 +3,82 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>J.A.R.V.I.S. PERFECT SYNC CORE</title>
+<title>J.A.R.V.I.S. Ambient 3D Core</title>
 <script src="https://tailwindcss.com"></script>
 <style>
-/* 奥行きのあるディープブラック空間 */
+/* 設計図通り：無限の奥行きを感じさせる、濃紺から漆黒への美しいグラデーション空間 */
 body {
     margin: 0;
-    background: radial-gradient(circle at center, #000c24 0%, #000000 100%);
+    background: radial-gradient(circle at center, #000511 0%, #000000 100%);
     overflow: hidden;
     height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    perspective: 1200px; /* 3D遠近感の固定 */
+    perspective: 1200px; /* 3D空間のパース（遠近感）を固定 */
 }
 
-/* 漂う光の粒子 */
-.space { position: absolute; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-.particle { position: absolute; background: #00f0ff; border-radius: 50%; opacity: 0; box-shadow: 0 0 10px #00b9ff; animation: fly 7s linear infinite; }
-.p1 { left: 15%; top: 25%; width: 2px; height: 2px; animation-delay: 0s; }
-.p2 { left: 80%; top: 20%; width: 3px; height: 3px; animation-delay: 2s; animation-duration: 5s; }
-.p3 { left: 35%; top: 75%; width: 1.5px; height: 1.5px; animation-delay: 4s; }
-.p4 { left: 70%; top: 80%; width: 2.5px; height: 2.5px; animation-delay: 1s; animation-duration: 6s; }
-@keyframes fly { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 50% { opacity: 0.6; } 100% { transform: translateY(-10vh) scale(2); opacity: 0; } }
+/* 設計図通り：光量を70〜80%に抑えた、目に刺さらない上品なクリアブルーの潤う発光効果 */
+.ambient-glow {
+    filter: drop-shadow(0 0 4px #00b9ff) drop-shadow(0 0 15px rgba(0, 110, 255, 0.5));
+}
+/* 中央のJARVISロゴ：白〜淡青に小さく、美しくマイルドに輝くホワイトグロー */
+.text-core-glow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-weight: 800;
+    letter-spacing: 3px;
+    fill: #ffffff;
+    filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 8px rgba(0, 210, 255, 0.8));
+}
 
 /* =========================================================
-   3D GYRO CONTAINER (全体を一括して斜めに傾け、絶対に中心をズラさない)
+   BACKGROUND PARTICLES (設計図通り：少量かつかなり細かい光の粒子)
+   ========================================================= */
+.space { position: absolute; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.particle { position: absolute; background: #00f0ff; border-radius: 50%; opacity: 0; box-shadow: 0 0 6px #00b9ff; animation: fly-subtle 8s linear infinite; }
+.p1 { left: 25%; top: 20%; width: 1.5px; height: 1.5px; animation-delay: 0s; }
+.p2 { left: 75%; top: 30%; width: 1px; height: 1px; animation-delay: 2.5s; animation-duration: 6s; }
+.p3 { left: 40%; top: 70%; width: 1.2px; height: 1.2px; animation-delay: 4.5s; }
+.p4 { left: 80%; top: 65%; width: 1px; height: 1px; animation-delay: 1.5s; animation-duration: 7s; }
+@keyframes fly-subtle { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 50% { opacity: 0.3; } 100% { transform: translateY(-10vh) scale(1.5); opacity: 0; } }
+
+/* =========================================================
+   3D GYRO SYSTEM (1つのSVG内の軸を完全固定し、一括で斜めに傾ける)
    ========================================================= */
 .gyro-system {
     position: relative;
-    width: 340px;
-    height: 340px;
+    width: 320px;
+    height: 320px;
     z-index: 10;
     transform-style: preserve-3d;
-    /* 画像にあった、アークリアクター全体が斜め下に美しく傾いている立体感を再現 */
-    transform: rotateX(55deg) rotateY(-15deg);
-    animation: floating-core 4s ease-in-out infinite;
+    /* 画像の通り、アークリアクターが画面に対して斜めに美しく傾いている立体遠近感 */
+    transform: rotateX(60deg) rotateY(-12deg);
+    animation: floating-ambient 4.5s ease-in-out infinite;
 }
 
-@keyframes floating-core {
-    0%, 100% { transform: rotateX(55deg) rotateY(-15deg) translateY(0px); }
-    50% { transform: rotateX(54deg) rotateY(-13deg) translateY(-8px); }
+@keyframes floating-ambient {
+    0%, 100% { transform: rotateX(60deg) rotateY(-12deg) translateY(0px); }
+    50% { transform: rotateX(59deg) rotateY(-10deg) translateY(-6px); }
 }
 
-/* 画像通りの、鮮烈で奥深いクリアブルーのグロー（発光） */
-.holo-glow {
-    filter: drop-shadow(0 0 5px #00b9ff) drop-shadow(0 0 15px rgba(0, 110, 255, 0.8));
-}
-.text-core-glow {
-    font-family: 'Arial Black', sans-serif;
-    font-weight: 900;
-    letter-spacing: 2px;
-    fill: #ffffff;
-    filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 10px #00d2ff);
-}
-
-/* 単一のSVG内で、各パーツの回転軸（中心点300px）を100%完全にロックして回す */
-.spin-clockwise-slow { animation: rot-cw 40s linear infinite; transform-origin: 300px 300px; }
-.spin-counter-medium { animation: rot-ccw 20s linear infinite; transform-origin: 300px 300px; }
-.spin-clockwise-fast { animation: rot-cw 8s linear infinite; transform-origin: 300px 300px; }
+/* 設計図通り：2〜3層に絞った薄いリングをバラバラの速度で滑らかに回転 */
+.spin-slow { animation: rot-cw 45s linear infinite; transform-origin: 300px 300px; }
+.spin-medium { animation: rot-ccw 22s linear infinite; transform-origin: 300px 300px; }
+.spin-fast { animation: rot-cw 10s linear infinite; transform-origin: 300px 300px; }
 
 @keyframes rot-cw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes rot-ccw { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
 
-/* 音声入力時の赤アラート切り替えシステム */
-.listening-state .holo-glow { filter: drop-shadow(0 0 6px #ff0055) drop-shadow(0 0 20px #ff0000); }
+/* ボスの声を聴いている（マイクON）瞬間の、上品なディープローズレッドへの一斉カラーシフト */
+.listening-state .ambient-glow { filter: drop-shadow(0 0 4px #ff0055) drop-shadow(0 0 15px rgba(255, 0, 50, 0.5)); }
 .listening-state .color-bind { stroke: #ff0055 !important; }
-.listening-state .text-core-glow { fill: #ff3377; filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 12px #ff0055); }
-.listening-state .particle { background: #ff0055 !important; box-shadow: 0 0 8px #ff0000; }
+.listening-state .text-core-glow { fill: #ffcbdc; filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 10px #ff0055); }
+.listening-state .particle { background: #ff0055 !important; box-shadow: 0 0 6px #ff0000; }
 </style>
 </head>
 <body class="select-none">
 
-    <!-- 背景層：浮遊する粒子 -->
+    <!-- 背景層：漂う極小粒子 -->
     <div class="space">
         <div class="particle p1"></div>
         <div class="particle p2"></div>
@@ -83,49 +86,46 @@ body {
         <div class="particle p4"></div>
     </div>
 
-    <!-- メイン：中心が絶対に連動してズレない、3Dジャイロ・アークリアクター構造 -->
-    <div id="jarvisCore" class="gyro-system cursor-pointer">
-        <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible holo-glow">
+    <!-- メイン：中心軸が絶対にズレない、立体HUDアークリアクター -->
+    <div id="jarvisCore" class="gyro-system">
+        <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible ambient-glow">
             
-            <!-- 【再現1】一番下でどっしりと構える、ベースの固定台座リング（1ミリもズレません） -->
-            <circle class="color-bind" cx="300" cy="300" r="275" fill="none" stroke="#0033aa" stroke-width="5" stroke-dasharray="40 10 10 10" opacity="0.4" />
-            <circle cx="300" cy="300" r="265" fill="none" stroke="rgba(0, 185, 255, 0.2)" stroke-width="1" />
+            <!-- 【設計図：薄い反射リング（土台台座）】一番下で立体感を支える濃紺のベースサークル -->
+            <circle class="color-bind" cx="300" cy="300" r="275" fill="none" stroke="#001a66" stroke-width="4" stroke-dasharray="80 20 20 20" opacity="0.35" />
+            <circle cx="300" cy="300" r="260" fill="none" stroke="rgba(0, 185, 255, 0.15)" stroke-width="1" />
 
-            <!-- 【再現2】交差回転リング 外側（15度刻みの精密デジタル目盛り付き） -->
-            <g class="spin-clockwise-slow">
-                <circle class="color-bind" cx="300" cy="300" r="235" fill="none" stroke="#00b9ff" stroke-width="2" stroke-dasharray="140 30 40 20" />
-                <!-- 完全に軸が固定された目盛り線群 -->
-                <g stroke="rgba(0, 185, 255, 0.3)" stroke-width="1.5">
-                    <line x1="300" y1="235" x2="300" y2="245" transform="rotate(0 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(30 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(60 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(90 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(120 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(150 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(180 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(210 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(240 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(270 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(300 300 300)" /><line x1="300" y1="235" x2="300" y2="245" transform="rotate(330 300 300)" />
-                </g>
+            <!-- 【設計図：2〜3層の薄いリング / 外周レイヤー】濃紺 ➔ クリアブルーを表現する細いダッシュ円 -->
+            <g class="spin-slow">
+                <circle class="color-bind" cx="300" cy="300" r="230" fill="none" stroke="#0088ff" stroke-width="2" stroke-dasharray="160 40 40 40" opacity="0.7" />
+                <circle cx="300" cy="300" r="215" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-dasharray="6 12" />
             </g>
 
-            <!-- 【再現3】交差回転リング 内側（逆方向に回って立体感を倍増） -->
-            <g class="spin-counter-medium">
-                <circle class="color-bind" cx="300" cy="300" r="195" fill="none" stroke="#0055ff" stroke-width="3" stroke-dasharray="180 40 20 40" />
-                <circle cx="300" cy="300" r="180" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1" stroke-dasharray="4 6" />
+            <!-- 【設計図：薄い浮遊リング / 中周レイヤー】前後の重なりを生み出すクリアブルーのメインアーク -->
+            <g class="spin-medium">
+                <circle class="color-bind" cx="300" cy="300" r="185" fill="none" stroke="#00c8ff" stroke-width="3" stroke-dasharray="220 50 30 40" />
+                <circle cx="300" cy="300" r="172" fill="none" stroke="#0033cc" stroke-width="1.5" opacity="0.5" />
             </g>
 
-            <!-- 【再現4】最中心：1ピクセルたりとも中心からブレない「インナーミニコア」 -->
-            <g class="spin-clockwise-fast">
-                <circle class="color-bind" cx="300" cy="300" r="120" fill="#000000" stroke="#00b9ff" stroke-width="2.5" />
-                <circle cx="300" cy="300" r="105" fill="none" stroke="#0022cc" stroke-width="1.5" stroke-dasharray="10 15" />
-                <circle cx="300" cy="300" r="95" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1" stroke-dasharray="30 10" />
+            <!-- 【設計図：シンプルなコア / 内周レイヤー】中心に向かってエネルギーを綺麗にまとめるリング -->
+            <g class="spin-fast">
+                <circle class="color-bind" cx="300" cy="300" r="125" fill="#000000" stroke="#00c8ff" stroke-width="2.5" />
+                <circle cx="300" cy="300" r="110" fill="none" stroke="#0022cc" stroke-width="1.5" stroke-dasharray="8 12" />
+                <circle cx="300" cy="300" r="100" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1" stroke-dasharray="40 10" />
             </g>
             
-            <!-- コアの真中心に完全ロックされた「JARVIS」ロゴ文字 -->
-            <text class="text-core-glow" x="300" y="306" text-anchor="middle" font-size="20">JARVIS</text>
+            <!-- 【設計図：中央に小さく白〜淡青のJARVISロゴ】1ミリもブレずに真ん中にロック -->
+            <text class="text-core-glow" x="300" y="306" text-anchor="middle" font-size="19">JARVIS</text>
             
         </svg>
     </div>
 
-    <!-- ※裏で静かに稼働する、デザインを邪魔しない字幕システム（最下部にうっすら配置） -->
-    <div id="response" class="absolute bottom-8 left-0 right-0 text-center text-[11px] tracking-[0.2em] font-sans text-cyan-400/60 pointer-events-none px-6">
-        CORE_SYNCHRONIZED // TAP TO OPERATE
+    <!-- ※裏で静かに稼働する、デザインを完全に邪魔しない超薄型の字幕インジケーター（最下部に配置） -->
+    <div id="response" class="absolute bottom-8 left-0 right-0 text-center text-[10px] tracking-[0.25em] font-sans text-cyan-400/40 pointer-events-none px-6">
+        CORE_SYNCHRONIZED // Mark-XXV
     </div>
 
-    <!-- 隠しAPI登録フォーム（画面を邪魔しない超極小サイズで最下部に配置） -->
-    <div class="absolute bottom-2 opacity-5 hover:opacity-70 transition-opacity duration-500 w-full max-w-xs flex gap-2 left-1/2 -translate-x-1/2">
+    <!-- 隠しAPI登録フォーム（一度キーを設定すれば、二度と触る必要はありません。背景に完全に溶け込んでいます） -->
+    <div class="absolute bottom-2 opacity-5 hover:opacity-75 transition-opacity duration-500 w-full max-w-xs flex gap-2 left-1/2 -translate-x-1/2">
         <input type="password" id="api-key-input" placeholder="GEMINI_KEY" class="flex-1 bg-black border border-neutral-900 rounded px-2 py-1 text-[8px] text-center text-cyan-600 focus:outline-none">
         <button id="save-key-btn" class="bg-black border border-neutral-800 text-cyan-700 rounded px-2 text-[8px] font-mono">SET</button>
     </div>
@@ -138,7 +138,7 @@ body {
 
         if (localStorage.getItem('gemini_key')) {
             apiKeyInput.value = localStorage.getItem('gemini_key');
-            responseDiv.innerText = "SYSTEM_ONLINE // CORE_READY";
+            responseDiv.innerText = "SYSTEM_ONLINE // STANDBY";
         }
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -196,16 +196,17 @@ body {
                 try {
                     const res = await fetch(`https://googleapis.com{key}`, {
                         method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-contents: [{ parts: [{ text: あなたは映画アイアンマンのAIアシスタント「JARVIS」です。主人である「ボス」に忠実に、最高に知的で簡潔な大人のセリフ（1〜2文）で答えてください。語尾は必ず「〜です、ボス」「〜でしょうか、ボス」にしてください。質問：${userText} }] }]
-})
-});
-const data = await res.json();
-if(data.error) {
-responseDiv.innerText = API_ERROR: KEY_CHECK_REQUIRED;
-return;
-}
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `あなたは映画アイアンマンのAIアシスタント「JARVIS」です。主人である「ボス」に忠実に、最高に知的で簡潔な大人のセリフ（1〜2文）で答えてください。語尾は必ず「〜です、ボス」「〜でしょうか、ボス」にしてください。質問：${userText}` }] }]
+                        })
+                    });
+                    const data = await res.json();
+                    
+                    if(data.error) {
+                        responseDiv.innerText = `API_ERROR: KEY_CHECK_REQUIRED`;
+                        return;
+                    }
 const aiText = data.candidates.content.parts.text;
 responseDiv.innerText = aiText;
 speak(aiText);
