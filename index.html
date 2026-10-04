@@ -40,7 +40,6 @@
             z-index: 1;
         }
 
-        /* 縦型ホログラム装置全体コンテナ */
         .hologram-vertical-system {
             position: relative;
             width: 380px;
@@ -182,7 +181,7 @@
             box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
         }
 
-        /* SIDE HUD PANEL（あなたのコードのHUDデザインをキープ） */
+        /* SIDE HUD PANEL */
         .sideHUD {
             position: fixed;
             top: 0;
@@ -249,7 +248,6 @@
             pointer-events: none;
         }
 
-        /* アニメーション定義 */
         @keyframes orbitRotate1 {
             0% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(0deg); }
             100% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(360deg); }
@@ -300,7 +298,8 @@
         </div>
 
         <!-- 右HUD -->
-J.A.R.V.I.S. INFO
+        <div id="rightHUD" class="sideHUD">
+            <h2>J.A.R.V.I.S. INFO</h2>
 DEVICE
 iPhone
 CONNECTION
@@ -362,25 +361,29 @@ particles[j].draw();
 requestAnimationFrame(animate);
 }
 animate();
-// ─── iPhone専用スワイプ検知ロジック ───
 var leftHUD = document.getElementById("leftHUD");
 var rightHUD = document.getElementById("rightHUD");
 var touchStartX = 0;
 var touchStartY = 0;
 document.addEventListener("touchstart", function(e) {
-touchStartX = e.changedTouches[0].screenX;
-touchStartY = e.changedTouches[0].screenY;
+var touches = e.changedTouches;
+if (touches && touches.length > 0) {
+touchStartX = touches.item(0).screenX;
+touchStartY = touches.item(0).screenY;
+}
 }, { passive: true });
 document.addEventListener("touchend", function(e) {
-var touchEndX = e.changedTouches[0].screenX;
-var touchEndY = e.changedTouches[0].screenY;
+var touches = e.changedTouches;
+if (!touches || touches.length === 0) return;
+var touchEndX = touches.item(0).screenX;
+var touchEndY = touches.item(0).screenY;
 var deltaX = touchEndX - touchStartX;
 var deltaY = touchEndY - touchStartY;
 var absX = Math.abs(deltaX);
 var absY = Math.abs(deltaY);
 if (absX < 80 && absY < 80) return;
 if (absX > absY) {
-if (deltaX < -80) { // 左スワイプ（右パネルを開く）
+if (deltaX < -80) {
 if (rightHUD.classList.contains("open")) {
 rightHUD.classList.remove("open");
 } else if (leftHUD.classList.contains("open")) {
@@ -388,7 +391,7 @@ leftHUD.classList.remove("open");
 } else {
 rightHUD.classList.add("open");
 }
-} else if (deltaX > 80) { // 右スワイプ（左パネルを開く）
+} else if (deltaX > 80) {
 if (leftHUD.classList.contains("open")) {
 leftHUD.classList.remove("open");
 } else if (rightHUD.classList.contains("open")) {
@@ -399,10 +402,11 @@ leftHUD.classList.add("open");
 }
 }
 });
-// ─── 時計ウィジェットの自動更新 ───
 var rightHUDDate = document.getElementById("rightHUDDate");
 var rightHUDWeekday = document.getElementById("rightHUDWeekday");
 var rightHUDTime = document.getElementById("rightHUDTime");
+
+
 setInterval(function() {
 var now = new Date();
 rightHUDDate.textContent = now.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
