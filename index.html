@@ -3,114 +3,110 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>J.A.R.V.I.S. Ambient Core</title>
+<title>J.A.R.V.I.S. PURE COMPASS</title>
 <script src="https://tailwindcss.com"></script>
 <style>
-/* 漆黒の闇（完全な黒） */
+/* 画像通りの完全な漆黒 */
 body {
     margin: 0;
     background-color: #000000;
-    color: #00c8ff;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #00f0ff;
+    font-family: 'Courier New', Courier, monospace;
     overflow: hidden;
 }
 
-/* 目に優しく、しっとりとした上質な発光（チカチカ感を排除） */
-.reactor-glow {
-    filter: drop-shadow(0 0 4px #0099ff) drop-shadow(0 0 15px rgba(0, 132, 255, 0.5));
-}
-.text-glow {
-    color: #ffffff;
-    text-shadow: 0 0 4px #fff, 0 0 12px #00b9ff, 0 0 30px rgba(0, 68, 255, 0.6);
+/* 画像の「細く、鋭く、それでいて上品に潤うクリアブルーの光」を再現 */
+.laser-glow {
+    filter: drop-shadow(0 0 2px #00b9ff) drop-shadow(0 0 8px rgba(0, 136, 255, 0.6));
 }
 
-/* 超・低速回転（通常の3倍以上の時間をかけて、静かに、滑らかに回します） */
-.rot-outer { animation: spin-counter 60s linear infinite; transform-origin: 300px 300px; }
-.rot-main { animation: spin-clockwise 35s linear infinite; transform-origin: 300px 300px; }
-.rot-inner { animation: spin-counter 20s linear infinite; transform-origin: 300px 300px; }
-.rot-core { animation: spin-clockwise 10s linear infinite; transform-origin: 300px 300px; }
-.pulse-ambient { animation: core-pulse 3s ease-in-out infinite; }
+/* 目の負担にならない、息をのむほど静かで滑らかな超・超低速回転 */
+.rot-slowest { animation: spin-counter 120s linear infinite; transform-origin: 300px 300px; }
+.rot-outer { animation: spin-clockwise 80s linear infinite; transform-origin: 300px 300px; }
+.rot-medium { animation: spin-counter 45s linear infinite; transform-origin: 300px 300px; }
+.rot-inner { animation: spin-clockwise 25s linear infinite; transform-origin: 300px 300px; }
+.pulse-ambient { animation: core-pulse 4s ease-in-out infinite; }
 
 @keyframes spin-clockwise { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes spin-counter { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
-@keyframes core-pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+@keyframes core-pulse { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
 
-/* 聞き取り時（マイクON）のアラート発光も、目に刺さらない上品なディープローズレッドへ */
-.listening-state .reactor-glow {
-    filter: drop-shadow(0 0 5px #ff0055) drop-shadow(0 0 20px rgba(255, 0, 0, 0.5));
+/* マイクON時の警告発光も、極細ラインが引き立つディープクリムゾンレッドへ切り替え */
+.listening-state .laser-glow {
+    filter: drop-shadow(0 0 2px #ff0055) drop-shadow(0 0 10px rgba(255, 0, 50, 0.5));
 }
-.listening-state .text-glow {
-    color: #ffe6ee;
-    text-shadow: 0 0 4px #fff, 0 0 12px #ff0055, 0 0 25px rgba(255, 0, 0, 0.6);
-}
-.listening-state .color-bind-1 { stroke: #ff0055; }
-.listening-state .color-bind-2 { stroke: #ff3377; }
+.listening-state .color-line { stroke: #ff0055; }
+.listening-state .color-sub { stroke: #ff3377; }
+.listening-state .color-ticks { stroke: rgba(255, 0, 85, 0.25); }
 </style>
 </head>
 <body class="h-screen flex flex-col justify-between p-6 select-none">
 
-    <!-- HUDヘッダー（極めて控えめでスタイリッシュな文字情報） -->
-    <header class="w-full flex justify-between items-center px-2 text-[8px] tracking-[0.3em] text-cyan-700/50 font-mono">
-        <div>AMBIENT_MODE // ENGAGED</div>
-        <div id="status" class="text-cyan-500 font-bold opacity-80">MARK_XXV</div>
+    <!-- HUDヘッダー：画像の静寂感を邪魔しない極小テキスト -->
+    <header class="w-full flex justify-between items-center px-2 text-[8px] tracking-[0.3em] text-cyan-800/40 font-mono">
+        <div>VECTOR_MATRIX_SYSTEM</div>
+        <div id="status" class="text-cyan-500 opacity-60">ANALYZE_MODE</div>
     </header>
 
-    <!-- メイン：画像をベースにしつつ、目に優しいトーンに仕上げたアークリアクター -->
+    <!-- メイン：送っていただいた1枚の画像を完璧に具現化したコア -->
     <main class="flex-1 flex flex-col items-center justify-center relative">
-        <div id="jarvisCore" class="w-[300px] h-[300px] bg-transparent cursor-pointer relative pulse-ambient active:scale-95 transition-transform">
-            <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible reactor-glow">
+        <!-- タップ領域 -->
+        <div id="jarvisCore" class="w-[315px] h-[315px] bg-transparent cursor-pointer relative pulse-ambient active:scale-95 transition-transform">
+            <svg viewBox="0 0 600 600" class="w-full h-full overflow-visible laser-glow">
                 
                 <!-- 背景ベース -->
-                <circle cx="300" cy="300" r="260" fill="#000000" />
+                <circle cx="300" cy="300" r="280" fill="#000000" />
                 
-                <!-- Layer 4: 最外周（上品な極細ダッシュライン） -->
+                <!-- 【再現1】最外周の極細円と、画像にあるかすかなガイドライン -->
+                <g class="rot-slowest">
+                    <circle class="color-line" cx="300" cy="300" r="270" fill="none" stroke="#0033cc" stroke-width="1" opacity="0.3" />
+                    <circle class="color-line" cx="300" cy="300" r="260" fill="none" stroke="#00b9ff" stroke-width="1" stroke-dasharray="4 200 40 200" opacity="0.5" />
+                </g>
+
+                <!-- 【再現2】外周：画像で最も美しい「定規のように精密に敷き詰められた高密度なデジタル目盛り（15度刻み）」 -->
                 <g class="rot-outer">
-                    <circle cx="300" cy="300" r="248" fill="none" stroke="rgba(0, 150, 255, 0.15)" stroke-width="1" />
-                    <circle cx="300" cy="300" r="240" fill="none" stroke="#0033cc" stroke-width="1.5" stroke-dasharray="8 20 80 20" opacity="0.5" />
+                    <g class="color-ticks" stroke="rgba(0, 185, 255, 0.3)" stroke-width="1">
+                        <line x1="300" y1="50" x2="300" y2="65" transform="rotate(0 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(15 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(30 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(45 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(60 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(75 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(90 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(105 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(120 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(135 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(150 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(165 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(180 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(195 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(210 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(225 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(240 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(255 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(270 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(285 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(300 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(315 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(330 300 300)" /><line x1="300" y1="50" x2="300" y2="65" transform="rotate(345 300 300)" />
+                    </g>
+                    <!-- 画像のメインとなる細いクリアブルーサークル -->
+                    <circle class="color-line" cx="300" cy="300" r="230" fill="none" stroke="#00b9ff" stroke-width="1.5" stroke-dasharray="180 40 90 20" />
                 </g>
 
-                <!-- Layer 3: アルバム画像より、美しく途切れるセミワイドなアークブロック -->
-                <g class="rot-main">
-                    <!-- 線幅を少し抑えた10pxに調整し、圧迫感を減らしました -->
-                    <circle class="color-bind-1" cx="300" cy="300" r="215" fill="none" stroke="#0099ff" stroke-width="10" stroke-dasharray="160 50 60 40 120 70" stroke-linecap="round" />
-                    <circle cx="300" cy="300" r="198" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-dasharray="4 8" />
+                <!-- 【再現3】中周：細い隙間を開けて並ぶ、もう一層のダッシュリング構造 -->
+                <g class="rot-medium">
+                    <circle class="color-line" cx="300" cy="300" r="195" fill="none" stroke="#0044ff" stroke-width="1" stroke-dasharray="10 15" opacity="0.6" />
+                    <circle class="color-sub" cx="300" cy="300" r="180" fill="none" stroke="#00d2ff" stroke-width="1.5" stroke-dasharray="120 30 40 30" />
                 </g>
 
-                <!-- Layer 2: ディープブルーの落ち着いたセクターレイヤー -->
+                <!-- 【再現4】内周＆最中心：文字を無くし、完全に画像と一致させた中空のシャープコア -->
                 <g class="rot-inner">
-                    <circle class="color-bind-1" cx="300" cy="300" r="172" fill="none" stroke="#0011aa" stroke-width="5" stroke-dasharray="180 60" />
-                    <circle class="color-bind-2" cx="300" cy="300" r="155" fill="none" stroke="#0088ff" stroke-width="2" stroke-dasharray="20 10" opacity="0.8" />
+                    <circle class="color-line" cx="300" cy="300" r="140" fill="none" stroke="#0022cc" stroke-width="1" />
+                    <!-- 画像の中心部にある、ひときわ明るい白青のダブルインナーサークル -->
+                    <circle cx="300" cy="300" r="125" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-dasharray="40 10 10 10" />
+                    <circle class="color-sub" cx="300" cy="300" r="110" fill="none" stroke="#00b9ff" stroke-width="2" />
+                    <circle cx="300" cy="300" r="70" fill="none" stroke="#0044ff" stroke-width="1" stroke-dasharray="2 4" opacity="0.4" />
                 </g>
-
-                <!-- Layer 1: 最中心（エネルギーが静かに収束するホワイトコア） -->
-                <g class="rot-core">
-                    <circle cx="300" cy="300" r="130" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2" stroke-dasharray="50 15" />
-                    <circle class="color-bind-2" cx="300" cy="300" r="115" fill="none" stroke="#0099ff" stroke-width="3" />
-                    <circle cx="300" cy="300" r="100" fill="none" stroke="#0022cc" stroke-width="1.5" stroke-dasharray="2 4" />
-                </g>
-
-                <!-- コアの中心文字「JARVIS」 輝きを上品に抑えたホワイトグロー -->
-                <text id="core-text" class="text-glow font-sans font-black tracking-[0.2em]" x="303" y="310" text-anchor="middle" font-size="38">JARVIS</text>
+                
             </svg>
         </div>
     </main>
 
-    <!-- フッター：映画風のシネマティックなホログラム字幕領域（テキストの輝きもマイルドに） -->
+    <!-- フッター：画像のミニマリズムを極限まで引き立てる字幕＆APIフォーム -->
     <footer class="w-full flex flex-col items-center justify-center pb-6 gap-5">
-        <div id="response" class="text-center text-sm font-sans font-medium max-w-xs text-cyan-200/90 min-h-[45px] px-4 tracking-wide leading-relaxed drop-shadow-[0_0_8px_rgba(0,180,255,0.6)]">
-            アンビエント・モード稼働。目の負担を軽減しました、ボス。
+        <!-- 映画の字幕のように美しく静かに佇むシネマテキスト -->
+        <div id="response" class="text-center text-xs font-sans text-cyan-300/80 min-h-[40px] px-6 tracking-widest leading-relaxed drop-shadow-[0_0_6px_rgba(0,240,255,0.5)]">
+            PURE_CORE_CONNECTED. READY FOR COMMAND, BOSS.
         </div>
 
-        <!-- ミニマルなAPI確定フォーム（背景に完全に溶け込む漆黒スタイル） -->
-        <div class="w-full max-w-xs flex gap-2 opacity-10 hover:opacity-90 transition-opacity duration-300">
-            <input type="password" id="api-key-input" placeholder="ENTER GEMINI_API_KEY" class="flex-1 bg-neutral-950 border border-neutral-900 rounded px-3 py-2 text-[9px] text-center text-cyan-500 focus:outline-none focus:border-cyan-700 tracking-widest">
-            <button id="save-key-btn" class="bg-neutral-950 border border-neutral-800 text-cyan-600 countries rounded px-3 py-1 text-xs font-bold active:bg-cyan-600 active:text-black transition-colors">確定</button>
+        <!-- 景観を絶対に崩さない超ミニマルなAPI確定枠 -->
+        <div class="w-full max-w-xs flex gap-2 opacity-5 hover:opacity-80 transition-opacity duration-500">
+            <input type="password" id="api-key-input" placeholder="ENTER_GEMINI_KEY" class="flex-1 bg-black border border-neutral-900 rounded px-3 py-2 text-[8px] text-center text-cyan-600 focus:outline-none focus:border-cyan-800 tracking-widest">
+            <button id="save-key-btn" class="bg-black border border-neutral-800 text-cyan-700 rounded px-3 py-1 text-[10px] font-mono active:bg-cyan-950 transition-colors">SET</button>
         </div>
     </footer>
 
     <script>
         const jarvisCore = document.getElementById('jarvisCore');
-        const coreText = document.getElementById('core-text');
         const statusText = document.getElementById('status');
         const responseDiv = document.getElementById('response');
         const apiKeyInput = document.getElementById('api-key-input');
@@ -118,7 +114,7 @@ body {
 
         if (localStorage.getItem('gemini_key')) {
             apiKeyInput.value = localStorage.getItem('gemini_key');
-            responseDiv.innerText = "全システム、正常稼働中。いつでもどうぞ、ボス。";
+            responseDiv.innerText = "SYSTEM_ONLINE. CORE TAP ENGAGED.";
         }
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -134,10 +130,8 @@ body {
             let key = apiKeyInput.value.trim().replace(/[\n\r\s]/g, "");
             if (key) {
                 localStorage.setItem('gemini_key', key);
-                responseDiv.innerText = "APIキーを格納。コアをタップして起動してください、ボス。";
+                responseDiv.innerText = "KEY_STORED. READY TO TEST.";
                 apiKeyInput.blur();
-            } else {
-                responseDiv.innerText = "有効なキーを入力してください、ボス。";
             }
         });
 
@@ -154,7 +148,7 @@ body {
             jarvisCore.addEventListener('click', () => {
                 const key = localStorage.getItem('gemini_key') || apiKeyInput.value.trim();
                 if (!key) {
-                    responseDiv.innerText = "APIキーを入力して「確定」を押してください、ボス。";
+                    responseDiv.innerText = "INPUT KEY AND TAP SET.";
                     return;
                 }
                 window.speechSynthesis.cancel();
@@ -163,47 +157,41 @@ body {
 
             recognition.onstart = () => {
                 document.body.classList.add('listening-state');
-                coreText.textContent = "LISTEN";
                 statusText.innerText = "CAPTURING";
                 statusText.className = "text-red-500 font-bold";
-                responseDiv.innerText = "ボスの指示を聴いています...";
+                responseDiv.innerText = "LISTENING TO BOSS...";
             };
 
             recognition.onend = () => {
                 document.body.classList.remove('listening-state');
-                coreText.textContent = "JARVIS";
-                statusText.innerText = "MARK_XXV";
-                statusText.className = "text-cyan-500 font-bold";
+                statusText.innerText = "ANALYZE_MODE";
+                statusText.className = "text-cyan-500";
             };
-
-            recognition.onresult = async (event) => {
-                const userText = event.results.transcript;
-                responseDiv.innerText = `「 ${userText} 」`;
-                statusText.innerText = "THINKING";
-                const key = localStorage.getItem('gemini_key');
-
-                try {
-                    const res = await fetch(`https://googleapis.com{key}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: `あなたは映画アイアンマンのAIアシスタント「JARVIS」です。主人である「ボス」に忠実に、最高に知的で簡潔な大人のセリフ（1〜2文）で答えてください。語尾は必ず「〜です、ボス」「〜でしょうか、ボス」にしてください。質問：${userText}` }] }]
-                        })
-                    });
-                    const data = await res.json();
-                    
-                    if(data.error) {
-                        responseDiv.innerText = `APIエラー: ${data.error.message}\nやはり保存していたキーが違っている可能性が高いです、ボス。`;
-                        statusText.innerText = "ERROR";
-                        return;
-                    }
-
-                    const aiText = data.candidates.content.parts.text;
-                    responseDiv.innerText = aiText;
-                    statusText.innerText = "MARK_XXV";
+recognition.onresult = async (event) => {
+const userText = event.results.transcript;
+responseDiv.innerText = 「 ${userText} 」;
+statusText.innerText = "THINKING";
+const key = localStorage.getItem('gemini_key');
+try {
+const res = await fetch(https://googleapis.com{key}, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+contents: [{ parts: [{ text: あなたは映画アイアンマンのAIアシスタント「JARVIS」です。主人である「ボス」に忠実に、最高に知的で簡潔な大人のセリフ（1〜2文）で答えてください。語尾は必ず「〜です、ボス」「〜でしょうか、ボス」にしてください。質問：${userText} }] }]
+})
+});
+const data = await res.json();
+if(data.error) {
+responseDiv.innerText = API_ERROR: ${data.error.message};
+statusText.innerText = "ERROR";
+return;
+}
+const aiText = data.candidates.content.parts.text;
+responseDiv.innerText = aiText;
+statusText.innerText = "ANALYZE_MODE";
 speak(aiText);
 } catch (err) {
-responseDiv.innerText = "通信エラーです。キーに間違いがないか、もう一度ご確認ください、ボス。";
+responseDiv.innerText = "LINK_FAILED.";
 statusText.innerText = "LINK_DOWN";
 }
 };
