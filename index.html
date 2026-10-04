@@ -182,7 +182,7 @@
             box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
         }
 
-        /* SIDE HUD PANEL */
+        /* SIDE HUD PANEL（あなたのコードのHUDデザインをキープ） */
         .sideHUD {
             position: fixed;
             top: 0;
@@ -249,6 +249,7 @@
             pointer-events: none;
         }
 
+        /* アニメーション定義 */
         @keyframes orbitRotate1 {
             0% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(0deg); }
             100% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(360deg); }
@@ -299,8 +300,7 @@
         </div>
 
         <!-- 右HUD -->
-        <div id="rightHUD" class="sideHUD">
-            <h2>J.A.R.V.I.S. INFO</h2>
+J.A.R.V.I.S. INFO
 DEVICE
 iPhone
 CONNECTION
@@ -362,6 +362,7 @@ particles[j].draw();
 requestAnimationFrame(animate);
 }
 animate();
+// ─── iPhone専用スワイプ検知ロジック ───
 var leftHUD = document.getElementById("leftHUD");
 var rightHUD = document.getElementById("rightHUD");
 var touchStartX = 0;
@@ -379,7 +380,7 @@ var absX = Math.abs(deltaX);
 var absY = Math.abs(deltaY);
 if (absX < 80 && absY < 80) return;
 if (absX > absY) {
-if (deltaX < -80) { // 左スワイプ
+if (deltaX < -80) { // 左スワイプ（右パネルを開く）
 if (rightHUD.classList.contains("open")) {
 rightHUD.classList.remove("open");
 } else if (leftHUD.classList.contains("open")) {
@@ -387,7 +388,7 @@ leftHUD.classList.remove("open");
 } else {
 rightHUD.classList.add("open");
 }
-} else if (deltaX > 80) { // 右スワイプ
+} else if (deltaX > 80) { // 右スワイプ（左パネルを開く）
 if (leftHUD.classList.contains("open")) {
 leftHUD.classList.remove("open");
 } else if (rightHUD.classList.contains("open")) {
@@ -398,6 +399,7 @@ leftHUD.classList.add("open");
 }
 }
 });
+// ─── 時計ウィジェットの自動更新 ───
 var rightHUDDate = document.getElementById("rightHUDDate");
 var rightHUDWeekday = document.getElementById("rightHUDWeekday");
 var rightHUDTime = document.getElementById("rightHUDTime");
