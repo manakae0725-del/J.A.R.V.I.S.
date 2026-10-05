@@ -38,8 +38,7 @@ left: 0;
 width: 100%;
 height: 100%;
 pointer-events: none;
-z-index: 1;
-}
+z-index: 1;}
 .hologram-vertical-system {
 position: relative;
 width: 380px;
@@ -79,8 +78,7 @@ height: 700px;
 .hologram-vertical-system {
 --system-scale: 0.9;
 }
-}
-/* 上部固定リング */
+}/* 上部固定リング */
 .hologram-disc-top {
 position: relative;
 width: 260px;
@@ -120,8 +118,7 @@ inset: 40px;
 border-width: 1px;
 border-style: dotted;
 }
-/* 中央 Core ユニット */
-.core-unit-center {
+/* 中央 Core ユニット */.core-unit-center {
 position: relative;
 width: 340px;
 height: 340px;
@@ -161,8 +158,7 @@ box-shadow: 0 0 14px rgba(0, 136, 255,
 0.4), 0 0 4px rgba(0, 220, 255, 0.5);
 pointer-events: none;
 z-index: 4;
-}
-.meridian-1 {
+}.meridian-1 {
 transform: rotate3d(1, 0.8, 0, 55deg);
 animation: orbitRotate1 18s linear
 infinite;
@@ -202,8 +198,7 @@ infinite;
 z-index: 5;
 border: 1px solid rgba(0, 200, 255, 0.4);
 }
-@media (min-width: 768px) {
-.core-sphere-nucleus {
+@media (min-width: 768px) {.core-sphere-nucleus {
 width: 135px;
 height: 135px;
 }
@@ -243,8 +238,7 @@ border-color: rgba(0, 153, 255, 0.3);
 z-index: 9000;
 transition: transform 0.25s ease;
 text-align: left;
-overflow-y: auto;
-}
+overflow-y: auto;}
 #leftHUD {
 left: 0;
 transform: translateX(-100%);
@@ -284,8 +278,7 @@ border-bottom: 1px solid rgba(0, 153,
 255, 0.2);
 padding-bottom: 6px;
 }
-.hud-card-title {
-color: #bfeaff;
+.hud-card-title {color: #bfeaff;
 font-size: 13px;
 font-weight: bold;
 letter-spacing: 2px;
@@ -325,8 +318,7 @@ width: 115px;
 }
 .status-bar-bg {
 flex-grow: 1;
-height: 6px;
-background: rgba(0, 80, 160, 0.2);
+height: 6px;background: rgba(0, 80, 160, 0.2);
 border-radius: 2px;
 overflow: hidden;
 margin: 0 8px;
@@ -366,8 +358,7 @@ color: #00ffcc;
 font-weight: bold;
 }
 .status-dot {
-width: 6px;
-height: 6px;
+width: 6px;height: 6px;
 background-color: #00ffcc;
 border-radius: 50%;
 box-shadow: 0 0 6px #00ffcc;
@@ -407,8 +398,7 @@ margin-bottom: 2px;
 .weather-temp-display {
 font-size: 20px;
 font-weight: bold;
-color: #ffffff;
-text-shadow: 0 0 8px
+color: #ffffff;text-shadow: 0 0 8px
 rgba(0,153,255,0.8);
 }
 .weather-condition-text {
@@ -448,8 +438,7 @@ align-items: center;
 margin-bottom: 8px;
 font-size: 11px;
 }
-.notif-left {
-display: flex;
+.notif-left {display: flex;
 align-items: center;
 gap: 8px;
 color: #a0d8ff;
@@ -489,8 +478,7 @@ pointer-events: none;
 40deg) rotateZ(360deg); }
 }
 @keyframes corePulse {
-0%, 100% {
-transform: scale(0.96);
+0%, 100% {transform: scale(0.96);
 box-shadow: 0 0 32px #0077ff, 0 0 65px
 rgba(0, 85, 255, 0.8), inset 0 0 18px
 #ffffff;
@@ -528,8 +516,7 @@ width: 100%;
 box-sizing: border-box;
 min-height: 100px;
 padding: 15px;
-border-radius: 12px;
-border: 1px solid #444;
+border-radius: 12px;border: 1px solid #444;
 background: #111;
 color: white;
 font-size: 16px;
@@ -561,8 +548,7 @@ placeholder="J.A.R.V.I.S.に話しかける内容を入力"
 <button id="sendButton">
 送信
 </button>
-</div>
-<div class="hologram-vertical-system" id="verticalSystem">
+</div><div class="hologram-vertical-system" id="verticalSystem">
 <div class="jarvis-datetime" id="jarvisDateTime"></div>
 <div class="hologram-disc-top">
 <div class="disc-ring-line"></div>
@@ -602,8 +588,7 @@ placeholder="J.A.R.V.I.S.に話しかける内容を入力"
 NETWORK
 </div>
 <div class="status-bar-bg">
-<div class="status-bar-fill" style="width:98%;"></div>
-</div>
+<div class="status-bar-fill" style="width:98%;"></div></div>
 <div class="status-value">98%</div>
 </div>
 <div class="status-row">
@@ -643,8 +628,7 @@ ACTIVITY
 </div>
 <div class="status-value">24%</div>
 </div>
-</div>
-<div class="hud-card">
+</div><div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">DEVICE STATUS</span>
 <span class="hud-dots">...</span>
@@ -684,8 +668,7 @@ Bluetooth
 </div>
 <div class="device-status-right">
 <span class="status-dot"></span>
-ON
-</div>
+ON</div>
 </div>
 <div class="device-row">
 <div class="device-info-left">
@@ -725,8 +708,7 @@ CHARGING
 <div class="weather-main-box">
 <div>
 <div class="weather-location" id="weatherLocation">東京</div>
-<div class="weather-temp-display" id="weatherTemp">13°C</div>
-<div class="weather-condition-text">
+<div class="weather-temp-display" id="weatherTemp">13°C</div><div class="weather-condition-text">
 <svg class="hud-icon" viewBox="0 0 24 24">
 <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
 </svg>
@@ -766,8 +748,7 @@ CHARGING
 <span>19:00</span>
 <span>12°C</span>
 <svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0-10z"/>
-</svg>
+<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0-10z"/></svg>
 </div>
 <div class="hourly-col">
 <span>22:00</span>
@@ -807,8 +788,7 @@ CHARGING
 <svg class="hud-icon" viewBox="0 0 24 24">
 <rect x="2" y="4" width="20" height="16" rx="2"/>
 <path d="m22 7-10 7L2 7"/>
-</svg>
-新着メール:3件
+</svg>新着メール:3件
 </div>
 <div class="notif-time">10:15</div>
 </div>
@@ -848,8 +828,7 @@ this.y=canvas.height;
 this.x=Math.random()*canvas.width;
 }
 };
-Particle.prototype.draw=function(){
-ctx.fillStyle="rgba(0, 153, 255, "+this.opacity+")";
+Particle.prototype.draw=function(){ctx.fillStyle="rgba(0, 153, 255, "+this.opacity+")";
 ctx.beginPath();
 ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
 ctx.fill();
@@ -884,8 +863,7 @@ touchStartY=touches.item(0).screenY;
 },{passive:true});
 document.addEventListener("touchend",function(e){
 var touches=e.changedTouches;
-if(!touches||touches.length===0)return;
-var touchEndX=touches.item(0).screenX;
+if(!touches||touches.length===0)return;var touchEndX=touches.item(0).screenX;
 var touchEndY=touches.item(0).screenY;
 var deltaX=touchEndX-touchStartX;
 var deltaY=touchEndY-touchStartY;
@@ -917,8 +895,7 @@ else{
 rightHUD.classList.add("open");
 }
 }
-else if(deltaX>80){
-if(leftHUD.classList.contains("open")){
+else if(deltaX>80){if(leftHUD.classList.contains("open")){
 leftHUD.classList.remove("open");
 }
 else if(rightHUD.classList.contains("open")){
@@ -944,18 +921,22 @@ updateDateTime();
 setInterval(updateDateTime,1000);
 var audioContext=null;
 var currentSource=null;
+
 var conversationActive=false;
 var recognitionRunning=false;
 var recognition=null;
+
+var previousInteractionId=null;
+
 var currentMode="voice";
+
 function setMode(mode){
 if(mode!=="voice" && mode!=="text") return;
 currentMode=mode;
 if(mode==="text"){
 textArea.style.display="block";
 }
-else{
-textArea.style.display="none";
+else{textArea.style.display="none";
 }
 console.log("【モード切替ログ】 現在のモード:", currentMode);
 }
@@ -995,8 +976,7 @@ const samples=4096;
 const curve=new Float32Array(samples);
 const drive=VOICE
 _PROCESSING.saturationDrive;
-for(let i=0;i<samples;i++){
-const x=(i*2)/(samples-1)-1;
+for(let i=0;i<samples;i++){const x=(i*2)/(samples-1)-1;
 curve[i]=Math.tanh(x*drive)/Math.tanh(drive);
 }
 shaper.curve=curve;
@@ -1042,8 +1022,7 @@ VOICE
 _PROCESSING.mudFrequency,
 VOICE
 _PROCESSING.mudGain,
-1.0
-);
+1.0);
 const presence=createEQ(
 context,
 "peaking",
@@ -1089,8 +1068,7 @@ density.ratio.value=VOICE_PROCESSING.densityRatio;
 density.attack.value=VOICE_PROCESSING.densityAttack;
 density.release.value=VOICE_PROCESSING.densityRelease;
 const finalTone=createEQ(
-context,
-"peaking",
+context,"peaking",
 180,
 1.8,
 0.8
@@ -1130,8 +1108,7 @@ const buffer=new ArrayBuffer(44+pcm.length);
 const view=new DataView(buffer);
 function writeString(offset,string){
 for(let i=0;i<string.length;i++){
-view.setUint8(offset+i,string.charCodeAt(i));
-}
+view.setUint8(offset+i,string.charCodeAt(i));}
 }
 writeString(0,"RIFF");
 view.setUint32(4,36+pcm.length,true);
@@ -1171,8 +1148,7 @@ writeString(offset,"RIFF");
 offset+=4;
 view.setUint32(offset,36+length,true);
 offset+=4;
-writeString(offset,"WAVE");
-offset+=4;
+writeString(offset,"WAVE");offset+=4;
 writeString(offset,"fmt ");
 offset+=4;
 view.setUint32(offset,16,true);
@@ -1209,8 +1185,7 @@ if(sampleValue<0){
 sampleValue×=0x8000;
 }
 else{
-sampleValue×=0x7fff;
-}
+sampleValue×=0x7fff;}
 view.setInt16(offset,sampleValue,true);
 offset+=2;
 }
@@ -1249,8 +1224,7 @@ conversationActive&&
 event.error!=="not-allowed"&&
 event.error!=="service-not-allowed"
 ){
-setTimeout(startListening,500);
-}
+setTimeout(startListening,500);}
 };
 recognition.onend=function(){
 recognitionRunning=false;
@@ -1278,6 +1252,104 @@ catch(error){
 recognitionRunning=false;
 }
 }
+
+async function sendToGemini(text){
+
+    const cleanText=
+        typeof text==="string"
+            ? text.trim()
+            : "";
+
+    if(!cleanText){
+        return;
+    }
+
+    status.textContent=
+        "Geminiへ送信中…";
+
+    try{
+
+        const controller=
+            new AbortController();
+
+        const timeout=
+            setTimeout(function(){
+                controller.abort();
+            },240000);
+
+        const response=
+            await fetch(
+                "/api/gemini",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify({
+
+                        text:
+                            cleanText,
+
+                        previousInteractionId:
+                            previousInteractionId
+
+                    }),
+
+                    signal:
+                        controller.signal
+                }
+            );
+
+        clearTimeout(timeout);
+
+        const data=
+            await response.json();
+
+        if(!response.ok){
+
+            throw new Error(
+                data.error ||
+                "Gemini HTTP "+
+                response.status
+            );
+        }
+
+        if(!data.text){
+
+            throw new Error(
+                "Geminiから回答テキストがありません"
+            );
+        }
+
+        if(data.interactionId){
+
+            previousInteractionId=
+                data.interactionId;
+        }
+
+        responseArea.textContent=
+            data.text;
+
+        status.textContent=
+            "回答完了";
+
+    }catch(error){
+
+        if(error.name==="AbortError"){
+
+            status.textContent=
+                "エラー：Geminiへの接続がタイムアウトしました";
+
+        }else{
+
+            status.textContent=
+                "エラー："+error.message;
+        }
+    }
+}
+
 </script>
 </body>
-</html>
