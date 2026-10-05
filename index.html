@@ -38,7 +38,8 @@ left: 0;
 width: 100%;
 height: 100%;
 pointer-events: none;
-z-index: 1;}
+z-index: 1;
+}
 .hologram-vertical-system {
 position: relative;
 width: 380px;
@@ -76,7 +77,8 @@ height: 700px;
 }
 @media (max-width: 767px) {
 .hologram-vertical-system {
---system-scale: 0.9;}
+--system-scale: 0.9;
+}
 }
 /* 上部固定リング */
 .hologram-disc-top {
@@ -115,7 +117,8 @@ border-right-color: transparent;
 }
 .disc-ring-line:nth-child(4) {
 inset: 40px;
-border-width: 1px;border-style: dotted;
+border-width: 1px;
+border-style: dotted;
 }
 /* 中央 Core ユニット */
 .core-unit-center {
@@ -153,7 +156,8 @@ height: 235px;
 border: 1.2px solid rgba(0, 136, 255,
 0.9);
 border-radius: 50%;
-box-shadow: 0 0 14px rgba(0, 136, 255,0.6), inset 0 0 10px rgba(0, 180, 255,
+box-shadow: 0 0 14px rgba(0, 136, 255,
+0.6), inset 0 0 10px rgba(0, 180, 255,
 0.4), 0 0 4px rgba(0, 220, 255, 0.5);
 pointer-events: none;
 z-index: 4;
@@ -193,7 +197,8 @@ rgba(0, 85, 255, 0.95), inset 0 0 20px
 display: flex;
 justify-content: center;
 align-items: center;
-animation: corePulse 3.5s ease-in-outinfinite;
+animation: corePulse 3.5s ease-in-out
+infinite;
 z-index: 5;
 border: 1px solid rgba(0, 200, 255, 0.4);
 }
@@ -231,7 +236,8 @@ position: fixed;
 top: 0;
 width: 310px;
 height: 100%;
-box-sizing: border-box;padding: 25px 15px;
+box-sizing: border-box;
+padding: 25px 15px;
 background: rgba(1, 10, 22, 0.94);
 border-color: rgba(0, 153, 255, 0.3);
 z-index: 9000;
@@ -270,7 +276,8 @@ box-shadow: inset 0 0 10px rgba(0, 136,
 255, 0.1);
 }
 .hud-card-header {
-display: flex;justify-content: space-between;
+display: flex;
+justify-content: space-between;
 align-items: center;
 margin-bottom: 10px;
 border-bottom: 1px solid rgba(0, 153,
@@ -308,7 +315,8 @@ align-items: center;
 justify-content: space-between;
 margin-bottom: 8px;
 font-size: 11px;
-}.status-label-group {
+}
+.status-label-group {
 display: flex;
 align-items: center;
 gap: 8px;
@@ -347,7 +355,8 @@ font-size: 11px;
 .device-info-left {
 display: flex;
 align-items: center;
-gap: 8px;color: #8acfff;
+gap: 8px;
+color: #8acfff;
 }
 .device-status-right {
 display: flex;
@@ -386,7 +395,8 @@ box-shadow: 0 0 4px #00d2ff;
 /* 右 HUD 用:天気予報スタイル */
 .weather-main-box {
 display: flex;
-justify-content: space-between;align-items: center;
+justify-content: space-between;
+align-items: center;
 margin-bottom: 12px;
 }
 .weather-location {
@@ -426,7 +436,8 @@ text-align: center;
 font-size: 9px;
 color: #7ab8ff;
 display: flex;
-flex-direction: column;align-items: center;
+flex-direction: column;
+align-items: center;
 gap: 4px;
 }
 /* 通知・ログリストスタイル */
@@ -464,7 +475,8 @@ pointer-events: none;
 55deg) rotateZ(0deg); }
 100% { transform: rotate3d(1, 0.8, 0,
 55deg) rotateZ(360deg); }
-}@keyframes orbitRotate2 {
+}
+@keyframes orbitRotate2 {
 0% { transform: rotate3d(0.5, -1, 0.5,
 70deg) rotateZ(0deg); }
 100% { transform: rotate3d(0.5, -1, 0.5,
@@ -504,7 +516,8 @@ opacity: 1;
 }
 </style>
 </head>
-<body><div class="jarvis-screen">
+<body>
+<div class="jarvis-screen">
 <canvas id="bgDustCanvas"></canvas>
 <div id="response"></div>
 <div class="hologram-vertical-system" id="verticalSystem">
@@ -538,7 +551,8 @@ opacity: 1;
 <span class="hud-card-title">SYSTEM STATUS</span>
 <span class="hud-dots">...</span>
 </div>
-<div class="status-row"><div class="status-label-group">
+<div class="status-row">
+<div class="status-label-group">
 <svg class="hud-icon" viewBox="0 0 24 24">
 <circle cx="12" cy="12" r="9"/>
 <path d="M3.6 9h16.8M3.6 15h16.8M12 3a15.3 15.3 0 0 1 4 18M12 3a15.3 15.3 0 0 0-4 18"/>
@@ -575,7 +589,8 @@ SYS LOAD
 </div>
 <div class="status-value">42%</div>
 </div>
-<div class="status-row"><div class="status-label-group">
+<div class="status-row">
+<div class="status-label-group">
 <svg class="hud-icon" viewBox="0 0 24 24">
 <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
 </svg>
@@ -612,7 +627,8 @@ ONLINE
 0M12 20h.01"/>
 </svg>
 Wi-Fi
-</div><div class="device-status-right">
+</div>
+<div class="device-status-right">
 <span class="status-dot"></span>
 CONNECTED
 </div>
@@ -649,7 +665,8 @@ BATTERY
 <svg class="hud-icon" viewBox="0 0 24 24">
 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
 </svg>
-POWER</div>
+POWER
+</div>
 <div class="device-status-right">
 <span class="status-dot"></span>
 CHARGING
@@ -686,7 +703,8 @@ CHARGING
 <svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
 <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
 </svg>
-</div><div class="hourly-col">
+</div>
+<div class="hourly-col">
 <span>13:00</span>
 <span>14°C</span>
 <svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
@@ -724,7 +742,8 @@ CHARGING
 <span class="hud-dots">...</span>
 </div>
 <div class="notif-item">
-<div class="notif-left"><svg class="hud-icon" viewBox="0 0 24 24">
+<div class="notif-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
 <rect x="3" y="4" width="18" height="18" rx="2"/>
 <path d="M16 2v4M8 2v4M3 10h18"/>
 </svg>
@@ -761,7 +780,8 @@ CHARGING
 </div>
 <div class="notif-time">09:54</div>
 </div>
-</div></div>
+</div>
+</div>
 <script>
 var canvas=document.getElementById("bgDustCanvas");
 var ctx=canvas.getContext("2d");
@@ -794,7 +814,8 @@ ctx.fill();
 };
 for(var i=0;i<30;i++){
 particles.push(new Particle());
-}function animate(){
+}
+function animate(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 for(var j=0;j<particles.length;j++){
 particles[j].update();
@@ -822,21 +843,11 @@ var deltaX=touchEndX-touchStartX;
 var deltaY=touchEndY-touchStartY;
 var absX=Math.abs(deltaX);
 var absY=Math.abs(deltaY);
-if(absX<80&&absY<80)return; 
-if(absY>absX){
-    if(deltaY<-80){
-        setMode("text");
-        return;
-    }
-
-    if(deltaY>80){
-        setMode("voice");
-        return;
-    }
-}
+if(absX<80&&absY<80)return;
 if(absX>absY){
 if(deltaX<-80){
-if(rightHUD.classList.contains("open")){rightHUD.classList.remove("open");
+if(rightHUD.classList.contains("open")){
+rightHUD.classList.remove("open");
 }
 }
 else{
@@ -872,16 +883,10 @@ updateDateTime();
 setInterval(updateDateTime,1000);
 var audioContext=null;
 var currentSource=null;
-var conversationActive=false;var recognitionRunning=false;
+var conversationActive=false;
+var recognitionRunning=false;
 var recognition=null;
 var currentMode="voice";
-
-function setMode(mode){
-    if(mode!=="voice" && mode!=="text") return;
-    currentMode=mode;
-    console.log("【モード切替ログ】 現在のモード:", currentMode);
-}
-
 var lastProcessedWav=null;
 const VOICE
 _PROCESSING={
@@ -918,7 +923,8 @@ const samples=4096;
 const curve=new Float32Array(samples);
 const drive=VOICE
 _PROCESSING.saturationDrive;
-for(let i=0;i<samples;i++){const x=(i*2)/(samples-1)-1;
+for(let i=0;i<samples;i++){
+const x=(i*2)/(samples-1)-1;
 curve[i]=Math.tanh(x*drive)/Math.tanh(drive);
 }
 shaper.curve=curve;
@@ -955,7 +961,8 @@ VOICE
 _PROCESSING.lowMidFrequency,
 VOICE
 _PROCESSING.lowMidGain,
-0.9);
+0.9
+);
 const mud=createEQ(
 context,
 "peaking",
@@ -996,7 +1003,8 @@ const lowpass=context.createBiquadFilter();
 lowpass.type="lowpass";
 lowpass.frequency.value=VOICE_PROCESSING.lowpassFrequency;
 lowpass.Q.value=0.45;
-const saturation=createVoiceSaturation(context);const compressor=context.createDynamicsCompressor();
+const saturation=createVoiceSaturation(context);
+const compressor=context.createDynamicsCompressor();
 compressor.threshold.value=VOICE_PROCESSING.compressorThreshold;
 compressor.knee.value=VOICE_PROCESSING.compressorKnee;
 compressor.ratio.value=VOICE_PROCESSING.compressorRatio;
@@ -1031,7 +1039,8 @@ density.connect(finalTone);
 finalTone.connect(outputGain);
 outputGain.connect(destination);
 return{
-input:highpass,output:outputGain
+input:highpass,
+output:outputGain
 };
 }
 function pcmToWav(base64){
@@ -1065,7 +1074,8 @@ view.setUint16(32,blockAlign,true);
 view.setUint16(34,bitsPerSample,true);
 writeString(36,"data");
 view.setUint32(40,pcm.length,true);
-new Uint8Array(buffer,44).set(pcm);return new Blob([buffer],{type:"audio/wav"});
+new Uint8Array(buffer,44).set(pcm);
+return new Blob([buffer],{type:"audio/wav"});
 }
 function audioBufferToWav(audioBuffer){
 const numberOfChannels=audioBuffer.numberOfChannels;
@@ -1098,7 +1108,8 @@ offset+=4;
 view.setUint16(offset,format,true);
 offset+=2;
 view.setUint16(offset,numberOfChannels,true);
-offset+=2;view.setUint32(offset,sampleRate,true);
+offset+=2;
+view.setUint32(offset,sampleRate,true);
 offset+=4;
 view.setUint32(
 offset,
@@ -1133,7 +1144,8 @@ offset+=2;
 }
 }
 return new Blob([buffer],{type:"audio/wav"});
-}const SpeechRecognition=
+}
+const SpeechRecognition=
 window.SpeechRecognition||
 window.webkitSpeechRecognition;
 if(SpeechRecognition){
@@ -1164,7 +1176,8 @@ if(
 conversationActive&&
 event.error!=="not-allowed"&&
 event.error!=="service-not-allowed"
-){setTimeout(startListening,500);
+){
+setTimeout(startListening,500);
 }
 };
 recognition.onend=function(){
