@@ -502,65 +502,53 @@ text-shadow: 0 0 15px #0088ff, 0
 opacity: 1;
 }
 }
-
 #textArea {
-    display: none;
-    position: absolute;
-    top: 75%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(100% - 50px);
-    max-width: 600px;
+display: none;
+position: absolute;
+top: 75%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: calc(100% - 50px);
+max-width: 600px;
 }
-
 #textInput {
-    width: 100%;
-    box-sizing: border-box;
-    min-height: 100px;
-    padding: 15px;
-    border-radius: 12px;
-    border: 1px solid #444;
-    background: #111;
-    color: white;
-    font-size: 16px;
-    resize: vertical;
+width: 100%;
+box-sizing: border-box;
+min-height: 100px;
+padding: 15px;
+border-radius: 12px;border: 1px solid #444;
+background: #111;
+color: white;
+font-size: 16px;
+resize: vertical;
 }
-
 #sendButton {
-    display: block;
-    margin: 12px auto 0;
-    width: 120px;
-    height: 45px;
-    border-radius: 22px;
-    border: 1px solid #555;
-    background: #222;
-    color: white;
-    font-size: 15px;
+display: block;
+margin: 12px auto 0;
+width: 120px;
+height: 45px;
+border-radius: 22px;
+border: 1px solid #555;
+background: #222;
+color: white;
+font-size: 15px;
 }
-
 </style>
 </head>
 <body>
 <div class="jarvis-screen">
 <canvas id="bgDustCanvas"></canvas>
 <div id="response"></div>
-
 <div id="textArea">
-
-    <textarea
-        id="textInput"
-        placeholder="J.A.R.V.I.S.に話しかける内容を入力"
-    ></textarea>
-
-    <br>
-
-    <button id="sendButton">
-        送信
-    </button>
-
-</div>
-
-<div class="hologram-vertical-system" id="verticalSystem">
+<textarea
+id="textInput"
+placeholder="J.A.R.V.I.S.に話しかける内容を入力"
+></textarea>
+<br>
+<button id="sendButton">
+送信
+</button>
+</div><div class="hologram-vertical-system" id="verticalSystem">
 <div class="jarvis-datetime" id="jarvisDateTime"></div>
 <div class="hologram-disc-top">
 <div class="disc-ring-line"></div>
@@ -570,7 +558,8 @@ opacity: 1;
 </div>
 <div class="core-unit-center">
 <div class="vertical-light-beam"></div>
-<div class="meridian-orbit-ring meridian-1"></div><div class="meridian-orbit-ring meridian-2"></div>
+<div class="meridian-orbit-ring meridian-1"></div>
+<div class="meridian-orbit-ring meridian-2"></div>
 <div class="meridian-orbit-ring meridian-3"></div>
 <div class="core-sphere-nucleus">
 <div class="jarvis-text-logo">JARVIS</div>
@@ -599,8 +588,7 @@ opacity: 1;
 NETWORK
 </div>
 <div class="status-bar-bg">
-<div class="status-bar-fill" style="width:98%;"></div>
-</div>
+<div class="status-bar-fill" style="width:98%;"></div></div>
 <div class="status-value">98%</div>
 </div>
 <div class="status-row">
@@ -610,7 +598,8 @@ NETWORK
 </svg>
 SIGNAL
 </div>
-<div class="status-bar-bg"><div class="status-bar-fill" style="width:86%;"></div>
+<div class="status-bar-bg">
+<div class="status-bar-fill" style="width:86%;"></div>
 </div>
 <div class="status-value">86%</div>
 </div>
@@ -639,8 +628,7 @@ ACTIVITY
 </div>
 <div class="status-value">24%</div>
 </div>
-</div>
-<div class="hud-card">
+</div><div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">DEVICE STATUS</span>
 <span class="hud-dots">...</span>
@@ -650,7 +638,8 @@ ACTIVITY
 <svg class="hud-icon" viewBox="0 0 24 24">
 <rect x="5" y="2" width="14" height="20" rx="2"/>
 <path d="M12 18h.01"/>
-</svg>DEVICE
+</svg>
+DEVICE
 </div>
 <div class="device-status-right">
 <span class="status-dot"></span>
@@ -679,8 +668,7 @@ Bluetooth
 </div>
 <div class="device-status-right">
 <span class="status-dot"></span>
-ON
-</div>
+ON</div>
 </div>
 <div class="device-row">
 <div class="device-info-left">
@@ -690,7 +678,8 @@ ON
 </svg>
 BATTERY
 </div>
-<div class="battery-inline-container"><span style="font-size:11px;color:#e0f2ff;font-weight:bold;">82%</span>
+<div class="battery-inline-container">
+<span style="font-size:11px;color:#e0f2ff;font-weight:bold;">82%</span>
 <div class="mini-battery-frame">
 <div class="mini-battery-inner"></div>
 </div>
@@ -719,8 +708,7 @@ CHARGING
 <div class="weather-main-box">
 <div>
 <div class="weather-location" id="weatherLocation">東京</div>
-<div class="weather-temp-display" id="weatherTemp">13°C</div>
-<div class="weather-condition-text">
+<div class="weather-temp-display" id="weatherTemp">13°C</div><div class="weather-condition-text">
 <svg class="hud-icon" viewBox="0 0 24 24">
 <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
 </svg>
@@ -730,7 +718,8 @@ CHARGING
 <div class="weather-high-low">
 <div>H: 15°C</div>
 <div>L: 8°C</div>
-</div></div>
+</div>
+</div>
 <div class="hourly-forecast-grid">
 <div class="hourly-col">
 <span>10:00</span>
@@ -759,8 +748,7 @@ CHARGING
 <span>19:00</span>
 <span>12°C</span>
 <svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0-10z"/>
-</svg>
+<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0-10z"/></svg>
 </div>
 <div class="hourly-col">
 <span>22:00</span>
@@ -770,7 +758,8 @@ CHARGING
 </svg>
 </div>
 </div>
-</div><div class="hud-card">
+</div>
+<div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">NOTIFICATION</span>
 <span class="hud-dots">...</span>
@@ -799,8 +788,7 @@ CHARGING
 <svg class="hud-icon" viewBox="0 0 24 24">
 <rect x="2" y="4" width="20" height="16" rx="2"/>
 <path d="m22 7-10 7L2 7"/>
-</svg>
-新着メール:3件
+</svg>新着メール:3件
 </div>
 <div class="notif-time">10:15</div>
 </div>
@@ -810,7 +798,8 @@ CHARGING
 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
 <path d="m9 11 3 3L22 4"/>
 </svg>
-タスクの処理が完了しました</div>
+タスクの処理が完了しました
+</div>
 <div class="notif-time">09:54</div>
 </div>
 </div>
@@ -839,8 +828,7 @@ this.y=canvas.height;
 this.x=Math.random()*canvas.width;
 }
 };
-Particle.prototype.draw=function(){
-ctx.fillStyle="rgba(0, 153, 255, "+this.opacity+")";
+Particle.prototype.draw=function(){ctx.fillStyle="rgba(0, 153, 255, "+this.opacity+")";
 ctx.beginPath();
 ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
 ctx.fill();
@@ -850,7 +838,8 @@ particles.push(new Particle());
 }
 function animate(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
-for(var j=0;j<particles.length;j++){particles[j].update();
+for(var j=0;j<particles.length;j++){
+particles[j].update();
 particles[j].draw();
 }
 requestAnimationFrame(animate);
@@ -858,16 +847,12 @@ requestAnimationFrame(animate);
 animate();
 var leftHUD=document.getElementById("leftHUD");
 var rightHUD=document.getElementById("rightHUD");
-
 const textArea =
-    document.getElementById("textArea");
-
+document.getElementById("textArea");
 const textInput =
-    document.getElementById("textInput");
-
+document.getElementById("textInput");
 const sendButton =
-    document.getElementById("sendButton");
-
+document.getElementById("sendButton");
 var touchStartX=0,touchStartY=0;
 document.addEventListener("touchstart",function(e){
 var touches=e.changedTouches;
@@ -876,64 +861,52 @@ touchStartX=touches.item(0).screenX;
 touchStartY=touches.item(0).screenY;
 }
 },{passive:true});
-
 document.addEventListener("touchend",function(e){
-    var touches=e.changedTouches;
-    if(!touches||touches.length===0)return;
-
-    var touchEndX=touches.item(0).screenX;
-    var touchEndY=touches.item(0).screenY;
-
-    var deltaX=touchEndX-touchStartX;
-    var deltaY=touchEndY-touchStartY;
-
-    var absX=Math.abs(deltaX);
-    var absY=Math.abs(deltaY);
-
-    if(absX<80&&absY<80)return;
-
-    /* 縦スワイプ */
-    if(absY>absX){
-
+var touches=e.changedTouches;
+if(!touches||touches.length===0)return;var touchEndX=touches.item(0).screenX;
+var touchEndY=touches.item(0).screenY;
+var deltaX=touchEndX-touchStartX;
+var deltaY=touchEndY-touchStartY;
+var absX=Math.abs(deltaX);
+var absY=Math.abs(deltaY);
+if(absX<80&&absY<80)return;
+/* 縦スワイプ */
+if(absY>absX){
 if(deltaY<-80){
-    console.log("下→上スワイプ検知");
-    setMode("text");
-    return;
+console.log("下→上スワイプ検知");
+setMode("text");
+return;
 }
-
-        if(deltaY>80){
-            setMode("voice");
-            return;
-        }
-    }
-
-    /* 横スワイプ */
-    if(absX>absY){
-        if(deltaX<-80){
-            if(rightHUD.classList.contains("open")){
-                rightHUD.classList.remove("open");
-            }
-            else if(leftHUD.classList.contains("open")){
-                leftHUD.classList.remove("open");
-            }
-            else{
-                rightHUD.classList.add("open");
-            }
-        }
-        else if(deltaX>80){
-            if(leftHUD.classList.contains("open")){
-                leftHUD.classList.remove("open");
-            }
-            else if(rightHUD.classList.contains("open")){
-                rightHUD.classList.remove("open");
-            }
-            else{
-                leftHUD.classList.add("open");
-            }
-        }
-    }
+if(deltaY>80){
+setMode("voice");
+return;
+}
+}
+/* 横スワイプ */
+if(absX>absY){
+if(deltaX<-80){
+if(rightHUD.classList.contains("open")){
+rightHUD.classList.remove("open");
+}
+else if(leftHUD.classList.contains("open")){
+leftHUD.classList.remove("open");
+}
+else{
+rightHUD.classList.add("open");
+}
+}
+else if(deltaX>80){if(leftHUD.classList.contains("open")){
+leftHUD.classList.remove("open");
+}
+else if(rightHUD.classList.contains("open")){
+rightHUD.classList.remove("open");
+}
+else{
+leftHUD.classList.add("open");
+}
+}
+}
 });
-
 function updateDateTime(){
 var now=new Date();
 var year=now.getFullYear();
@@ -941,7 +914,7 @@ var month=String(now.getMonth()+1).padStart(2,"0");
 var day=String(now.getDate()).padStart(2,"0");
 var hours=String(now.getHours()).padStart(2,"0");
 var minutes=String(now.getMinutes()).padStart(2,"0");
-document.getElementById("jarvisDateTime").textContent=
+document.getElementById("jarvisDateTime")×textContent=
 year+"."+month+"."+day+" "+hours+":"+minutes;
 }
 updateDateTime();
@@ -952,24 +925,19 @@ var conversationActive=false;
 var recognitionRunning=false;
 var recognition=null;
 var currentMode="voice";
-
 function setMode(mode){
-    if(mode!=="voice" && mode!=="text") return;
-
-    currentMode=mode;
-
-    if(mode==="text"){
-        textArea.style.display="block";
-    }
-    else{
-        textArea.style.display="none";
-    }
-
-    console.log("【モード切替ログ】 現在のモード:", currentMode);
+if(mode!=="voice" && mode!=="text") return;
+currentMode=mode;
+if(mode==="text"){
+textArea.style.display="block";
 }
-
+else{textArea.style.display="none";
+}
+console.log("【モード切替ログ】 現在のモード:", currentMode);
+}
 var lastProcessedWav=null;
-const VOICE_PROCESSING={
+const VOICE
+_PROCESSING={
 highpassFrequency:55,
 lowpassFrequency:9200,
 lowBodyFrequency:145,
@@ -1001,8 +969,9 @@ function createVoiceSaturation(context){
 const shaper=context.createWaveShaper();
 const samples=4096;
 const curve=new Float32Array(samples);
-const drive=VOICE_PROCESSING.saturationDrive;for(let i=0;i<samples;i++){
-const x=(i*2)/(samples-1)-1;
+const drive=VOICE
+_PROCESSING.saturationDrive;
+for(let i=0;i<samples;i++){const x=(i*2)/(samples-1)-1;
 curve[i]=Math.tanh(x*drive)/Math.tanh(drive);
 }
 shaper.curve=curve;
@@ -1026,42 +995,54 @@ highpass.Q.value=0.65;
 const lowBody=createEQ(
 context,
 "lowshelf",
-VOICE_PROCESSING.lowBodyFrequency,
-VOICE_PROCESSING.lowBodyGain,
+VOICE
+_PROCESSING.lowBodyFrequency,
+VOICE
+_PROCESSING.lowBodyGain,
 0.7
 );
 const lowMid=createEQ(
 context,
 "peaking",
-VOICE_PROCESSING.lowMidFrequency,
-VOICE_PROCESSING.lowMidGain,
+VOICE
+_PROCESSING.lowMidFrequency,
+VOICE
+_PROCESSING.lowMidGain,
 0.9
 );
-const mud=createEQ(context,
+const mud=createEQ(
+context,
 "peaking",
-VOICE_PROCESSING.mudFrequency,
-VOICE_PROCESSING.mudGain,
-1.0
-);
+VOICE
+_PROCESSING.mudFrequency,
+VOICE
+_PROCESSING.mudGain,
+1.0);
 const presence=createEQ(
 context,
 "peaking",
-VOICE_PROCESSING.presenceFrequency,
-VOICE_PROCESSING.presenceGain,
+VOICE
+_PROCESSING.presenceFrequency,
+VOICE
+_PROCESSING.presenceGain,
 0.85
 );
 const brightness=createEQ(
 context,
 "peaking",
-VOICE_PROCESSING.brightnessFrequency,
-VOICE_PROCESSING.brightnessGain,
+VOICE
+_PROCESSING.brightnessFrequency,
+VOICE
+_PROCESSING.brightnessGain,
 0.75
 );
 const harshness=createEQ(
 context,
 "peaking",
-VOICE_PROCESSING.harshFrequency,
-VOICE_PROCESSING.harshGain,
+VOICE
+_PROCESSING.harshFrequency,
+VOICE
+_PROCESSING.harshGain,
 1.1
 );
 const lowpass=context.createBiquadFilter();
@@ -1069,7 +1050,8 @@ lowpass.type="lowpass";
 lowpass.frequency.value=VOICE_PROCESSING.lowpassFrequency;
 lowpass.Q.value=0.45;
 const saturation=createVoiceSaturation(context);
-const compressor=context.createDynamicsCompressor();compressor.threshold.value=VOICE_PROCESSING.compressorThreshold;
+const compressor=context.createDynamicsCompressor();
+compressor.threshold.value=VOICE_PROCESSING.compressorThreshold;
 compressor.knee.value=VOICE_PROCESSING.compressorKnee;
 compressor.ratio.value=VOICE_PROCESSING.compressorRatio;
 compressor.attack.value=VOICE_PROCESSING.compressorAttack;
@@ -1081,8 +1063,7 @@ density.ratio.value=VOICE_PROCESSING.densityRatio;
 density.attack.value=VOICE_PROCESSING.densityAttack;
 density.release.value=VOICE_PROCESSING.densityRelease;
 const finalTone=createEQ(
-context,
-"peaking",
+context,"peaking",
 180,
 1.8,
 0.8
@@ -1109,7 +1090,8 @@ output:outputGain
 }
 function pcmToWav(base64){
 const binary=atob(base64);
-const pcm=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++){
+const pcm=new Uint8Array(binary.length);
+for(let i=0;i<binary.length;i++){
 pcm[i]=binary.charCodeAt(i);
 }
 const sampleRate=24000;
@@ -1121,8 +1103,7 @@ const buffer=new ArrayBuffer(44+pcm.length);
 const view=new DataView(buffer);
 function writeString(offset,string){
 for(let i=0;i<string.length;i++){
-view.setUint8(offset+i,string.charCodeAt(i));
-}
+view.setUint8(offset+i,string.charCodeAt(i));}
 }
 writeString(0,"RIFF");
 view.setUint32(4,36+pcm.length,true);
@@ -1149,7 +1130,8 @@ const channelData=[];
 for(let channel=0;channel<numberOfChannels;channel++){
 channelData.push(audioBuffer.getChannelData(channel));
 }
-const length=audioBuffer.length*numberOfChannels*(bitDepth/8);const buffer=new ArrayBuffer(44+length);
+const length=audioBuffer.length*numberOfChannels*(bitDepth/8);
+const buffer=new ArrayBuffer(44+length);
 const view=new DataView(buffer);
 function writeString(offset,string){
 for(let i=0;i<string.length;i++){
@@ -1161,8 +1143,7 @@ writeString(offset,"RIFF");
 offset+=4;
 view.setUint32(offset,36+length,true);
 offset+=4;
-writeString(offset,"WAVE");
-offset+=4;
+writeString(offset,"WAVE");offset+=4;
 writeString(offset,"fmt ");
 offset+=4;
 view.setUint32(offset,16,true);
@@ -1189,21 +1170,17 @@ view.setUint16(offset,bitDepth,true);
 offset+=2;
 writeString(offset,"data");
 offset+=4;
-view.setUint32(offset,length,true);offset+=4;
+view.setUint32(offset,length,true);
+offset+=4;
 for(let sample=0;sample<audioBuffer.length;sample++){
 for(let channel=0;channel<numberOfChannels;channel++){
 let sampleValue=channelData[channel][sample];
 sampleValue=Math.max(-1,Math.min(1,sampleValue));
 if(sampleValue<0){
-
-sampleValue*=0x8000;
-
+sampleValue×=0x8000;
 }
 else{
-
-sampleValue*=0x7fff;
-
-}
+sampleValue×=0x7fff;}
 view.setInt16(offset,sampleValue,true);
 offset+=2;
 }
@@ -1233,7 +1210,8 @@ setTimeout(startListening,2500);
 };
 recognition.onerror=function(event){
 recognitionRunning=false;
-console.error("SpeechRecognition error:",
+console.error(
+"SpeechRecognition error:",
 event.error
 );
 if(
@@ -1241,8 +1219,7 @@ conversationActive&&
 event.error!=="not-allowed"&&
 event.error!=="service-not-allowed"
 ){
-setTimeout(startListening,500);
-}
+setTimeout(startListening,500);}
 };
 recognition.onend=function(){
 recognitionRunning=false;
@@ -1270,6 +1247,15 @@ catch(error){
 recognitionRunning=false;
 }
 }
+
+// JARVIS起動フロー
+setMode("voice");
+conversationActive=true;
+
+setTimeout(function(){
+    startListening();
+},1000);
+
 </script>
 </body>
 </html>
