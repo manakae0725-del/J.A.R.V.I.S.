@@ -1374,6 +1374,10 @@ async function sendToGemini(text) {
         previousInteractionId =
             data.interactionId;
     }
+
+document.getElementById("response").textContent =
+    data.text;
+
 }
 
 </script>
