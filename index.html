@@ -985,6 +985,203 @@ var recognition=null;
 var previousInteractionId=null;
 var currentMode="voice";
 
+/* =========================================================
+   LONG-TERM MEMORY SYSTEM (PORTED)
+   ========================================================= */
+
+let memories = [];
+
+function getErrorMessage(error) {
+    if (typeof error === "string") return error;
+
+    if (error && typeof error === "object") {
+        if (error.message) return error.message;
+
+        try {
+            return JSON.stringify(error);
+        } catch (e) {
+            return "不明なエラー";
+        }
+    }
+
+    return String(error);
+}
+
+async function loadMemories() {
+    try {
+        const response = await fetch(
+            "/api/memory",
+            {
+                method: "GET"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+            throw new Error(
+                getErrorMessage(data.error) ||
+                "Memory GET error"
+            );
+        }
+
+        memories =
+            Array.isArray(data.memories)
+                ? data.memories.slice(0, 30)
+                : [];
+
+        return memories;
+
+    } catch (error) {
+
+        console.error(
+            "Memory load error:",
+            error
+        );
+
+        memories = [];
+
+        return [];
+    }
+}
+
+function buildMemoryContext() {
+
+    if (!memories.length) {
+        return "現在、登録されている長期記憶はありません。";
+    }
+
+    return memories
+        .map(
+            (memory, index) => {
+                return `${index + 1}. [${memory.category}] ${memory.content}`;
+            }
+        )
+        .join("\n");
+}
+
+function buildGeminiPrompt(text) {
+
+    const memoryContext =
+        buildMemoryContext();
+
+    return `
+あなたは真人様専用のAIアシスタント、J.A.R.V.I.S.です。
+
+以下は真人様について保存されている長期記憶です。
+今回の会話に関連する場合のみ自然に利用してください。
+記憶にないことは推測しないでください。
+
+--- 長期記憶 ---
+${memoryContext}
+--- 長期記憶ここまで ---
+
+今回の真人さ様の発言：
+${text}
+
+以下のルールで判断してください。
+
+1. 真人様の発言への自然な回答を「reply」に入れてください。
+2. 今後の会話でも長期的に役立つ情報なら「memory.shouldSave」をtrueにしてください。
+3. 一時的な発言、雑談、その場限りの情報は保存しないでください。
+4. 「覚えて」「記憶して」など明示的に保存を求められた場合は、保存対象として扱ってください。
+5. 保存する場合は、発言そのものではなく、今後利用しやすい簡潔な事実として「memory.content」にしてください。
+6. カテゴリは以下から選択してください。
+   - personal
+   - preference
+   - work
+   - family
+   - goal
+7. 重要度は1〜5で設定してください。
+8. 保存しない場合は「memory.shouldSave」をfalseにしてください。
+9. 保存しない場合でも「reply」は通常どおり自然に回答してください。
+`;
+}
+
+async function saveMemory(memory) {
+
+    if (!memory || !memory.shouldSave) {
+        return false;
+    }
+
+    const content =
+        typeof memory.content === "string"
+            ? memory.content.trim()
+            : "";
+
+    if (!content) {
+        return false;
+    }
+
+    const category =
+        [
+            "personal",
+            "preference",
+            "work",
+            "family",
+            "goal"
+        ].includes(memory.category)
+            ? memory.category
+            : "personal";
+
+    const importance =
+        Number.isInteger(memory.importance)
+            ? Math.min(
+                5,
+                Math.max(
+                    1,
+                    memory.importance
+                )
+            )
+            : 1;
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/memory",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            category,
+                            content,
+                            importance
+                        })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.ok) {
+            throw new Error(
+                getErrorMessage(data.error) ||
+                "Memory save error"
+            );
+        }
+
+        await loadMemories();
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Memory save error:",
+            error
+        );
+
+        return false;
+    }
+}
+
 function setMode(mode){
     if(mode!=="voice" && mode!=="text") return;
 
@@ -1336,16 +1533,15 @@ async function sendToGemini(text) {
                         "application/json"
                 },
 
-                body: JSON.stringify({
+           body: JSON.stringify({
 
-                    text:
-                        cleanText,
+    text:
+        buildGeminiPrompt(cleanText),
 
-                    previousInteractionId:
-                        previousInteractionId
+    previousInteractionId:
+        previousInteractionId
 
-                }),
-
+}),
                 signal:
                     controller.signal
             }
@@ -1374,6 +1570,15 @@ async function sendToGemini(text) {
         previousInteractionId =
             data.interactionId;
     }
+
+if (
+    data.memory &&
+    data.memory.shouldSave === true
+) {
+    await saveMemory(
+        data.memory
+    );
+}
 
 document.getElementById("response").textContent =
     data.text;
