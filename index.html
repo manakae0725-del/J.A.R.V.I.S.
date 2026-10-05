@@ -3,11 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-content="width=device-width, initial-
-scale=1.0, maximum-scale=1.0, user-
-scalable=no">
-<title>JARVIS - 3D Meridian Rings Core
-UI with HUD</title>
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JARVIS - 3D Meridian Rings Core UI with HUD</title>
 <style>
 *, *::before, *::after {
 box-sizing: border-box;
@@ -57,30 +54,35 @@ z-index: 2;
 filter: drop-shadow(0 0 35px rgba(0,
 119, 255, 0.7));
 }
+
 .jarvis-datetime {
-position: absolute;
-top: 78px;
-left: 50%;
-transform: translateX(-50%);
-color: #bfeaff;
-font-size: 11px;
-letter-spacing: 2px;
-white-space: nowrap;
-text-shadow:
-0 0 5px rgba(0, 136, 255, 0.9),
-0 0 12px rgba(0, 136, 255, 0.6);
-z-index: 5;
-pointer-events: none;
+    position: absolute;
+    top: 78px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #bfeaff;
+    font-size: 11px;
+    letter-spacing: 2px;
+    white-space: nowrap;
+    text-shadow:
+        0 0 5px rgba(0, 136, 255, 0.9),
+        0 0 12px rgba(0, 136, 255, 0.6);
+    z-index: 5;
+    pointer-events: none;
 }
+
 @media (min-width: 768px) {
-.hologram-vertical-system { width:
-440px; height: 700px; }
+.hologram-vertical-system {
+width: 440px;
+height: 700px;
+}
 }
 @media (max-width: 767px) {
-.hologram-vertical-system {
---system-scale: 0.9;
+    .hologram-vertical-system {
+        --system-scale: 0.9;
+    }
 }
-}
+
 /* 上部固定リング */
 .hologram-disc-top {
 position: relative;
@@ -100,18 +102,28 @@ border: 1px solid rgba(0, 136, 255, 0.85);
 box-shadow: inset 0 0 10px rgba(0, 136,
 255, 0.5), 0 0 3px rgba(0, 200, 255, 0.3);
 }
-.disc-ring-line:nth-child(1) { inset: 0px;
-border-width: 2px; border-style:
-dashed; }
-.disc-ring-line:nth-child(2) { inset: 12px;
-border-width: 1px; }
-.disc-ring-line:nth-child(3) { inset: 26px;
-border-width: 3px; border-color:
-#0088ff; border-left-color: transparent;
-border-right-color: transparent; }
-.disc-ring-line:nth-child(4) { inset: 40px;
-border-width: 1px; border-style:
-dotted; }
+.disc-ring-line:nth-child(1) {
+inset: 0px;
+border-width: 2px;
+border-style: dashed;
+}
+.disc-ring-line:nth-child(2) {
+inset: 12px;
+border-width: 1px;
+}
+.disc-ring-line:nth-child(3) {
+inset: 26px;
+border-width: 3px;
+border-color: #0088ff;
+border-left-color: transparent;
+border-right-color: transparent;
+}
+.disc-ring-line:nth-child(4) {
+inset: 40px;
+border-width: 1px;
+border-style: dotted;
+}
+
 /* 中央 Core ユニット */
 .core-unit-center {
 position: relative;
@@ -122,9 +134,12 @@ justify-content: center;
 align-items: center;
 perspective: 1000px;
 }
+
 @media (min-width: 768px) {
-.core-unit-center { width: 400px; height:
-400px; }
+.core-unit-center {
+width: 400px;
+height: 400px;
+}
 }
 .vertical-light-beam {
 position: absolute;
@@ -191,17 +206,12 @@ animation: corePulse 3.5s ease-in-out
 infinite;
 z-index: 5;
 border: 1px solid rgba(0, 200, 255, 0.4);
-cursor: pointer; /* iOSタップ可能であるこ
-とを明示 */
-}
-/* 発光ステータス定義 */
-.core-sphere-nucleus.listening {
-filter: saturate(1.4) brightness(1.2)
-drop-shadow(0 0 25px #00d4ff);
 }
 @media (min-width: 768px) {
-.core-sphere-nucleus { width: 135px;
-height: 135px; }
+.core-sphere-nucleus {
+width: 135px;
+height: 135px;
+}
 }
 .jarvis-text-logo {
 font-size: 1.05rem;
@@ -214,6 +224,7 @@ z-index: 6;
 animation: textGlow 4s ease-in-out
 infinite;
 }
+
 /* 下部固定リング */
 .hologram-disc-bottom {
 position: relative;
@@ -225,6 +236,7 @@ transform-style: preserve-3d;
 box-shadow: 0 0 22px rgba(0, 136, 255,
 0.5);
 }
+
 /* SIDE HUD PANEL */
 .sideHUD {
 position: fixed;
@@ -259,6 +271,7 @@ rgba(0,0,0,0.8);
 #leftHUD.open, #rightHUD.open {
 transform: translateX(0);
 }
+
 /* HUD 内部カード・モジュール */
 .hud-card {
 position: relative;
@@ -290,6 +303,7 @@ color: #0099ff;
 letter-spacing: 2px;
 font-size: 12px;
 }
+
 /* SVG アイコン共通スタイル */
 .hud-icon {
 width: 16px;
@@ -303,7 +317,8 @@ filter: drop-shadow(0 0 4px rgba(0, 180,
 255, 0.8));
 flex-shrink: 0;
 }
-/* 左HUD用:横棒グラフスタイル */
+
+/* 左 HUD 用: 横棒グラフスタイル */
 .status-row {
 display: flex;
 align-items: center;
@@ -339,6 +354,7 @@ text-align: right;
 color: #e0f2ff;
 font-weight: bold;
 }
+
 /* デバイスステータス用 */
 .device-row {
 display: flex;
@@ -387,7 +403,8 @@ height: 100%;
 background: #00d2ff;
 box-shadow: 0 0 4px #00d2ff;
 }
-/* 右HUD用:天気予報スタイル */
+
+/* 右 HUD 用:天気予報スタイル */
 .weather-main-box {
 display: flex;
 justify-content: space-between;
@@ -435,6 +452,7 @@ flex-direction: column;
 align-items: center;
 gap: 4px;
 }
+
 /* 通知・ログリストスタイル */
 .notif-item {
 display: flex;
@@ -465,20 +483,7 @@ line-height: 1.7;
 z-index: 10;
 pointer-events: none;
 }
-/* 画面中央最下部のステータス表示 */
-#jarvisStatus {
-position: absolute;
-bottom: 25px;
-width: 100%;
-text-align: center;
-font-size: 11px;
-color: rgba(0, 153, 255, 0.6);
-letter-spacing: 2px;
-z-index: 10;
-pointer-events: none;
-text-shadow: 0 0 5px rgba(0, 136, 255,
-0.5);
-}
+
 @keyframes orbitRotate1 {
 0% { transform: rotate3d(1, 0.8, 0,
 55deg) rotateZ(0deg); }
@@ -512,321 +517,789 @@ box-shadow: 0 0 48px #0088ff, 0 0
 }
 }
 @keyframes textGlow {
-0%, 100% { text-shadow: 0 0 10px
-#0088ff, 0 0 20px #0066ff; opacity:
-0.9; }
-50% { text-shadow: 0 0 15px #0088ff, 0
+0%, 100% {
+text-shadow: 0 0 10px
+#0088ff, 0 0 20px #0066ff;
+opacity: 0.9;
+}
+50% {
+text-shadow: 0 0 15px #0088ff, 0
 0 28px #ffffff, 0 0 40px #0044ff;
-opacity: 1; }
+opacity: 1;
 }
-JARVIS
-SYSTEM READY
-SYSTEM STATUS
-...
+}
+</style>
+</head>
+<body>
+<div class="jarvis-screen">
+<canvas id="bgDustCanvas"></canvas>
+<div id="response"></div>
+
+<div class="hologram-vertical-system" id="verticalSystem">
+<div class="jarvis-datetime" id="jarvisDateTime"></div>
+
+<div class="hologram-disc-top">
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+</div>
+
+<div class="core-unit-center">
+<div class="vertical-light-beam"></div>
+<div class="meridian-orbit-ring meridian-1"></div>
+<div class="meridian-orbit-ring meridian-2"></div>
+<div class="meridian-orbit-ring meridian-3"></div>
+<div class="core-sphere-nucleus">
+<div class="jarvis-text-logo">JARVIS</div>
+</div>
+</div>
+
+<div class="hologram-disc-bottom">
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+<div class="disc-ring-line"></div>
+</div>
+</div>
+</div>
+
+<div id="leftHUD" class="sideHUD">
+<div class="hud-card">
+<div class="hud-card-header">
+<span class="hud-card-title">SYSTEM STATUS</span>
+<span class="hud-dots">...</span>
+</div>
+
+<div class="status-row">
+<div class="status-label-group">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9"/>
+<path d="M3.6 9h16.8M3.6 15h16.8M12 3a15.3 15.3 0 0 1 4 18M12 3a15.3 15.3 0 0 0-4 18"/>
+</svg>
 NETWORK
-98%
+</div>
+<div class="status-bar-bg">
+<div class="status-bar-fill" style="width:98%;"></div>
+</div>
+<div class="status-value">98%</div>
+</div>
+
+<div class="status-row">
+<div class="status-label-group">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<path d="M12 20v-6M6 20V10M18 20V4"/>
+</svg>
 SIGNAL
-86%
+</div>
+<div class="status-bar-bg">
+<div class="status-bar-fill" style="width:86%;"></div>
+</div>
+<div class="status-value">86%</div>
+</div>
+
+<div class="status-row">
+<div class="status-label-group">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<rect x="4" y="4" width="16" height="16" rx="2"/>
+<path d="M9 9h6v6H9zM9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>
+</svg>
 SYS LOAD
-42%
+</div>
+<div class="status-bar-bg">
+<div class="status-bar-fill" style="width:42%;"></div>
+</div>
+<div class="status-value">42%</div>
+</div>
+
+<div class="status-row">
+<div class="status-label-group">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+</svg>
 ACTIVITY
-24%
-DEVICE STATUS
-...
+</div>
+<div class="status-bar-bg">
+<div class="status-bar-fill" style="width:24%;"></div>
+</div>
+<div class="status-value">24%</div>
+</div>
+</div>
+
+<div class="hud-card">
+<div class="hud-card-header">
+<span class="hud-card-title">DEVICE STATUS</span>
+<span class="hud-dots">...</span>
+</div>
+
+<div class="device-row">
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<rect x="5" y="2" width="14" height="20" rx="2"/>
+<path d="M12 18h.01"/>
+</svg>
 DEVICE
+</div>
+<div class="device-status-right">
+<span class="status-dot"></span>
 ONLINE
+</div>
+</div>
+
+<div class="device-row">
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+</svg>
 Wi-Fi
+</div>
+<div class="device-status-right">
+<span class="status-dot"></span>
 CONNECTED
+</div>
+</div>
+
+<div class="device-row">
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<path d="m6.5 6.5 11 11L12 23V1l5.5 5.5-11 11"/>
+</svg>
 Bluetooth
+</div>
+<div class="device-status-right">
+<span class="status-dot"></span>
 ON
+</div>
+</div>
+
+<div class="device-row">
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<rect x="2" y="7" width="18" height="10" rx="2"/>
+<path d="M22 11v2"/>
+</svg>
 BATTERY
-82%
+</div>
+<div class="battery-inline-container">
+<span style="font-size:11px;color:#e0f2ff;font-weight:bold;">82%</span>
+<div class="mini-battery-frame">
+<div class="mini-battery-inner"></div>
+</div>
+</div>
+</div>
+
+<div class="device-row">
+<div class="device-info-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+</svg>
 POWER
+</div>
+<div class="device-status-right">
+<span class="status-dot"></span>
 CHARGING
-WEATHER
-...
-東京
-13°C
+</div>
+</div>
+</div>
+</div>
+
+<div id="rightHUD" class="sideHUD">
+<div class="hud-card">
+<div class="hud-card-header">
+<span class="hud-card-title">WEATHER</span>
+<span class="hud-dots">...</span>
+</div>
+
+<div class="weather-main-box">
+<div>
+<div class="weather-location" id="weatherLocation">東京</div>
+<div class="weather-temp-display" id="weatherTemp">13°C</div>
+<div class="weather-condition-text">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+</svg>
 くもり
-H: 15°C
-L: 8°C
-10:00
-13°C
-13:00
-14°C
-16:00
-15°C
-19:00
-12°C
-22:00
-11°C
-NOTIFICATION
-...
+</div>
+</div>
+<div class="weather-high-low">
+<div>H: 15°C</div>
+<div>L: 8°C</div>
+</div>
+</div>
+
+<div class="hourly-forecast-grid">
+<div class="hourly-col">
+<span>10:00</span>
+<span>13°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
+<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+</svg>
+</div>
+<div class="hourly-col">
+<span>13:00</span>
+<span>14°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
+<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+</svg>
+</div>
+<div class="hourly-col">
+<span>16:00</span>
+<span>15°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="5"/>
+<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+</svg>
+</div>
+<div class="hourly-col">
+<span>19:00</span>
+<span>12°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
+<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0-10z"/>
+</svg>
+</div>
+<div class="hourly-col">
+<span>22:00</span>
+<span>11°C</span>
+<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
+<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+</svg>
+</div>
+</div>
+</div>
+
+<div class="hud-card">
+<div class="hud-card-header">
+<span class="hud-card-title">NOTIFICATION</span>
+<span class="hud-dots">...</span>
+</div>
+
+<div class="notif-item">
+<div class="notif-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<rect x="3" y="4" width="18" height="18" rx="2"/>
+<path d="M16 2v4M8 2v4M3 10h18"/>
+</svg>
 スケジュールの確認
-10:32
+</div>
+<div class="notif-time">10:32</div>
+</div>
+
+<div class="notif-item">
+<div class="notif-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+</svg>
 天気情報を取得しました
-10:28
+</div>
+<div class="notif-time">10:28</div>
+</div>
+
+<div class="notif-item">
+<div class="notif-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<rect x="2" y="4" width="20" height="16" rx="2"/>
+<path d="m22 7-10 7L2 7"/>
+</svg>
 新着メール:3件
-10:15
+</div>
+<div class="notif-time">10:15</div>
+</div>
+
+<div class="notif-item">
+<div class="notif-left">
+<svg class="hud-icon" viewBox="0 0 24 24">
+<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+<path d="m9 11 3 3L22 4"/>
+</svg>
 タスクの処理が完了しました
-09:54
-var canvas =
-document.getElementById("bgDustCanv
-as");
-var ctx = canvas.getContext("2d");
-var particles = [];
-function resizeCanvas() {
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+</div>
+<div class="notif-time">09:54</div>
+</div>
+</div>
+</div>
+
+<script>
+var canvas=document.getElementById("bgDustCanvas");
+var ctx=canvas.getContext("2d");
+var particles=[];
+
+function resizeCanvas(){
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
 }
-window.addEventListener("resize",
-resizeCanvas);
+
+window.addEventListener("resize",resizeCanvas);
 resizeCanvas();
-function Particle() {
-this.x = Math.random() * canvas.width;
-this.y = Math.random() * canvas.height;
-this.size = Math.random() * 1.5 + 0.5;
-this.speedY = Math.random() * -0.3 -
-0.1;
-this.opacity = Math.random() * 0.5 + 0.2;
+
+function Particle(){
+this.x=Math.random()*canvas.width;
+this.y=Math.random()*canvas.height;
+this.size=Math.random()*1.5+0.5;
+this.speedY=Math.random()*-0.3-0.1;
+this.opacity=Math.random()*0.5+0.2;
 }
-Particle.prototype.update = function() {
-this.y += this.speedY;
-if (this.y < 0) {
-this.y = canvas.height;
-this.x = Math.random() * canvas.width;
+
+Particle.prototype.update=function(){
+this.y+=this.speedY;
+if(this.y<0){
+this.y=canvas.height;
+this.x=Math.random()*canvas.width;
 }
 };
-Particle.prototype.draw = function() {
-ctx.fillStyle = "rgba(0, 153, 255, " +
-this.opacity + ")";
+
+Particle.prototype.draw=function(){
+ctx.fillStyle="rgba(0, 153, 255, "+this.opacity+")";
 ctx.beginPath();
-ctx.arc(this.x, this.y, this.size, 0, Math.PI
-* 2);
+ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
 ctx.fill();
 };
-for (var i = 0; i < 30; i++) {
+
+for(var i=0;i<30;i++){
 particles.push(new Particle());
 }
-function animate() {
-ctx.clearRect(0, 0, canvas.width,
-canvas.height);
-for (var j = 0; j < particles.length; j++) {
+
+function animate(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+for(var j=0;j<particles.length;j++){
 particles[j].update();
 particles[j].draw();
 }
 requestAnimationFrame(animate);
 }
 animate();
-var leftHUD =
-document.getElementById("leftHUD");
-var rightHUD =
-document.getElementById("rightHUD");
-var touchStartX = 0;
-var touchStartY = 0;
-document.addEventListener("touchstart
-", function(e) {
-var touches = e.changedTouches;
-if (touches && touches.length > 0) {
-touchStartX = touches.item(0).screenX;
-touchStartY = touches.item(0).screenY;
+
+var leftHUD=document.getElementById("leftHUD");
+var rightHUD=document.getElementById("rightHUD");
+var touchStartX=0,touchStartY=0;
+
+document.addEventListener("touchstart",function(e){
+var touches=e.changedTouches;
+if(touches&&touches.length>0){
+touchStartX=touches.item(0).screenX;
+touchStartY=touches.item(0).screenY;
 }
-}, { passive: true });
-document.addEventListener("touchend",
-function(e) {
-var touches = e.changedTouches;
-if (!touches || touches.length === 0)
-return;
-var touchEndX =
-touches.item(0).screenX;
-var touchEndY =
-touches.item(0).screenY;
-var deltaX = touchEndX - touchStartX;
-var deltaY = touchEndY - touchStartY;
-var absX = Math.abs(deltaX);
-var absY = Math.abs(deltaY);
-if (absX < 80 && absY < 80) return;
-if (absX > absY) {
-if (deltaX < -80) {
-if (rightHUD.classList.contains("open"))
-{
+},{passive:true});
+
+document.addEventListener("touchend",function(e){
+var touches=e.changedTouches;
+if(!touches||touches.length===0)return;
+
+var touchEndX=touches.item(0).screenX;
+var touchEndY=touches.item(0).screenY;
+
+var deltaX=touchEndX-touchStartX;
+var deltaY=touchEndY-touchStartY;
+
+var absX=Math.abs(deltaX);
+var absY=Math.abs(deltaY);
+
+if(absX<80&&absY<80)return;
+
+if(absX>absY){
+if(deltaX<-80){
+if(rightHUD.classList.contains("open")){
 rightHUD.classList.remove("open");
-} else if
-(leftHUD.classList.contains("open")) {
+}
+else if(leftHUD.classList.contains("open")){
 leftHUD.classList.remove("open");
-} else {
+}
+else{
 rightHUD.classList.add("open");
 }
-} else if (deltaX > 80) {
-if (leftHUD.classList.contains("open")) {
+}
+else if(deltaX>80){
+if(leftHUD.classList.contains("open")){
 leftHUD.classList.remove("open");
-} else if
-(rightHUD.classList.contains("open")) {
+}
+else if(rightHUD.classList.contains("open")){
 rightHUD.classList.remove("open");
-} else {
+}
+else{
 leftHUD.classList.add("open");
 }
 }
 }
 });
-function updateDateTime() {
-var now = new Date();
-var year = now.getFullYear();
-var month = String(now.getMonth() +
-1).padStart(2, "0");
-var day =
-String(now.getDate()).padStart(2, "0");
-var hours =
-String(now.getHours()).padStart(2, "0");
-var minutes =
-String(now.getMinutes()).padStart(2,
-"0");
-document.getElementById("jarvisDateTi
-me").textContent = year + "." + month +
-"." + day + " " + hours + ":" + minutes;
+
+function updateDateTime(){
+var now=new Date();
+var year=now.getFullYear();
+var month=String(now.getMonth()+1).padStart(2,"0");
+var day=String(now.getDate()).padStart(2,"0");
+var hours=String(now.getHours()).padStart(2,"0");
+var minutes=String(now.getMinutes()).padStart(2,"0");
+
+document.getElementById("jarvisDateTime").textContent=
+year+"."+month+"."+day+" "+hours+":"+minutes;
 }
+
 updateDateTime();
-setInterval(updateDateTime, 1000);
-/*
-==============================
-===========================
-【音声機能移植①：音声認識エンジン】
-==============================
-=========================== */
-const statusLabel =
-document.getElementById("jarvisStatus"
+setInterval(updateDateTime,1000);
+
+var audioContext=null;
+var currentSource=null;
+var conversationActive=false;
+var recognitionRunning=false;
+var recognition=null;
+var currentMode="voice";
+var lastProcessedWav=null;
+
+const VOICE_PROCESSING={
+highpassFrequency:55,
+lowpassFrequency:9200,
+lowBodyFrequency:145,
+lowBodyGain:4.5,
+lowMidFrequency:330,
+lowMidGain:3.8,
+mudFrequency:620,
+mudGain:-2.2,
+presenceFrequency:3000,
+presenceGain:-4.8,
+brightnessFrequency:5600,
+brightnessGain:-4.5,
+harshFrequency:7200,
+harshGain:-3.5,
+saturationDrive:2.8,
+compressorThreshold:-24,
+compressorKnee:8,
+compressorRatio:4.5,
+compressorAttack:0.006,
+compressorRelease:0.16,
+densityThreshold:-30,
+densityKnee:5,
+densityRatio:2.8,
+densityAttack:0.012,
+densityRelease:0.20,
+outputGain:0.82
+};
+
+function createVoiceSaturation(context){
+const shaper=context.createWaveShaper();
+const samples=4096;
+const curve=new Float32Array(samples);
+const drive=VOICE_PROCESSING.saturationDrive;
+
+for(let i=0;i<samples;i++){
+const x=(i*2)/(samples-1)-1;
+curve[i]=Math.tanh(x*drive)/Math.tanh(drive);
+}
+
+shaper.curve=curve;
+shaper.oversample="4x";
+
+return shaper;
+}
+
+function createEQ(context,type,frequency,gain,Q){
+const filter=context.createBiquadFilter();
+filter.type=type;
+filter.frequency.value=frequency;
+filter.gain.value=gain;
+filter.Q.value=Q;
+return filter;
+}
+
+function createVoiceProcessingChain(context,destination){
+if(!destination)destination=context.destination;
+
+const highpass=context.createBiquadFilter();
+highpass.type="highpass";
+highpass.frequency.value=VOICE_PROCESSING.highpassFrequency;
+highpass.Q.value=0.65;
+
+const lowBody=createEQ(
+context,
+"lowshelf",
+VOICE_PROCESSING.lowBodyFrequency,
+VOICE_PROCESSING.lowBodyGain,
+0.7
 );
-const coreNode =
-document.getElementById("jarvisCoreN
-ode");
-const SpeechRecognition =
-window.SpeechRecognition ||
+
+const lowMid=createEQ(
+context,
+"peaking",
+VOICE_PROCESSING.lowMidFrequency,
+VOICE_PROCESSING.lowMidGain,
+0.9
+);
+
+const mud=createEQ(
+context,
+"peaking",
+VOICE_PROCESSING.mudFrequency,
+VOICE_PROCESSING.mudGain,
+1.0
+);
+
+const presence=createEQ(
+context,
+"peaking",
+VOICE_PROCESSING.presenceFrequency,
+VOICE_PROCESSING.presenceGain,
+0.85
+);
+
+const brightness=createEQ(
+context,
+"peaking",
+VOICE_PROCESSING.brightnessFrequency,
+VOICE_PROCESSING.brightnessGain,
+0.75
+);
+
+const harshness=createEQ(
+context,
+"peaking",
+VOICE_PROCESSING.harshFrequency,
+VOICE_PROCESSING.harshGain,
+1.1
+);
+
+const lowpass=context.createBiquadFilter();
+lowpass.type="lowpass";
+lowpass.frequency.value=VOICE_PROCESSING.lowpassFrequency;
+lowpass.Q.value=0.45;
+
+const saturation=createVoiceSaturation(context);
+
+const compressor=context.createDynamicsCompressor();
+compressor.threshold.value=VOICE_PROCESSING.compressorThreshold;
+compressor.knee.value=VOICE_PROCESSING.compressorKnee;
+compressor.ratio.value=VOICE_PROCESSING.compressorRatio;
+compressor.attack.value=VOICE_PROCESSING.compressorAttack;
+compressor.release.value=VOICE_PROCESSING.compressorRelease;
+
+const density=context.createDynamicsCompressor();
+density.threshold.value=VOICE_PROCESSING.densityThreshold;
+density.knee.value=VOICE_PROCESSING.densityKnee;
+density.ratio.value=VOICE_PROCESSING.densityRatio;
+density.attack.value=VOICE_PROCESSING.densityAttack;
+density.release.value=VOICE_PROCESSING.densityRelease;
+
+const finalTone=createEQ(
+context,
+"peaking",
+180,
+1.8,
+0.8
+);
+
+const outputGain=context.createGain();
+outputGain.gain.value=VOICE_PROCESSING.outputGain;
+
+highpass.connect(lowBody);
+lowBody.connect(lowMid);
+lowMid.connect(mud);
+mud.connect(presence);
+presence.connect(brightness);
+brightness.connect(harshness);
+harshness.connect(lowpass);
+lowpass.connect(saturation);
+saturation.connect(compressor);
+compressor.connect(density);
+density.connect(finalTone);
+finalTone.connect(outputGain);
+outputGain.connect(destination);
+
+return{
+input:highpass,
+output:outputGain
+};
+}
+
+function pcmToWav(base64){
+const binary=atob(base64);
+const pcm=new Uint8Array(binary.length);
+
+for(let i=0;i<binary.length;i++){
+pcm[i]=binary.charCodeAt(i);
+}
+
+const sampleRate=24000;
+const channels=1;
+const bitsPerSample=16;
+const byteRate=sampleRate*channels*bitsPerSample/8;
+const blockAlign=channels*bitsPerSample/8;
+const buffer=new ArrayBuffer(44+pcm.length);
+const view=new DataView(buffer);
+
+function writeString(offset,string){
+for(let i=0;i<string.length;i++){
+view.setUint8(offset+i,string.charCodeAt(i));
+}
+}
+
+writeString(0,"RIFF");
+view.setUint32(4,36+pcm.length,true);
+writeString(8,"WAVE");
+writeString(12,"fmt ");
+view.setUint32(16,16,true);
+view.setUint16(20,1,true);
+view.setUint16(22,channels,true);
+view.setUint32(24,sampleRate,true);
+view.setUint32(28,byteRate,true);
+view.setUint16(32,blockAlign,true);
+view.setUint16(34,bitsPerSample,true);
+writeString(36,"data");
+view.setUint32(40,pcm.length,true);
+
+new Uint8Array(buffer,44).set(pcm);
+
+return new Blob([buffer],{type:"audio/wav"});
+}
+
+function audioBufferToWav(audioBuffer){
+const numberOfChannels=audioBuffer.numberOfChannels;
+const sampleRate=audioBuffer.sampleRate;
+const format=1;
+const bitDepth=16;
+const channelData=[];
+
+for(let channel=0;channel<numberOfChannels;channel++){
+channelData.push(audioBuffer.getChannelData(channel));
+}
+
+const length=audioBuffer.length*numberOfChannels*(bitDepth/8);
+const buffer=new ArrayBuffer(44+length);
+const view=new DataView(buffer);
+
+function writeString(offset,string){
+for(let i=0;i<string.length;i++){
+view.setUint8(offset+i,string.charCodeAt(i));
+}
+}
+
+let offset=0;
+
+writeString(offset,"RIFF");
+offset+=4;
+view.setUint32(offset,36+length,true);
+offset+=4;
+writeString(offset,"WAVE");
+offset+=4;
+writeString(offset,"fmt ");
+offset+=4;
+view.setUint32(offset,16,true);
+offset+=4;
+view.setUint16(offset,format,true);
+offset+=2;
+view.setUint16(offset,numberOfChannels,true);
+offset+=2;
+view.setUint32(offset,sampleRate,true);
+offset+=4;
+view.setUint32(
+offset,
+sampleRate*numberOfChannels*bitDepth/8,
+true
+);
+offset+=4;
+view.setUint16(
+offset,
+numberOfChannels*bitDepth/8,
+true
+);
+offset+=2;
+view.setUint16(offset,bitDepth,true);
+offset+=2;
+writeString(offset,"data");
+offset+=4;
+view.setUint32(offset,length,true);
+offset+=4;
+
+for(let sample=0;sample<audioBuffer.length;sample++){
+for(let channel=0;channel<numberOfChannels;channel++){
+let sampleValue=channelData[channel][sample];
+sampleValue=Math.max(-1,Math.min(1,sampleValue));
+
+if(sampleValue<0){
+sampleValue*=0x8000;
+}
+else{
+sampleValue*=0x7fff;
+}
+
+view.setInt16(offset,sampleValue,true);
+offset+=2;
+}
+}
+
+return new Blob([buffer],{type:"audio/wav"});
+}
+
+const SpeechRecognition=
+window.SpeechRecognition||
 window.webkitSpeechRecognition;
-// 状態変数の追加
-var audioContext = null;
-var conversationActive = false;
-var recognitionRunning = false;
-var recognition = null;
-var currentMode = "voice"; // 固定値とし
-て追加
-if (!SpeechRecognition) {
-if (statusLabel) statusLabel.textContent
-= "音声認識非対応";
-} else {
-try {
-recognition = new SpeechRecognition();
-recognition.lang = "ja-JP";
-recognition.continuous = false;
-recognition.interimResults = false;
-// 認識結果の取得
-recognition.onresult = function(event) {
-recognitionRunning = false;
-var text = event.results[0][0].transcript;
-if (statusLabel) statusLabel.textContent
-= "認識:｢" + text + "｣";
-// 【② Gemini送信への接続用フック】
-// 今は送信せず､ログへの出力と状態遷移の
-み待機
-handleRecognizedText(text);
-};
-// エラー処理
-recognition.onerror = function(event) {
-recognitionRunning = false;
-if (statusLabel) statusLabel.textContent
-= "認識エラー: " + event.error;
-if (conversationActive && event.error !==
-"not-allowed" && event.error !==
-"service-not-allowed") {
-setTimeout(function() {
-startListening();
-}, 500);
+
+if(SpeechRecognition){
+try{
+recognition=new SpeechRecognition();
+
+recognition.lang="ja-JP";
+recognition.continuous=false;
+recognition.interimResults=false;
+
+recognition.onresult=function(event){
+recognitionRunning=false;
+
+const text=
+event.results[0][0].transcript;
+
+console.log(
+"【音声エンジン疎通確認】認識成功テキスト:",
+text
+);
+
+if(conversationActive){
+setTimeout(startListening,2500);
 }
 };
-// 終了時の状態リセット
-recognition.onend = function() {
-recognitionRunning = false;
+
+recognition.onerror=function(event){
+recognitionRunning=false;
+
+console.error(
+"SpeechRecognition error:",
+event.error
+);
+
+if(
+conversationActive&&
+event.error!=="not-allowed"&&
+event.error!=="service-not-allowed"
+){
+setTimeout(startListening,500);
+}
 };
-} catch (error) {
-recognition = null;
-if (statusLabel) statusLabel.textContent
-= "初期化失敗";
+
+recognition.onend=function(){
+recognitionRunning=false;
+};
+
+}
+catch(error){
+recognition=null;
+console.error(
+"SpeechRecognition init error:",
+error
+);
 }
 }
-// 聞き取り開始関数
-function startListening() {
-if (!conversationActive) return;
-if (recognitionRunning) return;
-if (!recognition) {
-if (statusLabel) statusLabel.textContent
-= "エラー: 認識エンジン不在";
-return;
-}
-try {
-if (statusLabel) statusLabel.textContent
-= "聞いています…";
-recognitionRunning = true;
+
+function startListening(){
+if(
+!conversationActive||
+recognitionRunning||
+!recognition
+)return;
+
+try{
+recognitionRunning=true;
 recognition.start();
-} catch (error) {
-recognitionRunning = false;
-if (statusLabel) statusLabel.textContent
-= "開始失敗";
+}
+catch(error){
+recognitionRunning=false;
 }
 }
-// 中央コアのタップ連動イベント
-const coreTouchArea =
-document.getElementById("coreTouchAr
-ea");
-if (coreTouchArea) {
-coreTouchArea.addEventListener("click",
-function() {
-// iOSセキュリティ制限解除用の空の
-AudioContext 生成
-if (!audioContext) {
-try {
-audioContext = new
-(window.AudioContext ||
-window.webkitAudioContext)();
-} catch (e) {
-console.error("AudioContext初期化失
-敗");
-}
-}
-if (audioContext) {
-audioContext.resume().catch(function(er
-r){ console.error(err); });
-}
-// 会話アクティブ状態の反転
-if (conversationActive) {
-// 終了処理
-conversationActive = false;
-if (recognitionRunning && recognition) {
-try { recognition.stop(); } catch (e) {}
-}
-recognitionRunning = false;
-if (coreNode)
-coreNode.classList.remove("listening");
-if (statusLabel) statusLabel.textContent
-= "待機中 (SYSTEM READY)";
-} else {
-// 開始処理
-conversationActive = true;
-if (coreNode)
-coreNode.classList.add("listening");
-startListening();
-}
-});
-}
-// 後付け接続用の仲介関数ダミー
-function handleRecognizedText(text) {
-console.log("【次フェーズ用のログ】JARVIS
-が認識したテキスト: ", text);
-// フェーズ②を実装する際､ここに
-sendToGemini(text)を接続します｡
-// 現段階では安全のため､3秒後に自動的に
-聞き取りループに戻るダミー処理を挟みます
-setTimeout(function() {
-if (conversationActive) {
-startListening();
-}
-}, 3000);
-}
+</script>
+</body>
+</html>
