@@ -868,6 +868,25 @@ const textInput =
 const sendButton =
     document.getElementById("sendButton");
 
+sendButton.addEventListener(
+    "click",
+    async function(){
+
+        const text =
+            textInput.value.trim();
+
+        if(!text){
+            return;
+        }
+
+        textInput.value="";
+
+        await sendToGemini(
+            text
+        );
+    }
+);
+
 var touchStartX=0,touchStartY=0;
 document.addEventListener("touchstart",function(e){
 var touches=e.changedTouches;
