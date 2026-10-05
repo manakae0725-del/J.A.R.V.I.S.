@@ -2,8 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>JARVIS - 3D Meridian Rings Core UI with HUD</title>
+<meta name="viewport"
+content="width=device-width, initial-
+scale=1.0, maximum-scale=1.0, user-
+scalable=no">
+<title>JARVIS - 3D Meridian Rings Core
+UI with HUD</title>
 <style>
 *, *::before, *::after {
 box-sizing: border-box;
@@ -15,7 +19,8 @@ width: 100%;
 height: 100%;
 background-color: #000103;
 overflow: hidden;
-font-family: 'Courier New', Courier, monospace;
+font-family: 'Courier New', Courier,
+monospace;
 color: #0099ff;
 }
 .jarvis-screen {
@@ -25,7 +30,9 @@ height: 100vh;
 display: flex;
 justify-content: center;
 align-items: center;
-background: radial-gradient(circle at center, #010814 0%, #000205 70%, #000000 100%);
+background: radial-gradient(circle at
+center, #010814 0%, #000205 70%,
+#000000 100%);
 }
 #bgDustCanvas {
 position: absolute;
@@ -47,7 +54,8 @@ align-items: center;
 transform: scale(var(--system-scale, 1));
 transition: transform 0.3s ease;
 z-index: 2;
-filter: drop-shadow(0 0 35px rgba(0, 119, 255, 0.7));
+filter: drop-shadow(0 0 35px rgba(0,
+119, 255, 0.7));
 }
 .jarvis-datetime {
 position: absolute;
@@ -65,13 +73,15 @@ z-index: 5;
 pointer-events: none;
 }
 @media (min-width: 768px) {
-.hologram-vertical-system { width: 440px; height: 700px; }
+.hologram-vertical-system { width:
+440px; height: 700px; }
 }
 @media (max-width: 767px) {
 .hologram-vertical-system {
 --system-scale: 0.9;
 }
 }
+/* 上部固定リング */
 .hologram-disc-top {
 position: relative;
 width: 260px;
@@ -79,20 +89,30 @@ height: 70px;
 border-radius: 50%;
 transform: rotateX(68deg);
 transform-style: preserve-3d;
-box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
+box-shadow: 0 0 22px rgba(0, 136, 255,
+0.5);
 }
 .disc-ring-line {
 position: absolute;
 inset: 0;
 border-radius: 50%;
 border: 1px solid rgba(0, 136, 255, 0.85);
-box-shadow: inset 0 0 10px rgba(0, 136, 255, 0.5), 0 0 3px rgba(0, 200, 255, 0.3);
+box-shadow: inset 0 0 10px rgba(0, 136,
+255, 0.5), 0 0 3px rgba(0, 200, 255, 0.3);
 }
-.disc-ring-line:nth-child(1) { inset: 0px; border-width: 2px; border-style: dashed; }
-.disc-ring-line:nth-child(2) { inset: 12px; border-width: 1px; }
-.disc-ring-line:nth-child(3) { inset: 26px; border-width: 3px; border-color: #0088ff; border-left-color: transparent; border-right-color: transparent; }
-.disc-ring-line:nth-child(4) { inset: 40px; border-width: 1px; border-style: dotted; }
-
+.disc-ring-line:nth-child(1) { inset: 0px;
+border-width: 2px; border-style:
+dashed; }
+.disc-ring-line:nth-child(2) { inset: 12px;
+border-width: 1px; }
+.disc-ring-line:nth-child(3) { inset: 26px;
+border-width: 3px; border-color:
+#0088ff; border-left-color: transparent;
+border-right-color: transparent; }
+.disc-ring-line:nth-child(4) { inset: 40px;
+border-width: 1px; border-style:
+dotted; }
+/* 中央 Core ユニット */
 .core-unit-center {
 position: relative;
 width: 340px;
@@ -103,15 +123,19 @@ align-items: center;
 perspective: 1000px;
 }
 @media (min-width: 768px) {
-.core-unit-center { width: 400px; height: 400px; }
+.core-unit-center { width: 400px; height:
+400px; }
 }
 .vertical-light-beam {
 position: absolute;
 width: 1.5px;
 height: 140%;
 top: -20%;
-background: linear-gradient(to bottom, transparent, rgba(0,136,255,0.9), #ffffff, rgba(0,136,255,0.9), transparent);
-box-shadow: 0 0 20px #0088ff, 0 0 40px #0055ff;
+background: linear-gradient(to bottom,
+transparent, rgba(0,136,255,0.9), #ffffff,
+rgba(0,136,255,0.9), transparent);
+box-shadow: 0 0 20px #0088ff, 0 0
+40px #0055ff;
 pointer-events: none;
 z-index: 3;
 }
@@ -119,59 +143,78 @@ z-index: 3;
 position: absolute;
 width: 170px;
 height: 235px;
-border: 1.2px solid rgba(0, 136, 255, 0.9);
+border: 1.2px solid rgba(0, 136, 255,
+0.9);
 border-radius: 50%;
-box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 180, 255, 0.4), 0 0 4px rgba(0, 220, 255, 0.5);
+box-shadow: 0 0 14px rgba(0, 136, 255,
+0.6), inset 0 0 10px rgba(0, 180, 255,
+0.4), 0 0 4px rgba(0, 220, 255, 0.5);
 pointer-events: none;
 z-index: 4;
 }
 .meridian-1 {
 transform: rotate3d(1, 0.8, 0, 55deg);
-animation: orbitRotate1 18s linear infinite;
+animation: orbitRotate1 18s linear
+infinite;
 }
 .meridian-2 {
 transform: rotate3d(0.5, -1, 0.5, 70deg);
-animation: orbitRotate2 24s linear infinite;
+animation: orbitRotate2 24s linear
+infinite;
 }
 .meridian-3 {
 transform: rotate3d(-0.8, 0.5, 1, 40deg);
-animation: orbitRotate3 20s linear infinite;
+animation: orbitRotate3 20s linear
+infinite;
 border-color: rgba(0, 200, 255, 0.85);
 border-width: 1px;
 border-style: dashed;
-box-shadow: 0 0 14px rgba(0, 136, 255, 0.6), inset 0 0 10px rgba(0, 200, 255, 0.5), 0 0 5px rgba(0, 230, 255, 0.6);
+box-shadow: 0 0 14px rgba(0, 136, 255,
+0.6), inset 0 0 10px rgba(0, 200, 255,
+0.5), 0 0 5px rgba(0, 230, 255, 0.6);
 }
 .core-sphere-nucleus {
 position: absolute;
 width: 115px;
 height: 115px;
 border-radius: 50%;
-background: radial-gradient(circle, #ffffff 0%, #0088ff 30%, #0022aa 75%, #000411 100%);
-box-shadow: 0 0 38px #0077ff, 0 0 75px rgba(0, 85, 255, 0.95), inset 0 0 20px #ffffff;
+background: radial-gradient(circle,
+#ffffff 0%, #0088ff 30%, #0022aa 75%,
+#000411 100%);
+box-shadow: 0 0 38px #0077ff, 0 0 75px
+rgba(0, 85, 255, 0.95), inset 0 0 20px
+#ffffff;
 display: flex;
 justify-content: center;
 align-items: center;
-animation: corePulse 3.5s ease-in-out infinite;
+animation: corePulse 3.5s ease-in-out
+infinite;
 z-index: 5;
 border: 1px solid rgba(0, 200, 255, 0.4);
-cursor: pointer;
+cursor: pointer; /* iOSタップ可能であるこ
+とを明示 */
 }
-
+/* 発光ステータス定義 */
 .core-sphere-nucleus.listening {
-filter: saturate(1.4) brightness(1.2) drop-shadow(0 0 25px #00d4ff);
+filter: saturate(1.4) brightness(1.2)
+drop-shadow(0 0 25px #00d4ff);
 }
 @media (min-width: 768px) {
-.core-sphere-nucleus { width: 135px; height: 135px; }
+.core-sphere-nucleus { width: 135px;
+height: 135px; }
 }
 .jarvis-text-logo {
 font-size: 1.05rem;
 font-weight: 900;
 letter-spacing: 0.35em;
 color: #ffffff;
-text-shadow: 0 0 10px #0088ff, 0 0 20px #0066ff, 0 0 35px #0044ff;
+text-shadow: 0 0 10px #0088ff, 0 0
+20px #0066ff, 0 0 35px #0044ff;
 z-index: 6;
-animation: textGlow 4s ease-in-out infinite;
+animation: textGlow 4s ease-in-out
+infinite;
 }
+/* 下部固定リング */
 .hologram-disc-bottom {
 position: relative;
 width: 280px;
@@ -179,8 +222,10 @@ height: 75px;
 border-radius: 50%;
 transform: rotateX(68deg);
 transform-style: preserve-3d;
-box-shadow: 0 0 22px rgba(0, 136, 255, 0.5);
+box-shadow: 0 0 22px rgba(0, 136, 255,
+0.5);
 }
+/* SIDE HUD PANEL */
 .sideHUD {
 position: fixed;
 top: 0;
@@ -198,18 +243,23 @@ overflow-y: auto;
 #leftHUD {
 left: 0;
 transform: translateX(-100%);
-border-right: 1px solid rgba(0, 153, 255, 0.35);
-box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+border-right: 1px solid rgba(0, 153, 255,
+0.35);
+box-shadow: 10px 0 30px
+rgba(0,0,0,0.8);
 }
 #rightHUD {
 right: 0;
 transform: translateX(100%);
-border-left: 1px solid rgba(0, 153, 255, 0.35);
-box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+border-left: 1px solid rgba(0, 153, 255,
+0.35);
+box-shadow: -10px 0 30px
+rgba(0,0,0,0.8);
 }
 #leftHUD.open, #rightHUD.open {
 transform: translateX(0);
 }
+/* HUD 内部カード・モジュール */
 .hud-card {
 position: relative;
 background: rgba(0, 25, 50, 0.4);
@@ -217,14 +267,16 @@ border: 1px solid rgba(0, 153, 255, 0.25);
 border-radius: 4px;
 padding: 12px;
 margin-bottom: 15px;
-box-shadow: inset 0 0 10px rgba(0, 136, 255, 0.1);
+box-shadow: inset 0 0 10px rgba(0, 136,
+255, 0.1);
 }
 .hud-card-header {
 display: flex;
 justify-content: space-between;
 align-items: center;
 margin-bottom: 10px;
-border-bottom: 1px solid rgba(0, 153, 255, 0.2);
+border-bottom: 1px solid rgba(0, 153,
+255, 0.2);
 padding-bottom: 6px;
 }
 .hud-card-title {
@@ -238,6 +290,7 @@ color: #0099ff;
 letter-spacing: 2px;
 font-size: 12px;
 }
+/* SVG アイコン共通スタイル */
 .hud-icon {
 width: 16px;
 height: 16px;
@@ -246,9 +299,11 @@ fill: none;
 stroke-width: 1.5;
 stroke-linecap: round;
 stroke-linejoin: round;
-filter: drop-shadow(0 0 4px rgba(0, 180, 255, 0.8));
+filter: drop-shadow(0 0 4px rgba(0, 180,
+255, 0.8));
 flex-shrink: 0;
 }
+/* 左HUD用:横棒グラフスタイル */
 .status-row {
 display: flex;
 align-items: center;
@@ -274,7 +329,8 @@ border: 1px solid rgba(0, 153, 255, 0.3);
 }
 .status-bar-fill {
 height: 100%;
-background: linear-gradient(90deg, #0077ff, #00d2ff);
+background: linear-gradient(90deg,
+#0077ff, #00d2ff);
 box-shadow: 0 0 6px #0099ff;
 }
 .status-value {
@@ -283,6 +339,7 @@ text-align: right;
 color: #e0f2ff;
 font-weight: bold;
 }
+/* デバイスステータス用 */
 .device-row {
 display: flex;
 align-items: center;
@@ -330,6 +387,7 @@ height: 100%;
 background: #00d2ff;
 box-shadow: 0 0 4px #00d2ff;
 }
+/* 右HUD用:天気予報スタイル */
 .weather-main-box {
 display: flex;
 justify-content: space-between;
@@ -345,7 +403,8 @@ margin-bottom: 2px;
 font-size: 20px;
 font-weight: bold;
 color: #ffffff;
-text-shadow: 0 0 8px rgba(0,153,255,0.8);
+text-shadow: 0 0 8px
+rgba(0,153,255,0.8);
 }
 .weather-condition-text {
 font-size: 11px;
@@ -363,7 +422,8 @@ line-height: 1.3;
 .hourly-forecast-grid {
 display: flex;
 justify-content: space-between;
-border-top: 1px dashed rgba(0, 153, 255, 0.2);
+border-top: 1px dashed rgba(0, 153,
+255, 0.2);
 padding-top: 8px;
 text-align: center;
 }
@@ -375,6 +435,7 @@ flex-direction: column;
 align-items: center;
 gap: 4px;
 }
+/* 通知・ログリストスタイル */
 .notif-item {
 display: flex;
 justify-content: space-between;
@@ -404,6 +465,7 @@ line-height: 1.7;
 z-index: 10;
 pointer-events: none;
 }
+/* 画面中央最下部のステータス表示 */
 #jarvisStatus {
 position: absolute;
 bottom: 25px;
@@ -414,225 +476,118 @@ color: rgba(0, 153, 255, 0.6);
 letter-spacing: 2px;
 z-index: 10;
 pointer-events: none;
-text-shadow: 0 0 5px rgba(0, 136, 255, 0.5);
+text-shadow: 0 0 5px rgba(0, 136, 255,
+0.5);
 }
 @keyframes orbitRotate1 {
-0% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(0deg); }
-100% { transform: rotate3d(1, 0.8, 0, 55deg) rotateZ(360deg); }
+0% { transform: rotate3d(1, 0.8, 0,
+55deg) rotateZ(0deg); }
+100% { transform: rotate3d(1, 0.8, 0,
+55deg) rotateZ(360deg); }
 }
 @keyframes orbitRotate2 {
-0% { transform: rotate3d(0.5, -1, 0.5, 70deg) rotateZ(0deg); }
-100% { transform: rotate3d(0.5, -1, 0.5, 70deg) rotateZ(-360deg); }
+0% { transform: rotate3d(0.5, -1, 0.5,
+70deg) rotateZ(0deg); }
+100% { transform: rotate3d(0.5, -1, 0.5,
+70deg) rotateZ(-360deg); }
 }
 @keyframes orbitRotate3 {
-0% { transform: rotate3d(-0.8, 0.5, 1, 40deg) rotateZ(0deg); }
-100% { transform: rotate3d(-0.8, 0.5, 1, 40deg) rotateZ(360deg); }
+0% { transform: rotate3d(-0.8, 0.5, 1,
+40deg) rotateZ(0deg); }
+100% { transform: rotate3d(-0.8, 0.5, 1,
+40deg) rotateZ(360deg); }
 }
 @keyframes corePulse {
 0%, 100% {
 transform: scale(0.96);
-box-shadow: 0 0 32px #0077ff, 0 0 65px rgba(0, 85, 255, 0.8), inset 0 0 18px #ffffff;
+box-shadow: 0 0 32px #0077ff, 0 0 65px
+rgba(0, 85, 255, 0.8), inset 0 0 18px
+#ffffff;
 }
 50% {
 transform: scale(1.04);
-box-shadow: 0 0 48px #0088ff, 0 0 95px rgba(0, 102, 255, 1), inset 0 0 30px #ffffff;
+box-shadow: 0 0 48px #0088ff, 0 0
+95px rgba(0, 102, 255, 1), inset 0 0 30px
+#ffffff;
 }
 }
 @keyframes textGlow {
-0%, 100% { text-shadow: 0 0 10px #0088ff, 0 0 20px #0066ff; opacity: 0.9; }
-50% { text-shadow: 0 0 15px #0088ff, 0 0 28px #ffffff, 0 0 40px #0044ff; opacity: 1; }
+0%, 100% { text-shadow: 0 0 10px
+#0088ff, 0 0 20px #0066ff; opacity:
+0.9; }
+50% { text-shadow: 0 0 15px #0088ff, 0
+0 28px #ffffff, 0 0 40px #0044ff;
+opacity: 1; }
 }
-</style>
-</head>
-<body>
-<div class="jarvis-screen">
-<canvas id="bgDustCanvas"></canvas>
-<div id="response"></div>
 JARVIS
-
-
-
-
-
-
-
-
-
 SYSTEM READY
 SYSTEM STATUS
 ...
-
-
-
-
 NETWORK
-
-
 98%
-
-
-
-
 SIGNAL
-
-
 86%
-
-
-
-
 SYS LOAD
-
-
 42%
-
-
-
-
 ACTIVITY
-
-
 24%
-
-
-
-
 DEVICE STATUS
 ...
-
-
-
-
 DEVICE
-
 ONLINE
-
-
-
-
 Wi-Fi
-
 CONNECTED
-
-
-
-
 Bluetooth
-
 ON
-
-
-
-
 BATTERY
-
-
 82%
-
-
-
-
-
-
 POWER
-
 CHARGING
-
-
 WEATHER
 ...
-
-
-
 東京
 13°C
-
-
 くもり
-
-
-
 H: 15°C
 L: 8°C
-
-
-
-
 10:00
 13°C
-
-
-
 13:00
 14°C
-
-
-
 16:00
 15°C
-
-
-
 19:00
 12°C
-
-
-
 22:00
 11°C
-
-
-
-
-
-
 NOTIFICATION
 ...
-
-
-
-
 スケジュールの確認
-
 10:32
-
-
-
-
 天気情報を取得しました
-
 10:28
-
-
-
-
 新着メール:3件
-
 10:15
-
-
-
-
 タスクの処理が完了しました
-
 09:54
-
-<script>
-
-var canvas = document.getElementById("bgDustCanvas");
+var canvas =
+document.getElementById("bgDustCanv
+as");
 var ctx = canvas.getContext("2d");
 var particles = [];
 function resizeCanvas() {
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 }
-window.addEventListener("resize", resizeCanvas);
+window.addEventListener("resize",
+resizeCanvas);
 resizeCanvas();
 function Particle() {
 this.x = Math.random() * canvas.width;
 this.y = Math.random() * canvas.height;
 this.size = Math.random() * 1.5 + 0.5;
-this.speedY = Math.random() * -0.3 - 0.1;
+this.speedY = Math.random() * -0.3 -
+0.1;
 this.opacity = Math.random() * 0.5 + 0.2;
 }
 Particle.prototype.update = function() {
@@ -643,16 +598,19 @@ this.x = Math.random() * canvas.width;
 }
 };
 Particle.prototype.draw = function() {
-ctx.fillStyle = "rgba(0, 153, 255, " + this.opacity + ")";
+ctx.fillStyle = "rgba(0, 153, 255, " +
+this.opacity + ")";
 ctx.beginPath();
-ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+ctx.arc(this.x, this.y, this.size, 0, Math.PI
+* 2);
 ctx.fill();
 };
 for (var i = 0; i < 30; i++) {
 particles.push(new Particle());
 }
 function animate() {
-ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.clearRect(0, 0, canvas.width,
+canvas.height);
 for (var j = 0; j < particles.length; j++) {
 particles[j].update();
 particles[j].draw();
@@ -660,22 +618,29 @@ particles[j].draw();
 requestAnimationFrame(animate);
 }
 animate();
-var leftHUD = document.getElementById("leftHUD");
-var rightHUD = document.getElementById("rightHUD");
+var leftHUD =
+document.getElementById("leftHUD");
+var rightHUD =
+document.getElementById("rightHUD");
 var touchStartX = 0;
 var touchStartY = 0;
-document.addEventListener("touchstart", function(e) {
+document.addEventListener("touchstart
+", function(e) {
 var touches = e.changedTouches;
 if (touches && touches.length > 0) {
 touchStartX = touches.item(0).screenX;
 touchStartY = touches.item(0).screenY;
 }
 }, { passive: true });
-document.addEventListener("touchend", function(e) {
+document.addEventListener("touchend",
+function(e) {
 var touches = e.changedTouches;
-if (!touches || touches.length === 0) return;
-var touchEndX = touches.item(0).screenX;
-var touchEndY = touches.item(0).screenY;
+if (!touches || touches.length === 0)
+return;
+var touchEndX =
+touches.item(0).screenX;
+var touchEndY =
+touches.item(0).screenY;
 var deltaX = touchEndX - touchStartX;
 var deltaY = touchEndY - touchStartY;
 var absX = Math.abs(deltaX);
@@ -683,9 +648,11 @@ var absY = Math.abs(deltaY);
 if (absX < 80 && absY < 80) return;
 if (absX > absY) {
 if (deltaX < -80) {
-if (rightHUD.classList.contains("open")) {
+if (rightHUD.classList.contains("open"))
+{
 rightHUD.classList.remove("open");
-} else if (leftHUD.classList.contains("open")) {
+} else if
+(leftHUD.classList.contains("open")) {
 leftHUD.classList.remove("open");
 } else {
 rightHUD.classList.add("open");
@@ -693,7 +660,8 @@ rightHUD.classList.add("open");
 } else if (deltaX > 80) {
 if (leftHUD.classList.contains("open")) {
 leftHUD.classList.remove("open");
-} else if (rightHUD.classList.contains("open")) {
+} else if
+(rightHUD.classList.contains("open")) {
 rightHUD.classList.remove("open");
 } else {
 leftHUD.classList.add("open");
@@ -704,225 +672,161 @@ leftHUD.classList.add("open");
 function updateDateTime() {
 var now = new Date();
 var year = now.getFullYear();
-var month = String(now.getMonth() + 1).padStart(2, "0");
-var day = String(now.getDate()).padStart(2, "0");
-var hours = String(now.getHours()).padStart(2, "0");
-var minutes = String(now.getMinutes()).padStart(2, "0");
-document.getElementById("jarvisDateTime").textContent = year + "." + month + "." + day + " " + hours + ":" + minutes;
+var month = String(now.getMonth() +
+1).padStart(2, "0");
+var day =
+String(now.getDate()).padStart(2, "0");
+var hours =
+String(now.getHours()).padStart(2, "0");
+var minutes =
+String(now.getMinutes()).padStart(2,
+"0");
+document.getElementById("jarvisDateTi
+me").textContent = year + "." + month +
+"." + day + " " + hours + ":" + minutes;
 }
 updateDateTime();
 setInterval(updateDateTime, 1000);
-/* =========================================================
-【音声機能移植：音声認識 & Gemini通信システム】
-========================================================= */
-const statusLabel = document.getElementById("jarvisStatus");
-const coreNode = document.getElementById("jarvisCoreNode");
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+/*
+==============================
+===========================
+【音声機能移植①：音声認識エンジン】
+==============================
+=========================== */
+const statusLabel =
+document.getElementById("jarvisStatus"
+);
+const coreNode =
+document.getElementById("jarvisCoreN
+ode");
+const SpeechRecognition =
+window.SpeechRecognition ||
+window.webkitSpeechRecognition;
+// 状態変数の追加
 var audioContext = null;
 var conversationActive = false;
 var recognitionRunning = false;
 var recognition = null;
-var currentMode = "voice";
-var memories = [];
-var previousInteractionId = null;
+var currentMode = "voice"; // 固定値とし
+て追加
 if (!SpeechRecognition) {
-if (statusLabel) statusLabel.textContent = "音声認識非対応";
+if (statusLabel) statusLabel.textContent
+= "音声認識非対応";
 } else {
 try {
 recognition = new SpeechRecognition();
 recognition.lang = "ja-JP";
 recognition.continuous = false;
 recognition.interimResults = false;
+// 認識結果の取得
 recognition.onresult = function(event) {
 recognitionRunning = false;
 var text = event.results[0][0].transcript;
-if (statusLabel) statusLabel.textContent = "認識:「" + text + "」";
-sendToGemini(text);
+if (statusLabel) statusLabel.textContent
+= "認識:｢" + text + "｣";
+// 【② Gemini送信への接続用フック】
+// 今は送信せず､ログへの出力と状態遷移の
+み待機
+handleRecognizedText(text);
 };
+// エラー処理
 recognition.onerror = function(event) {
 recognitionRunning = false;
-if (statusLabel) statusLabel.textContent = "認識エラー: " + event.error;
-if (conversationActive && event.error !== "not-allowed" && event.error !== "service-not-allowed") {
+if (statusLabel) statusLabel.textContent
+= "認識エラー: " + event.error;
+if (conversationActive && event.error !==
+"not-allowed" && event.error !==
+"service-not-allowed") {
 setTimeout(function() {
 startListening();
 }, 500);
 }
 };
+// 終了時の状態リセット
 recognition.onend = function() {
 recognitionRunning = false;
 };
 } catch (error) {
 recognition = null;
-if (statusLabel) statusLabel.textContent = "初期化失敗";
+if (statusLabel) statusLabel.textContent
+= "初期化失敗";
 }
 }
+// 聞き取り開始関数
 function startListening() {
 if (!conversationActive) return;
 if (recognitionRunning) return;
 if (!recognition) {
-if (statusLabel) statusLabel.textContent = "エラー: 認識エンジン不在";
+if (statusLabel) statusLabel.textContent
+= "エラー: 認識エンジン不在";
 return;
 }
 try {
-if (statusLabel) statusLabel.textContent = "聞いています…";
+if (statusLabel) statusLabel.textContent
+= "聞いています…";
 recognitionRunning = true;
 recognition.start();
 } catch (error) {
 recognitionRunning = false;
-if (statusLabel) statusLabel.textContent = "開始失敗";
+if (statusLabel) statusLabel.textContent
+= "開始失敗";
 }
 }
-const coreTouchArea = document.getElementById("coreTouchArea");
+// 中央コアのタップ連動イベント
+const coreTouchArea =
+document.getElementById("coreTouchAr
+ea");
 if (coreTouchArea) {
-coreTouchArea.addEventListener("click", function() {
+coreTouchArea.addEventListener("click",
+function() {
+// iOSセキュリティ制限解除用の空の
+AudioContext 生成
 if (!audioContext) {
 try {
-audioContext = new (window.AudioContext || window.webkitAudioContext)();
+audioContext = new
+(window.AudioContext ||
+window.webkitAudioContext)();
 } catch (e) {
-console.error("AudioContext初期化失敗");
+console.error("AudioContext初期化失
+敗");
 }
 }
 if (audioContext) {
-audioContext.resume().catch(function(err){ console.error(err); });
+audioContext.resume().catch(function(er
+r){ console.error(err); });
 }
+// 会話アクティブ状態の反転
 if (conversationActive) {
+// 終了処理
 conversationActive = false;
 if (recognitionRunning && recognition) {
 try { recognition.stop(); } catch (e) {}
 }
 recognitionRunning = false;
-if (coreNode) coreNode.classList.remove("listening");
-if (statusLabel) statusLabel.textContent = "待機中 (SYSTEM READY)";
+if (coreNode)
+coreNode.classList.remove("listening");
+if (statusLabel) statusLabel.textContent
+= "待機中 (SYSTEM READY)";
 } else {
+// 開始処理
 conversationActive = true;
-if (coreNode) coreNode.classList.add("listening");
+if (coreNode)
+coreNode.classList.add("listening");
 startListening();
 }
 });
 }
-async function loadMemories() {
-try {
-var response = await fetch("/api/memory", { method: "GET" });
-var data = await response.json();
-if (!response.ok || !data.ok) {
-throw new Error(getErrorMessage(data.error) || "Memory GET error");
-}
-memories = Array.isArray(data.memories) ? data.memories.slice(0, 30) : [];
-return memories;
-} catch (error) {
-console.error("Memory load error:", error);
-memories = [];
-return [];
-}
-}
-function buildMemoryContext() {
-if (!memories.length) {
-return "現在、登録されている長期記憶はありません。";
-}
-return memories.map(function(memory, index) {
-return (index + 1) + ". [" + memory.category + "] " + memory.content;
-}).join("\n");
-}
-function buildGeminiPrompt(text) {
-var memoryContext = buildMemoryContext();
-return "\nあなたは真人さん専用のAIアシスタント、J.A.R.V.I.S.です。\n\n以下は真人さんについて保存されている長期記憶です。\n今回の会話に関連する場合のみ自然に利用してください。\n記憶にないことは推測しないでください。\n\n--- 長期記憶 ---\n" + memoryContext + "\n--- 長期記憶ここまで ---\n\n今回の真人さんの発言：\n" + text + "\n\n以下のルールで判断してください。\n\n1. 真人さんの発言への自然な回答を「reply」に入れてください。\n2. 今後の会話でも長期的に役立つ情報なら「memory.shouldSave」をtrueにしてください。\n3. 一時的な発言、雑談、その場限りの情報は保存しないでください。\n4. 「覚えて」「記憶して」など明示的に保存を求められた場合は、保存対象として扱ってください。\n5. 保存する場合は、発言そのものではなく、今後利用しやすい簡潔な事実として「memory.content」にしてください。\n6. カテゴリは以下から選択してください。\n - personal\n - preference\n - work\n - family\n - goal\n7. 重要度は1〜5で設定してください。\n8. 保存しない場合は「memory.shouldSave」をfalseにしてください。\n9. 保存しない場合でも「reply」は通常どおり自然に回答してください。\n";
-}
-async function saveMemory(memory) {
-if (!memory || !memory.shouldSave) return false;
-var content = typeof memory.content === "string" ? memory.content.trim() : "";
-if (!content) return false;
-var category = ["personal", "preference", "work", "family", "goal"].includes(memory.category) ? memory.category : "personal";
-var importance = Number.isInteger(memory.importance) ? Math.min(5, Math.max(1, memory.importance)) : 1;
-try {
-var response = await fetch("/api/memory", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ category: category, content: content, importance: importance })
-});
-var data = await response.json();
-if (!response.ok || !data.ok) {
-throw new Error(getErrorMessage(data.error) || "Memory save error");
-}
-await loadMemories();
-return true;
-} catch (error) {
-console.error("Memory save error:", error);
-return false;
-}
-}
-function getErrorMessage(error) {
-if (typeof error === "string") return error;
-if (error && typeof error === "object") {
-if (error.message) return error.message;
-try { return JSON.stringify(error); } catch (e) { return "不明なエラー"; }
-}
-return String(error);
-}
-
-
-async function sendToGemini(text) {
-var cleanText = typeof text === "string" ? text.trim() : "";
-if (!cleanText) return;
-if (!conversationActive) return;
-if (statusLabel) statusLabel.textContent = "Geminiへ送信中…";
-var searchKeywords = ["天気", "気温", "降水確率", "雨降る", "雨は降る", "雪降る", "雪は降る", "最高気温", "最低気温", "傘", "晴れる", "天候", "ニュース", "最新ニュース", "今日のニュース", "最近のニュース", "速報", "報道", "ニュース記事", "最新情報", "調べて", "検索して", "探して", "おすすめ", "最新", "現在", "詳しく", "情報", "サイト", "公式"];
-var isSearchRequest = searchKeywords.some(function(keyword) { return cleanText.includes(keyword); });
-if (isSearchRequest) {
-if (statusLabel) statusLabel.textContent = "Web検索中…";
-} else {
-if (statusLabel) statusLabel.textContent = "思考中…";
-}
-try {
-var controller = new AbortController();
-var timeout = setTimeout(function() { controller.abort(); }, 240000);
-var response = await fetch("/api/gemini", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-text: buildGeminiPrompt(cleanText),
-previousInteractionId: previousInteractionId
-}),
-signal: controller.signal
-});
-clearTimeout(timeout);
-var data = await response.json();
-if (!response.ok) {
-throw new Error(getErrorMessage(data.error) || "Gemini HTTP " + response.status);
-}
-if (!data.text) {
-throw new Error("Geminiから回答テキストがありません");
-}
-if (data.interactionId) {
-previousInteractionId = data.interactionId;
-}
-if (data.memory && data.memory.shouldSave === true) {
-if (statusLabel) statusLabel.textContent = "記憶しています…";
-var saved = await saveMemory(data.memory);
-if (saved) {
-if (statusLabel) statusLabel.textContent = "記憶しました";
-} else {
-if (statusLabel) statusLabel.textContent = "記憶の保存に失敗しました";
-}
-await new Promise(function(resolve) { setTimeout(resolve, 500); });
-}
-var responseArea = document.getElementById("response");
-if (responseArea) responseArea.textContent = data.text;
-if (statusLabel) statusLabel.textContent = "回答完了 (テキスト出力)";
-if (conversationActive) {
-if (statusLabel) statusLabel.textContent = "次の入力を待っています…";
-await new Promise(function(resolve) { setTimeout(resolve, 1000); });
+// 後付け接続用の仲介関数ダミー
+function handleRecognizedText(text) {
+console.log("【次フェーズ用のログ】JARVIS
+が認識したテキスト: ", text);
+// フェーズ②を実装する際､ここに
+sendToGemini(text)を接続します｡
+// 現段階では安全のため､3秒後に自動的に
+聞き取りループに戻るダミー処理を挟みます
+setTimeout(function() {
 if (conversationActive) {
 startListening();
 }
+}, 3000);
 }
-} catch (error) {
-if (error.name === "AbortError") {
-if (statusLabel) statusLabel.textContent = "エラー: 接続タイムアウト";
-} else {
-if (statusLabel) statusLabel.textContent = "エラー: " + getErrorMessage(error);
-}
-}
-}
-loadMemories();
-
-</script>
