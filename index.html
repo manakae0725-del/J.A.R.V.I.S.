@@ -503,21 +503,35 @@ opacity: 1;
 }
 }
 
-#textMode {
+#textArea {
     display: none;
-    position: absolute;
-    top: 120px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    color: #bfeaff;
-    font-size: 14px;
-    letter-spacing: 2px;
-    text-align: center;
-    text-shadow:
-        0 0 5px rgba(0, 136, 255, 0.9),
-        0 0 12px rgba(0, 136, 255, 0.6);
-    z-index: 20;
+    margin: 40px auto 0;
+    width: calc(100% - 50px);
+    max-width: 600px;
+}
+
+#textInput {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 100px;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #444;
+    background: #111;
+    color: white;
+    font-size: 16px;
+    resize: vertical;
+}
+
+#sendButton {
+    width: 120px;
+    height: 45px;
+    margin-top: 12px;
+    border-radius: 22px;
+    border: 1px solid #555;
+    background: #222;
+    color: white;
+    font-size: 15px;
 }
 
 </style>
@@ -526,9 +540,22 @@ opacity: 1;
 <div class="jarvis-screen">
 <canvas id="bgDustCanvas"></canvas>
 <div id="response"></div>
-<div id="textMode">
-    TEXT MODE
+
+<div id="textArea">
+
+    <textarea
+        id="textInput"
+        placeholder="J.A.R.V.I.S.に話しかける内容を入力"
+    ></textarea>
+
+    <br>
+
+    <button id="sendButton">
+        送信
+    </button>
+
 </div>
+
 <div class="hologram-vertical-system" id="verticalSystem">
 <div class="jarvis-datetime" id="jarvisDateTime"></div>
 <div class="hologram-disc-top">
@@ -827,6 +854,16 @@ requestAnimationFrame(animate);
 animate();
 var leftHUD=document.getElementById("leftHUD");
 var rightHUD=document.getElementById("rightHUD");
+
+const textArea =
+    document.getElementById("textArea");
+
+const textInput =
+    document.getElementById("textInput");
+
+const sendButton =
+    document.getElementById("sendButton");
+
 var touchStartX=0,touchStartY=0;
 document.addEventListener("touchstart",function(e){
 var touches=e.changedTouches;
@@ -917,13 +954,11 @@ function setMode(mode){
 
     currentMode=mode;
 
-    var textMode=document.getElementById("textMode");
-
     if(mode==="text"){
-        textMode.style.display="block";
+        textArea.style.display="block";
     }
     else{
-        textMode.style.display="none";
+        textArea.style.display="none";
     }
 
     console.log("【モード切替ログ】 現在のモード:", currentMode);
