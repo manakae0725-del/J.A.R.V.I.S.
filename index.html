@@ -853,10 +853,12 @@ document.addEventListener("touchend",function(e){
 
     /* 縦スワイプ */
     if(absY>absX){
-        if(deltaY<-80){
-            setMode("text");
-            return;
-        }
+
+if(deltaY<-80){
+    console.log("下→上スワイプ検知");
+    setMode("text");
+    return;
+}
 
         if(deltaY>80){
             setMode("voice");
