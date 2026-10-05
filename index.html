@@ -870,15 +870,6 @@ document.addEventListener("touchend",function(e){
     }
 });
 
-else if(leftHUD.classList.contains("open")){
-leftHUD.classList.remove("open");
-rightHUD.classList.add("open");
-else if(deltaX>80){
-if(leftHUD.classList.contains("open")){
-leftHUD.classList.remove("open");
-else if(rightHUD.classList.contains("open")){
-rightHUD.classList.remove("open");
-leftHUD.classList.add("open");
 function updateDateTime(){
 var now=new Date();
 var year=now.getFullYear();
