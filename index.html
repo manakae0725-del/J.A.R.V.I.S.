@@ -901,7 +901,15 @@ touchStartY=touches.item(0).screenY;
 },{passive:true});
 
 document.addEventListener("touchend",function(e){
+
+    if(
+        e.target.closest("#textArea")
+    ){
+        return;
+    }
+
     var touches=e.changedTouches;
+
     if(!touches||touches.length===0)return;
 
     var touchEndX=touches.item(0).screenX;
