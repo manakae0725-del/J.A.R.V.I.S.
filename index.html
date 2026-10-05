@@ -38,8 +38,7 @@ left: 0;
 width: 100%;
 height: 100%;
 pointer-events: none;
-z-index: 1;
-}
+z-index: 1;}
 .hologram-vertical-system {
 position: relative;
 width: 380px;
@@ -79,8 +78,7 @@ height: 700px;
 .hologram-vertical-system {
 --system-scale: 0.9;
 }
-}
-/* 上部固定リング */
+}/* 上部固定リング */
 .hologram-disc-top {
 position: relative;
 width: 260px;
@@ -120,8 +118,7 @@ inset: 40px;
 border-width: 1px;
 border-style: dotted;
 }
-/* 中央 Core ユニット */
-.core-unit-center {
+/* 中央 Core ユニット */.core-unit-center {
 position: relative;
 width: 340px;
 height: 340px;
@@ -161,8 +158,7 @@ box-shadow: 0 0 14px rgba(0, 136, 255,
 0.4), 0 0 4px rgba(0, 220, 255, 0.5);
 pointer-events: none;
 z-index: 4;
-}
-.meridian-1 {
+}.meridian-1 {
 transform: rotate3d(1, 0.8, 0, 55deg);
 animation: orbitRotate1 18s linear
 infinite;
@@ -202,8 +198,7 @@ infinite;
 z-index: 5;
 border: 1px solid rgba(0, 200, 255, 0.4);
 }
-@media (min-width: 768px) {
-.core-sphere-nucleus {
+@media (min-width: 768px) {.core-sphere-nucleus {
 width: 135px;
 height: 135px;
 }
@@ -243,8 +238,7 @@ border-color: rgba(0, 153, 255, 0.3);
 z-index: 9000;
 transition: transform 0.25s ease;
 text-align: left;
-overflow-y: auto;
-}
+overflow-y: auto;}
 #leftHUD {
 left: 0;
 transform: translateX(-100%);
@@ -284,8 +278,7 @@ border-bottom: 1px solid rgba(0, 153,
 255, 0.2);
 padding-bottom: 6px;
 }
-.hud-card-title {
-color: #bfeaff;
+.hud-card-title {color: #bfeaff;
 font-size: 13px;
 font-weight: bold;
 letter-spacing: 2px;
@@ -325,8 +318,7 @@ width: 115px;
 }
 .status-bar-bg {
 flex-grow: 1;
-height: 6px;
-background: rgba(0, 80, 160, 0.2);
+height: 6px;background: rgba(0, 80, 160, 0.2);
 border-radius: 2px;
 overflow: hidden;
 margin: 0 8px;
@@ -366,8 +358,7 @@ color: #00ffcc;
 font-weight: bold;
 }
 .status-dot {
-width: 6px;
-height: 6px;
+width: 6px;height: 6px;
 background-color: #00ffcc;
 border-radius: 50%;
 box-shadow: 0 0 6px #00ffcc;
@@ -407,8 +398,7 @@ margin-bottom: 2px;
 .weather-temp-display {
 font-size: 20px;
 font-weight: bold;
-color: #ffffff;
-text-shadow: 0 0 8px
+color: #ffffff;text-shadow: 0 0 8px
 rgba(0,153,255,0.8);
 }
 .weather-condition-text {
@@ -448,8 +438,7 @@ align-items: center;
 margin-bottom: 8px;
 font-size: 11px;
 }
-.notif-left {
-display: flex;
+.notif-left {display: flex;
 align-items: center;
 gap: 8px;
 color: #a0d8ff;
@@ -489,8 +478,7 @@ pointer-events: none;
 40deg) rotateZ(360deg); }
 }
 @keyframes corePulse {
-0%, 100% {
-transform: scale(0.96);
+0%, 100% {transform: scale(0.96);
 box-shadow: 0 0 32px #0077ff, 0 0 65px
 rgba(0, 85, 255, 0.8), inset 0 0 18px
 #ffffff;
@@ -530,8 +518,7 @@ opacity: 1;
 </div>
 <div class="core-unit-center">
 <div class="vertical-light-beam"></div>
-<div class="meridian-orbit-ring meridian-1"></div>
-<div class="meridian-orbit-ring meridian-2"></div>
+<div class="meridian-orbit-ring meridian-1"></div><div class="meridian-orbit-ring meridian-2"></div>
 <div class="meridian-orbit-ring meridian-3"></div>
 <div class="core-sphere-nucleus">
 <div class="jarvis-text-logo">JARVIS</div>
@@ -571,8 +558,7 @@ NETWORK
 </svg>
 SIGNAL
 </div>
-<div class="status-bar-bg">
-<div class="status-bar-fill" style="width:86%;"></div>
+<div class="status-bar-bg"><div class="status-bar-fill" style="width:86%;"></div>
 </div>
 <div class="status-value">86%</div>
 </div>
@@ -612,8 +598,7 @@ ACTIVITY
 <svg class="hud-icon" viewBox="0 0 24 24">
 <rect x="5" y="2" width="14" height="20" rx="2"/>
 <path d="M12 18h.01"/>
-</svg>
-DEVICE
+</svg>DEVICE
 </div>
 <div class="device-status-right">
 <span class="status-dot"></span>
@@ -653,8 +638,7 @@ ON
 </svg>
 BATTERY
 </div>
-<div class="battery-inline-container">
-<span style="font-size:11px;color:#e0f2ff;font-weight:bold;">82%</span>
+<div class="battery-inline-container"><span style="font-size:11px;color:#e0f2ff;font-weight:bold;">82%</span>
 <div class="mini-battery-frame">
 <div class="mini-battery-inner"></div>
 </div>
@@ -694,8 +678,7 @@ CHARGING
 <div class="weather-high-low">
 <div>H: 15°C</div>
 <div>L: 8°C</div>
-</div>
-</div>
+</div></div>
 <div class="hourly-forecast-grid">
 <div class="hourly-col">
 <span>10:00</span>
@@ -735,8 +718,7 @@ CHARGING
 </svg>
 </div>
 </div>
-</div>
-<div class="hud-card">
+</div><div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">NOTIFICATION</span>
 <span class="hud-dots">...</span>
@@ -776,8 +758,7 @@ CHARGING
 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
 <path d="m9 11 3 3L22 4"/>
 </svg>
-タスクの処理が完了しました
-</div>
+タスクの処理が完了しました</div>
 <div class="notif-time">09:54</div>
 </div>
 </div>
@@ -817,8 +798,7 @@ particles.push(new Particle());
 }
 function animate(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
-for(var j=0;j<particles.length;j++){
-particles[j].update();
+for(var j=0;j<particles.length;j++){particles[j].update();
 particles[j].draw();
 }
 requestAnimationFrame(animate);
@@ -834,32 +814,62 @@ touchStartX=touches.item(0).screenX;
 touchStartY=touches.item(0).screenY;
 }
 },{passive:true});
+
 document.addEventListener("touchend",function(e){
-var touches=e.changedTouches;
-if(!touches||touches.length===0)return;
-var touchEndX=touches.item(0).screenX;
-var touchEndY=touches.item(0).screenY;
-var deltaX=touchEndX-touchStartX;
-var deltaY=touchEndY-touchStartY;
-var absX=Math.abs(deltaX);
-var absY=Math.abs(deltaY);
-if(absX<80&&absY<80)return;
-if(absX>absY){
-if(deltaX<-80){
-if(rightHUD.classList.contains("open")){
-rightHUD.classList.remove("open");
-}
-}
-else{
-}
-}
-}
-}
-else{
-}
-}
-}
+    var touches=e.changedTouches;
+    if(!touches||touches.length===0)return;
+
+    var touchEndX=touches.item(0).screenX;
+    var touchEndY=touches.item(0).screenY;
+
+    var deltaX=touchEndX-touchStartX;
+    var deltaY=touchEndY-touchStartY;
+
+    var absX=Math.abs(deltaX);
+    var absY=Math.abs(deltaY);
+
+    if(absX<80&&absY<80)return;
+
+    /* 縦スワイプ */
+    if(absY>absX){
+        if(deltaY<-80){
+            setMode("text");
+            return;
+        }
+
+        if(deltaY>80){
+            setMode("voice");
+            return;
+        }
+    }
+
+    /* 横スワイプ */
+    if(absX>absY){
+        if(deltaX<-80){
+            if(rightHUD.classList.contains("open")){
+                rightHUD.classList.remove("open");
+            }
+            else if(leftHUD.classList.contains("open")){
+                leftHUD.classList.remove("open");
+            }
+            else{
+                rightHUD.classList.add("open");
+            }
+        }
+        else if(deltaX>80){
+            if(leftHUD.classList.contains("open")){
+                leftHUD.classList.remove("open");
+            }
+            else if(rightHUD.classList.contains("open")){
+                rightHUD.classList.remove("open");
+            }
+            else{
+                leftHUD.classList.add("open");
+            }
+        }
+    }
 });
+
 else if(leftHUD.classList.contains("open")){
 leftHUD.classList.remove("open");
 rightHUD.classList.add("open");
@@ -876,7 +886,7 @@ var month=String(now.getMonth()+1).padStart(2,"0");
 var day=String(now.getDate()).padStart(2,"0");
 var hours=String(now.getHours()).padStart(2,"0");
 var minutes=String(now.getMinutes()).padStart(2,"0");
-document.getElementById("jarvisDateTime")×textContent=
+document.getElementById("jarvisDateTime").textContent=
 year+"."+month+"."+day+" "+hours+":"+minutes;
 }
 updateDateTime();
@@ -887,6 +897,10 @@ var conversationActive=false;
 var recognitionRunning=false;
 var recognition=null;
 var currentMode="voice";
+function setMode(mode){if(mode!=="voice" && mode!=="text") return;
+currentMode=mode;
+console.log("【モード切替ログ】 現在のモード:", currentMode);
+}
 var lastProcessedWav=null;
 const VOICE
 _PROCESSING={
@@ -922,8 +936,7 @@ const shaper=context.createWaveShaper();
 const samples=4096;
 const curve=new Float32Array(samples);
 const drive=VOICE
-_PROCESSING.saturationDrive;
-for(let i=0;i<samples;i++){
+_PROCESSING.saturationDrive;for(let i=0;i<samples;i++){
 const x=(i*2)/(samples-1)-1;
 curve[i]=Math.tanh(x*drive)/Math.tanh(drive);
 }
@@ -963,8 +976,7 @@ VOICE
 _PROCESSING.lowMidGain,
 0.9
 );
-const mud=createEQ(
-context,
+const mud=createEQ(context,
 "peaking",
 VOICE
 _PROCESSING.mudFrequency,
@@ -1004,8 +1016,7 @@ lowpass.type="lowpass";
 lowpass.frequency.value=VOICE_PROCESSING.lowpassFrequency;
 lowpass.Q.value=0.45;
 const saturation=createVoiceSaturation(context);
-const compressor=context.createDynamicsCompressor();
-compressor.threshold.value=VOICE_PROCESSING.compressorThreshold;
+const compressor=context.createDynamicsCompressor();compressor.threshold.value=VOICE_PROCESSING.compressorThreshold;
 compressor.knee.value=VOICE_PROCESSING.compressorKnee;
 compressor.ratio.value=VOICE_PROCESSING.compressorRatio;
 compressor.attack.value=VOICE_PROCESSING.compressorAttack;
@@ -1045,8 +1056,7 @@ output:outputGain
 }
 function pcmToWav(base64){
 const binary=atob(base64);
-const pcm=new Uint8Array(binary.length);
-for(let i=0;i<binary.length;i++){
+const pcm=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++){
 pcm[i]=binary.charCodeAt(i);
 }
 const sampleRate=24000;
@@ -1086,8 +1096,7 @@ const channelData=[];
 for(let channel=0;channel<numberOfChannels;channel++){
 channelData.push(audioBuffer.getChannelData(channel));
 }
-const length=audioBuffer.length*numberOfChannels*(bitDepth/8);
-const buffer=new ArrayBuffer(44+length);
+const length=audioBuffer.length*numberOfChannels*(bitDepth/8);const buffer=new ArrayBuffer(44+length);
 const view=new DataView(buffer);
 function writeString(offset,string){
 for(let i=0;i<string.length;i++){
@@ -1127,17 +1136,20 @@ view.setUint16(offset,bitDepth,true);
 offset+=2;
 writeString(offset,"data");
 offset+=4;
-view.setUint32(offset,length,true);
-offset+=4;
+view.setUint32(offset,length,true);offset+=4;
 for(let sample=0;sample<audioBuffer.length;sample++){
 for(let channel=0;channel<numberOfChannels;channel++){
 let sampleValue=channelData[channel][sample];
 sampleValue=Math.max(-1,Math.min(1,sampleValue));
 if(sampleValue<0){
-sampleValue×=0x8000;
+
+sampleValue*=0x8000;
+
 }
 else{
-sampleValue×=0x7fff;
+
+sampleValue*=0x7fff;
+
 }
 view.setInt16(offset,sampleValue,true);
 offset+=2;
@@ -1168,8 +1180,7 @@ setTimeout(startListening,2500);
 };
 recognition.onerror=function(event){
 recognitionRunning=false;
-console.error(
-"SpeechRecognition error:",
+console.error("SpeechRecognition error:",
 event.error
 );
 if(
