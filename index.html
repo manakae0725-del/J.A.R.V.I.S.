@@ -38,8 +38,7 @@ left: 0;
 width: 100%;
 height: 100%;
 pointer-events: none;
-z-index: 1;
-}
+z-index: 1;}
 .hologram-vertical-system {
 position: relative;
 width: 380px;
@@ -54,23 +53,21 @@ z-index: 2;
 filter: drop-shadow(0 0 35px rgba(0,
 119, 255, 0.7));
 }
-
 .jarvis-datetime {
-    position: absolute;
-    top: 78px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #bfeaff;
-    font-size: 11px;
-    letter-spacing: 2px;
-    white-space: nowrap;
-    text-shadow:
-        0 0 5px rgba(0, 136, 255, 0.9),
-        0 0 12px rgba(0, 136, 255, 0.6);
-    z-index: 5;
-    pointer-events: none;
+position: absolute;
+top: 78px;
+left: 50%;
+transform: translateX(-50%);
+color: #bfeaff;
+font-size: 11px;
+letter-spacing: 2px;
+white-space: nowrap;
+text-shadow:
+0 0 5px rgba(0, 136, 255, 0.9),
+0 0 12px rgba(0, 136, 255, 0.6);
+z-index: 5;
+pointer-events: none;
 }
-
 @media (min-width: 768px) {
 .hologram-vertical-system {
 width: 440px;
@@ -78,11 +75,9 @@ height: 700px;
 }
 }
 @media (max-width: 767px) {
-    .hologram-vertical-system {
-        --system-scale: 0.9;
-    }
+.hologram-vertical-system {
+--system-scale: 0.9;}
 }
-
 /* 上部固定リング */
 .hologram-disc-top {
 position: relative;
@@ -120,10 +115,8 @@ border-right-color: transparent;
 }
 .disc-ring-line:nth-child(4) {
 inset: 40px;
-border-width: 1px;
-border-style: dotted;
+border-width: 1px;border-style: dotted;
 }
-
 /* 中央 Core ユニット */
 .core-unit-center {
 position: relative;
@@ -134,7 +127,6 @@ justify-content: center;
 align-items: center;
 perspective: 1000px;
 }
-
 @media (min-width: 768px) {
 .core-unit-center {
 width: 400px;
@@ -161,8 +153,7 @@ height: 235px;
 border: 1.2px solid rgba(0, 136, 255,
 0.9);
 border-radius: 50%;
-box-shadow: 0 0 14px rgba(0, 136, 255,
-0.6), inset 0 0 10px rgba(0, 180, 255,
+box-shadow: 0 0 14px rgba(0, 136, 255,0.6), inset 0 0 10px rgba(0, 180, 255,
 0.4), 0 0 4px rgba(0, 220, 255, 0.5);
 pointer-events: none;
 z-index: 4;
@@ -202,8 +193,7 @@ rgba(0, 85, 255, 0.95), inset 0 0 20px
 display: flex;
 justify-content: center;
 align-items: center;
-animation: corePulse 3.5s ease-in-out
-infinite;
+animation: corePulse 3.5s ease-in-outinfinite;
 z-index: 5;
 border: 1px solid rgba(0, 200, 255, 0.4);
 }
@@ -224,7 +214,6 @@ z-index: 6;
 animation: textGlow 4s ease-in-out
 infinite;
 }
-
 /* 下部固定リング */
 .hologram-disc-bottom {
 position: relative;
@@ -236,15 +225,13 @@ transform-style: preserve-3d;
 box-shadow: 0 0 22px rgba(0, 136, 255,
 0.5);
 }
-
 /* SIDE HUD PANEL */
 .sideHUD {
 position: fixed;
 top: 0;
 width: 310px;
 height: 100%;
-box-sizing: border-box;
-padding: 25px 15px;
+box-sizing: border-box;padding: 25px 15px;
 background: rgba(1, 10, 22, 0.94);
 border-color: rgba(0, 153, 255, 0.3);
 z-index: 9000;
@@ -271,7 +258,6 @@ rgba(0,0,0,0.8);
 #leftHUD.open, #rightHUD.open {
 transform: translateX(0);
 }
-
 /* HUD 内部カード・モジュール */
 .hud-card {
 position: relative;
@@ -284,8 +270,7 @@ box-shadow: inset 0 0 10px rgba(0, 136,
 255, 0.1);
 }
 .hud-card-header {
-display: flex;
-justify-content: space-between;
+display: flex;justify-content: space-between;
 align-items: center;
 margin-bottom: 10px;
 border-bottom: 1px solid rgba(0, 153,
@@ -303,7 +288,6 @@ color: #0099ff;
 letter-spacing: 2px;
 font-size: 12px;
 }
-
 /* SVG アイコン共通スタイル */
 .hud-icon {
 width: 16px;
@@ -317,7 +301,6 @@ filter: drop-shadow(0 0 4px rgba(0, 180,
 255, 0.8));
 flex-shrink: 0;
 }
-
 /* 左 HUD 用: 横棒グラフスタイル */
 .status-row {
 display: flex;
@@ -325,8 +308,7 @@ align-items: center;
 justify-content: space-between;
 margin-bottom: 8px;
 font-size: 11px;
-}
-.status-label-group {
+}.status-label-group {
 display: flex;
 align-items: center;
 gap: 8px;
@@ -354,7 +336,6 @@ text-align: right;
 color: #e0f2ff;
 font-weight: bold;
 }
-
 /* デバイスステータス用 */
 .device-row {
 display: flex;
@@ -366,8 +347,7 @@ font-size: 11px;
 .device-info-left {
 display: flex;
 align-items: center;
-gap: 8px;
-color: #8acfff;
+gap: 8px;color: #8acfff;
 }
 .device-status-right {
 display: flex;
@@ -403,12 +383,10 @@ height: 100%;
 background: #00d2ff;
 box-shadow: 0 0 4px #00d2ff;
 }
-
 /* 右 HUD 用:天気予報スタイル */
 .weather-main-box {
 display: flex;
-justify-content: space-between;
-align-items: center;
+justify-content: space-between;align-items: center;
 margin-bottom: 12px;
 }
 .weather-location {
@@ -448,11 +426,9 @@ text-align: center;
 font-size: 9px;
 color: #7ab8ff;
 display: flex;
-flex-direction: column;
-align-items: center;
+flex-direction: column;align-items: center;
 gap: 4px;
 }
-
 /* 通知・ログリストスタイル */
 .notif-item {
 display: flex;
@@ -483,14 +459,12 @@ line-height: 1.7;
 z-index: 10;
 pointer-events: none;
 }
-
 @keyframes orbitRotate1 {
 0% { transform: rotate3d(1, 0.8, 0,
 55deg) rotateZ(0deg); }
 100% { transform: rotate3d(1, 0.8, 0,
 55deg) rotateZ(360deg); }
-}
-@keyframes orbitRotate2 {
+}@keyframes orbitRotate2 {
 0% { transform: rotate3d(0.5, -1, 0.5,
 70deg) rotateZ(0deg); }
 100% { transform: rotate3d(0.5, -1, 0.5,
@@ -530,21 +504,17 @@ opacity: 1;
 }
 </style>
 </head>
-<body>
-<div class="jarvis-screen">
+<body><div class="jarvis-screen">
 <canvas id="bgDustCanvas"></canvas>
 <div id="response"></div>
-
 <div class="hologram-vertical-system" id="verticalSystem">
 <div class="jarvis-datetime" id="jarvisDateTime"></div>
-
 <div class="hologram-disc-top">
 <div class="disc-ring-line"></div>
 <div class="disc-ring-line"></div>
 <div class="disc-ring-line"></div>
 <div class="disc-ring-line"></div>
 </div>
-
 <div class="core-unit-center">
 <div class="vertical-light-beam"></div>
 <div class="meridian-orbit-ring meridian-1"></div>
@@ -554,7 +524,6 @@ opacity: 1;
 <div class="jarvis-text-logo">JARVIS</div>
 </div>
 </div>
-
 <div class="hologram-disc-bottom">
 <div class="disc-ring-line"></div>
 <div class="disc-ring-line"></div>
@@ -563,16 +532,13 @@ opacity: 1;
 </div>
 </div>
 </div>
-
 <div id="leftHUD" class="sideHUD">
 <div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">SYSTEM STATUS</span>
 <span class="hud-dots">...</span>
 </div>
-
-<div class="status-row">
-<div class="status-label-group">
+<div class="status-row"><div class="status-label-group">
 <svg class="hud-icon" viewBox="0 0 24 24">
 <circle cx="12" cy="12" r="9"/>
 <path d="M3.6 9h16.8M3.6 15h16.8M12 3a15.3 15.3 0 0 1 4 18M12 3a15.3 15.3 0 0 0-4 18"/>
@@ -584,7 +550,6 @@ NETWORK
 </div>
 <div class="status-value">98%</div>
 </div>
-
 <div class="status-row">
 <div class="status-label-group">
 <svg class="hud-icon" viewBox="0 0 24 24">
@@ -597,7 +562,6 @@ SIGNAL
 </div>
 <div class="status-value">86%</div>
 </div>
-
 <div class="status-row">
 <div class="status-label-group">
 <svg class="hud-icon" viewBox="0 0 24 24">
@@ -611,9 +575,7 @@ SYS LOAD
 </div>
 <div class="status-value">42%</div>
 </div>
-
-<div class="status-row">
-<div class="status-label-group">
+<div class="status-row"><div class="status-label-group">
 <svg class="hud-icon" viewBox="0 0 24 24">
 <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
 </svg>
@@ -625,13 +587,11 @@ ACTIVITY
 <div class="status-value">24%</div>
 </div>
 </div>
-
 <div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">DEVICE STATUS</span>
 <span class="hud-dots">...</span>
 </div>
-
 <div class="device-row">
 <div class="device-info-left">
 <svg class="hud-icon" viewBox="0 0 24 24">
@@ -645,20 +605,18 @@ DEVICE
 ONLINE
 </div>
 </div>
-
 <div class="device-row">
 <div class="device-info-left">
 <svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+<path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95
+0M12 20h.01"/>
 </svg>
 Wi-Fi
-</div>
-<div class="device-status-right">
+</div><div class="device-status-right">
 <span class="status-dot"></span>
 CONNECTED
 </div>
 </div>
-
 <div class="device-row">
 <div class="device-info-left">
 <svg class="hud-icon" viewBox="0 0 24 24">
@@ -671,7 +629,6 @@ Bluetooth
 ON
 </div>
 </div>
-
 <div class="device-row">
 <div class="device-info-left">
 <svg class="hud-icon" viewBox="0 0 24 24">
@@ -687,14 +644,12 @@ BATTERY
 </div>
 </div>
 </div>
-
 <div class="device-row">
 <div class="device-info-left">
 <svg class="hud-icon" viewBox="0 0 24 24">
 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
 </svg>
-POWER
-</div>
+POWER</div>
 <div class="device-status-right">
 <span class="status-dot"></span>
 CHARGING
@@ -702,14 +657,12 @@ CHARGING
 </div>
 </div>
 </div>
-
 <div id="rightHUD" class="sideHUD">
 <div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">WEATHER</span>
 <span class="hud-dots">...</span>
 </div>
-
 <div class="weather-main-box">
 <div>
 <div class="weather-location" id="weatherLocation">東京</div>
@@ -726,7 +679,6 @@ CHARGING
 <div>L: 8°C</div>
 </div>
 </div>
-
 <div class="hourly-forecast-grid">
 <div class="hourly-col">
 <span>10:00</span>
@@ -734,8 +686,7 @@ CHARGING
 <svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
 <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
 </svg>
-</div>
-<div class="hourly-col">
+</div><div class="hourly-col">
 <span>13:00</span>
 <span>14°C</span>
 <svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
@@ -747,7 +698,8 @@ CHARGING
 <span>15°C</span>
 <svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
 <circle cx="12" cy="12" r="5"/>
-<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22
+19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
 </svg>
 </div>
 <div class="hourly-col">
@@ -766,16 +718,13 @@ CHARGING
 </div>
 </div>
 </div>
-
 <div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">NOTIFICATION</span>
 <span class="hud-dots">...</span>
 </div>
-
 <div class="notif-item">
-<div class="notif-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
+<div class="notif-left"><svg class="hud-icon" viewBox="0 0 24 24">
 <rect x="3" y="4" width="18" height="18" rx="2"/>
 <path d="M16 2v4M8 2v4M3 10h18"/>
 </svg>
@@ -783,7 +732,6 @@ CHARGING
 </div>
 <div class="notif-time">10:32</div>
 </div>
-
 <div class="notif-item">
 <div class="notif-left">
 <svg class="hud-icon" viewBox="0 0 24 24">
@@ -793,7 +741,6 @@ CHARGING
 </div>
 <div class="notif-time">10:28</div>
 </div>
-
 <div class="notif-item">
 <div class="notif-left">
 <svg class="hud-icon" viewBox="0 0 24 24">
@@ -804,7 +751,6 @@ CHARGING
 </div>
 <div class="notif-time">10:15</div>
 </div>
-
 <div class="notif-item">
 <div class="notif-left">
 <svg class="hud-icon" viewBox="0 0 24 24">
@@ -815,22 +761,17 @@ CHARGING
 </div>
 <div class="notif-time">09:54</div>
 </div>
-</div>
-</div>
-
+</div></div>
 <script>
 var canvas=document.getElementById("bgDustCanvas");
 var ctx=canvas.getContext("2d");
 var particles=[];
-
 function resizeCanvas(){
 canvas.width=window.innerWidth;
 canvas.height=window.innerHeight;
 }
-
 window.addEventListener("resize",resizeCanvas);
 resizeCanvas();
-
 function Particle(){
 this.x=Math.random()*canvas.width;
 this.y=Math.random()*canvas.height;
@@ -838,7 +779,6 @@ this.size=Math.random()*1.5+0.5;
 this.speedY=Math.random()*-0.3-0.1;
 this.opacity=Math.random()*0.5+0.2;
 }
-
 Particle.prototype.update=function(){
 this.y+=this.speedY;
 if(this.y<0){
@@ -846,19 +786,15 @@ this.y=canvas.height;
 this.x=Math.random()*canvas.width;
 }
 };
-
 Particle.prototype.draw=function(){
 ctx.fillStyle="rgba(0, 153, 255, "+this.opacity+")";
 ctx.beginPath();
 ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
 ctx.fill();
 };
-
 for(var i=0;i<30;i++){
 particles.push(new Particle());
-}
-
-function animate(){
+}function animate(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 for(var j=0;j<particles.length;j++){
 particles[j].update();
@@ -867,11 +803,9 @@ particles[j].draw();
 requestAnimationFrame(animate);
 }
 animate();
-
 var leftHUD=document.getElementById("leftHUD");
 var rightHUD=document.getElementById("rightHUD");
 var touchStartX=0,touchStartY=0;
-
 document.addEventListener("touchstart",function(e){
 var touches=e.changedTouches;
 if(touches&&touches.length>0){
@@ -879,48 +813,51 @@ touchStartX=touches.item(0).screenX;
 touchStartY=touches.item(0).screenY;
 }
 },{passive:true});
-
 document.addEventListener("touchend",function(e){
 var touches=e.changedTouches;
 if(!touches||touches.length===0)return;
-
 var touchEndX=touches.item(0).screenX;
 var touchEndY=touches.item(0).screenY;
-
 var deltaX=touchEndX-touchStartX;
 var deltaY=touchEndY-touchStartY;
-
 var absX=Math.abs(deltaX);
 var absY=Math.abs(deltaY);
+if(absX<80&&absY<80)return; 
+if(absY>absX){
+    if(deltaY<-80){
+        setMode("text");
+        return;
+    }
 
-if(absX<80&&absY<80)return;
-
+    if(deltaY>80){
+        setMode("voice");
+        return;
+    }
+}
 if(absX>absY){
 if(deltaX<-80){
-if(rightHUD.classList.contains("open")){
-rightHUD.classList.remove("open");
+if(rightHUD.classList.contains("open")){rightHUD.classList.remove("open");
 }
-else if(leftHUD.classList.contains("open")){
-leftHUD.classList.remove("open");
 }
 else{
-rightHUD.classList.add("open");
 }
 }
-else if(deltaX>80){
-if(leftHUD.classList.contains("open")){
-leftHUD.classList.remove("open");
 }
-else if(rightHUD.classList.contains("open")){
-rightHUD.classList.remove("open");
 }
 else{
-leftHUD.classList.add("open");
 }
 }
 }
 });
-
+else if(leftHUD.classList.contains("open")){
+leftHUD.classList.remove("open");
+rightHUD.classList.add("open");
+else if(deltaX>80){
+if(leftHUD.classList.contains("open")){
+leftHUD.classList.remove("open");
+else if(rightHUD.classList.contains("open")){
+rightHUD.classList.remove("open");
+leftHUD.classList.add("open");
 function updateDateTime(){
 var now=new Date();
 var year=now.getFullYear();
@@ -928,23 +865,26 @@ var month=String(now.getMonth()+1).padStart(2,"0");
 var day=String(now.getDate()).padStart(2,"0");
 var hours=String(now.getHours()).padStart(2,"0");
 var minutes=String(now.getMinutes()).padStart(2,"0");
-
-document.getElementById("jarvisDateTime").textContent=
+document.getElementById("jarvisDateTime")×textContent=
 year+"."+month+"."+day+" "+hours+":"+minutes;
 }
-
 updateDateTime();
 setInterval(updateDateTime,1000);
-
 var audioContext=null;
 var currentSource=null;
-var conversationActive=false;
-var recognitionRunning=false;
+var conversationActive=false;var recognitionRunning=false;
 var recognition=null;
 var currentMode="voice";
-var lastProcessedWav=null;
 
-const VOICE_PROCESSING={
+function setMode(mode){
+    if(mode!=="voice" && mode!=="text") return;
+    currentMode=mode;
+    console.log("【モード切替ログ】 現在のモード:", currentMode);
+}
+
+var lastProcessedWav=null;
+const VOICE
+_PROCESSING={
 highpassFrequency:55,
 lowpassFrequency:9200,
 lowBodyFrequency:145,
@@ -972,24 +912,19 @@ densityAttack:0.012,
 densityRelease:0.20,
 outputGain:0.82
 };
-
 function createVoiceSaturation(context){
 const shaper=context.createWaveShaper();
 const samples=4096;
 const curve=new Float32Array(samples);
-const drive=VOICE_PROCESSING.saturationDrive;
-
-for(let i=0;i<samples;i++){
-const x=(i*2)/(samples-1)-1;
+const drive=VOICE
+_PROCESSING.saturationDrive;
+for(let i=0;i<samples;i++){const x=(i*2)/(samples-1)-1;
 curve[i]=Math.tanh(x*drive)/Math.tanh(drive);
 }
-
 shaper.curve=curve;
 shaper.oversample="4x";
-
 return shaper;
 }
-
 function createEQ(context,type,frequency,gain,Q){
 const filter=context.createBiquadFilter();
 filter.type=type;
@@ -998,84 +933,81 @@ filter.gain.value=gain;
 filter.Q.value=Q;
 return filter;
 }
-
 function createVoiceProcessingChain(context,destination){
 if(!destination)destination=context.destination;
-
 const highpass=context.createBiquadFilter();
 highpass.type="highpass";
 highpass.frequency.value=VOICE_PROCESSING.highpassFrequency;
 highpass.Q.value=0.65;
-
 const lowBody=createEQ(
 context,
 "lowshelf",
-VOICE_PROCESSING.lowBodyFrequency,
-VOICE_PROCESSING.lowBodyGain,
+VOICE
+_PROCESSING.lowBodyFrequency,
+VOICE
+_PROCESSING.lowBodyGain,
 0.7
 );
-
 const lowMid=createEQ(
 context,
 "peaking",
-VOICE_PROCESSING.lowMidFrequency,
-VOICE_PROCESSING.lowMidGain,
-0.9
-);
-
+VOICE
+_PROCESSING.lowMidFrequency,
+VOICE
+_PROCESSING.lowMidGain,
+0.9);
 const mud=createEQ(
 context,
 "peaking",
-VOICE_PROCESSING.mudFrequency,
-VOICE_PROCESSING.mudGain,
+VOICE
+_PROCESSING.mudFrequency,
+VOICE
+_PROCESSING.mudGain,
 1.0
 );
-
 const presence=createEQ(
 context,
 "peaking",
-VOICE_PROCESSING.presenceFrequency,
-VOICE_PROCESSING.presenceGain,
+VOICE
+_PROCESSING.presenceFrequency,
+VOICE
+_PROCESSING.presenceGain,
 0.85
 );
-
 const brightness=createEQ(
 context,
 "peaking",
-VOICE_PROCESSING.brightnessFrequency,
-VOICE_PROCESSING.brightnessGain,
+VOICE
+_PROCESSING.brightnessFrequency,
+VOICE
+_PROCESSING.brightnessGain,
 0.75
 );
-
 const harshness=createEQ(
 context,
 "peaking",
-VOICE_PROCESSING.harshFrequency,
-VOICE_PROCESSING.harshGain,
+VOICE
+_PROCESSING.harshFrequency,
+VOICE
+_PROCESSING.harshGain,
 1.1
 );
-
 const lowpass=context.createBiquadFilter();
 lowpass.type="lowpass";
 lowpass.frequency.value=VOICE_PROCESSING.lowpassFrequency;
 lowpass.Q.value=0.45;
-
-const saturation=createVoiceSaturation(context);
-
-const compressor=context.createDynamicsCompressor();
+const saturation=createVoiceSaturation(context);const compressor=context.createDynamicsCompressor();
 compressor.threshold.value=VOICE_PROCESSING.compressorThreshold;
 compressor.knee.value=VOICE_PROCESSING.compressorKnee;
 compressor.ratio.value=VOICE_PROCESSING.compressorRatio;
 compressor.attack.value=VOICE_PROCESSING.compressorAttack;
 compressor.release.value=VOICE_PROCESSING.compressorRelease;
-
 const density=context.createDynamicsCompressor();
 density.threshold.value=VOICE_PROCESSING.densityThreshold;
 density.knee.value=VOICE_PROCESSING.densityKnee;
 density.ratio.value=VOICE_PROCESSING.densityRatio;
 density.attack.value=VOICE_PROCESSING.densityAttack;
 density.release.value=VOICE_PROCESSING.densityRelease;
-
 const finalTone=createEQ(
 context,
 "peaking",
@@ -1083,10 +1015,8 @@ context,
 1.8,
 0.8
 );
-
 const outputGain=context.createGain();
 outputGain.gain.value=VOICE_PROCESSING.outputGain;
-
 highpass.connect(lowBody);
 lowBody.connect(lowMid);
 lowMid.connect(mud);
@@ -1100,21 +1030,16 @@ compressor.connect(density);
 density.connect(finalTone);
 finalTone.connect(outputGain);
 outputGain.connect(destination);
-
 return{
-input:highpass,
-output:outputGain
+input:highpass,output:outputGain
 };
 }
-
 function pcmToWav(base64){
 const binary=atob(base64);
 const pcm=new Uint8Array(binary.length);
-
 for(let i=0;i<binary.length;i++){
 pcm[i]=binary.charCodeAt(i);
 }
-
 const sampleRate=24000;
 const channels=1;
 const bitsPerSample=16;
@@ -1122,13 +1047,11 @@ const byteRate=sampleRate*channels*bitsPerSample/8;
 const blockAlign=channels*bitsPerSample/8;
 const buffer=new ArrayBuffer(44+pcm.length);
 const view=new DataView(buffer);
-
 function writeString(offset,string){
 for(let i=0;i<string.length;i++){
 view.setUint8(offset+i,string.charCodeAt(i));
 }
 }
-
 writeString(0,"RIFF");
 view.setUint32(4,36+pcm.length,true);
 writeString(8,"WAVE");
@@ -1142,35 +1065,26 @@ view.setUint16(32,blockAlign,true);
 view.setUint16(34,bitsPerSample,true);
 writeString(36,"data");
 view.setUint32(40,pcm.length,true);
-
-new Uint8Array(buffer,44).set(pcm);
-
-return new Blob([buffer],{type:"audio/wav"});
+new Uint8Array(buffer,44).set(pcm);return new Blob([buffer],{type:"audio/wav"});
 }
-
 function audioBufferToWav(audioBuffer){
 const numberOfChannels=audioBuffer.numberOfChannels;
 const sampleRate=audioBuffer.sampleRate;
 const format=1;
 const bitDepth=16;
 const channelData=[];
-
 for(let channel=0;channel<numberOfChannels;channel++){
 channelData.push(audioBuffer.getChannelData(channel));
 }
-
 const length=audioBuffer.length*numberOfChannels*(bitDepth/8);
 const buffer=new ArrayBuffer(44+length);
 const view=new DataView(buffer);
-
 function writeString(offset,string){
 for(let i=0;i<string.length;i++){
 view.setUint8(offset+i,string.charCodeAt(i));
 }
 }
-
 let offset=0;
-
 writeString(offset,"RIFF");
 offset+=4;
 view.setUint32(offset,36+length,true);
@@ -1184,8 +1098,7 @@ offset+=4;
 view.setUint16(offset,format,true);
 offset+=2;
 view.setUint16(offset,numberOfChannels,true);
-offset+=2;
-view.setUint32(offset,sampleRate,true);
+offset+=2;view.setUint32(offset,sampleRate,true);
 offset+=4;
 view.setUint32(
 offset,
@@ -1205,76 +1118,58 @@ writeString(offset,"data");
 offset+=4;
 view.setUint32(offset,length,true);
 offset+=4;
-
 for(let sample=0;sample<audioBuffer.length;sample++){
 for(let channel=0;channel<numberOfChannels;channel++){
 let sampleValue=channelData[channel][sample];
 sampleValue=Math.max(-1,Math.min(1,sampleValue));
-
 if(sampleValue<0){
-sampleValue*=0x8000;
+sampleValue×=0x8000;
 }
 else{
-sampleValue*=0x7fff;
+sampleValue×=0x7fff;
 }
-
 view.setInt16(offset,sampleValue,true);
 offset+=2;
 }
 }
-
 return new Blob([buffer],{type:"audio/wav"});
-}
-
-const SpeechRecognition=
+}const SpeechRecognition=
 window.SpeechRecognition||
 window.webkitSpeechRecognition;
-
 if(SpeechRecognition){
 try{
 recognition=new SpeechRecognition();
-
 recognition.lang="ja-JP";
 recognition.continuous=false;
 recognition.interimResults=false;
-
 recognition.onresult=function(event){
 recognitionRunning=false;
-
 const text=
 event.results[0][0].transcript;
-
 console.log(
 "【音声エンジン疎通確認】認識成功テキスト:",
 text
 );
-
 if(conversationActive){
 setTimeout(startListening,2500);
 }
 };
-
 recognition.onerror=function(event){
 recognitionRunning=false;
-
 console.error(
 "SpeechRecognition error:",
 event.error
 );
-
 if(
 conversationActive&&
 event.error!=="not-allowed"&&
 event.error!=="service-not-allowed"
-){
-setTimeout(startListening,500);
+){setTimeout(startListening,500);
 }
 };
-
 recognition.onend=function(){
 recognitionRunning=false;
 };
-
 }
 catch(error){
 recognition=null;
@@ -1284,14 +1179,12 @@ error
 );
 }
 }
-
 function startListening(){
 if(
 !conversationActive||
 recognitionRunning||
 !recognition
 )return;
-
 try{
 recognitionRunning=true;
 recognition.start();
