@@ -921,15 +921,11 @@ updateDateTime();
 setInterval(updateDateTime,1000);
 var audioContext=null;
 var currentSource=null;
-
 var conversationActive=false;
 var recognitionRunning=false;
 var recognition=null;
-
 var previousInteractionId=null;
-
 var currentMode="voice";
-
 function setMode(mode){
 if(mode!=="voice" && mode!=="text") return;
 currentMode=mode;
@@ -1252,105 +1248,6 @@ catch(error){
 recognitionRunning=false;
 }
 }
-
-async function sendToGemini(text){
-
-    const cleanText=
-        typeof text==="string"
-            ? text.trim()
-            : "";
-
-    if(!cleanText){
-        return;
-    }
-
-    status.textContent=
-        "Geminiへ送信中…";
-
-    try{
-
-        const controller=
-            new AbortController();
-
-        const timeout=
-            setTimeout(function(){
-                controller.abort();
-            },240000);
-
-        const response=
-            await fetch(
-                "/api/gemini",
-                {
-                    method:"POST",
-
-                    headers:{
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body:JSON.stringify({
-
-                        text:
-                            cleanText,
-
-                        previousInteractionId:
-                            previousInteractionId
-
-                    }),
-
-                    signal:
-                        controller.signal
-                }
-            );
-
-        clearTimeout(timeout);
-
-        const data=
-            await response.json();
-
-        if(!response.ok){
-
-            throw new Error(
-                data.error ||
-                "Gemini HTTP "+
-                response.status
-            );
-        }
-
-        if(!data.text){
-
-            throw new Error(
-                "Geminiから回答テキストがありません"
-            );
-        }
-
-        if(data.interactionId){
-
-            previousInteractionId=
-                data.interactionId;
-        }
-
-        responseArea.textContent=
-            data.text;
-
-        status.textContent=
-            "回答完了";
-
-    }catch(error){
-
-        if(error.name==="AbortError"){
-
-            status.textContent=
-                "エラー：Geminiへの接続がタイムアウトしました";
-
-        }else{
-
-            status.textContent=
-                "エラー："+error.message;
-        }
-    }
-}
-
 </script>
 </body>
 </html>
