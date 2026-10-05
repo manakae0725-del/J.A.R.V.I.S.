@@ -502,12 +502,33 @@ text-shadow: 0 0 15px #0088ff, 0
 opacity: 1;
 }
 }
+
+#textMode {
+    display: none;
+    position: absolute;
+    top: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    color: #bfeaff;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-align: center;
+    text-shadow:
+        0 0 5px rgba(0, 136, 255, 0.9),
+        0 0 12px rgba(0, 136, 255, 0.6);
+    z-index: 20;
+}
+
 </style>
 </head>
 <body>
 <div class="jarvis-screen">
 <canvas id="bgDustCanvas"></canvas>
 <div id="response"></div>
+<div id="textMode">
+    TEXT MODE
+</div>
 <div class="hologram-vertical-system" id="verticalSystem">
 <div class="jarvis-datetime" id="jarvisDateTime"></div>
 <div class="hologram-disc-top">
@@ -888,10 +909,24 @@ var conversationActive=false;
 var recognitionRunning=false;
 var recognition=null;
 var currentMode="voice";
-function setMode(mode){if(mode!=="voice" && mode!=="text") return;
-currentMode=mode;
-console.log("【モード切替ログ】 現在のモード:", currentMode);
+
+function setMode(mode){
+    if(mode!=="voice" && mode!=="text") return;
+
+    currentMode=mode;
+
+    var textMode=document.getElementById("textMode");
+
+    if(mode==="text"){
+        textMode.style.display="block";
+    }
+    else{
+        textMode.style.display="none";
+    }
+
+    console.log("【モード切替ログ】 現在のモード:", currentMode);
 }
+
 var lastProcessedWav=null;
 const VOICE_PROCESSING={
 highpassFrequency:55,
