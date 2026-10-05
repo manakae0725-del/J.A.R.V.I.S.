@@ -511,7 +511,8 @@ opacity: 1;
     transform: translate(-50%, -50%);
     width: calc(100% - 50px);
     max-width: 600px;
-　z-index: 5;
+    z-index: 9999;
+    pointer-events: auto;
 }
 
 #textInput {
@@ -525,6 +526,8 @@ opacity: 1;
     color: white;
     font-size: 16px;
     resize: vertical;
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
 #sendButton {
