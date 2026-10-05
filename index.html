@@ -893,8 +893,7 @@ currentMode=mode;
 console.log("【モード切替ログ】 現在のモード:", currentMode);
 }
 var lastProcessedWav=null;
-const VOICE
-_PROCESSING={
+const VOICE_PROCESSING={
 highpassFrequency:55,
 lowpassFrequency:9200,
 lowBodyFrequency:145,
@@ -926,8 +925,7 @@ function createVoiceSaturation(context){
 const shaper=context.createWaveShaper();
 const samples=4096;
 const curve=new Float32Array(samples);
-const drive=VOICE
-_PROCESSING.saturationDrive;for(let i=0;i<samples;i++){
+const drive=VOICE_PROCESSING.saturationDrive;for(let i=0;i<samples;i++){
 const x=(i*2)/(samples-1)-1;
 curve[i]=Math.tanh(x*drive)/Math.tanh(drive);
 }
@@ -952,54 +950,42 @@ highpass.Q.value=0.65;
 const lowBody=createEQ(
 context,
 "lowshelf",
-VOICE
-_PROCESSING.lowBodyFrequency,
-VOICE
-_PROCESSING.lowBodyGain,
+VOICE_PROCESSING.lowBodyFrequency,
+VOICE_PROCESSING.lowBodyGain,
 0.7
 );
 const lowMid=createEQ(
 context,
 "peaking",
-VOICE
-_PROCESSING.lowMidFrequency,
-VOICE
-_PROCESSING.lowMidGain,
+VOICE_PROCESSING.lowMidFrequency,
+VOICE_PROCESSING.lowMidGain,
 0.9
 );
 const mud=createEQ(context,
 "peaking",
-VOICE
-_PROCESSING.mudFrequency,
-VOICE
-_PROCESSING.mudGain,
+VOICE_PROCESSING.mudFrequency,
+VOICE_PROCESSING.mudGain,
 1.0
 );
 const presence=createEQ(
 context,
 "peaking",
-VOICE
-_PROCESSING.presenceFrequency,
-VOICE
-_PROCESSING.presenceGain,
+VOICE_PROCESSING.presenceFrequency,
+VOICE_PROCESSING.presenceGain,
 0.85
 );
 const brightness=createEQ(
 context,
 "peaking",
-VOICE
-_PROCESSING.brightnessFrequency,
-VOICE
-_PROCESSING.brightnessGain,
+VOICE_PROCESSING.brightnessFrequency,
+VOICE_PROCESSING.brightnessGain,
 0.75
 );
 const harshness=createEQ(
 context,
 "peaking",
-VOICE
-_PROCESSING.harshFrequency,
-VOICE
-_PROCESSING.harshGain,
+VOICE_PROCESSING.harshFrequency,
+VOICE_PROCESSING.harshGain,
 1.1
 );
 const lowpass=context.createBiquadFilter();
