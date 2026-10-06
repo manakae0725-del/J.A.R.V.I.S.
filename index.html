@@ -1558,9 +1558,12 @@ function startListening() {
         !recognition
     ) return;
 
-    try {
-        recognitionRunning = true;
-        recognition.start();
+   try {
+    status.textContent =
+        "聞いています…";
+
+    recognitionRunning = true;
+    recognition.start();
 
     } catch(error) {
         recognitionRunning = false;
@@ -1584,9 +1587,6 @@ async function speakWithGemini(text) {
         );
 
     try {
-
-status.textContent =
-    "聞いています…";
 
         const response =
             await fetch(
@@ -1728,15 +1728,17 @@ currentSource.connect(
 await new Promise(
     resolve => {
 
-        currentSource.onended =
-            function() {
+       currentSource.onended =
+    function() {
 
-                currentSource =
-                    null;
+        currentSource =
+            null;
 
-                resolve();
-            };
+        status.textContent =
+            "";
 
+        resolve();
+    };
         currentSource.start();
     }
 );
