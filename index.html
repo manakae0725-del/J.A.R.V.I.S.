@@ -1501,11 +1501,13 @@ if (SpeechRecognition) {
         recognition.continuous = false;
         recognition.interimResults = false;
 
-        recognition.onresult = async function(event) {
-            recognitionRunning = false;
+       recognition.onresult = async function(event) {
+    recognitionRunning = false;
 
-            const text =
-                event.results[0][0].transcript;
+    status.textContent = "";
+
+    const text =
+        event.results[0][0].transcript;
 
             console.log(
                 "【音声エンジン疎通確認】認識成功テキスト:",
