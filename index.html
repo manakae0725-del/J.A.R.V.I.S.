@@ -1562,6 +1562,9 @@ async function speakWithGemini(text) {
 
     try {
 
+status.textContent =
+    "聞いています…";
+
         const response =
             await fetch(
                 "/api/tts",
@@ -1748,11 +1751,13 @@ async function sendToGemini(text) {
         return;
     }
 
-await loadMemories();
+   await loadMemories();
 
-    const controller =
-        new AbortController();
+status.textContent =
+    "考えています…";
 
+const controller =
+    new AbortController();
     const timeout =
         setTimeout(
             () => {
@@ -1772,18 +1777,19 @@ await loadMemories();
                         "application/json"
                 },
 
-         body: JSON.stringify({
+                body: JSON.stringify({
 
-    text:
-        cleanText,
+                    text:
+                        cleanText,
 
-    previousInteractionId:
-        previousInteractionId,
+                    previousInteractionId:
+                        previousInteractionId,
 
-    memoryContext:
-        buildMemoryContext()
+                    memoryContext:
+                        buildMemoryContext()
 
-}),
+                }),
+
                 signal:
                     controller.signal
             }
@@ -1795,6 +1801,7 @@ await loadMemories();
         await response.json();
 
     if (!response.ok) {
+
         throw new Error(
             data.error ||
             "Gemini HTTP " +
@@ -1803,28 +1810,67 @@ await loadMemories();
     }
 
     if (!data.text) {
+
         throw new Error(
             "Geminiから回答テキストがありません"
         );
     }
 
     if (data.interactionId) {
+
         previousInteractionId =
             data.interactionId;
     }
 
-if (
-    data.memory &&
-    data.memory.shouldSave === true
-) {
-    await saveMemory(
-        data.memory
-    );
-}
+    if (
+        data.memory &&
+        data.memory.shouldSave === true
+    ) {
 
-document.getElementById("response").textContent =
-    data.text;
+        await saveMemory(
+            data.memory
+        );
+    }
 
+    document.getElementById("response").textContent =
+        data.text;
+
+
+    /* =================================================
+       TTS → 再生
+       ================================================= */
+
+    if (
+        currentMode === "voice" &&
+        conversationActive
+    ) {
+
+        const spoken =
+            await speakWithGemini(
+                data.speechText ||
+                data.text
+            );
+
+
+        /* =============================================
+           ⑥ 会話ループ
+           再生終了 → 再び聞く
+           ============================================= */
+
+        if (
+            spoken &&
+            conversationActive &&
+            currentMode === "voice"
+        ) {
+
+            setTimeout(
+                () => {
+                    startListening();
+                },
+                300
+            );
+        }
+    }
 }
 
 </script>
