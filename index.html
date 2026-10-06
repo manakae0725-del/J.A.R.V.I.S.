@@ -1511,6 +1511,8 @@ async function sendToGemini(text) {
         return;
     }
 
+await loadMemories();
+
     const controller =
         new AbortController();
 
@@ -1533,13 +1535,16 @@ async function sendToGemini(text) {
                         "application/json"
                 },
 
-           body: JSON.stringify({
+         body: JSON.stringify({
 
     text:
-        buildGeminiPrompt(cleanText),
+        cleanText,
 
     previousInteractionId:
-        previousInteractionId
+        previousInteractionId,
+
+    memoryContext:
+        buildMemoryContext()
 
 }),
                 signal:
