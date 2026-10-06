@@ -1735,9 +1735,6 @@ await new Promise(
                 resolve();
             };
 
-        status.textContent =
-            "J.A.R.V.I.S. 発話中…";
-
         currentSource.start();
     }
 );
@@ -1853,9 +1850,10 @@ const controller =
         );
     }
 
-    document.getElementById("response").textContent =
-        data.text;
+   document.getElementById("response").textContent =
+    data.text;
 
+status.textContent = "";
 
     /* =================================================
        TTS → 再生
