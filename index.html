@@ -1670,23 +1670,59 @@ async function speakWithGemini(text) {
         const processedAudioBuffer =
             await offlineContext.startRendering();
 
-        /* ⑤で再生するため保持 */
+       /* 処理済みWAVを保持 */
 
-        window.processedAudioBuffer =
-            processedAudioBuffer;
+lastProcessedWav =
+    audioBufferToWav(
+        processedAudioBuffer
+    );
 
-        /* 処理済みWAVも保持 */
+/* ⑤ 実際の再生 */
 
-        lastProcessedWav =
-            audioBufferToWav(
-                processedAudioBuffer
-            );
+if (currentSource) {
 
-        console.log(
-            "WAV・音声処理完了"
-        );
+    try {
+        currentSource.stop();
+    } catch (e) {}
 
-        return true;
+    currentSource =
+        null;
+}
+
+currentSource =
+    audioContext.createBufferSource();
+
+currentSource.buffer =
+    processedAudioBuffer;
+
+currentSource.connect(
+    audioContext.destination
+);
+
+await new Promise(
+    resolve => {
+
+        currentSource.onended =
+            function() {
+
+                currentSource =
+                    null;
+
+                resolve();
+            };
+
+        status.textContent =
+            "J.A.R.V.I.S. 発話中…";
+
+        currentSource.start();
+    }
+);
+
+console.log(
+    "音声再生完了"
+);
+
+return true;
 
     } catch (error) {
 
