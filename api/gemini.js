@@ -52,10 +52,11 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const {
-      text,
-      previousInteractionId,
-    } = req.body;
+ const {
+  text,
+  previousInteractionId,
+  memoryContext
+} = req.body;
 
     if (!text) {
       return res.status(400).json({
@@ -791,6 +792,38 @@ reply:
 
 speechText:
 麺屋さいみは札幌市豊平区にある人気店です。
+
+==============================
+LONG-TERM MEMORY
+==============================
+
+以下は真人さんについて保存されている長期記憶です。
+今回の会話に関連する場合のみ自然に利用してください。
+記憶にないことは推測しないでください。
+
+${typeof memoryContext === "string" && memoryContext.trim()
+    ? memoryContext.trim()
+    : "現在、登録されている長期記憶はありません。"
+}
+
+==============================
+LONG-TERM MEMORY RULES
+==============================
+
+今後の会話でも長期的に役立つ情報、または真人さんが明示的に
+「覚えて」「記憶して」などと求めた情報は保存対象として扱ってください。
+
+一時的な発言、雑談、その場限りの情報は保存しないでください。
+
+保存する場合：
+- memory.shouldSave = true
+- memory.content は簡潔な事実
+- category は personal / preference / work / family / goal のいずれか
+- importance は 1〜5
+
+保存しない場合：
+- memory.shouldSave = false
+- memory.content は空文字列でも構いません
 
 ユーザー:
 ${text}
