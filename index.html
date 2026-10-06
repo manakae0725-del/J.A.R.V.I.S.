@@ -1544,6 +1544,86 @@ function startListening() {
     }
 }
 
+async function speakWithGemini(text) {
+
+    status.textContent =
+        "J.A.R.V.I.S. 音声生成中…";
+
+    const controller =
+        new AbortController();
+
+    const timeout =
+        setTimeout(
+            () => {
+                controller.abort();
+            },
+            240000
+        );
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/tts",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        text: text
+                    }),
+
+                    signal:
+                        controller.signal
+                }
+            );
+
+        clearTimeout(timeout);
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                getErrorMessage(
+                    data.error
+                ) ||
+                "TTS HTTP " +
+                response.status
+            );
+        }
+
+        if (!data.audio) {
+
+            throw new Error(
+                "音声データがありません"
+            );
+        }
+
+        console.log(
+            "TTS音声データ取得成功"
+        );
+
+        return data.audio;
+
+    } catch (error) {
+
+        clearTimeout(timeout);
+
+        console.error(
+            "TTS error:",
+            error
+        );
+
+        return false;
+    }
+}
+
 async function sendToGemini(text) {
 
     const cleanText =
