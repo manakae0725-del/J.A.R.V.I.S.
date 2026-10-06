@@ -459,6 +459,22 @@ line-height: 1.7;
 z-index: 10;
 pointer-events: none;
 }
+
+#status {
+position: absolute;
+top: 58px;
+width: 100%;
+text-align: center;
+color: #8acfff;
+font-size: 12px;
+letter-spacing: 2px;
+text-shadow:
+0 0 6px #0088ff,
+0 0 12px rgba(0,136,255,0.7);
+z-index: 10;
+pointer-events: none;
+}
+
 @keyframes orbitRotate1 {
 0% { transform: rotate3d(1, 0.8, 0,
 55deg) rotateZ(0deg); }
@@ -548,6 +564,8 @@ opacity: 1;
 <div class="jarvis-screen">
 <canvas id="bgDustCanvas"></canvas>
 <div id="response"></div>
+
+<div id="status"></div>
 
 <div id="textArea">
 
@@ -865,6 +883,9 @@ var rightHUD=document.getElementById("rightHUD");
 
 const textArea =
     document.getElementById("textArea");
+
+const status =
+    document.getElementById("status");
 
 const textInput =
     document.getElementById("textInput");
