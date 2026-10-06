@@ -447,32 +447,151 @@ color: #a0d8ff;
 font-size: 10px;
 color: #61a6ff;
 }
-#response {
-position: absolute;
-top: 30px;
-width: 100%;
-padding: 0 20px;
-color: white;
-font-size: 16px;
-word-break: break-word;
-line-height: 1.7;
-z-index: 10;
-pointer-events: none;
+
+/* =========================================================
+   J.A.R.V.I.S. ホログラム情報パネル
+   ========================================================= */
+
+.jarvis-holo-panel {
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 40px);
+    max-width: 380px;
+    min-height: 140px;
+
+    background: rgba(1, 12, 25, 0.82);
+    border: 1px solid rgba(0, 153, 255, 0.45);
+
+    box-shadow:
+        0 0 25px rgba(0, 119, 255, 0.35),
+        inset 0 0 15px rgba(0, 153, 255, 0.15);
+
+    backdrop-filter: blur(4px);
+
+    z-index: 20;
+    padding: 12px 15px;
+    box-sizing: border-box;
+    pointer-events: none;
+
+    clip-path: polygon(
+        0 10px,
+        10px 0,
+        calc(100% - 10px) 0,
+        100% 10px,
+        100% calc(100% - 10px),
+        calc(100% - 10px) 100%,
+        10px 100%,
+        0 calc(100% - 10px)
+    );
 }
 
-#status {
-position: absolute;
-top: 58px;
-width: 100%;
-text-align: center;
-color: #8acfff;
-font-size: 12px;
-letter-spacing: 2px;
-text-shadow:
-0 0 6px #0088ff,
-0 0 12px rgba(0,136,255,0.7);
-z-index: 10;
-pointer-events: none;
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    border-bottom:
+        1px solid rgba(0, 153, 255, 0.25);
+
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+}
+
+.panel-title-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.panel-indicator-dot {
+    width: 6px;
+    height: 6px;
+
+    background-color: #00d2ff;
+    border-radius: 50%;
+
+    box-shadow: 0 0 6px #00d2ff;
+
+    animation: pulseDot 2s infinite;
+}
+
+.panel-title {
+    color: #bfeaff;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.panel-hud-dots {
+    color: #0099ff;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+.jarvis-holo-panel #status {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+
+    width: 100% !important;
+
+    text-align: left !important;
+
+    color: #8acfff !important;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+
+    margin-bottom: 6px;
+
+    text-shadow:
+        0 0 6px rgba(0, 136, 255, 0.7);
+}
+
+.jarvis-holo-panel #response {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+
+    width: 100% !important;
+    padding: 0 !important;
+
+    color: #ffffff;
+    font-size: 13px;
+    line-height: 1.5;
+
+    word-break: break-word;
+
+    text-shadow:
+        0 0 8px rgba(0, 153, 255, 0.4);
+}
+
+@keyframes pulseDot {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(0.9);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+@media (max-width: 480px) {
+
+    .jarvis-holo-panel {
+        top: 57%;
+        width: calc(100% - 24px);
+        padding: 10px 12px;
+    }
+
+    .jarvis-holo-panel #response {
+        font-size: 12px;
+    }
 }
 
 @keyframes orbitRotate1 {
@@ -563,9 +682,36 @@ opacity: 1;
 <body>
 <div class="jarvis-screen">
 <canvas id="bgDustCanvas"></canvas>
-<div id="response"></div>
 
-<div id="status"></div>
+<!-- J.A.R.V.I.S. ホログラム情報パネル -->
+<div class="jarvis-holo-panel" id="jarvisHoloPanel">
+
+    <div class="panel-header">
+
+        <div class="panel-title-group">
+            <span class="panel-indicator-dot"></span>
+            <span class="panel-title">
+                J.A.R.V.I.S. SYSTEM
+            </span>
+        </div>
+
+        <div class="panel-hud-dots">
+            ...
+        </div>
+
+    </div>
+
+    <div class="panel-status-area" id="status"></div>
+
+    <div class="panel-response-area" id="response"></div>
+
+    <div
+        class="panel-extension-area"
+        id="panelExtension"
+        style="display:none;"
+    ></div>
+
+</div>
 
 <div id="textArea">
 
