@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -1182,19 +1182,58 @@ async function saveMemory(memory) {
     }
 }
 
-function setMode(mode){
-    if(mode!=="voice" && mode!=="text") return;
+function setMode(mode) {
 
-    currentMode=mode;
-
-    if(mode==="text"){
-        textArea.style.display="block";
-    }
-    else{
-        textArea.style.display="none";
+    if (
+        mode !== "voice" &&
+        mode !== "text"
+    ) {
+        return;
     }
 
-    console.log("【モード切替ログ】 現在のモード:", currentMode);
+    currentMode =
+        mode;
+
+    modeButtons.forEach(
+        (modeButton) => {
+
+            modeButton.classList.toggle(
+                "active",
+                modeButton.dataset.mode === mode
+            );
+
+        }
+    );
+
+    if (mode === "text") {
+
+        textArea.style.display =
+            "block";
+
+        conversationActive =
+            false;
+
+        if (recognitionRunning) {
+
+            try {
+                recognition.stop();
+            } catch (e) {}
+
+        }
+
+        recognitionRunning =
+            false;
+
+    } else {
+
+        textArea.style.display =
+            "none";
+
+        conversationActive =
+            true;
+
+        startListening();
+    }
 }
 
 var lastProcessedWav=null;
@@ -1439,65 +1478,81 @@ offset+=2;
 }
 return new Blob([buffer],{type:"audio/wav"});
 }
-const SpeechRecognition=
-window.SpeechRecognition||
+
+const SpeechRecognition =
+window.SpeechRecognition ||
 window.webkitSpeechRecognition;
-if(SpeechRecognition){
-try{
-recognition=new SpeechRecognition();
-recognition.lang="ja-JP";
-recognition.continuous=false;
-recognition.interimResults=false;
-recognition.onresult=function(event){
-recognitionRunning=false;
-const text=
-event.results[0][0].transcript;
-console.log(
-"【音声エンジン疎通確認】認識成功テキスト:",
-text
-);
-if(conversationActive){
-setTimeout(startListening,2500);
+
+if (SpeechRecognition) {
+    try {
+        recognition = new SpeechRecognition();
+
+        recognition.lang = "ja-JP";
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onresult = async function(event) {
+            recognitionRunning = false;
+
+            const text =
+                event.results[0][0].transcript;
+
+            console.log(
+                "【音声エンジン疎通確認】認識成功テキスト:",
+                text
+            );
+
+            if (!conversationActive) return;
+
+            await sendToGemini(text);
+        };
+
+        recognition.onerror = function(event) {
+            recognitionRunning = false;
+
+            console.error(
+                "SpeechRecognition error:",
+                event.error
+            );
+
+            if (
+                conversationActive &&
+                event.error !== "not-allowed" &&
+                event.error !== "service-not-allowed"
+            ) {
+                setTimeout(startListening, 500);
+            }
+        };
+
+        recognition.onend = function() {
+            recognitionRunning = false;
+        };
+
+    } catch(error) {
+        recognition = null;
+
+        console.error(
+            "SpeechRecognition init error:",
+            error
+        );
+    }
 }
-};
-recognition.onerror=function(event){
-recognitionRunning=false;
-console.error("SpeechRecognition error:",
-event.error
-);
-if(
-conversationActive&&
-event.error!=="not-allowed"&&
-event.error!=="service-not-allowed"
-){
-setTimeout(startListening,500);
-}
-};
-recognition.onend=function(){
-recognitionRunning=false;
-};
-}
-catch(error){
-recognition=null;
-console.error(
-"SpeechRecognition init error:",
-error
-);
-}
-}
-function startListening(){
-if(
-!conversationActive||
-recognitionRunning||
-!recognition
-)return;
-try{
-recognitionRunning=true;
-recognition.start();
-}
-catch(error){
-recognitionRunning=false;
-}
+
+function startListening() {
+
+    if (
+        !conversationActive ||
+        recognitionRunning ||
+        !recognition
+    ) return;
+
+    try {
+        recognitionRunning = true;
+        recognition.start();
+
+    } catch(error) {
+        recognitionRunning = false;
+    }
 }
 
 async function sendToGemini(text) {
