@@ -541,7 +541,12 @@ Snippet: ${snippet}
     // Tavily Fallback
     // ==========================================
 
-    if (!searchContext && tavilyKey && isSearchQuestion) {
+if (
+  (!searchContext || isWeatherQuestion && !searchContext.includes("[Serper Weather]")) &&
+  tavilyKey &&
+  isSearchQuestion
+) {
+
       console.log(
         "[DEBUG] Tavily fallback: START"
       );
