@@ -841,10 +841,12 @@ ACTIVITY
 <path d="M12 18h.01"/>
 </svg>DEVICE
 </div>
+
 <div class="device-status-right">
 <span class="status-dot"></span>
-ONLINE
+<span id="hudDevice">ONLINE</span>
 </div>
+
 </div>
 <div class="device-row">
 <div class="device-info-left">
@@ -854,10 +856,12 @@ ONLINE
 </svg>
 Wi-Fi
 </div>
+
 <div class="device-status-right">
 <span class="status-dot"></span>
-CONNECTED
+<span id="hudWifi">CONNECTED</span>
 </div>
+
 </div>
 <div class="device-row">
 <div class="device-info-left">
@@ -879,11 +883,23 @@ ON
 </svg>
 BATTERY
 </div>
-<div class="battery-inline-container"><span style="font-size:11px;color:#e0f2ff;font-weight:bold;">82%</span>
+
+<div class="battery-inline-container">
+<span
+    id="hudBattery"
+    style="font-size:11px;color:#e0f2ff;font-weight:bold;"
+>
+--%
+</span>
+
 <div class="mini-battery-frame">
-<div class="mini-battery-inner"></div>
+    <div
+        class="mini-battery-inner"
+        id="hudBatteryFill"
+    ></div>
 </div>
 </div>
+
 </div>
 <div class="device-row">
 <div class="device-info-left">
@@ -892,9 +908,12 @@ BATTERY
 </svg>
 POWER
 </div>
+
 <div class="device-status-right">
 <span class="status-dot"></span>
-CHARGING
+<span id="hudPower">CHARGING</span>
+</div>
+
 </div>
 </div>
 </div>
@@ -1065,6 +1084,125 @@ const hudSysLoad =
 
 const hudActivity =
     document.getElementById("hudActivity");
+
+const hudDevice =
+    document.getElementById("hudDevice");
+
+const hudWifi =
+    document.getElementById("hudWifi");
+
+const hudBattery =
+    document.getElementById("hudBattery");
+
+const hudBatteryFill =
+    document.getElementById("hudBatteryFill");
+
+const hudPower =
+    document.getElementById("hudPower");
+
+function updateDeviceHud() {
+
+    /* DEVICE */
+
+    const userAgent =
+        navigator.userAgent.toLowerCase();
+
+    if (
+        /iphone|ipad|ipod/.test(userAgent)
+    ) {
+        hudDevice.textContent =
+            "iPhone";
+    } else {
+        hudDevice.textContent =
+            "PC";
+    }
+
+
+    /* Wi-Fi / Network */
+
+    hudWifi.textContent =
+        navigator.onLine
+            ? "CONNECTED"
+            : "DISCONNECTED";
+}
+
+window.addEventListener(
+    "online",
+    updateDeviceHud
+);
+
+window.addEventListener(
+    "offline",
+    updateDeviceHud
+);
+
+async function initBatteryHud() {
+
+    if (
+        !navigator.getBattery
+    ) {
+        hudBattery.textContent =
+            "--%";
+
+        hudPower.textContent =
+            "UNKNOWN";
+
+        return;
+    }
+
+    try {
+
+        const battery =
+            await navigator.getBattery();
+
+        function updateBattery() {
+
+            const level =
+                Math.round(
+                    battery.level * 100
+                );
+
+            hudBattery.textContent =
+                level + "%";
+
+            hudBatteryFill.style.width =
+                level + "%";
+
+            hudPower.textContent =
+                battery.charging
+                    ? "CHARGING"
+                    : "DISCHARGING";
+        }
+
+        updateBattery();
+
+        battery.addEventListener(
+            "levelchange",
+            updateBattery
+        );
+
+        battery.addEventListener(
+            "chargingchange",
+            updateBattery
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Battery API error:",
+            error
+        );
+
+        hudBattery.textContent =
+            "--%";
+
+        hudPower.textContent =
+            "UNKNOWN";
+    }
+}
+
+updateDeviceHud();
+initBatteryHud();
 
 function updateHudStatus(
     network,
