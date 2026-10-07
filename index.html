@@ -1252,13 +1252,79 @@ touchStartY=touches.item(0).screenY;
 
 document.addEventListener("touchend",function(e){
 
+    var touches=e.changedTouches;
+
+    if(!touches||touches.length===0)return;
+
+    var touchEndX=touches.item(0).screenX;
+    var touchEndY=touches.item(0).screenY;
+
+    var deltaX=touchEndX-touchStartX;
+    var deltaY=touchEndY-touchStartY;
+
+    var absX=Math.abs(deltaX);
+    var absY=Math.abs(deltaY);
+
+    if(absX<80&&absY<80)return;
+
+    /* TEXT → VOICE は入力欄の上でも許可 */
+    if(
+        currentMode === "text" &&
+        deltaY > 80 &&
+        absY > absX
+    ){
+        setMode("voice");
+        return;
+    }
+
+    /* テキスト入力欄内の通常操作はここで終了 */
     if(
         e.target.closest("#textArea")
     ){
         return;
     }
 
-    var touches=e.changedTouches;
+    /* 縦スワイプ */
+    if(absY>absX){
+
+        if(deltaY<-80){
+            console.log("下→上スワイプ検知");
+            setMode("text");
+            return;
+        }
+
+        if(deltaY>80){
+            setMode("voice");
+            return;
+        }
+    }
+
+    /* 横スワイプ */
+    if(absX>absY){
+        if(deltaX<-80){
+            if(rightHUD.classList.contains("open")){
+                rightHUD.classList.remove("open");
+            }
+            else if(leftHUD.classList.contains("open")){
+                leftHUD.classList.remove("open");
+            }
+            else{
+                rightHUD.classList.add("open");
+            }
+        }
+        else if(deltaX>80){
+            if(leftHUD.classList.contains("open")){
+                leftHUD.classList.remove("open");
+            }
+            else if(rightHUD.classList.contains("open")){
+                rightHUD.classList.remove("open");
+            }
+            else{
+                leftHUD.classList.add("open");
+            }
+        }
+    }
+});
 
     if(!touches||touches.length===0)return;
 
