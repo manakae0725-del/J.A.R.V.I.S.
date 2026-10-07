@@ -346,8 +346,8 @@ ${spokenText}
       });
     }
 
-    const audio =
-      data?.steps?.[0]?.content?.[0]?.data;
+   const audio =
+  data?.output_audio?.data;
 
     if (!audio) {
       return res.status(500).json({
