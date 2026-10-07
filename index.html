@@ -330,12 +330,15 @@ background: linear-gradient(90deg,
 #0077ff, #00d2ff);
 box-shadow: 0 0 6px #0099ff;
 }
+
 .status-value {
-width: 32px;
+width: 82px;
 text-align: right;
 color: #e0f2ff;
 font-weight: bold;
+font-size: 10px;
 }
+
 /* デバイスステータス用 */
 .device-row {
 display: flex;
@@ -779,7 +782,9 @@ NETWORK
 <div class="status-bar-bg">
 <div class="status-bar-fill" style="width:98%;"></div>
 </div>
-<div class="status-value">98%</div>
+
+<div class="status-value" id="hudNetwork">STANDBY</div>
+
 </div>
 <div class="status-row">
 <div class="status-label-group">
@@ -790,7 +795,9 @@ SIGNAL
 </div>
 <div class="status-bar-bg"><div class="status-bar-fill" style="width:86%;"></div>
 </div>
-<div class="status-value">86%</div>
+
+<div class="status-value" id="hudSignal">STANDBY</div>
+
 </div>
 <div class="status-row">
 <div class="status-label-group">
@@ -803,7 +810,9 @@ SYS LOAD
 <div class="status-bar-bg">
 <div class="status-bar-fill" style="width:42%;"></div>
 </div>
-<div class="status-value">42%</div>
+
+<div class="status-value" id="hudSysLoad">READY</div>
+
 </div>
 <div class="status-row">
 <div class="status-label-group">
@@ -815,7 +824,9 @@ ACTIVITY
 <div class="status-bar-bg">
 <div class="status-bar-fill" style="width:24%;"></div>
 </div>
-<div class="status-value">24%</div>
+
+<div class="status-value" id="hudActivity">IDLE</div>
+
 </div>
 </div>
 <div class="hud-card">
@@ -1042,6 +1053,30 @@ const textArea =
 
 const status =
     document.getElementById("status");
+
+const hudNetwork =
+    document.getElementById("hudNetwork");
+
+const hudSignal =
+    document.getElementById("hudSignal");
+
+const hudSysLoad =
+    document.getElementById("hudSysLoad");
+
+const hudActivity =
+    document.getElementById("hudActivity");
+
+function updateHudStatus(
+    network,
+    signal,
+    sysLoad,
+    activity
+) {
+    hudNetwork.textContent = network;
+    hudSignal.textContent = signal;
+    hudSysLoad.textContent = sysLoad;
+    hudActivity.textContent = activity;
+}
 
 const textInput =
     document.getElementById("textInput");
@@ -1714,13 +1749,19 @@ function startListening() {
         !recognition
     ) return;
 
-   try {
+  try {
     status.textContent =
         "聞いています…";
 
+    updateHudStatus(
+        "ONLINE",
+        "LISTENING",
+        "READY",
+        "ACTIVE"
+    );
+
     recognitionRunning = true;
     recognition.start();
-
     } catch(error) {
         recognitionRunning = false;
     }
@@ -1740,9 +1781,16 @@ async function speakWithGemini(text) {
             240000
         );
 
-    try {
+   try {
 
-        const response =
+    updateHudStatus(
+        "ONLINE",
+        "STANDBY",
+        "GENERATING",
+        "ACTIVE"
+    );
+
+    const response =
             await fetch(
                 "/api/tts",
                 {
@@ -1879,19 +1927,33 @@ currentSource.connect(
     audioContext.destination
 );
 
+updateHudStatus(
+    "ONLINE",
+    "STANDBY",
+    "READY",
+    "PLAYING"
+);
+
 await new Promise(
     resolve => {
 
        currentSource.onended =
     function() {
 
-        currentSource =
-            null;
+       currentSource =
+    null;
 
-        status.textContent =
-            "";
+status.textContent =
+    "";
 
-        resolve();
+updateHudStatus(
+    "ONLINE",
+    "STANDBY",
+    "READY",
+    "IDLE"
+);
+
+resolve();
     };
         currentSource.start();
     }
@@ -1931,6 +1993,13 @@ async function sendToGemini(text) {
 
 status.textContent =
     "考えています…";
+
+updateHudStatus(
+    "ONLINE",
+    "STANDBY",
+    "PROCESSING",
+    "ACTIVE"
+);
 
 const controller =
     new AbortController();
