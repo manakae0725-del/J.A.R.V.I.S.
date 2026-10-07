@@ -284,9 +284,11 @@ ${spokenText}
 
             input: voiceInstruction,
 
-            response_format: {
-              type: "audio"
-            },
+response_format: {
+  type: "audio",
+  mime_type: "audio/l16",
+  sample_rate: 24000
+},
 
             generation_config: {
               speech_config: [
@@ -347,7 +349,7 @@ ${spokenText}
     }
 
 const audio =
-  data?.steps?.[0]?.content?.[0]?.data;
+  data?.output_audio?.data;
 
 console.log("TTS RESPONSE:", data);
 console.log("TTS AUDIO EXISTS:", !!audio);
