@@ -291,7 +291,8 @@ ${spokenText}
             generation_config: {
               speech_config: [
                 {
-                  voice: "Charon"
+                  voice:
+"ifwmvGLm8MGws4a9dmn2"
                 }
               ]
             }
@@ -308,8 +309,10 @@ ${spokenText}
         success: false,
         statusCode: null,
         durationMs,
-        metadata: {
-          model: "gemini-3.1-flash-tts-preview",
+       metadata: {
+  model: "gemini-3.1-flash-tts-preview",
+  voice: "ifwmvGLm8MGws4a9dmn2"
+}
           error:
             error?.message ||
             "Unknown error"
