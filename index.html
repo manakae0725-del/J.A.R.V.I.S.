@@ -2006,43 +2006,10 @@ async function speakWithGemini(text) {
                 arrayBuffer.slice(0)
             );
 
-        /* 音声処理 */
+    /* 音声処理を一旦バイパス */
 
-        const offlineContext =
-            new OfflineAudioContext(
-                1,
-                originalAudioBuffer.length,
-                originalAudioBuffer.sampleRate
-            );
-
-        const processing =
-            createVoiceProcessingChain(
-                offlineContext,
-                offlineContext.destination
-            );
-
-        const offlineSource =
-            offlineContext.createBufferSource();
-
-        offlineSource.buffer =
-            originalAudioBuffer;
-
-        offlineSource.connect(
-            processing.input
-        );
-
-        offlineSource.start(0);
-
-        const processedAudioBuffer =
-            await offlineContext.startRendering();
-
-       /* 処理済みWAVを保持 */
-
-lastProcessedWav =
-    audioBufferToWav(
-        processedAudioBuffer
-    );
-
+const processedAudioBuffer =
+    originalAudioBuffer;
 /* ⑤ 実際の再生 */
 
 if (currentSource) {
@@ -2264,4 +2231,3 @@ status.textContent = "";
 </script>
 </body>
 </html>
-
