@@ -1565,14 +1565,24 @@ function setMode(mode) {
 
     } else {
 
-        textArea.style.display =
-            "none";
+     } else {
 
-        conversationActive =
-            true;
+    textArea.style.display =
+        "none";
 
-        startListening();
-    }
+    conversationActive =
+        true;
+
+    document.getElementById(
+        "response"
+    ).textContent = "";
+
+    document.getElementById(
+        "jarvisHoloPanel"
+    ).classList.add("show");
+
+    startListening();
+}
 }
 
 var lastProcessedWav=null;
