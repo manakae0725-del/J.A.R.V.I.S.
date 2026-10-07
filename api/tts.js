@@ -346,8 +346,11 @@ ${spokenText}
       });
     }
 
-   const audio =
-  data?.output_audio?.data;
+const audio =
+  data?.steps?.[0]?.content?.[0]?.data;
+
+console.log("TTS RESPONSE:", data);
+console.log("TTS AUDIO EXISTS:", !!audio);
 
     if (!audio) {
       return res.status(500).json({
