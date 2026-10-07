@@ -299,7 +299,7 @@ ${spokenText}
           })
         }
       );
-    } catch (error) {
+      } catch (error) {
       const durationMs =
         Date.now() - ttsStart;
 
@@ -309,10 +309,9 @@ ${spokenText}
         success: false,
         statusCode: null,
         durationMs,
-       metadata: {
-  model: "gemini-3.1-flash-tts-preview",
-  voice: "ifwmvGLm8MGws4a9dmn2"
-}
+        metadata: {
+          model: "gemini-3.1-flash-tts-preview",
+          voice: "ifwmvGLm8MGws4a9dmn2",
           error:
             error?.message ||
             "Unknown error"
@@ -333,7 +332,7 @@ ${spokenText}
       durationMs,
       metadata: {
         model: "gemini-3.1-flash-tts-preview",
-        voice: "Charon"
+        voice: "ifwmvGLm8MGws4a9dmn2"
       }
     });
 
