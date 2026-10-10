@@ -2015,10 +2015,28 @@ async function speakWithGemini(text) {
                 arrayBuffer.slice(0)
             );
 
-    /* 音声処理を一旦バイパス */
+/* 音声処理：ピッチ +2半音、再生時間を維持 */
+let processedAudioBuffer = originalAudioBuffer;
 
-const processedAudioBuffer =
-    originalAudioBuffer;
+try {
+    const soundTouchModule = await import(
+        "https://esm.sh/@soundtouchjs/audio-worklet@2.1.1?bundle"
+    );
+
+    processedAudioBuffer =
+        await soundTouchModule.processOffline({
+            input: originalAudioBuffer,
+            processorUrl: "/soundtouch-processor.js",
+            pitchSemitones: 2,
+            playbackRate: 1.0
+        });
+
+    console.log("音声処理完了：Pitch +2");
+} catch (error) {
+    console.error("音声処理失敗。元音声で再生します:", error);
+    processedAudioBuffer = originalAudioBuffer;
+}
+
 /* ⑤ 実際の再生 */
 
 if (currentSource) {
