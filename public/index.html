@@ -2015,7 +2015,7 @@ async function speakWithGemini(text) {
                 arrayBuffer.slice(0)
             );
 
-/* 音声処理：ピッチ +2半音、再生時間を維持 */
+/* 音声処理：ピッチ +1.5半音、再生時間を維持 */
 let processedAudioBuffer = originalAudioBuffer;
 
 try {
@@ -2027,11 +2027,11 @@ try {
         await soundTouchModule.processOffline({
             input: originalAudioBuffer,
             processorUrl: "/soundtouch-processor.js",
-            pitchSemitones: 2,
+            pitchSemitones: 1.5,
             playbackRate: 1.0
         });
 
-    console.log("音声処理完了：Pitch +2");
+    console.log("音声処理完了：Pitch +1.5");
 } catch (error) {
     console.error("音声処理失敗。元音声で再生します:", error);
     processedAudioBuffer = originalAudioBuffer;
