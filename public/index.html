@@ -1327,8 +1327,9 @@ year+"."+month+"."+day+" "+hours+":"+minutes;
 }
 updateDateTime();
 setInterval(updateDateTime,1000);
-var audioContext=null;
-var currentSource=null;
+var audioContext = null;
+var currentSource = null;
+var voiceFilterChain = null;
 var conversationActive=false;
 var recognitionRunning=false;
 var recognition=null;
@@ -2055,9 +2056,25 @@ currentSource =
 currentSource.buffer =
     processedAudioBuffer;
 
-currentSource.connect(
-    audioContext.destination
-);
+// トランシーバー風の音質調整
+const highpass = audioContext.createBiquadFilter();
+highpass.type = "highpass";
+highpass.frequency.value = 280;
+
+const presence = audioContext.createBiquadFilter();
+presence.type = "peaking";
+presence.frequency.value = 1800;
+presence.Q.value = 0.8;
+presence.gain.value = 3;
+
+const lowpass = audioContext.createBiquadFilter();
+lowpass.type = "lowpass";
+lowpass.frequency.value = 3400;
+
+currentSource.connect(highpass);
+highpass.connect(presence);
+presence.connect(lowpass);
+lowpass.connect(audioContext.destination);
 
 updateHudStatus(
     "ONLINE",
