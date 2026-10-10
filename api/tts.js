@@ -92,9 +92,6 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             text: spokenText,
             model_id: "eleven_multilingual_v2"
-　　　voice_settings: {
-               speed: 0.85
-　　　　}
           })
         }
       );
