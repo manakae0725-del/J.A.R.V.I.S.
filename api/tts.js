@@ -104,10 +104,17 @@ export default async function handler(req, res) {
             "Content-Type": "application/json"
           },
 
-          body: JSON.stringify({
-            text: spokenText,
-            model_id: "eleven_multilingual_v2"
-          })
+         body: JSON.stringify({
+  text: spokenText,
+  model_id: "eleven_multilingual_v2",
+  voice_settings: {
+    stability: 0.77,
+    similarity_boost: 0.75,
+    style: 0,
+    use_speaker_boost: true,
+    speed: 1.0
+  }
+})
         }
       );
     } catch (error) {
