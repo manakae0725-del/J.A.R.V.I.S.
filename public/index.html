@@ -2016,10 +2016,27 @@ async function speakWithGemini(text) {
                 arrayBuffer.slice(0)
             );
 
-/* 音声加工を一時無効化：Voice IDの生成音声をそのまま使用 */
+/* 無線機風の音声フィルター */
+const radioHighpass = audioContext.createBiquadFilter();
+radioHighpass.type = "highpass";
+radioHighpass.frequency.value = 300;
+radioHighpass.Q.value = 0.7;
+
+const radioLowpass = audioContext.createBiquadFilter();
+radioLowpass.type = "lowpass";
+radioLowpass.frequency.value = 3400;
+radioLowpass.Q.value = 0.7;
+
+const radioCompressor = audioContext.createDynamicsCompressor();
+radioCompressor.threshold.value = -22;
+radioCompressor.knee.value = 12;
+radioCompressor.ratio.value = 3;
+radioCompressor.attack.value = 0.005;
+radioCompressor.release.value = 0.15;
+
 const processedAudioBuffer = originalAudioBuffer;
 
-console.log("音声加工OFF：SoundTouchを無効化");
+console.log("無線機風フィルターを適用");
 
 /* ⑤ 実際の再生 */
 
@@ -2039,9 +2056,10 @@ currentSource =
 currentSource.buffer =
     processedAudioBuffer;
 
-currentSource.connect(
-    audioContext.destination
-);
+currentSource.connect(radioHighpass);
+radioHighpass.connect(radioLowpass);
+radioLowpass.connect(radioCompressor);
+radioCompressor.connect(audioContext.destination);
 
 updateHudStatus(
     "ONLINE",
