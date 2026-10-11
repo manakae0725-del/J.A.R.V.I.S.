@@ -63,6 +63,21 @@ export default async function handler(req, res) {
     const apiKey =
       process.env.ELEVENLABS_API_KEY;
 
+  const settingsResponse = await fetch(
+    "https://api.elevenlabs.io/v1/voices/XrrS5KddqXY8b3ulN2uu/settings",
+    { headers: { "xi-api-key": apiKey } }
+  );
+
+  if (settingsResponse.ok) {
+    const settings = await settingsResponse.json();
+    console.log("[JARVIS VOICE SETTINGS]", settings);
+  } else {
+    console.error(
+      "[JARVIS VOICE SETTINGS] Failed:",
+      settingsResponse.status
+    );
+  }
+
     if (!apiKey) {
       return res.status(500).json({
         error:
