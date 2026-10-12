@@ -2056,10 +2056,7 @@ currentSource =
 currentSource.buffer =
     processedAudioBuffer;
 
-currentSource.connect(radioHighpass);
-radioHighpass.connect(radioLowpass);
-radioLowpass.connect(radioCompressor);
-radioCompressor.connect(audioContext.destination);
+currentSource.connect(audioContext.destination);
 
 updateHudStatus(
     "ONLINE",
