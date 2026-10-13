@@ -85,9 +85,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // 「真人」は「まなと」と発音させる
-    const spokenText =
-      text.replace(/真人/g, "まなと");
+   
+    // 読み上げ用テキストの補正
+    const spokenText = text
+      .replace(/真人/g, "まなと")
+      .replace(/札幌市/g, "さっぽろし")
+      .replace(/札幌/g, "さっぽろ")
+      .replace(/気温/g, "きおん")
+      .replace(/(-?\d+(?:\.\d+)?)\s*℃/g, "$1度");
 
     const ttsStart = Date.now();
 
