@@ -1,223 +1,141 @@
-export default async function handler(req, res) {
-  if (req.method !== "POST" && req.method !== "GET") {
-    return res.status(405).json({
-      ok: false,
-      error: "Method not allowed"
-    });
+
+const { requireAuth } = require("./_auth");
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
+
+module.exports = async function handler(req, res) {
+  if (req.method !== "GET" && req.method !== "POST") {
+    res.setHeader("Allow", "GET, POST");
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+  const user = await requireAuth(req, res);
+  if (!user) return;
 
-  if (!supabaseUrl || !supabaseKey) {
-    return res.status(500).json({
-      ok: false,
-      error: "Supabase environment variables are missing"
-    });
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
+    console.error("Memory API environment variables are missing");
+    return res.status(500).json({ error: "Memory service unavailable" });
   }
 
-  const baseUrl = `${supabaseUrl}/rest/v1/memories`;
+  const baseUrl =
+    `${SUPABASE_URL.replace(/\/+$/, "")}/rest/v1/memories`;
 
   const headers = {
-    apikey: supabaseKey,
-    Authorization: `Bearer ${supabaseKey}`,
+    apikey: SUPABASE_SECRET_KEY,
+    Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
     "Content-Type": "application/json"
   };
 
   try {
-    /* ================================
-       GET: 記憶を取得
-       ================================ */
-
     if (req.method === "GET") {
+      const params = new URLSearchParams({
+        select: "*",
+        user_id: `eq.${user.id}`,
+        is_active: "eq.true",
+        order: "importance.desc,updated_at.desc"
+      });
 
-      const response = await fetch(
-        `${baseUrl}?select=*&is_active=eq.true&order=importance.desc,updated_at.desc`,
+      const response = await fetch(`${baseUrl}?${params}`, { headers });
+
+      if (!response.ok) {
+        console.error("Memory read failed", response.status);
+        return res.status(500).json({ error: "Failed to load memories" });
+      }
+
+      return res.status(200).json(await response.json());
+    }
+
+    const { category, content, importance } = req.body || {};
+
+    if (
+      typeof category !== "string" ||
+      !category.trim() ||
+      typeof content !== "string" ||
+      !content.trim() ||
+      !Number.isInteger(importance) ||
+      importance < 1 ||
+      importance > 5
+    ) {
+      return res.status(400).json({ error: "Invalid memory data" });
+    }
+
+    const normalizedCategory = category.trim();
+    const normalizedContent = content.trim();
+
+    const searchParams = new URLSearchParams({
+      select: "id",
+      user_id: `eq.${user.id}`,
+      category: `eq.${normalizedCategory}`,
+      content: `eq.${normalizedContent}`,
+      is_active: "eq.true",
+      limit: "1"
+    });
+
+    const searchResponse = await fetch(
+      `${baseUrl}?${searchParams}`,
+      { headers }
+    );
+
+    if (!searchResponse.ok) {
+      console.error("Memory duplicate check failed", searchResponse.status);
+      return res.status(500).json({ error: "Failed to save memory" });
+    }
+
+    const existing = await searchResponse.json();
+
+    if (existing.length > 0) {
+      const updateParams = new URLSearchParams({
+        id: `eq.${existing[0].id}`,
+        user_id: `eq.${user.id}`
+      });
+
+      const updateResponse = await fetch(
+        `${baseUrl}?${updateParams}`,
         {
-          method: "GET",
-          headers
+          method: "PATCH",
+          headers: {
+            ...headers,
+            Prefer: "return=representation"
+          },
+          body: JSON.stringify({
+            importance,
+            updated_at: new Date().toISOString()
+          })
         }
       );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        return res.status(response.status).json({
-          ok: false,
-          error: data
-        });
-      }
-
-      return res.status(200).json({
-        ok: true,
-        memories: data
-      });
-    }
-
-
-    /* ================================
-       POST: 記憶を保存
-       ================================ */
-
-    const {
-      category,
-      content,
-      importance
-    } = req.body || {};
-
-    if (!category || !content) {
-      return res.status(400).json({
-        ok: false,
-        error: "category and content are required"
-      });
-    }
-
-    const cleanCategory =
-      String(category).trim();
-
-    const cleanContent =
-      String(content).trim();
-
-    if (!cleanCategory || !cleanContent) {
-      return res.status(400).json({
-        ok: false,
-        error: "category and content cannot be empty"
-      });
-    }
-
-    const cleanImportance =
-      typeof importance === "number"
-        ? Math.max(
-            1,
-            Math.min(5, importance)
-          )
-        : 1;
-
-
-    /* ================================
-       既存記憶を検索
-       ================================ */
-
-    const encodedCategory =
-      encodeURIComponent(cleanCategory);
-
-    const encodedContent =
-      encodeURIComponent(cleanContent);
-
-    const findResponse = await fetch(
-      `${baseUrl}?select=*&category=eq.${encodedCategory}&content=eq.${encodedContent}&is_active=eq.true&limit=1`,
-      {
-        method: "GET",
-        headers
-      }
-    );
-
-    const existingData =
-      await findResponse.json();
-
-    if (!findResponse.ok) {
-      return res.status(findResponse.status).json({
-        ok: false,
-        error: existingData
-      });
-    }
-
-
-    /* ================================
-       既存なら更新
-       ================================ */
-
-    if (
-      Array.isArray(existingData) &&
-      existingData.length > 0
-    ) {
-
-      const existing =
-        existingData[0];
-
-      const updateResponse =
-        await fetch(
-          `${baseUrl}?id=eq.${existing.id}`,
-          {
-            method: "PATCH",
-
-            headers: {
-              ...headers,
-              Prefer: "return=representation"
-            },
-
-            body: JSON.stringify({
-              importance: cleanImportance,
-              updated_at: new Date().toISOString()
-            })
-          }
-        );
-
-      const updateData =
-        await updateResponse.json();
-
       if (!updateResponse.ok) {
-        return res.status(
-          updateResponse.status
-        ).json({
-          ok: false,
-          error: updateData
-        });
+        console.error("Memory update failed", updateResponse.status);
+        return res.status(500).json({ error: "Failed to save memory" });
       }
 
-      return res.status(200).json({
-        ok: true,
-        action: "updated",
-        memory: updateData
-      });
+      return res.status(200).json(await updateResponse.json());
     }
 
-
-    /* ================================
-       新規保存
-       ================================ */
-
-    const insertResponse =
-      await fetch(baseUrl, {
-        method: "POST",
-
-        headers: {
-          ...headers,
-          Prefer: "return=representation"
-        },
-
-        body: JSON.stringify({
-          category: cleanCategory,
-          content: cleanContent,
-          importance: cleanImportance
-        })
-      });
-
-    const insertData =
-      await insertResponse.json();
+    const insertResponse = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        ...headers,
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+        category: normalizedCategory,
+        content: normalizedContent,
+        importance,
+        is_active: true
+      })
+    });
 
     if (!insertResponse.ok) {
-      return res.status(
-        insertResponse.status
-      ).json({
-        ok: false,
-        error: insertData
-      });
+      console.error("Memory insert failed", insertResponse.status);
+      return res.status(500).json({ error: "Failed to save memory" });
     }
 
-    return res.status(200).json({
-      ok: true,
-      action: "created",
-      memory: insertData
-    });
-
+    return res.status(201).json(await insertResponse.json());
   } catch (error) {
-
-    return res.status(500).json({
-      ok: false,
-      error:
-        error.message ||
-        "Unknown error"
-    });
+    console.error("Memory API request failed");
+    return res.status(500).json({ error: "Memory service unavailable" });
   }
-}
+};
