@@ -113,3 +113,8 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - These are initial request-rate limits, not a monthly spend cap or full billing budget. They do not prevent a user from consuming their full per-minute allowance repeatedly across many minutes. Revisit thresholds after real usage/cost review.
 - DEPLOYMENT ORDER MATTERS: the new API paths fail closed until the rate-limit migration is applied. Do not deploy/merge the branch to production before reviewing and applying the SQL migration and coordinating the API usage column migration. The migration has not been applied; no live quota behavior has been tested.
 - Remaining: cleanup/retention for old `api_rate_limits` windows, three-account runtime tests, and verification of actual database grants/RPC execution in the target Supabase project.
+
+
+## Rate-limit implementation review correction (2026-10-18)
+- Source review caught and corrected a URL-normalization regex in `api/_rateLimit.js`; without this correction, a Supabase URL ending in `/` could form an invalid RPC URL. The fix is committed on the review branch.
+- The quota migration now explicitly revokes direct table privileges from `PUBLIC`, `anon`, and `authenticated`, in addition to enabling RLS. This hardening is source-reviewed only; the SQL has not been applied or exercised against Supabase.
