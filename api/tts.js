@@ -1,4 +1,5 @@
 async function logApiUsage({
+  userId,
   provider,
   service,
   success,
@@ -6,6 +7,16 @@ async function logApiUsage({
   durationMs,
   metadata = {}
 }) {
+  const safeMetadata = {};
+  for (const key of ["model", "queryType", "fallback", "failureType", "voice"]) {
+    const value = metadata && metadata[key];
+    if (typeof value === "boolean" && key === "fallback") {
+      safeMetadata[key] = value;
+    } else if (typeof value === "string" && value.length <= 80 && /^[a-zA-Z0-9_.-]+$/.test(value)) {
+      safeMetadata[key] = value;
+    }
+  }
+
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey =
@@ -26,6 +37,7 @@ async function logApiUsage({
           Prefer: "return=minimal"
         },
         body: JSON.stringify({
+          user_id: userId || null,
           provider,
           service,
           success,
@@ -118,6 +130,7 @@ export default async function handler(req, res) {
         Date.now() - ttsStart;
 
       await logApiUsage({
+          userId: user.id,
         provider: "elevenlabs",
         service: "tts",
         success: false,
