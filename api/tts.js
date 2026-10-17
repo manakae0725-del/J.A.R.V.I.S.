@@ -44,12 +44,17 @@ async function logApiUsage({
 }
 
 
+const { requireAuth } = require("./_auth");
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not Allowed"
     });
   }
+
+  const user = await requireAuth(req, res);
+  if (!user) return;
 
   try {
     const { text } = req.body || {};
