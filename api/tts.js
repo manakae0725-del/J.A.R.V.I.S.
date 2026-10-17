@@ -59,29 +59,16 @@ export default async function handler(req, res) {
   try {
     const { text } = req.body || {};
 
-    if (!text) {
-      return res.status(400).json({
-        error: "Text is required."
-      });
+    if (typeof text !== "string" || !text.trim()) {
+      return res.status(400).json({ error: "Invalid text input." });
+    }
+
+    if (text.length > 3000) {
+      return res.status(413).json({ error: "Text input is too long." });
     }
 
     const apiKey =
       process.env.ELEVENLABS_API_KEY;
-
-  const settingsResponse = await fetch(
-    "https://api.elevenlabs.io/v1/voices/XrrS5KddqXY8b3ulN2uu/settings",
-    { headers: { "xi-api-key": apiKey } }
-  );
-
-  if (settingsResponse.ok) {
-    const settings = await settingsResponse.json();
-    console.log("[JARVIS VOICE SETTINGS]", settings);
-  } else {
-    console.error(
-      "[JARVIS VOICE SETTINGS] Failed:",
-      settingsResponse.status
-    );
-  }
 
     if (!apiKey) {
       return res.status(500).json({
@@ -138,7 +125,7 @@ export default async function handler(req, res) {
         statusCode: null,
         durationMs,
         metadata: {
-          model: "eleven_multilingual_v2",
+          model: "eleven_v3",
           voice: "XrrS5KddqXY8b3ulN2uu",
           error:
             error?.message ||
@@ -200,10 +187,9 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    return res.status(500).json({
-      error:
-        error?.message ||
-        "TTS server error."
+    console.error("TTS request failed", {
+      name: error && typeof error.name === "string" ? error.name : "Error"
     });
+    return res.status(502).json({ error: "TTS service unavailable." });
   }
 }
