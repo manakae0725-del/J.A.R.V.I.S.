@@ -23,7 +23,6 @@ module.exports = async function handler(req, res) {
 
   const headers = {
     apikey: SUPABASE_SECRET_KEY,
-    Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
     "Content-Type": "application/json"
   };
 
