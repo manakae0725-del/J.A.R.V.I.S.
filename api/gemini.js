@@ -26,7 +26,7 @@ async function logApiUsage({
       return;
     }
 
-    await fetch(
+    const logResponse = await fetch(
       `${supabaseUrl}/rest/v1/api_usage`,
       {
         method: "POST",
@@ -47,6 +47,9 @@ async function logApiUsage({
         signal: AbortSignal.timeout(3000)
       }
     );
+    if (!logResponse.ok) {
+      console.error("[API USAGE] Logging rejected", { status: logResponse.status });
+    }
   } catch (error) {
     console.error("[API USAGE] Logging failed", {
       name: error && typeof error.name === "string" ? error.name : "Error"
