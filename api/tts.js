@@ -36,10 +36,7 @@ async function logApiUsage({
       }
     );
   } catch (error) {
-    console.error(
-      "[API USAGE] Log failed:",
-      error
-    );
+    console.error("[API USAGE] Logging failed", { name: error && typeof error.name === "string" ? error.name : "Error" });
   }
 }
 
