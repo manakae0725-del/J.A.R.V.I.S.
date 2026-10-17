@@ -125,7 +125,7 @@ export default async function handler(req, res) {
         statusCode: null,
         durationMs,
         metadata: {
-          model: "eleven_v3",
+          model: "eleven_multilingual_v2",
           voice: "XrrS5KddqXY8b3ulN2uu",
           error:
             error?.message ||
