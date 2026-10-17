@@ -91,10 +91,6 @@ module.exports = async function handler(req, res) {
       ? userMarker[1].trim()
       : rawText;
 
-    console.log(
-      "[DEBUG] User text:",
-      userText
-    );
 
     // ==========================================
     // Weather Detection
@@ -183,10 +179,6 @@ module.exports = async function handler(req, res) {
 
     let searchQuery = userText;
 
-    console.log(
-      "[DEBUG] Clean search query:",
-      searchQuery
-    );
 
     if (isWeatherQuestion) {
       let location = "札幌市";
@@ -237,10 +229,6 @@ module.exports = async function handler(req, res) {
 
       searchQuery = `${location} 天気 ${day}`;
 
-      console.log(
-        "[DEBUG] Weather search query generated:",
-        searchQuery
-      );
     }
 
     // ==========================================
@@ -248,10 +236,6 @@ module.exports = async function handler(req, res) {
     // ==========================================
 
     if (isNewsQuestion && !isWeatherQuestion) {
-      console.log(
-        "[DEBUG] News search query:",
-        searchQuery
-      );
     }
 
     // ==========================================
@@ -310,7 +294,7 @@ module.exports = async function handler(req, res) {
           statusCode: response.status,
           durationMs: serperDuration,
           metadata: {
-            query: searchQuery
+            queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search"
           }
         });
 
@@ -523,7 +507,7 @@ Snippet: ${snippet}
           statusCode: null,
           durationMs: serperDuration,
           metadata: {
-            query: searchQuery,
+            queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
             error:
               error?.message ||
               "Unknown error"
@@ -567,7 +551,7 @@ if (
               Authorization: `Bearer ${tavilyKey}`,
             },
             body: JSON.stringify({
-              query: searchQuery,
+              queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
               topic: "general",
               search_depth:
                 isWeatherQuestion || isNewsQuestion
@@ -598,7 +582,7 @@ if (
           statusCode: response.status,
           durationMs: tavilyDuration,
           metadata: {
-            query: searchQuery,
+            queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
             fallback: true
           }
         });
@@ -675,7 +659,7 @@ Content: ${result.content || ""}
           statusCode: null,
           durationMs: tavilyDuration,
           metadata: {
-            query: searchQuery,
+            queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
             fallback: true,
             error:
               error?.message ||
