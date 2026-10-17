@@ -43,7 +43,7 @@ async function logApiUsage({
           success,
           status_code: statusCode,
           duration_ms: durationMs,
-          metadata
+          metadata: safeMetadata
         })
       }
     );
