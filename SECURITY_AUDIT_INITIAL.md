@@ -5,7 +5,7 @@ Scope: Read-only review of the `main` branch source. No production requests, dat
 
 ## Initial changes applied on the audit branch (not yet runtime-tested)
 - `api/token.js`: now requires a valid Supabase session, accepts POST only, disables caching, times out the upstream request, validates the response, and returns generic errors. A source scan of `public/index.html` did not find a caller for `/api/token`; confirm whether this endpoint is obsolete before relying on it.
-- `api/gemini.js`: removed direct logs of the user's message and raw search query; API usage metadata records a query category rather than query text. Added bounds/type validation for text, interaction ID, and memory context.
+- `api/gemini.js`: removed direct logs of the user's message and raw search query; API usage metadata records a query category rather than query text. Added bounds/type validation for text, interaction ID, and memory context. Sanitized Gemini upstream/parse errors so raw provider payloads and model output are not returned to the browser. Confirmed the Tavily request still sends the required `query` field.
 - `api/tts.js`: added text type/empty/length checks (3,000 characters), removed the voice-settings fetch/log, corrected the usage-log model label, and sanitized unexpected error responses.
 
 These changes are committed only to `security-audit-baseline-2026-10-17`. No production deployment was triggered by these branch commits. Runtime/build tests have not yet been run.
