@@ -81,7 +81,7 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - The Policies page shows RLS enabled on both tables and no policies created for either table. This means ordinary Data API access is denied by RLS unless a policy is added, while server requests using the Supabase secret/service-role credential bypass RLS. Keep the secret key server-only and maintain explicit owner filters in server code.
 - The Auth settings shown have email and Google providers enabled; new signups are enabled and email confirmation is enabled. Only one user is visible in the supplied user-list screenshot. This is a snapshot, not proof that no other user exists in another page/environment.
 - The current `api/memory.js` GET, duplicate lookup, PATCH, and INSERT all constrain memory records by the authenticated user's ID (the PATCH is additionally constrained by the looked-up record ID). This is useful application-level isolation but still needs live cross-account tests.
-- `api/gemini.js` and `api/tts.js` write usage records with provider/service/success/status/duration/metadata but do not include an authenticated `user_id`. Consequently `api_usage` cannot yet reliably support per-user quotas or usage reporting. Do not add a policy or schema migration based only on the column count; inspect the actual columns and intended retention first.
+- At the time of this dashboard review, the usage logger did not include authenticated `user_id`; subsequent branch changes now add it to each Gemini/TTS usage-log call. The database migration is still pending, so per-user usage reporting is not active in the deployed schema.
 - Before enabling additional family accounts, decide whether public sign-up should remain enabled. If the intended system is limited to three family members, a safer design is controlled account provisioning and no open sign-ups, after confirming the sign-in/onboarding flow will still work.
 
 
@@ -89,7 +89,7 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - Updated `api/gemini.js` and `api/tts.js` to attach the authenticated Supabase user ID to every usage-log call and to persist only an allowlist of low-risk metadata fields. Raw search queries and user text are no longer included in usage metadata by these helpers.
 - Added `supabase/migrations/202610180001_api_usage_user_id.sql`. It adds nullable `user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL` and an index on `(user_id, created_at DESC)`. It preserves historical rows with NULL user IDs.
 - IMPORTANT: this migration has only been committed to the review branch; it has NOT been applied to Supabase. The updated API usage logger will fail to insert rows until the migration is applied, because the current table does not yet have the `user_id` column. Apply only after reviewing the SQL and when ready to coordinate deployment.
-- The usage logger is best-effort and currently does not check the HTTP response status from Supabase; verify failure behavior and logging after the schema migration.
+- The usage logger remains best-effort, but branch code now checks Supabase HTTP response status and logs a sanitized rejection status; both Gemini and TTS usage-log requests have a 3-second timeout. This has been source-verified only, not runtime-tested.
 - No production merge, Supabase schema change, or end-to-end test was performed as part of this update.
 
 
@@ -97,3 +97,10 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - Owner approved assigning the six legacy memory rows with NULL `user_id` to their own account.
 - Prepared `supabase/migrations/202610180002_assign_legacy_memories.sql` to assign rows 2–7 to the account UUID visible in the supplied dashboard screenshot, and correct the row 7 full-name typo to the account owner's known spelling.
 - This is a review-branch migration only. It has NOT been applied to Supabase. Verify row IDs/content and take a backup before applying; the SQL includes conditions on NULL ownership and the old misspelled content to reduce accidental changes.
+
+
+## Follow-up verification (2026-10-18, latest branch review)
+- Source re-check confirmed the usage-log helper in both `api/gemini.js` and `api/tts.js` checks `logResponse.ok`, emits only the HTTP status on rejection, and applies a 3-second timeout.
+- Source re-check confirmed the shared auth helper rejects missing/invalid bearer sessions and applies an 8-second timeout to Supabase session verification. `api/memory.js` restricts reads, duplicate checks, updates, and inserts by the authenticated user ID.
+- GitHub repository inspection did not find a root `package.json` or `.github/workflows` directory on this branch, so no repository-defined automated build/test workflow was available through those paths. Vercel deployment READY status is not a substitute for runtime tests.
+- PR #2 remains open as a draft and has not been merged. Do not merge/deploy until the `api_usage.user_id` migration is coordinated with the code, the memory migration is reviewed against actual row contents, and runtime checks pass.
