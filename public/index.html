@@ -690,9 +690,21 @@ opacity: 1;
     font-size: 15px;
 }
 
+
+#authScreen{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at center,rgba(0,53,104,.28),transparent 55%),#02050a;color:#bfeaff;font-family:'Courier New',Courier,monospace}
+#authScreen[hidden]{display:none!important}.auth-card{width:min(100%,420px);padding:36px 28px 28px;text-align:center;border:1px solid rgba(0,153,255,.55);background:linear-gradient(145deg,rgba(4,20,37,.96),rgba(0,4,11,.98));box-shadow:0 0 28px rgba(0,119,255,.18),inset 0 0 24px rgba(0,100,255,.06)}
+.auth-kicker{font-size:10px;letter-spacing:4px;color:#4aaeff}.auth-title{margin-top:18px;font-size:clamp(25px,7vw,34px);letter-spacing:5px;text-shadow:0 0 18px rgba(0,136,255,.7)}.auth-rule{width:64px;height:1px;margin:20px auto;background:#168fff;box-shadow:0 0 10px #168fff}.auth-copy{color:#9abbd4;font-size:12px;line-height:1.9;letter-spacing:.6px}
+#googleLoginButton{width:100%;min-height:50px;margin-top:28px;padding:12px 16px;border:1px solid #168fff;border-radius:2px;background:rgba(0,89,170,.16);color:#e4f5ff;font:inherit;font-size:13px;letter-spacing:1px;cursor:pointer}
+#googleLoginButton:disabled{opacity:.55;cursor:wait}#authMessage{min-height:20px;margin-top:14px;color:#ff9b9b;font-size:11px;line-height:1.6}.auth-foot{margin-top:22px;color:#42627d;font-size:9px;letter-spacing:2px}
+#jarvisSignOut{position:fixed;right:14px;top:14px;z-index:99999;padding:7px 10px;border:1px solid rgba(0,153,255,.45);background:rgba(0,5,14,.82);color:#8bcfff;font:10px 'Courier New',monospace;letter-spacing:1px;cursor:pointer}#jarvisSignOut[hidden]{display:none!important}
+@media(max-width:480px){.auth-card{padding:30px 22px 24px}.auth-title{letter-spacing:3px}}
+
 </style>
 </head>
 <body>
+<div id="authScreen"><div class="auth-card"><div class="auth-kicker">SECURE ACCESS / AUTHENTICATION</div><div class="auth-title">J.A.R.V.I.S.</div><div class="auth-rule"></div><p class="auth-copy">本人確認が必要です。<br>Googleアカウントでサインインしてください。</p><button id="googleLoginButton" type="button">SIGN IN WITH GOOGLE</button><p id="authMessage" role="status" aria-live="polite"></p><div class="auth-foot">AUTHORIZED ACCESS ONLY</div></div></div>
+<button id="jarvisSignOut" type="button" hidden>サインアウト</button>
+
 <div class="jarvis-screen">
 <canvas id="bgDustCanvas"></canvas>
 
@@ -1023,6 +1035,30 @@ POWER
 </div>
 </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+ const screen=document.getElementById("authScreen"),button=document.getElementById("googleLoginButton"),message=document.getElementById("authMessage"),signOut=document.getElementById("jarvisSignOut");
+ let client=null,resolveReady;
+ window.jarvisAuthReady=new Promise(resolve=>{resolveReady=resolve;});
+ window.jarvisGetAccessToken=async function(){await window.jarvisAuthReady;if(!client)return null;const result=await client.auth.getSession();return result.data.session?result.data.session.access_token:null;};
+ function show(signedIn){screen.hidden=signedIn;document.querySelector(".jarvis-screen").style.visibility=signedIn?"visible":"hidden";signOut.hidden=!signedIn;if(signedIn)message.textContent="";}
+ async function init(){try{
+  if(!window.supabase||!window.supabase.createClient)throw new Error("認証ライブラリを読み込めません。再読み込みしてください。");
+  const response=await fetch("/api/auth-config",{cache:"no-store"}),config=await response.json();
+  if(!response.ok||!config.url||!config.anonKey)throw new Error("認証設定を取得できません。Supabaseの環境変数を確認してください。");
+  client=window.supabase.createClient(config.url,config.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  window.jarvisSupabase=client;
+  const result=await client.auth.getSession();if(result.error)throw result.error;
+  show(Boolean(result.data.session));client.auth.onAuthStateChange((_event,session)=>show(Boolean(session)));resolveReady();
+ }catch(error){message.textContent=error?.message||"認証の初期化に失敗しました。";button.disabled=true;resolveReady();}}
+ button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;message.textContent="Google認証へ接続しています…";try{const result=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(result.error)throw result.error;}catch(error){message.textContent=error?.message||"サインインを開始できませんでした。";button.disabled=false;}});
+ signOut.addEventListener("click",async()=>{if(!client)return;signOut.disabled=true;const result=await client.auth.signOut();if(result.error)message.textContent="サインアウトに失敗しました。";signOut.disabled=false;});
+ init();
+})();
+</script>
+
 <script>
 var canvas=document.getElementById("bgDustCanvas");
 var ctx=canvas.getContext("2d");
@@ -1360,10 +1396,13 @@ function getErrorMessage(error) {
 
 async function loadMemories() {
     try {
+        const accessToken = await window.jarvisGetAccessToken();
+        if (!accessToken) { memories = []; return []; }
         const response = await fetch(
             "/api/memory",
             {
-                method: "GET"
+                method: "GET",
+                headers: { Authorization: "Bearer " + accessToken }
             }
         );
 
@@ -1488,6 +1527,9 @@ async function saveMemory(memory) {
 
     try {
 
+        const accessToken = await window.jarvisGetAccessToken();
+        if (!accessToken) return false;
+
         const response =
             await fetch(
                 "/api/memory",
@@ -1496,7 +1538,8 @@ async function saveMemory(memory) {
 
                     headers: {
                         "Content-Type":
-                            "application/json"
+                            "application/json",
+                        Authorization: "Bearer " + accessToken
                     },
 
                     body:
@@ -1938,6 +1981,9 @@ async function speakWithGemini(text) {
         "ACTIVE"
     );
 
+    const accessToken = await window.jarvisGetAccessToken();
+    if (!accessToken) throw new Error("サインインが必要です.");
+
     const response =
             await fetch(
                 "/api/tts",
@@ -1946,7 +1992,8 @@ async function speakWithGemini(text) {
 
                     headers: {
                         "Content-Type":
-                            "application/json"
+                            "application/json",
+                        Authorization: "Bearer " + accessToken
                     },
 
                     body: JSON.stringify({
@@ -2142,6 +2189,9 @@ const controller =
             240000
         );
 
+    const accessToken = await window.jarvisGetAccessToken();
+    if (!accessToken) throw new Error("サインインが必要です.");
+
     const response =
         await fetch(
             "/api/gemini",
@@ -2150,7 +2200,8 @@ const controller =
 
                 headers: {
                     "Content-Type":
-                        "application/json"
+                        "application/json",
+                    Authorization: "Bearer " + accessToken
                 },
 
                 body: JSON.stringify({

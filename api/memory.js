@@ -23,7 +23,6 @@ module.exports = async function handler(req, res) {
 
   const headers = {
     apikey: SUPABASE_SECRET_KEY,
-    Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
     "Content-Type": "application/json"
   };
 
@@ -43,7 +42,7 @@ module.exports = async function handler(req, res) {
         return res.status(500).json({ error: "Failed to load memories" });
       }
 
-      return res.status(200).json(await response.json());
+      return res.status(200).json({ ok: true, memories: await response.json() });
     }
 
     const { category, content, importance } = req.body || {};
@@ -110,7 +109,7 @@ module.exports = async function handler(req, res) {
         return res.status(500).json({ error: "Failed to save memory" });
       }
 
-      return res.status(200).json(await updateResponse.json());
+      return res.status(200).json({ ok: true, memories: await updateResponse.json() });
     }
 
     const insertResponse = await fetch(baseUrl, {
@@ -133,7 +132,7 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: "Failed to save memory" });
     }
 
-    return res.status(201).json(await insertResponse.json());
+    return res.status(201).json({ ok: true, memories: await insertResponse.json() });
   } catch (error) {
     console.error("Memory API request failed");
     return res.status(500).json({ error: "Memory service unavailable" });

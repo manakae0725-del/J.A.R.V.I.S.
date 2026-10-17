@@ -21,7 +21,6 @@ async function logApiUsage({
         method: "POST",
         headers: {
           apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
           "Content-Type": "application/json",
           Prefer: "return=minimal"
         },
@@ -44,12 +43,17 @@ async function logApiUsage({
 }
 
 
+const { requireAuth } = require("./_auth");
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method Not Allowed",
     });
   }
+
+  const user = await requireAuth(req, res);
+  if (!user) return;
 
   try {
  const {
