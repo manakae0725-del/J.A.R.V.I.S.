@@ -496,10 +496,7 @@ Snippet: ${snippet}
             sources.length
           );
         } else {
-          console.error(
-            "[DEBUG] Serper HTTP error:",
-            response.status
-          );
+          console.error("[SEARCH] Serper returned a non-success status", { status: response.status });
         }
       } catch (error) {
         const serperDuration =
@@ -515,9 +512,7 @@ Snippet: ${snippet}
           durationMs: serperDuration,
           metadata: {
             queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
-            error:
-              error?.message ||
-              "Unknown error"
+            failureType: "request_failed"
           }
         });
 
@@ -650,10 +645,7 @@ Content: ${result.content || ""}
             sources.length
           );
         } else {
-          console.error(
-            "[DEBUG] Tavily HTTP error:",
-            response.status
-          );
+          console.error("[SEARCH] Tavily returned a non-success status", { status: response.status });
         }
       } catch (error) {
         const tavilyDuration =
