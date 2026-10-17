@@ -33,7 +33,8 @@ async function requireAuth(req, res) {
         headers: {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${match[1]}`
-        }
+        },
+        signal: AbortSignal.timeout(8000)
       }
     );
 
