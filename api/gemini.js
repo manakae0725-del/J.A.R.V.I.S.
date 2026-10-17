@@ -1,4 +1,5 @@
 async function logApiUsage({
+  userId,
   provider,
   service,
   success,
@@ -6,6 +7,16 @@ async function logApiUsage({
   durationMs,
   metadata = {}
 }) {
+  const safeMetadata = {};
+  for (const key of ["model", "queryType", "fallback", "failureType", "voice"]) {
+    const value = metadata && metadata[key];
+    if (typeof value === "boolean" && key === "fallback") {
+      safeMetadata[key] = value;
+    } else if (typeof value === "string" && value.length <= 80 && /^[a-zA-Z0-9_.-]+$/.test(value)) {
+      safeMetadata[key] = value;
+    }
+  }
+
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey =
@@ -25,12 +36,13 @@ async function logApiUsage({
           Prefer: "return=minimal"
         },
         body: JSON.stringify({
+          user_id: userId || null,
           provider,
           service,
           success,
           status_code: statusCode,
           duration_ms: durationMs,
-          metadata
+          metadata: safeMetadata
         }),
         signal: AbortSignal.timeout(3000)
       }
@@ -293,6 +305,7 @@ module.exports = async function handler(req, res) {
         );
 
         await logApiUsage({
+          userId: user.id,
           provider: "serper",
           service: isNewsQuestion
             ? "news"
