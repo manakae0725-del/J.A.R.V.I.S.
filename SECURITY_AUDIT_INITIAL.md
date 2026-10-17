@@ -118,3 +118,8 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 ## Rate-limit implementation review correction (2026-10-18)
 - Source review caught and corrected a URL-normalization regex in `api/_rateLimit.js`; without this correction, a Supabase URL ending in `/` could form an invalid RPC URL. The fix is committed on the review branch.
 - The quota migration now explicitly revokes direct table privileges from `PUBLIC`, `anon`, and `authenticated`, in addition to enabling RLS. This hardening is source-reviewed only; the SQL has not been applied or exercised against Supabase.
+
+
+## Pre-deployment checklist
+- Added `SECURITY_PREDEPLOY_CHECKLIST.md` with the required migration order, backup/row-verification gates, Preview test matrix, and rollback conditions.
+- This checklist is not evidence that tests passed. Supabase migrations remain unapplied and production remains unchanged.
