@@ -132,6 +132,7 @@ module.exports = async function handler(req, res) {
     );
 
 
+
     // ==========================================
     // News Detection
     // ==========================================
@@ -150,6 +151,7 @@ module.exports = async function handler(req, res) {
     const isNewsQuestion = newsKeywords.some(
       (keyword) => userText.includes(keyword)
     );
+
 
 
     // ==========================================
@@ -175,6 +177,7 @@ module.exports = async function handler(req, res) {
       searchKeywords.some(
         (keyword) => userText.includes(keyword)
       );
+
 
 
     // ==========================================
@@ -247,6 +250,19 @@ module.exports = async function handler(req, res) {
     // ==========================================
 
     if (serperKey && isSearchQuestion) {
+      console.log("[DEBUG] Serper: START");
+
+      const serperStart = Date.now();
+
+      try {
+        const serperEndpoint = isNewsQuestion
+          ? "https://google.serper.dev/news"
+          : "https://google.serper.dev/search";
+
+        console.log(
+          "[DEBUG] Serper endpoint:",
+          serperEndpoint
+        );
 
         const response = await fetch(
           serperEndpoint,
@@ -271,6 +287,10 @@ module.exports = async function handler(req, res) {
         const serperDuration =
           Date.now() - serperStart;
 
+        console.log(
+          "[DEBUG] Serper HTTP status:",
+          response.status
+        );
 
         await logApiUsage({
           provider: "serper",
@@ -296,21 +316,68 @@ module.exports = async function handler(req, res) {
             ? data.news.length
             : 0;
 
+          console.log(
+            "[DEBUG] Serper organic count:",
+            organicCount
+          );
 
+          console.log(
+            "[DEBUG] Serper news count:",
+            newsCount
+          );
 
+          console.log(
+            "[DEBUG] Serper answerBox:",
+            !!data.answerBox
+          );
 
+          console.log(
+            "[DEBUG] Serper knowledgeGraph:",
+            !!data.knowledgeGraph
+          );
 
+          console.log(
+            "[DEBUG] Serper weather:",
+            !!data.weather
+          );
 
           if (
             isNewsQuestion &&
             Array.isArray(data.news)
           ) {
+            console.log(
+              "[DEBUG] Serper first 3 news results:",
+              data.news.slice(0, 3).map((result) => ({
+                title: result?.title || "",
+                url:
+                  result?.link ||
+                  result?.url ||
+                  "",
+                snippet:
+                  result?.snippet ||
+                  "",
+                source:
+                  result?.source ||
+                  "",
+                date:
+                  result?.date ||
+                  "",
+              }))
+            );
           }
 
           if (
             !isNewsQuestion &&
             Array.isArray(data.organic)
           ) {
+            console.log(
+              "[DEBUG] Serper first 3 results:",
+              data.organic.slice(0, 3).map((result) => ({
+                title: result?.title || "",
+                url: result?.link || "",
+                snippet: result?.snippet || "",
+              }))
+            );
           }
 
           // ==========================================
@@ -419,7 +486,15 @@ Snippet: ${snippet}
             }
           }
 
+          console.log(
+            "[DEBUG] SearchContext length after Serper:",
+            searchContext.length
+          );
 
+          console.log(
+            "[DEBUG] Sources count after Serper:",
+            sources.length
+          );
         } else {
           console.error(
             "[DEBUG] Serper HTTP error:",
@@ -446,9 +521,15 @@ Snippet: ${snippet}
           }
         });
 
-        console.error("[SEARCH] Serper request failed");
+        console.error(
+          "[DEBUG] Serper search error:",
+          error
+        );
       }
     } else {
+      console.log(
+        "[DEBUG] Serper: API key not configured"
+      );
     }
 
     // ==========================================
@@ -461,6 +542,9 @@ if (
   isSearchQuestion
 ) {
 
+      console.log(
+        "[DEBUG] Tavily fallback: START"
+      );
 
       const tavilyStart = Date.now();
 
@@ -493,6 +577,10 @@ if (
         const tavilyDuration =
           Date.now() - tavilyStart;
 
+        console.log(
+          "[DEBUG] Tavily HTTP status:",
+          response.status
+        );
 
         await logApiUsage({
           provider: "tavily",
@@ -514,7 +602,15 @@ if (
               ? data.results.length
               : 0;
 
+          console.log(
+            "[DEBUG] Tavily result count:",
+            tavilyResultCount
+          );
 
+          console.log(
+            "[DEBUG] Tavily answer:",
+            !!data.answer
+          );
 
           if (data.answer) {
             searchContext += `
@@ -544,7 +640,15 @@ Content: ${result.content || ""}
             }
           }
 
+          console.log(
+            "[DEBUG] SearchContext length after Tavily:",
+            searchContext.length
+          );
 
+          console.log(
+            "[DEBUG] Sources count after Tavily:",
+            sources.length
+          );
         } else {
           console.error(
             "[DEBUG] Tavily HTTP error:",
@@ -570,16 +674,30 @@ Content: ${result.content || ""}
           }
         });
 
-        console.error("[SEARCH] Tavily request failed");
+        console.error(
+          "[DEBUG] Tavily search error:",
+          error
+        );
       }
     } else if (!searchContext) {
+      console.log(
+        "[DEBUG] Tavily fallback: NOT USED"
+      );
     }
 
     // ==========================================
     // Final Search Debug
     // ==========================================
 
+    console.log(
+      "[DEBUG] Final searchContext length:",
+      searchContext.length
+    );
 
+    console.log(
+      "[DEBUG] Final sources count:",
+      sources.length
+    );
 
     // ==========================================
     // Gemini Input
@@ -897,7 +1015,14 @@ WEATHER RESPONSE RULES
     // Gemini Debug
     // ==========================================
 
+    console.log(
+      "[DEBUG] Gemini input searchContext length:",
+      searchContext.length
+    );
 
+    console.log(
+      "[DEBUG] Gemini request: START"
+    );
 
     // ==========================================
     // Gemini Interactions API
@@ -975,6 +1100,7 @@ WEATHER RESPONSE RULES
     });
 
     const data = await response.json();
+
 
 
     if (!response.ok) {
