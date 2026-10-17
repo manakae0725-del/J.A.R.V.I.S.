@@ -91,3 +91,9 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - IMPORTANT: this migration has only been committed to the review branch; it has NOT been applied to Supabase. The updated API usage logger will fail to insert rows until the migration is applied, because the current table does not yet have the `user_id` column. Apply only after reviewing the SQL and when ready to coordinate deployment.
 - The usage logger is best-effort and currently does not check the HTTP response status from Supabase; verify failure behavior and logging after the schema migration.
 - No production merge, Supabase schema change, or end-to-end test was performed as part of this update.
+
+
+## Legacy memory ownership decision (2026-10-18)
+- Owner approved assigning the six legacy memory rows with NULL `user_id` to their own account.
+- Prepared `supabase/migrations/202610180002_assign_legacy_memories.sql` to assign rows 2–7 to the account UUID visible in the supplied dashboard screenshot, and correct the row 7 full-name typo to the account owner's known spelling.
+- This is a review-branch migration only. It has NOT been applied to Supabase. Verify row IDs/content and take a backup before applying; the SQL includes conditions on NULL ownership and the old misspelled content to reduce accidental changes.
