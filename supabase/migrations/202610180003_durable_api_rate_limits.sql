@@ -15,7 +15,6 @@ CREATE INDEX IF NOT EXISTS api_rate_limits_window_start_idx
 
 ALTER TABLE public.api_rate_limits ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.api_rate_limits FROM anon, authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.api_rate_limits TO service_role;
 
 CREATE OR REPLACE FUNCTION public.consume_api_quota(
   p_user_id uuid,
@@ -32,6 +31,7 @@ DECLARE
   v_count integer;
 BEGIN
   IF p_user_id IS NULL
+     OR p_service IS NULL
      OR p_service NOT IN ('gemini', 'search', 'tts', 'token')
      OR p_limit IS NULL
      OR p_limit < 1
@@ -58,3 +58,8 @@ $$;
 
 REVOKE ALL ON FUNCTION public.consume_api_quota(uuid, text, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.consume_api_quota(uuid, text, integer) TO service_role;
+
+-- Retention note: old minute windows are not needed for quota enforcement.
+-- After validating the project has no scheduled maintenance job, configure a
+-- reviewed scheduled DELETE for rows older than 2 days, or run manually:
+-- DELETE FROM public.api_rate_limits WHERE window_start < now() - interval '2 days';
