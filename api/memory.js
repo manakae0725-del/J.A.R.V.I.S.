@@ -50,8 +50,10 @@ module.exports = async function handler(req, res) {
     if (
       typeof category !== "string" ||
       !category.trim() ||
+      category.trim().length > 100 ||
       typeof content !== "string" ||
       !content.trim() ||
+      content.length > 5000 ||
       !Number.isInteger(importance) ||
       importance < 1 ||
       importance > 5
