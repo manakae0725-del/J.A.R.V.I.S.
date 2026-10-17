@@ -8,35 +8,36 @@ Scope: Read-only review of the `main` branch source. No production requests, dat
 - `api/gemini.js`: added input bounds, removed direct logs of raw search results and sanitized provider exceptions, added 10-second search timeouts and a 3-second usage-log timeout, and stopped returning invalid model output to the browser. Confirmed the Tavily request still sends the required `query` field.
 - `api/tts.js`: added text type/empty/length checks (3,000 characters), a 20-second upstream timeout, removed the voice-settings fetch/log, corrected usage-log metadata, and sanitized unexpected error responses.
 - `api/_auth.js`: added an 8-second timeout to Supabase session verification.
-- `api/memory.js`: added 10-second timeouts to database requests; reads/writes remain filtered by the authenticated user's ID.
+- `api/gemini.js`, `api/tts.js`, and `api/memory.js`: set `Cache-Control: no-store` for authenticated responses.
+- `api/memory.js`: added 10-second timeouts to database requests, set `Cache-Control: no-store`, and kept reads/writes filtered by the authenticated user's ID.
 - `lib/searchManager.js`: added 10-second timeouts and removed raw exception objects from search failure logs. This helper does not appear to be imported by the current UI/API path, but is hardened for future use.
 
 These changes are committed only to `security-audit-baseline-2026-10-17`. No production deployment was triggered by these branch commits. Runtime/build tests have not yet been run.
 
-## Confirmed from source
+## Findings from the original `main` baseline (before branch fixes)
 
-### Critical — `api/token.js` has no application authentication check
+### Critical — `api/token.js` had no application authentication check (branch fix applied; runtime test pending)
 - The endpoint accepts GET and requests a Gemini ephemeral auth token using the server-side `GEMINI_API_KEY`.
 - There is no `requireAuth` call, per-user authorization, input validation, or rate limiting in this handler.
 - Risk: an unauthenticated caller may trigger token creation and consume quota, subject to upstream API behavior and deployment controls.
 - Recommended fix: require a valid Supabase session; use POST; add strict rate limiting and generic error responses; set `Cache-Control: no-store`; validate the upstream response before returning only the intended ephemeral token. Confirm the browser actually uses this endpoint before changing its contract.
 
-### High — user text is written to server logs
+### High — user text was written to server logs (raw-text logs removed on branch; runtime test pending)
 - `api/gemini.js` logs extracted user text and search queries.
 - These can contain personal or confidential conversation content.
 - Recommended fix: remove raw user text/query logging; keep only safe operational metadata such as request ID, duration, status, provider, and result counts.
 
-### High — missing input bounds / rate limits in expensive API routes
+### High — expensive API routes lacked input bounds / rate limits (input bounds added; durable rate limits remain outstanding)
 - `api/gemini.js` checks whether text is present but the inspected handler does not apply a maximum input length or per-user request quota before search/model calls.
 - `api/tts.js` checks whether text is present but the inspected handler does not apply a maximum text length or per-user request quota before calling ElevenLabs.
 - Recommended fix: enforce type and byte/character limits, reject empty/oversized values, and add per-user rate/usage limits before paid upstream requests.
 
-### Medium — upstream error details may be exposed
+### Medium — upstream error details could be exposed (generic error responses added to token/TTS/Gemini paths; runtime test pending)
 - `api/token.js` forwards upstream error JSON and exposes `error.message` on caught exceptions.
 - `api/tts.js` forwards provider-derived error messages and exception messages.
 - Recommended fix: return stable, generic client-facing error messages; log sanitized error codes/status server-side.
 
-### Medium — TTS voice settings are logged
+### Medium — TTS voice settings were logged (diagnostic fetch/log removed on branch)
 - `api/tts.js` logs the voice settings response. This is not obviously personal data, but is unnecessary operational detail.
 - Recommended fix: remove the settings fetch/log unless it is an intentional diagnostic operation; never run it before checking that the API key is configured.
 
@@ -63,6 +64,6 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 5. Run build/syntax checks and authenticated/unauthenticated, cross-account, oversized-input, timeout, and provider-failure tests on Preview. Promote only after the tests pass.
 
 ## Verification status
-- No automated build/test run or live security test has been completed by this audit.
+- No automated build/test run or live security test has been completed by this audit. Current Vercel Preview builds are still running for the latest commits; previous READY states are not functional test results.
 - Vercel Preview deployments previously reported READY, which confirms deployment completion only; it does not establish runtime correctness.
 - This branch has not been merged to `main`; production has not been intentionally changed by these commits.
