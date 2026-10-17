@@ -9,6 +9,7 @@ Scope: Read-only review of the `main` branch source. No production requests, dat
 - `api/tts.js`: added text type/empty/length checks (3,000 characters), a 20-second upstream timeout, removed the voice-settings fetch/log, corrected usage-log metadata, and sanitized unexpected error responses.
 - `api/_auth.js`: added an 8-second timeout to Supabase session verification.
 - `api/memory.js`: added 10-second timeouts to database requests; reads/writes remain filtered by the authenticated user's ID.
+- `lib/searchManager.js`: added 10-second timeouts and removed raw exception objects from search failure logs. This helper does not appear to be imported by the current UI/API path, but is hardened for future use.
 
 These changes are committed only to `security-audit-baseline-2026-10-17`. No production deployment was triggered by these branch commits. Runtime/build tests have not yet been run.
 
@@ -49,6 +50,7 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - Supabase RLS policies and grants on `memories` and `api_usage` have not been inspected. The memory route uses `SUPABASE_SECRET_KEY`, which bypasses RLS; application-level `user_id` filters are therefore security-critical.
 - The `api_usage` writes have no visible user ID in the inspected code and may fail if the deployed table requires additional columns or policies.
 - Vercel production/preview environment variable names and scopes (values must not be exposed).
+- `lib/searchManager.js` does not appear to be imported by the current UI/API path; its future intended use remains unclear.
 - Whether each endpoint is protected by deployment-level controls.
 - Live behavior for three accounts, cross-account data isolation, logout/session expiry, input limits, API failures, and billing/rate controls.
 - Full source/build configuration and automated test results.
