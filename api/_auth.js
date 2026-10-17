@@ -1,4 +1,3 @@
-
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ||
@@ -9,12 +8,19 @@ async function requireAuth(req, res) {
   const match = authorization.match(/^Bearer\s+(\S+)$/i);
 
   if (!match) {
+    console.warn("Auth check failed: bearer token missing", {
+      path: req.url || "",
+      method: req.method || ""
+    });
     res.status(401).json({ error: "Authentication required" });
     return null;
   }
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.error("Supabase auth environment variables are missing");
+    console.error("Supabase auth environment variables are missing", {
+      hasSupabaseUrl: Boolean(SUPABASE_URL),
+      hasSupabaseAnonOrPublishableKey: Boolean(SUPABASE_ANON_KEY)
+    });
     res.status(500).json({ error: "Authentication unavailable" });
     return null;
   }
@@ -32,6 +38,20 @@ async function requireAuth(req, res) {
     );
 
     if (!response.ok) {
+      let upstreamError = {};
+      try {
+        const body = await response.json();
+        upstreamError = {
+          code: typeof body.code === "string" ? body.code : undefined,
+          error: typeof body.error === "string" ? body.error : undefined,
+          message: typeof body.message === "string" ? body.message : undefined
+        };
+      } catch (_) {}
+
+      console.warn("Supabase session validation rejected", {
+        status: response.status,
+        ...upstreamError
+      });
       res.status(401).json({ error: "Invalid or expired session" });
       return null;
     }
@@ -39,13 +59,17 @@ async function requireAuth(req, res) {
     const user = await response.json();
 
     if (!user || typeof user.id !== "string") {
+      console.warn("Supabase session validation returned no user id");
       res.status(401).json({ error: "Invalid session" });
       return null;
     }
 
     return user;
   } catch (error) {
-    console.error("Supabase auth verification failed");
+    console.error("Supabase auth verification failed", {
+      name: error && typeof error.name === "string" ? error.name : "Error",
+      message: error && typeof error.message === "string" ? error.message : "Unknown error"
+    });
     res.status(503).json({ error: "Authentication service unavailable" });
     return null;
   }
