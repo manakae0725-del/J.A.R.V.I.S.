@@ -67,3 +67,10 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - No automated build/test run or live security test has been completed by this audit. Current Vercel Preview builds are still running for the latest commits; previous READY states are not functional test results.
 - Vercel Preview deployments previously reported READY, which confirms deployment completion only; it does not establish runtime correctness.
 - This branch has not been merged to `main`; production has not been intentionally changed by these commits.
+
+
+## Follow-up source review (2026-10-18)
+- Confirmed `public/index.html` obtains the Supabase session access token and sends it as a Bearer token to `/api/gemini`, `/api/tts`, and `/api/memory`. The browser source does not call `/api/token`; the endpoint is currently dormant from the inspected client path, so it should not be treated as part of the active voice flow.
+- The active client does not visibly call `lib/searchManager.js` or `/api/token` in the inspected source. This is a source-scan result, not proof that no external caller exists.
+- Tightened `api/_auth.js` failure logging so the request path is stripped of query strings before logging; bearer tokens remain unlogged.
+- Remaining limitation: durable per-user rate limiting cannot safely be added until the database schema or a dedicated store is confirmed. Do not use in-memory counters as an enforcement boundary on serverless functions.
