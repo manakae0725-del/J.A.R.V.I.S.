@@ -31,14 +31,14 @@ async function logApiUsage({
           status_code: statusCode,
           duration_ms: durationMs,
           metadata
-        })
+        }),
+        signal: AbortSignal.timeout(3000)
       }
     );
   } catch (error) {
-    console.error(
-      "[API USAGE] Log failed:",
-      error
-    );
+    console.error("[API USAGE] Logging failed", {
+      name: error && typeof error.name === "string" ? error.name : "Error"
+    });
   }
 }
 
@@ -276,11 +276,9 @@ module.exports = async function handler(req, res) {
               q: searchQuery,
               gl: "jp",
               hl: "ja",
-              num:
-                isWeatherQuestion || isNewsQuestion
-                  ? 10
-                  : 8,
+              num: isWeatherQuestion || isNewsQuestion ? 10 : 8,
             }),
+            signal: AbortSignal.timeout(10000)
           }
         );
 
@@ -341,44 +339,7 @@ module.exports = async function handler(req, res) {
             !!data.weather
           );
 
-          if (
-            isNewsQuestion &&
-            Array.isArray(data.news)
-          ) {
-            console.log(
-              "[DEBUG] Serper first 3 news results:",
-              data.news.slice(0, 3).map((result) => ({
-                title: result?.title || "",
-                url:
-                  result?.link ||
-                  result?.url ||
-                  "",
-                snippet:
-                  result?.snippet ||
-                  "",
-                source:
-                  result?.source ||
-                  "",
-                date:
-                  result?.date ||
-                  "",
-              }))
-            );
-          }
 
-          if (
-            !isNewsQuestion &&
-            Array.isArray(data.organic)
-          ) {
-            console.log(
-              "[DEBUG] Serper first 3 results:",
-              data.organic.slice(0, 3).map((result) => ({
-                title: result?.title || "",
-                url: result?.link || "",
-                snippet: result?.snippet || "",
-              }))
-            );
-          }
 
           // ==========================================
           // Search Context
@@ -516,10 +477,9 @@ Snippet: ${snippet}
           }
         });
 
-        console.error(
-          "[DEBUG] Serper search error:",
-          error
-        );
+        console.error("[SEARCH] Serper request failed", {
+          name: error && typeof error.name === "string" ? error.name : "Error"
+        });
       }
     } else {
       console.log(
@@ -555,17 +515,12 @@ if (
             body: JSON.stringify({
               query: searchQuery,
               topic: "general",
-              search_depth:
-                isWeatherQuestion || isNewsQuestion
-                  ? "advanced"
-                  : "basic",
-              max_results:
-                isWeatherQuestion || isNewsQuestion
-                  ? 8
-                  : 5,
+              search_depth: isWeatherQuestion || isNewsQuestion ? "advanced" : "basic",
+              max_results: isWeatherQuestion || isNewsQuestion ? 8 : 5,
               include_answer: true,
               include_raw_content: false,
             }),
+            signal: AbortSignal.timeout(10000)
           }
         );
 
@@ -660,16 +615,13 @@ Content: ${result.content || ""}
           metadata: {
             queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
             fallback: true,
-            error:
-              error?.message ||
-              "Unknown error"
+            failureType: "request_failed"
           }
         });
 
-        console.error(
-          "[DEBUG] Tavily search error:",
-          error
-        );
+        console.error("[SEARCH] Tavily request failed", {
+          name: error && typeof error.name === "string" ? error.name : "Error"
+        });
       }
     } else if (!searchContext) {
       console.log(
@@ -1162,13 +1114,11 @@ WEATHER RESPONSE RULES
       !result.reply ||
       !result.speechText ||
       !result.memory ||
-      typeof result.memory.shouldSave !==
-        "boolean"
+      typeof result.memory.shouldSave !== "boolean"
     ) {
-      return res.status(500).json({
-        error:
-          "Invalid Gemini response structure",
-        data: result,
+      console.error("Gemini response validation failed");
+      return res.status(502).json({
+        error: "AI service returned an invalid response."
       });
     }
 
