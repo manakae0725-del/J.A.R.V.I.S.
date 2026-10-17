@@ -60,12 +60,28 @@ module.exports = async function handler(req, res) {
   text,
   previousInteractionId,
   memoryContext
-} = req.body;
+} = req.body || {};
 
-    if (!text) {
-      return res.status(400).json({
-        error: "text is required",
-      });
+    if (typeof text !== "string" || !text.trim()) {
+      return res.status(400).json({ error: "Invalid text input." });
+    }
+
+    if (text.length > 12000) {
+      return res.status(413).json({ error: "Text input is too long." });
+    }
+
+    if (
+      previousInteractionId !== undefined &&
+      (typeof previousInteractionId !== "string" || previousInteractionId.length > 200)
+    ) {
+      return res.status(400).json({ error: "Invalid conversation state." });
+    }
+
+    if (
+      memoryContext !== undefined &&
+      (typeof memoryContext !== "string" || memoryContext.length > 12000)
+    ) {
+      return res.status(400).json({ error: "Invalid memory context." });
     }
 
     const geminiKey = process.env.GEMINI_API_KEY;
