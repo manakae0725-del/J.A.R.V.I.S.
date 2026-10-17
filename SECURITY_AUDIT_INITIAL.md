@@ -74,3 +74,12 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - The active client does not visibly call `lib/searchManager.js` or `/api/token` in the inspected source. This is a source-scan result, not proof that no external caller exists.
 - Tightened `api/_auth.js` failure logging so the request path is stripped of query strings before logging; bearer tokens remain unlogged.
 - Remaining limitation: durable per-user rate limiting cannot safely be added until the database schema or a dedicated store is confirmed. Do not use in-memory counters as an enforcement boundary on serverless functions.
+
+
+## Supabase dashboard evidence supplied by project owner (2026-10-18)
+- The dashboard shows two public tables: `memories` (9 columns, estimated 4 rows) and `api_usage` (8 columns, estimated 339 rows).
+- The Policies page shows RLS enabled on both tables and no policies created for either table. This means ordinary Data API access is denied by RLS unless a policy is added, while server requests using the Supabase secret/service-role credential bypass RLS. Keep the secret key server-only and maintain explicit owner filters in server code.
+- The Auth settings shown have email and Google providers enabled; new signups are enabled and email confirmation is enabled. Only one user is visible in the supplied user-list screenshot. This is a snapshot, not proof that no other user exists in another page/environment.
+- The current `api/memory.js` GET, duplicate lookup, PATCH, and INSERT all constrain memory records by the authenticated user's ID (the PATCH is additionally constrained by the looked-up record ID). This is useful application-level isolation but still needs live cross-account tests.
+- `api/gemini.js` and `api/tts.js` write usage records with provider/service/success/status/duration/metadata but do not include an authenticated `user_id`. Consequently `api_usage` cannot yet reliably support per-user quotas or usage reporting. Do not add a policy or schema migration based only on the column count; inspect the actual columns and intended retention first.
+- Before enabling additional family accounts, decide whether public sign-up should remain enabled. If the intended system is limited to three family members, a safer design is controlled account provisioning and no open sign-ups, after confirming the sign-in/onboarding flow will still work.
