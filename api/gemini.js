@@ -479,6 +479,7 @@ Snippet: ${snippet}
           Date.now() - serperStart;
 
         await logApiUsage({
+          userId: user.id,
           provider: "serper",
           service: isNewsQuestion
             ? "news"
@@ -548,6 +549,7 @@ if (
         );
 
         await logApiUsage({
+          userId: user.id,
           provider: "tavily",
           service: "search",
           success: response.ok,
@@ -622,6 +624,7 @@ Content: ${result.content || ""}
           Date.now() - tavilyStart;
 
         await logApiUsage({
+          userId: user.id,
           provider: "tavily",
           service: "search",
           success: false,
@@ -1019,6 +1022,7 @@ WEATHER RESPONSE RULES
         Date.now() - geminiStart;
 
       await logApiUsage({
+          userId: user.id,
         provider: "gemini",
         service: "generation",
         success: false,
@@ -1048,6 +1052,7 @@ WEATHER RESPONSE RULES
       Date.now() - geminiStart;
 
     await logApiUsage({
+          userId: user.id,
       provider: "gemini",
       service: "generation",
       success: response.ok,
