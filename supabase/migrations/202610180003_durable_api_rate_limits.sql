@@ -14,6 +14,7 @@ CREATE INDEX IF NOT EXISTS api_rate_limits_window_start_idx
   ON public.api_rate_limits (window_start);
 
 ALTER TABLE public.api_rate_limits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.api_rate_limits FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON public.api_rate_limits FROM anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.consume_api_quota(
