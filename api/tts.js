@@ -44,7 +44,7 @@ async function logApiUsage({
 }
 
 
-const { requireAuth } = require("./_auth");
+import { requireAuth } from "./_auth.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
