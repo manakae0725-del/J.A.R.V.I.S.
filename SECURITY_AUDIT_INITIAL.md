@@ -3,6 +3,13 @@
 Date: 2026-10-17
 Scope: Read-only review of the `main` branch source. No production requests, database policy inspection, secret-value retrieval, or live penetration tests were performed.
 
+## Initial changes applied on the audit branch (not yet runtime-tested)
+- `api/token.js`: now requires a valid Supabase session, accepts POST only, disables caching, times out the upstream request, validates the response, and returns generic errors. A source scan of `public/index.html` did not find a caller for `/api/token`; confirm whether this endpoint is obsolete before relying on it.
+- `api/gemini.js`: removed direct logs of the user's message and raw search query; API usage metadata records a query category rather than query text. Added bounds/type validation for text, interaction ID, and memory context.
+- `api/tts.js`: added text type/empty/length checks (3,000 characters), removed the voice-settings fetch/log, corrected the usage-log model label, and sanitized unexpected error responses.
+
+These changes are committed only to `security-audit-baseline-2026-10-17`. No production deployment was triggered by these branch commits. Runtime/build tests have not yet been run.
+
 ## Confirmed from source
 
 ### Critical — `api/token.js` has no application authentication check
@@ -43,8 +50,7 @@ Scope: Read-only review of the `main` branch source. No production requests, dat
 - Full source/build configuration and automated test results.
 
 ## Recommended order
-1. Fix `api/token.js` authentication and abuse controls after confirming its caller and intended flow.
-2. Remove raw user-content/query logs and sanitize error responses.
-3. Add bounded input validation and per-user quotas to Gemini/TTS/search/token routes.
+1. Confirm whether `/api/token` is still needed; if it is, add durable per-user rate limiting before enabling its use.
+2. Add durable per-user quotas to Gemini/TTS/search routes; request-length limits alone do not prevent repeated calls.
 4. Verify Supabase RLS with the actual schema and policies; do not infer policy correctness from application filters alone.
 5. Run functional and security tests on a Preview deployment, then promote only after passing.
