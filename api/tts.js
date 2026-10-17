@@ -72,8 +72,7 @@ export default async function handler(req, res) {
 
     if (!apiKey) {
       return res.status(500).json({
-        error:
-          "ELEVENLABS_API_KEY is not configured."
+        error: "TTS service unavailable."
       });
     }
 
@@ -125,11 +124,8 @@ export default async function handler(req, res) {
         statusCode: null,
         durationMs,
         metadata: {
-          model: "eleven_multilingual_v2",
-          voice: "XrrS5KddqXY8b3ulN2uu",
-          error:
-            error?.message ||
-            "Unknown error"
+          model: "eleven_v3",
+          voice: "configured_voice"
         }
       });
 
@@ -146,28 +142,14 @@ export default async function handler(req, res) {
       statusCode: response.status,
       durationMs,
       metadata: {
-        model: "eleven_multilingual_v2",
-        voice: "XrrS5KddqXY8b3ulN2uu"
+        model: "eleven_v3",
+        voice: "configured_voice"
       }
     });
 
     if (!response.ok) {
-      let errorMessage =
-        "ElevenLabs TTS request failed.";
-
-      try {
-        const data = await response.json();
-
-        errorMessage =
-          data?.detail?.message ||
-          data?.detail?.status ||
-          data?.error ||
-          errorMessage;
-      } catch (e) {}
-
-      return res.status(response.status).json({
-        error: errorMessage
-      });
+      console.error("ElevenLabs TTS request failed", { status: response.status });
+      return res.status(502).json({ error: "TTS service unavailable." });
     }
 
     const arrayBuffer =
