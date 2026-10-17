@@ -9,7 +9,7 @@ async function requireAuth(req, res) {
 
   if (!match) {
     console.warn("Auth check failed: bearer token missing", {
-      path: req.url || "",
+      path: typeof req.url === "string" ? req.url.split("?")[0] : "",
       method: req.method || ""
     });
     res.status(401).json({ error: "Authentication required" });
