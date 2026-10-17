@@ -83,3 +83,11 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - The current `api/memory.js` GET, duplicate lookup, PATCH, and INSERT all constrain memory records by the authenticated user's ID (the PATCH is additionally constrained by the looked-up record ID). This is useful application-level isolation but still needs live cross-account tests.
 - `api/gemini.js` and `api/tts.js` write usage records with provider/service/success/status/duration/metadata but do not include an authenticated `user_id`. Consequently `api_usage` cannot yet reliably support per-user quotas or usage reporting. Do not add a policy or schema migration based only on the column count; inspect the actual columns and intended retention first.
 - Before enabling additional family accounts, decide whether public sign-up should remain enabled. If the intended system is limited to three family members, a safer design is controlled account provisioning and no open sign-ups, after confirming the sign-in/onboarding flow will still work.
+
+
+## API usage attribution and metadata minimization (2026-10-18)
+- Updated `api/gemini.js` and `api/tts.js` to attach the authenticated Supabase user ID to every usage-log call and to persist only an allowlist of low-risk metadata fields. Raw search queries and user text are no longer included in usage metadata by these helpers.
+- Added `supabase/migrations/202610180001_api_usage_user_id.sql`. It adds nullable `user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL` and an index on `(user_id, created_at DESC)`. It preserves historical rows with NULL user IDs.
+- IMPORTANT: this migration has only been committed to the review branch; it has NOT been applied to Supabase. The updated API usage logger will fail to insert rows until the migration is applied, because the current table does not yet have the `user_id` column. Apply only after reviewing the SQL and when ready to coordinate deployment.
+- The usage logger is best-effort and currently does not check the HTTP response status from Supabase; verify failure behavior and logging after the schema migration.
+- No production merge, Supabase schema change, or end-to-end test was performed as part of this update.
