@@ -149,6 +149,7 @@ export default async function handler(req, res) {
       Date.now() - ttsStart;
 
     await logApiUsage({
+          userId: user.id,
       provider: "elevenlabs",
       service: "tts",
       success: response.ok,
