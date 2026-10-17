@@ -9,7 +9,7 @@ async function requireAuth(req, res) {
 
   if (!match) {
     console.warn("Auth check failed: bearer token missing", {
-      path: req.url || "",
+      path: typeof req.url === "string" ? req.url.split("?")[0] : "",
       method: req.method || ""
     });
     res.status(401).json({ error: "Authentication required" });
@@ -33,24 +33,14 @@ async function requireAuth(req, res) {
         headers: {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${match[1]}`
-        }
+        },
+        signal: AbortSignal.timeout(8000)
       }
     );
 
     if (!response.ok) {
-      let upstreamError = {};
-      try {
-        const body = await response.json();
-        upstreamError = {
-          code: typeof body.code === "string" ? body.code : undefined,
-          error: typeof body.error === "string" ? body.error : undefined,
-          message: typeof body.message === "string" ? body.message : undefined
-        };
-      } catch (_) {}
-
       console.warn("Supabase session validation rejected", {
-        status: response.status,
-        ...upstreamError
+        status: response.status
       });
       res.status(401).json({ error: "Invalid or expired session" });
       return null;
@@ -68,7 +58,6 @@ async function requireAuth(req, res) {
   } catch (error) {
     console.error("Supabase auth verification failed", {
       name: error && typeof error.name === "string" ? error.name : "Error",
-      message: error && typeof error.message === "string" ? error.message : "Unknown error"
     });
     res.status(503).json({ error: "Authentication service unavailable" });
     return null;

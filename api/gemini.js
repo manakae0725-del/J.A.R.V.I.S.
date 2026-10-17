@@ -1,4 +1,5 @@
 async function logApiUsage({
+  userId,
   provider,
   service,
   success,
@@ -6,6 +7,16 @@ async function logApiUsage({
   durationMs,
   metadata = {}
 }) {
+  const safeMetadata = {};
+  for (const key of ["model", "queryType", "fallback", "failureType", "voice"]) {
+    const value = metadata && metadata[key];
+    if (typeof value === "boolean" && key === "fallback") {
+      safeMetadata[key] = value;
+    } else if (typeof value === "string" && value.length <= 80 && /^[a-zA-Z0-9_.-]+$/.test(value)) {
+      safeMetadata[key] = value;
+    }
+  }
+
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey =
@@ -15,7 +26,7 @@ async function logApiUsage({
       return;
     }
 
-    await fetch(
+    const logResponse = await fetch(
       `${supabaseUrl}/rest/v1/api_usage`,
       {
         method: "POST",
@@ -25,27 +36,34 @@ async function logApiUsage({
           Prefer: "return=minimal"
         },
         body: JSON.stringify({
+          user_id: userId || null,
           provider,
           service,
           success,
           status_code: statusCode,
           duration_ms: durationMs,
-          metadata
-        })
+          metadata: safeMetadata
+        }),
+        signal: AbortSignal.timeout(3000)
       }
     );
+    if (!logResponse.ok) {
+      console.error("[API USAGE] Logging rejected", { status: logResponse.status });
+    }
   } catch (error) {
-    console.error(
-      "[API USAGE] Log failed:",
-      error
-    );
+    console.error("[API USAGE] Logging failed", {
+      name: error && typeof error.name === "string" ? error.name : "Error"
+    });
   }
 }
 
 
 const { requireAuth } = require("./_auth");
+const { consumeRateLimit } = require("./_rateLimit");
 
 module.exports = async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method Not Allowed",
@@ -55,17 +73,35 @@ module.exports = async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
+  if (!(await consumeRateLimit(user.id, "gemini", res))) return;
+
   try {
  const {
   text,
   previousInteractionId,
   memoryContext
-} = req.body;
+} = req.body || {};
 
-    if (!text) {
-      return res.status(400).json({
-        error: "text is required",
-      });
+    if (typeof text !== "string" || !text.trim()) {
+      return res.status(400).json({ error: "Invalid text input." });
+    }
+
+    if (text.length > 12000) {
+      return res.status(413).json({ error: "Text input is too long." });
+    }
+
+    if (
+      previousInteractionId !== undefined &&
+      (typeof previousInteractionId !== "string" || previousInteractionId.length > 200)
+    ) {
+      return res.status(400).json({ error: "Invalid conversation state." });
+    }
+
+    if (
+      memoryContext !== undefined &&
+      (typeof memoryContext !== "string" || memoryContext.length > 12000)
+    ) {
+      return res.status(400).json({ error: "Invalid memory context." });
     }
 
     const geminiKey = process.env.GEMINI_API_KEY;
@@ -91,10 +127,6 @@ module.exports = async function handler(req, res) {
       ? userMarker[1].trim()
       : rawText;
 
-    console.log(
-      "[DEBUG] User text:",
-      userText
-    );
 
     // ==========================================
     // Weather Detection
@@ -119,10 +151,7 @@ module.exports = async function handler(req, res) {
       (keyword) => userText.includes(keyword)
     );
 
-    console.log(
-      "[DEBUG] Weather question:",
-      isWeatherQuestion
-    );
+
 
     // ==========================================
     // News Detection
@@ -143,10 +172,7 @@ module.exports = async function handler(req, res) {
       (keyword) => userText.includes(keyword)
     );
 
-    console.log(
-      "[DEBUG] News question:",
-      isNewsQuestion
-    );
+
 
     // ==========================================
     // Search Detection
@@ -172,10 +198,9 @@ module.exports = async function handler(req, res) {
         (keyword) => userText.includes(keyword)
       );
 
-    console.log(
-      "[DEBUG] Search question:",
-      isSearchQuestion
-    );
+    if (isSearchQuestion && !(await consumeRateLimit(user.id, "search", res))) return;
+
+
 
     // ==========================================
     // Weather Search Query
@@ -183,10 +208,6 @@ module.exports = async function handler(req, res) {
 
     let searchQuery = userText;
 
-    console.log(
-      "[DEBUG] Clean search query:",
-      searchQuery
-    );
 
     if (isWeatherQuestion) {
       let location = "札幌市";
@@ -237,10 +258,6 @@ module.exports = async function handler(req, res) {
 
       searchQuery = `${location} 天気 ${day}`;
 
-      console.log(
-        "[DEBUG] Weather search query generated:",
-        searchQuery
-      );
     }
 
     // ==========================================
@@ -248,10 +265,6 @@ module.exports = async function handler(req, res) {
     // ==========================================
 
     if (isNewsQuestion && !isWeatherQuestion) {
-      console.log(
-        "[DEBUG] News search query:",
-        searchQuery
-      );
     }
 
     // ==========================================
@@ -285,11 +298,9 @@ module.exports = async function handler(req, res) {
               q: searchQuery,
               gl: "jp",
               hl: "ja",
-              num:
-                isWeatherQuestion || isNewsQuestion
-                  ? 10
-                  : 8,
+              num: isWeatherQuestion || isNewsQuestion ? 10 : 8,
             }),
+            signal: AbortSignal.timeout(10000)
           }
         );
 
@@ -302,6 +313,7 @@ module.exports = async function handler(req, res) {
         );
 
         await logApiUsage({
+          userId: user.id,
           provider: "serper",
           service: isNewsQuestion
             ? "news"
@@ -310,7 +322,7 @@ module.exports = async function handler(req, res) {
           statusCode: response.status,
           durationMs: serperDuration,
           metadata: {
-            query: searchQuery
+            queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search"
           }
         });
 
@@ -350,44 +362,7 @@ module.exports = async function handler(req, res) {
             !!data.weather
           );
 
-          if (
-            isNewsQuestion &&
-            Array.isArray(data.news)
-          ) {
-            console.log(
-              "[DEBUG] Serper first 3 news results:",
-              data.news.slice(0, 3).map((result) => ({
-                title: result?.title || "",
-                url:
-                  result?.link ||
-                  result?.url ||
-                  "",
-                snippet:
-                  result?.snippet ||
-                  "",
-                source:
-                  result?.source ||
-                  "",
-                date:
-                  result?.date ||
-                  "",
-              }))
-            );
-          }
 
-          if (
-            !isNewsQuestion &&
-            Array.isArray(data.organic)
-          ) {
-            console.log(
-              "[DEBUG] Serper first 3 results:",
-              data.organic.slice(0, 3).map((result) => ({
-                title: result?.title || "",
-                url: result?.link || "",
-                snippet: result?.snippet || "",
-              }))
-            );
-          }
 
           // ==========================================
           // Search Context
@@ -505,16 +480,14 @@ Snippet: ${snippet}
             sources.length
           );
         } else {
-          console.error(
-            "[DEBUG] Serper HTTP error:",
-            response.status
-          );
+          console.error("[SEARCH] Serper returned a non-success status", { status: response.status });
         }
       } catch (error) {
         const serperDuration =
           Date.now() - serperStart;
 
         await logApiUsage({
+          userId: user.id,
           provider: "serper",
           service: isNewsQuestion
             ? "news"
@@ -523,17 +496,14 @@ Snippet: ${snippet}
           statusCode: null,
           durationMs: serperDuration,
           metadata: {
-            query: searchQuery,
-            error:
-              error?.message ||
-              "Unknown error"
+            queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
+            failureType: "request_failed"
           }
         });
 
-        console.error(
-          "[DEBUG] Serper search error:",
-          error
-        );
+        console.error("[SEARCH] Serper request failed", {
+          name: error && typeof error.name === "string" ? error.name : "Error"
+        });
       }
     } else {
       console.log(
@@ -569,17 +539,12 @@ if (
             body: JSON.stringify({
               query: searchQuery,
               topic: "general",
-              search_depth:
-                isWeatherQuestion || isNewsQuestion
-                  ? "advanced"
-                  : "basic",
-              max_results:
-                isWeatherQuestion || isNewsQuestion
-                  ? 8
-                  : 5,
+              search_depth: isWeatherQuestion || isNewsQuestion ? "advanced" : "basic",
+              max_results: isWeatherQuestion || isNewsQuestion ? 8 : 5,
               include_answer: true,
               include_raw_content: false,
             }),
+            signal: AbortSignal.timeout(10000)
           }
         );
 
@@ -592,13 +557,14 @@ if (
         );
 
         await logApiUsage({
+          userId: user.id,
           provider: "tavily",
           service: "search",
           success: response.ok,
           statusCode: response.status,
           durationMs: tavilyDuration,
           metadata: {
-            query: searchQuery,
+            queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
             fallback: true
           }
         });
@@ -659,34 +625,29 @@ Content: ${result.content || ""}
             sources.length
           );
         } else {
-          console.error(
-            "[DEBUG] Tavily HTTP error:",
-            response.status
-          );
+          console.error("[SEARCH] Tavily returned a non-success status", { status: response.status });
         }
       } catch (error) {
         const tavilyDuration =
           Date.now() - tavilyStart;
 
         await logApiUsage({
+          userId: user.id,
           provider: "tavily",
           service: "search",
           success: false,
           statusCode: null,
           durationMs: tavilyDuration,
           metadata: {
-            query: searchQuery,
+            queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
             fallback: true,
-            error:
-              error?.message ||
-              "Unknown error"
+            failureType: "request_failed"
           }
         });
 
-        console.error(
-          "[DEBUG] Tavily search error:",
-          error
-        );
+        console.error("[SEARCH] Tavily request failed", {
+          name: error && typeof error.name === "string" ? error.name : "Error"
+        });
       }
     } else if (!searchContext) {
       console.log(
@@ -1069,15 +1030,14 @@ WEATHER RESPONSE RULES
         Date.now() - geminiStart;
 
       await logApiUsage({
+          userId: user.id,
         provider: "gemini",
         service: "generation",
         success: false,
         statusCode: null,
         durationMs: geminiDuration,
         metadata: {
-          error:
-            error?.message ||
-            "Unknown error"
+          failureType: "request_failed"
         }
       });
 
@@ -1087,10 +1047,7 @@ WEATHER RESPONSE RULES
         });
       }
 
-      console.error(
-        "Gemini network error:",
-        error
-      );
+      console.error("Gemini network request failed", { name: error && typeof error.name === "string" ? error.name : "Error" });
 
       return res.status(502).json({
         error: "Gemini connection failed",
@@ -1103,6 +1060,7 @@ WEATHER RESPONSE RULES
       Date.now() - geminiStart;
 
     await logApiUsage({
+          userId: user.id,
       provider: "gemini",
       service: "generation",
       success: response.ok,
@@ -1115,20 +1073,11 @@ WEATHER RESPONSE RULES
 
     const data = await response.json();
 
-    console.log(
-      "[DEBUG] Gemini HTTP status:",
-      response.status
-    );
+
 
     if (!response.ok) {
-      console.error(
-        "Gemini API error:",
-        data
-      );
-
-      return res.status(response.status).json({
-        error: data,
-      });
+      console.error("Gemini API request failed", { status: response.status });
+      return res.status(502).json({ error: "AI service unavailable." });
     }
 
     // ==========================================
@@ -1168,10 +1117,8 @@ WEATHER RESPONSE RULES
     }
 
     if (!outputText) {
-      return res.status(500).json({
-        error: "No text response from Gemini",
-        data,
-      });
+      console.error("Gemini response did not contain text");
+      return res.status(502).json({ error: "AI service returned an invalid response." });
     }
 
     // ==========================================
@@ -1183,15 +1130,8 @@ WEATHER RESPONSE RULES
     try {
       result = JSON.parse(outputText);
     } catch (error) {
-      console.error(
-        "JSON parse error:",
-        outputText
-      );
-
-      return res.status(500).json({
-        error: "Gemini returned invalid JSON",
-        raw: outputText,
-      });
+      console.error("Gemini response JSON parsing failed");
+      return res.status(502).json({ error: "AI service returned an invalid response." });
     }
 
     // ==========================================
@@ -1202,13 +1142,11 @@ WEATHER RESPONSE RULES
       !result.reply ||
       !result.speechText ||
       !result.memory ||
-      typeof result.memory.shouldSave !==
-        "boolean"
+      typeof result.memory.shouldSave !== "boolean"
     ) {
-      return res.status(500).json({
-        error:
-          "Invalid Gemini response structure",
-        data: result,
+      console.error("Gemini response validation failed");
+      return res.status(502).json({
+        error: "AI service returned an invalid response."
       });
     }
 
@@ -1252,13 +1190,7 @@ WEATHER RESPONSE RULES
       sources,
     });
   } catch (error) {
-    console.error(
-      "Internal error:",
-      error
-    );
-
-    return res.status(500).json({
-      error: "Internal Server Error",
-    });
+    console.error("Gemini handler failed", { name: error && typeof error.name === "string" ? error.name : "Error" });
+    return res.status(500).json({ error: "AI service unavailable." });
   }
 };

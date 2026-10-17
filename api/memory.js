@@ -5,6 +5,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 
 module.exports = async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+
   if (req.method !== "GET" && req.method !== "POST") {
     res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ error: "Method not allowed" });
@@ -35,7 +37,7 @@ module.exports = async function handler(req, res) {
         order: "importance.desc,updated_at.desc"
       });
 
-      const response = await fetch(`${baseUrl}?${params}`, { headers });
+      const response = await fetch(`${baseUrl}?${params}`, { headers, signal: AbortSignal.timeout(10000) });
 
       if (!response.ok) {
         console.error("Memory read failed", response.status);
@@ -50,8 +52,10 @@ module.exports = async function handler(req, res) {
     if (
       typeof category !== "string" ||
       !category.trim() ||
+      category.trim().length > 100 ||
       typeof content !== "string" ||
       !content.trim() ||
+      content.length > 5000 ||
       !Number.isInteger(importance) ||
       importance < 1 ||
       importance > 5
@@ -72,9 +76,7 @@ module.exports = async function handler(req, res) {
     });
 
     const searchResponse = await fetch(
-      `${baseUrl}?${searchParams}`,
-      { headers }
-    );
+      `${baseUrl}?${searchParams}`, { headers, signal: AbortSignal.timeout(10000) });
 
     if (!searchResponse.ok) {
       console.error("Memory duplicate check failed", searchResponse.status);
@@ -97,10 +99,8 @@ module.exports = async function handler(req, res) {
             ...headers,
             Prefer: "return=representation"
           },
-          body: JSON.stringify({
-            importance,
-            updated_at: new Date().toISOString()
-          })
+          body: JSON.stringify({ importance, updated_at: new Date().toISOString() }),
+          signal: AbortSignal.timeout(10000)
         }
       );
 
@@ -124,7 +124,8 @@ module.exports = async function handler(req, res) {
         content: normalizedContent,
         importance,
         is_active: true
-      })
+       }),
+      signal: AbortSignal.timeout(10000)
     });
 
     if (!insertResponse.ok) {
