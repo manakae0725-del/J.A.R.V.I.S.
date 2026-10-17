@@ -567,7 +567,7 @@ if (
               Authorization: `Bearer ${tavilyKey}`,
             },
             body: JSON.stringify({
-              queryType: isWeatherQuestion ? "weather" : isNewsQuestion ? "news" : "search",
+              query: searchQuery,
               topic: "general",
               search_depth:
                 isWeatherQuestion || isNewsQuestion
