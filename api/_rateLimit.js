@@ -27,7 +27,7 @@ async function consumeRateLimit(userId, service, res) {
 
   try {
     const response = await fetch(
-      `${SUPABASE_URL.replace(/\\/+$/, "")}/rest/v1/rpc/consume_api_quota`,
+      `${SUPABASE_URL.replace(/\/+$/, "")}/rest/v1/rpc/consume_api_quota`,
       {
         method: "POST",
         headers: {
