@@ -59,6 +59,7 @@ async function logApiUsage({
 
 
 const { requireAuth } = require("./_auth");
+const { consumeRateLimit } = require("./_rateLimit");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -71,6 +72,8 @@ module.exports = async function handler(req, res) {
 
   const user = await requireAuth(req, res);
   if (!user) return;
+
+  if (!(await consumeRateLimit(user.id, "gemini", res))) return;
 
   try {
  const {
@@ -194,6 +197,8 @@ module.exports = async function handler(req, res) {
       searchKeywords.some(
         (keyword) => userText.includes(keyword)
       );
+
+    if (isSearchQuestion && !(await consumeRateLimit(user.id, "search", res))) return;
 
 
 
