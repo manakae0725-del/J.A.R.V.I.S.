@@ -104,3 +104,12 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - Source re-check confirmed the shared auth helper rejects missing/invalid bearer sessions and applies an 8-second timeout to Supabase session verification. `api/memory.js` restricts reads, duplicate checks, updates, and inserts by the authenticated user ID.
 - GitHub repository inspection did not find a root `package.json` or `.github/workflows` directory on this branch, so no repository-defined automated build/test workflow was available through those paths. Vercel deployment READY status is not a substitute for runtime tests.
 - PR #2 remains open as a draft and has not been merged. Do not merge/deploy until the `api_usage.user_id` migration is coordinated with the code, the memory migration is reviewed against actual row contents, and runtime checks pass.
+
+
+## Durable per-user rate limiting (2026-10-18, review branch only)
+- Added `api/_rateLimit.js`, which calls a database RPC before paid provider use. It fails closed with HTTP 503 if quota enforcement is unavailable and returns HTTP 429 when a quota is exhausted.
+- Added `supabase/migrations/202610180003_durable_api_rate_limits.sql`: an atomic minute-window counter keyed by authenticated user ID and service; RLS is enabled on the backing table and direct grants are revoked from anon/authenticated roles. The RPC is executable only by service_role.
+- Wired the limiter into `api/gemini.js` (30 requests/minute default), search requests (20/minute), `api/tts.js` (10/minute), and `api/token.js` (5/minute). Optional Vercel environment overrides are `JARVIS_GEMINI_RPM`, `JARVIS_SEARCH_RPM`, `JARVIS_TTS_RPM`, and `JARVIS_TOKEN_RPM`; each is capped at 1000/minute.
+- These are initial request-rate limits, not a monthly spend cap or full billing budget. They do not prevent a user from consuming their full per-minute allowance repeatedly across many minutes. Revisit thresholds after real usage/cost review.
+- DEPLOYMENT ORDER MATTERS: the new API paths fail closed until the rate-limit migration is applied. Do not deploy/merge the branch to production before reviewing and applying the SQL migration and coordinating the API usage column migration. The migration has not been applied; no live quota behavior has been tested.
+- Remaining: cleanup/retention for old `api_rate_limits` windows, three-account runtime tests, and verification of actual database grants/RPC execution in the target Supabase project.
