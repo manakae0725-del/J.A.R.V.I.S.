@@ -5,8 +5,10 @@ Scope: Read-only review of the `main` branch source. No production requests, dat
 
 ## Initial changes applied on the audit branch (not yet runtime-tested)
 - `api/token.js`: now requires a valid Supabase session, accepts POST only, disables caching, times out the upstream request, validates the response, and returns generic errors. A source scan of `public/index.html` did not find a caller for `/api/token`; confirm whether this endpoint is obsolete before relying on it.
-- `api/gemini.js`: removed direct logs of the user's message and raw search query; API usage metadata records a query category rather than query text. Added bounds/type validation for text, interaction ID, and memory context. Sanitized Gemini upstream/parse errors so raw provider payloads and model output are not returned to the browser. Confirmed the Tavily request still sends the required `query` field.
-- `api/tts.js`: added text type/empty/length checks (3,000 characters), removed the voice-settings fetch/log, corrected the usage-log model label, and sanitized unexpected error responses.
+- `api/gemini.js`: added input bounds, removed direct logs of raw search results and sanitized provider exceptions, added 10-second search timeouts and a 3-second usage-log timeout, and stopped returning invalid model output to the browser. Confirmed the Tavily request still sends the required `query` field.
+- `api/tts.js`: added text type/empty/length checks (3,000 characters), a 20-second upstream timeout, removed the voice-settings fetch/log, corrected usage-log metadata, and sanitized unexpected error responses.
+- `api/_auth.js`: added an 8-second timeout to Supabase session verification.
+- `api/memory.js`: added 10-second timeouts to database requests; reads/writes remain filtered by the authenticated user's ID.
 
 These changes are committed only to `security-audit-baseline-2026-10-17`. No production deployment was triggered by these branch commits. Runtime/build tests have not yet been run.
 
@@ -42,15 +44,23 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - `api/memory.js` filters reads and writes by the authenticated user's ID in its REST queries.
 - `api/auth-config.js` returns a Supabase public/anonymous key, not a service-role key. Public anon/publishable keys are expected to be client-visible; database policies must still prevent unauthorized access.
 
-## Not yet verified
-- Supabase RLS policies and grants on `memories` and `api_usage`.
+## Remaining risks / not yet verified
+- Durable per-user rate/usage limits are not implemented. Input limits and upstream timeouts do not prevent repeated authenticated calls from consuming quota.
+- Supabase RLS policies and grants on `memories` and `api_usage` have not been inspected. The memory route uses `SUPABASE_SECRET_KEY`, which bypasses RLS; application-level `user_id` filters are therefore security-critical.
+- The `api_usage` writes have no visible user ID in the inspected code and may fail if the deployed table requires additional columns or policies.
 - Vercel production/preview environment variable names and scopes (values must not be exposed).
 - Whether each endpoint is protected by deployment-level controls.
 - Live behavior for three accounts, cross-account data isolation, logout/session expiry, input limits, API failures, and billing/rate controls.
 - Full source/build configuration and automated test results.
 
-## Recommended order
-1. Confirm whether `/api/token` is still needed; if it is, add durable per-user rate limiting before enabling its use.
-2. Add durable per-user quotas to Gemini/TTS/search routes; request-length limits alone do not prevent repeated calls.
-4. Verify Supabase RLS with the actual schema and policies; do not infer policy correctness from application filters alone.
-5. Run functional and security tests on a Preview deployment, then promote only after passing.
+## Recommended next steps
+1. Confirm whether `/api/token` is still used by the current UI; if unused, decide whether to remove it rather than maintain a dormant endpoint.
+2. Inspect the actual Supabase schema, grants, and RLS policies for `memories` and `api_usage`; verify the intended three-account model before implementing shared-family data.
+3. Design and implement durable per-user quotas for Gemini, TTS, and search using a confirmed schema or a dedicated rate-limit store. Do not use in-memory counters on serverless functions as an enforcement boundary.
+4. Verify Vercel Preview environment-variable names/scopes without exposing values.
+5. Run build/syntax checks and authenticated/unauthenticated, cross-account, oversized-input, timeout, and provider-failure tests on Preview. Promote only after the tests pass.
+
+## Verification status
+- No automated build/test run or live security test has been completed by this audit.
+- Vercel Preview deployments previously reported READY, which confirms deployment completion only; it does not establish runtime correctness.
+- This branch has not been merged to `main`; production has not been intentionally changed by these commits.
