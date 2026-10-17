@@ -58,6 +58,7 @@ async function logApiUsage({
 
 
 import { requireAuth } from "./_auth.js";
+import { consumeRateLimit } from "./_rateLimit.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -70,6 +71,8 @@ export default async function handler(req, res) {
 
   const user = await requireAuth(req, res);
   if (!user) return;
+
+  if (!(await consumeRateLimit(user.id, "tts", res))) return;
 
   try {
     const { text } = req.body || {};
