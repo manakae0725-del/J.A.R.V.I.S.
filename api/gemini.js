@@ -1087,10 +1087,7 @@ WEATHER RESPONSE RULES
         });
       }
 
-      console.error(
-        "Gemini network error:",
-        error
-      );
+      console.error("Gemini network request failed", { name: error && typeof error.name === "string" ? error.name : "Error" });
 
       return res.status(502).json({
         error: "Gemini connection failed",
@@ -1121,14 +1118,8 @@ WEATHER RESPONSE RULES
     );
 
     if (!response.ok) {
-      console.error(
-        "Gemini API error:",
-        data
-      );
-
-      return res.status(response.status).json({
-        error: data,
-      });
+      console.error("Gemini API request failed", { status: response.status });
+      return res.status(502).json({ error: "AI service unavailable." });
     }
 
     // ==========================================
@@ -1168,10 +1159,8 @@ WEATHER RESPONSE RULES
     }
 
     if (!outputText) {
-      return res.status(500).json({
-        error: "No text response from Gemini",
-        data,
-      });
+      console.error("Gemini response did not contain text");
+      return res.status(502).json({ error: "AI service returned an invalid response." });
     }
 
     // ==========================================
@@ -1183,15 +1172,8 @@ WEATHER RESPONSE RULES
     try {
       result = JSON.parse(outputText);
     } catch (error) {
-      console.error(
-        "JSON parse error:",
-        outputText
-      );
-
-      return res.status(500).json({
-        error: "Gemini returned invalid JSON",
-        raw: outputText,
-      });
+      console.error("Gemini response JSON parsing failed");
+      return res.status(502).json({ error: "AI service returned an invalid response." });
     }
 
     // ==========================================
@@ -1252,13 +1234,7 @@ WEATHER RESPONSE RULES
       sources,
     });
   } catch (error) {
-    console.error(
-      "Internal error:",
-      error
-    );
-
-    return res.status(500).json({
-      error: "Internal Server Error",
-    });
+    console.error("Gemini handler failed", { name: error && typeof error.name === "string" ? error.name : "Error" });
+    return res.status(500).json({ error: "AI service unavailable." });
   }
 };
