@@ -21,3 +21,5 @@ jobs:
           node-version: 22
       - name: Run static security source checks
         run: node scripts/security-source-check.mjs
+      - name: Run mocked memory API tests
+        run: node --test scripts/memory-api.test.cjs
