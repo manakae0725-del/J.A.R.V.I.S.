@@ -20,6 +20,8 @@ const checks = [
   ["TTS requires auth, quota, and text bound", /requireAuth\(req, res\)/.test(tts) && /consumeRateLimit\(user\.id, "tts", res\)/.test(tts) && /text\.length > 3000/.test(tts)],
   ["memory queries are scoped to authenticated user", (memory.match(/user_id: `eq\.\$\{user\.id\}`/g) || []).length >= 3 && /user_id: user\.id/.test(memory)],
   ["memory REST requests authenticate with the service key", memory.includes("Authorization: `Bearer ${SUPABASE_SECRET_KEY}`")],
+  ["memory deletion is soft-delete and owner-scoped", /req\.method !== "DELETE"/.test(memory) && /method: "DELETE"/.test(memory) === false && /is_active: "eq\.true"/.test(memory) && /user_id: `eq\.\$\{user\.id\}`/.test(memory) && /is_active: false/.test(memory)],
+  ["memory delete validates numeric ID and times out", /Invalid memory id/.test(memory) && /AbortSignal\.timeout\(10000\)/.test(memory)],
   ["token endpoint requires auth and quota", /requireAuth\(req, res\)/.test(token) && /consumeRateLimit\(user\.id, "token", res\)/.test(token)],
   ["rate limiter fails closed and has timeout", /status\(503\)/.test(limiter) && /AbortSignal\.timeout\(3000\)/.test(limiter)],
   ["rate-limit SQL restricts RPC grants", /SECURITY DEFINER/.test(quotaSql) && /REVOKE ALL ON FUNCTION public\.consume_api_quota\(uuid, text, integer\) FROM PUBLIC, anon, authenticated/.test(quotaSql) && /GRANT EXECUTE ON FUNCTION public\.consume_api_quota\(uuid, text, integer\) TO service_role/.test(quotaSql)],
