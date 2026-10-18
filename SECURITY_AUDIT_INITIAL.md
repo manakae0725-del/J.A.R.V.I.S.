@@ -129,3 +129,9 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 - Added `supabase/validation/20261018_preflight_checks.sql` with read-only queries to verify legacy memory row IDs/ownership, actual `api_usage` columns, RLS/policies, quota RPC grants, and quota-table privileges.
 - Run the first four sections before migrations; run the last two only after the quota migration has been applied. These queries do not modify data.
 - The duplicate quota-table privilege revoke statement in the migration was removed and the resulting file was fetched back to verify exactly one table revoke remains.
+
+
+## Additional API request verification (2026-10-18)
+- Added the missing Supabase service-key Bearer authorization header to the `api/gemini.js` usage-log REST request and to `api/memory.js` database REST requests. This aligns these calls with Supabase REST authorization requirements; it does not replace per-user filters.
+- Added static checks for both authorization headers. GitHub Actions run 12 completed successfully, including the source-check job.
+- Still not verified: actual Preview runtime behavior, Supabase migration execution, actual RLS/grants, memory CRUD/restart persistence, cross-account isolation, and rate-limit behavior against the live database. The audit branch remains unmerged.
