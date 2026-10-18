@@ -123,3 +123,9 @@ These changes are committed only to `security-audit-baseline-2026-10-17`. No pro
 ## Pre-deployment checklist
 - Added `SECURITY_PREDEPLOY_CHECKLIST.md` with the required migration order, backup/row-verification gates, Preview test matrix, and rollback conditions.
 - This checklist is not evidence that tests passed. Supabase migrations remain unapplied and production remains unchanged.
+
+
+## Read-only Supabase preflight queries (2026-10-18)
+- Added `supabase/validation/20261018_preflight_checks.sql` with read-only queries to verify legacy memory row IDs/ownership, actual `api_usage` columns, RLS/policies, quota RPC grants, and quota-table privileges.
+- Run the first four sections before migrations; run the last two only after the quota migration has been applied. These queries do not modify data.
+- The duplicate quota-table privilege revoke statement in the migration was removed and the resulting file was fetched back to verify exactly one table revoke remains.
