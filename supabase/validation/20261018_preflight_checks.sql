@@ -30,26 +30,13 @@ SELECT c.relname AS table_name, c.relrowsecurity AS rls_enabled,
        c.relforcerowsecurity AS force_rls
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname = 'public' AND c.relname IN ('memories', 'api_usage', 'api_rate_limits')
+WHERE n.nspname = 'public' AND c.relname IN ('memories', 'api_usage')
 ORDER BY c.relname;
 
 SELECT schemaname, tablename, policyname, roles, cmd, qual, with_check
 FROM pg_policies
-WHERE schemaname = 'public' AND tablename IN ('memories', 'api_usage', 'api_rate_limits')
+WHERE schemaname = 'public' AND tablename IN ('memories', 'api_usage')
 ORDER BY tablename, policyname;
 
--- 5) After applying the quota migration, verify function existence and execute grants.
-SELECT p.proname, pg_get_function_identity_arguments(p.oid) AS arguments,
-       p.prosecdef AS security_definer,
-       has_function_privilege('service_role', p.oid, 'EXECUTE') AS service_role_can_execute,
-       has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_can_execute,
-       has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authenticated_can_execute
-FROM pg_proc p
-JOIN pg_namespace n ON n.oid = p.pronamespace
-WHERE n.nspname = 'public' AND p.proname = 'consume_api_quota';
-
--- 6) After applying the quota migration, verify direct table access is denied.
-SELECT
-  has_table_privilege('anon', 'public.api_rate_limits', 'SELECT') AS anon_can_select,
-  has_table_privilege('authenticated', 'public.api_rate_limits', 'SELECT') AS authenticated_can_select,
-  has_table_privilege('service_role', 'public.api_rate_limits', 'SELECT') AS service_role_can_select;
+-- Quota-table/function checks are intentionally excluded here because the migration
+-- has not been applied. Verify them only in a separate post-migration check.
