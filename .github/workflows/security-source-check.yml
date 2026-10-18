@@ -1,0 +1,23 @@
+name: Security source checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [security-audit-baseline-2026-10-17]
+
+permissions:
+  contents: read
+
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run static security source checks
+        run: node scripts/security-source-check.mjs
