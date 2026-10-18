@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
     if (req.method === "DELETE") {
       const rawId = req.query && req.query.id;
       const memoryId = typeof rawId === "string" ? rawId : "";
-      if (!/^\\d{1,12}$/.test(memoryId)) {
+      if (!/^\d{1,12}$/.test(memoryId)) {
         return res.status(400).json({ error: "Invalid memory id" });
       }
 
