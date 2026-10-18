@@ -14,7 +14,7 @@ const usageSql = read("../supabase/migrations/202610180001_api_usage_user_id.sql
 const checks = [
   ["shared auth validates Supabase session", /\/auth\/v1\/user/.test(auth) && /if \(!response\.ok\)/.test(auth)],
   ["Gemini requires auth and quota", /requireAuth\(req, res\)/.test(gemini) && /consumeRateLimit\(user\.id, "gemini", res\)/.test(gemini)],
-  ["Gemini usage logging authenticates to Supabase", /Authorization: `Bearer \\$\{supabaseKey\}`/.test(gemini)],
+  ["Gemini usage logging authenticates to Supabase", gemini.includes("Authorization: `Bearer ${supabaseKey}`")],
   ["search quota is enforced", /consumeRateLimit\(user\.id, "search", res\)/.test(gemini)],
   ["Gemini input and context bounds exist", /text\.length > 12000/.test(gemini) && /memoryContext\.length > 12000/.test(gemini)],
   ["TTS requires auth, quota, and text bound", /requireAuth\(req, res\)/.test(tts) && /consumeRateLimit\(user\.id, "tts", res\)/.test(tts) && /text\.length > 3000/.test(tts)],
