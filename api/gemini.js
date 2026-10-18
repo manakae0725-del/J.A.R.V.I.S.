@@ -32,6 +32,7 @@ async function logApiUsage({
         method: "POST",
         headers: {
           apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
           "Content-Type": "application/json",
           Prefer: "return=minimal"
         },
