@@ -23,6 +23,7 @@ const checks = [
   ["token endpoint requires auth and quota", /requireAuth\(req, res\)/.test(token) && /consumeRateLimit\(user\.id, "token", res\)/.test(token)],
   ["rate limiter fails closed and has timeout", /status\(503\)/.test(limiter) && /AbortSignal\.timeout\(3000\)/.test(limiter)],
   ["rate-limit SQL restricts RPC grants", /SECURITY DEFINER/.test(quotaSql) && /REVOKE ALL ON FUNCTION public\.consume_api_quota\(uuid, text, integer\) FROM PUBLIC, anon, authenticated/.test(quotaSql) && /GRANT EXECUTE ON FUNCTION public\.consume_api_quota\(uuid, text, integer\) TO service_role/.test(quotaSql)],
+  ["rate-limit rows older than two days are cleaned up", /DELETE FROM public\.api_rate_limits[\s\S]*?window_start < now\(\) - interval '2 days'/.test(quotaSql)],
   ["usage attribution migration adds user_id", /ADD COLUMN IF NOT EXISTS user_id uuid/.test(usageSql)]
 ];
 
