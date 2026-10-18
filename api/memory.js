@@ -7,8 +7,8 @@ const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
-  if (req.method !== "GET" && req.method !== "POST") {
-    res.setHeader("Allow", "GET, POST");
+  if (req.method !== "GET" && req.method !== "POST" && req.method !== "DELETE") {
+    res.setHeader("Allow", "GET, POST, DELETE");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
@@ -30,6 +30,34 @@ module.exports = async function handler(req, res) {
   };
 
   try {
+    if (req.method === "DELETE") {
+      const rawId = req.query && req.query.id;
+      const memoryId = typeof rawId === "string" ? rawId : "";
+      if (!/^\\d{1,12}$/.test(memoryId)) {
+        return res.status(400).json({ error: "Invalid memory id" });
+      }
+
+      const deleteParams = new URLSearchParams({
+        id: `eq.${memoryId}`,
+        user_id: `eq.${user.id}`,
+        is_active: "eq.true",
+        select: "id"
+      });
+      const deleteResponse = await fetch(`${baseUrl}?${deleteParams}`, {
+        method: "PATCH",
+        headers: { ...headers, Prefer: "return=representation" },
+        body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() }),
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!deleteResponse.ok) {
+        console.error("Memory deactivation failed", deleteResponse.status);
+        return res.status(500).json({ error: "Failed to delete memory" });
+      }
+      const deactivated = await deleteResponse.json();
+      if (!deactivated.length) return res.status(404).json({ error: "Memory not found" });
+      return res.status(200).json({ ok: true });
+    }
+
     if (req.method === "GET") {
       const params = new URLSearchParams({
         select: "*",
