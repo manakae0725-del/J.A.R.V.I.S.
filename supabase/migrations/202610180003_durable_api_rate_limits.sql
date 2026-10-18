@@ -1,6 +1,7 @@
 -- J.A.R.V.I.S. durable per-user API rate limits.
 -- Apply only after review and before deploying code that calls consume_api_quota.
 -- Defaults are supplied by the API; the database enforces an atomic per-user/service minute window.
+-- This migration intentionally contains no data-deletion/retention operation.
 
 CREATE TABLE IF NOT EXISTS public.api_rate_limits (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -40,10 +41,6 @@ BEGIN
     RAISE EXCEPTION 'Invalid quota request';
   END IF;
 
-  -- Opportunistic retention cleanup keeps this table bounded without requiring pg_cron.
-  DELETE FROM public.api_rate_limits
-  WHERE window_start < now() - interval '2 days';
-
   v_window_start := date_trunc('minute', now());
 
   INSERT INTO public.api_rate_limits (user_id, service, window_start, request_count)
@@ -63,8 +60,3 @@ $$;
 
 REVOKE ALL ON FUNCTION public.consume_api_quota(uuid, text, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.consume_api_quota(uuid, text, integer) TO service_role;
-
--- Retention note: old minute windows are not needed for quota enforcement.
--- After validating the project has no scheduled maintenance job, configure a
--- reviewed scheduled DELETE for rows older than 2 days, or run manually:
--- DELETE FROM public.api_rate_limits WHERE window_start < now() - interval '2 days';
