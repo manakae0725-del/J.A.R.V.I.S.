@@ -40,6 +40,10 @@ BEGIN
     RAISE EXCEPTION 'Invalid quota request';
   END IF;
 
+  -- Opportunistic retention cleanup keeps this table bounded without requiring pg_cron.
+  DELETE FROM public.api_rate_limits
+  WHERE window_start < now() - interval '2 days';
+
   v_window_start := date_trunc('minute', now());
 
   INSERT INTO public.api_rate_limits (user_id, service, window_start, request_count)
