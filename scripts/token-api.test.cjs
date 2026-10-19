@@ -21,6 +21,7 @@ async function runToken({ method = "POST", authorization, authStatus = 200 } = {
   const originalEnv = {
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+    SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   };
   const originalModules = new Map(
@@ -30,6 +31,7 @@ async function runToken({ method = "POST", authorization, authStatus = 200 } = {
 
   process.env.SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_ANON_KEY = "test-anon-key";
+  process.env.SUPABASE_SECRET_KEY = "test-service-secret";
   process.env.GEMINI_API_KEY = "test-gemini-key";
 
   delete require.cache[authPath];
@@ -44,6 +46,9 @@ async function runToken({ method = "POST", authorization, authStatus = 200 } = {
         status: authStatus,
         async json() { return { id: "user-A" }; },
       };
+    }
+    if (String(url).includes("/rest/v1/rpc/consume_api_quota")) {
+      return { ok: true, status: 200, async json() { return true; } };
     }
     if (String(url).includes("/v1beta/auth_tokens")) {
       return {
@@ -109,8 +114,9 @@ test("token endpoint issues a token only after session authentication", async ()
   });
   assert.equal(res.statusCode, 200);
   assert.deepEqual(res.body, { token: "test-ephemeral-token" });
-  assert.equal(requests.length, 2);
+  assert.equal(requests.length, 3);
   assert.ok(requests[0].url.endsWith("/auth/v1/user"));
-  assert.ok(requests[1].url.includes("/v1beta/auth_tokens"));
-  assert.equal(requests[1].options.method, "POST");
+  assert.ok(requests[1].url.includes("/rest/v1/rpc/consume_api_quota"));
+  assert.ok(requests[2].url.includes("/v1beta/auth_tokens"));
+  assert.equal(requests[2].options.method, "POST");
 });
