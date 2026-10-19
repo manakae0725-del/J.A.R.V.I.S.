@@ -23,3 +23,5 @@ jobs:
         run: node scripts/security-source-check.mjs
       - name: Run mocked memory API tests
         run: node --test scripts/memory-api.test.cjs
+      - name: Run mocked Gemini token API tests
+        run: node --test scripts/token-api.test.cjs
