@@ -9,7 +9,9 @@ Status: review branch only. No production merge or Supabase migration has been e
 3. Review `202610180002_assign_legacy_memories.sql` against the actual rows. It assumes IDs 2–7 are the six NULL-owned rows and that ID 7 contains the misspelled name. Do not run it if either assumption is false.
 4. Review and apply `202610180001_api_usage_user_id.sql` before deploying code that writes `api_usage.user_id`.
 5. Review and apply `202610180003_durable_api_rate_limits.sql`. This is required before deploying the code that calls `rpc/consume_api_quota`; otherwise paid API endpoints will fail closed with HTTP 503.
-6. Only after the database migrations succeed, deploy to Preview and run the tests below. Do not merge to main until all blocking tests pass.
+6. Review and apply `202610180004_revoke_direct_client_table_access.sql` only after confirming all intended access paths use the server API.
+7. Review and apply `202610190001_cleanup_api_rate_limits.sql` after the rate-limit table exists. It creates a bounded cleanup function but does not schedule or execute it.
+8. Only after the database migrations succeed, deploy to Preview and run the tests below. Do not merge to main until all blocking tests pass.
 
 ## Required tests on Preview
 
@@ -35,5 +37,23 @@ Status: review branch only. No production merge or Supabase migration has been e
 
 - These checks have not been run against the live Supabase/Vercel environment.
 - Rate limits are per-minute request ceilings, not daily/monthly spend caps.
-- Retention cleanup for old `api_rate_limits` rows remains to be scheduled or manually run after review.
+- Retention cleanup is implemented as a database function, but no schedule has been created and no cleanup has been run. Before enabling it, check whether `pg_cron` is installed:
+  ```sql
+  SELECT extname FROM pg_extension WHERE extname = 'pg_cron';
+  ```
+  If it is installed, inspect existing jobs first:
+  ```sql
+  SELECT jobid, jobname, schedule, command
+  FROM cron.job
+  WHERE jobname = 'cleanup-api-rate-limits-daily';
+  ```
+  If no job exists and a daily 03:17 UTC run is suitable for the project, schedule it with:
+  ```sql
+  SELECT cron.schedule(
+    'cleanup-api-rate-limits-daily',
+    '17 3 * * *',
+    $$SELECT public.cleanup_api_rate_limits();$$
+  );
+  ```
+  Confirm the project's cron timezone and monitor `cron.job_run_details` after scheduling. If `pg_cron` is unavailable, use an approved external scheduler or a reviewed manual run of `SELECT public.cleanup_api_rate_limits();`. These are instructions only; no production SQL has been executed.
 - The `/api/token` endpoint has no caller in the inspected browser source; confirm there is no external caller before removing it.
