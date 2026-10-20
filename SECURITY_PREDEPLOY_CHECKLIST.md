@@ -1,17 +1,28 @@
 # J.A.R.V.I.S. Security Pre-deployment Checklist
 
-Status: review branch only. No production merge or Supabase migration has been executed.
+Status: review branch only. No production merge or Vercel deployment has been executed. Read-only Supabase inspection was performed on 2026-10-20; no SQL changes were made during that inspection.
+
+## Verified Supabase state (read-only, 2026-10-20)
+
+- `public.memories`: 8 rows; inspected rows already have a non-NULL owner. Do not run `202610180002_assign_legacy_memories.sql`; its legacy ownership/content assumptions do not match the live data.
+- `public.api_usage`: 351 rows; all 351 have `user_id IS NULL`. The nullable UUID column and `api_usage_user_id_created_at_idx` already exist, but the foreign key to `auth.users(id)` was absent. The proposed migration 001 leaves historical NULL values unchanged and adds the missing foreign key.
+- `public.api_rate_limits`: table exists with the expected four columns, checks, foreign key, primary key, and window index.
+- `public.consume_api_quota(uuid,text,integer)`: function exists; it is SECURITY DEFINER with an empty search_path; EXECUTE is false for anon/authenticated and true for service_role.
+- `public.cleanup_api_rate_limits()`: function exists; it is SECURITY DEFINER with an empty search_path; EXECUTE is false for anon/authenticated and true for service_role.
+- `cron.job` resolves to NULL in this database, so the pg_cron job table is not available under that name. No scheduled cleanup was verified.
+- RLS is enabled on `memories` and `api_usage`, but no policies were returned for either table. The screenshots showed direct table grants to anon/authenticated. Do not revoke those grants until backup and all access paths are confirmed.
+- Browser source review found memory requests going through `/api/memory`; no direct browser REST access to `memories` or `api_usage` was found in the searched source. This is not a substitute for Preview tests or checking other clients.
 
 ## Blocking order
 
-1. Confirm the Vercel project and environment scope for Preview and Production. Never expose environment variable values.
-2. In Supabase SQL Editor, inspect the exact columns, row IDs, content, ownership, grants, and RLS state for `public.memories` and `public.api_usage`. Export a backup before any data update.
-3. Review `202610180002_assign_legacy_memories.sql` against the actual rows. It assumes IDs 2–7 are the six NULL-owned rows and that ID 7 contains the misspelled name. Do not run it if either assumption is false.
-4. Review and apply `202610180001_api_usage_user_id.sql` before deploying code that writes `api_usage.user_id`.
-5. Review and apply `202610180003_durable_api_rate_limits.sql`. This is required before deploying the code that calls `rpc/consume_api_quota`; otherwise paid API endpoints will fail closed with HTTP 503.
-6. Review and apply `202610180004_revoke_direct_client_table_access.sql` only after confirming all intended access paths use the server API.
-7. Review and apply `202610190001_cleanup_api_rate_limits.sql` after the rate-limit table exists. It creates a bounded cleanup function but does not schedule or execute it.
-8. Only after the database migrations succeed, deploy to Preview and run the tests below. Do not merge to main until all blocking tests pass.
+1. Confirm the correct Vercel project and Preview/Production environment scope. Never expose environment variable values.
+2. Take/export a backup before any data-changing operation or privilege changes.
+3. Do not run `202610180002_assign_legacy_memories.sql`; live memory ownership does not match its assumptions.
+4. Review and apply `202610180001_api_usage_user_id.sql` to add the missing foreign key. The column/index already exist and historical rows remain NULL. This is the next database change, subject to the user's explicit execution in Supabase.
+5. The live schema already contains the expected table/function/privileges for `202610180003_durable_api_rate_limits.sql`; compare the migration definition with the live definitions before deciding whether reapplying is needed. The deployed code fails closed with HTTP 503 if the quota RPC is unavailable.
+6. Apply `202610180004_revoke_direct_client_table_access.sql` only after backup and confirming all intended clients use server APIs. It removes direct privileges for PUBLIC, anon, and authenticated on `memories` and `api_usage`.
+7. The cleanup function from `202610190001_cleanup_api_rate_limits.sql` already exists. Do not schedule cleanup until the available scheduler, timezone, and existing jobs are confirmed. No cleanup job has been verified.
+8. Only after the database state is confirmed, deploy to Vercel Preview and run all tests below. Do not merge to main until all blockers pass.
 
 ## Required tests on Preview
 
@@ -30,30 +41,13 @@ Status: review branch only. No production merge or Supabase migration has been e
 ## Deployment rollback
 
 - Keep the previous production deployment available for rollback.
-- Database migrations are additive except the explicit legacy memory ownership/content update; review that update separately.
+- Database changes should be additive except the explicit legacy memory ownership/content update; do not run that update against the current data.
 - If Preview fails, do not promote. Capture status codes and sanitized logs only; never paste tokens, keys, or personal conversation contents.
 
 ## Current known limitations
 
-- These checks have not been run against the live Supabase/Vercel environment.
+- CI uses mocked tests and has not validated the live Supabase/Vercel environment.
 - Rate limits are per-minute request ceilings, not daily/monthly spend caps.
-- Retention cleanup is implemented as a database function, but no schedule has been created and no cleanup has been run. Before enabling it, check whether `pg_cron` is installed:
-  ```sql
-  SELECT extname FROM pg_extension WHERE extname = 'pg_cron';
-  ```
-  If it is installed, inspect existing jobs first:
-  ```sql
-  SELECT jobid, jobname, schedule, command
-  FROM cron.job
-  WHERE jobname = 'cleanup-api-rate-limits-daily';
-  ```
-  If no job exists and a daily 03:17 UTC run is suitable for the project, schedule it with:
-  ```sql
-  SELECT cron.schedule(
-    'cleanup-api-rate-limits-daily',
-    '17 3 * * *',
-    $$SELECT public.cleanup_api_rate_limits();$$
-  );
-  ```
-  Confirm the project's cron timezone and monitor `cron.job_run_details` after scheduling. If `pg_cron` is unavailable, use an approved external scheduler or a reviewed manual run of `SELECT public.cleanup_api_rate_limits();`. These are instructions only; no production SQL has been executed.
+- Cleanup function exists, but no schedule has been verified. First identify an approved scheduler and check existing jobs; never assume pg_cron is installed.
 - The `/api/token` endpoint has no caller in the inspected browser source; confirm there is no external caller before removing it.
+- Browser source review found no direct REST calls to `memories` or `api_usage`, but this must be rechecked against all clients before revoking table privileges.
