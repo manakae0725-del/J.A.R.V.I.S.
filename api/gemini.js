@@ -93,6 +93,7 @@ module.exports = async function handler(req, res) {
 
     if (
       previousInteractionId !== undefined &&
+      previousInteractionId !== null &&
       (typeof previousInteractionId !== "string" || previousInteractionId.length > 200)
     ) {
       return res.status(400).json({ error: "Invalid conversation state." });
