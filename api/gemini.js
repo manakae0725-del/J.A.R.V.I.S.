@@ -517,8 +517,13 @@ Snippet: ${snippet}
     // Tavily Fallback
     // ==========================================
 
+const hasUsefulWeatherDetails =
+  /最高気温|最高[：:]?\\s*[-+]?\\d|\\d\\s*℃[^\\n]{0,30}(?:最高|最低)|最低気温|最低[：:]?\\s*[-+]?\\d|降水確率|降水[：:]?\\s*\\d/.test(searchContext);
+
 if (
-  (!searchContext || isWeatherQuestion && !searchContext.includes("[Serper Weather]")) &&
+  (!searchContext ||
+    (isWeatherQuestion &&
+      (!searchContext.includes("[Serper Weather]") || !hasUsefulWeatherDetails))) &&
   tavilyKey &&
   isSearchQuestion
 ) {
