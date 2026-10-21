@@ -22,7 +22,7 @@ async function runGemini(body, providerResponse) {
   global.fetch = async (url, options = {}) => {
     requests.push({ url: String(url), options });
     if (String(url).includes("/rest/v1/api_usage")) return { ok: true, status: 201, async json() { return {}; } };
-    if (String(url).includes("/v1/interactions") && providerResponse) return providerResponse;
+    if (String(url).includes("/v1/interactions") && providerResponse) {\n      if (providerResponse instanceof Error) throw providerResponse;\n      return providerResponse;\n    }
     throw new Error("Unexpected outbound request");
   };
   try {
@@ -140,13 +140,14 @@ test("Gemini network failure returns a sanitized 502 and logs only safe metadata
 test("Gemini timeout returns a sanitized 504 and logs a failed request", async () => {
   const timeout = new Error("private timeout detail");
   timeout.name = "AbortError";
-  const { res, requests } = await runGemini({ text: "timeout test" }, {
-    get ok() { throw timeout; }
-  });
-  // The test helper returns the fake response for the provider request; force the
-  // request itself to fail in the separate network-failure test above. Here we
-  // verify the timeout classification through a provider fetch rejection.
-  assert.equal(res.statusCode, 502);
-  assert.deepEqual(res.body, { error: "Gemini connection failed" });
-  assert.ok(requests.some(request => request.url.includes("/rest/v1/api_usage")));
+  const { res, requests } = await runGemini({ text: "timeout test" }, timeout);
+  assert.equal(res.statusCode, 504);
+  assert.deepEqual(res.body, { error: "Gemini request timed out" });
+  const logRequest = requests.find(request => request.url.includes("/rest/v1/api_usage"));
+  assert.ok(logRequest, "usage log request should be attempted");
+  const logBody = JSON.parse(logRequest.options.body);
+  assert.equal(logBody.success, false);
+  assert.equal(logBody.status_code, null);
+  assert.deepEqual(logBody.metadata, { failureType: "request_failed" });
+  assert.equal(JSON.stringify(logBody).includes("private timeout detail"), false);
 });
