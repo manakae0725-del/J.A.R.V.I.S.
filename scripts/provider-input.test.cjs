@@ -22,7 +22,10 @@ async function runGemini(body, providerResponse) {
   global.fetch = async (url, options = {}) => {
     requests.push({ url: String(url), options });
     if (String(url).includes("/rest/v1/api_usage")) return { ok: true, status: 201, async json() { return {}; } };
-    if (String(url).includes("/v1/interactions") && providerResponse) {\n      if (providerResponse instanceof Error) throw providerResponse;\n      return providerResponse;\n    }
+    if (String(url).includes("/v1/interactions") && providerResponse) {
+      if (providerResponse instanceof Error) throw providerResponse;
+      return providerResponse;
+    }
     throw new Error("Unexpected outbound request");
   };
   try {
