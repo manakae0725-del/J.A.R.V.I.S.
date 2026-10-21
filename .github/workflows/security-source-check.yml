@@ -25,6 +25,8 @@ jobs:
         run: node --test scripts/auth.test.cjs
       - name: Run rate-limit API tests
         run: node --test scripts/rate-limit.test.cjs
+      - name: Run memory input validation tests
+        run: node --test scripts/memory-input.test.cjs
       - name: Run mocked memory API tests
         run: node --test scripts/memory-api.test.cjs
       - name: Run mocked Gemini token API tests
