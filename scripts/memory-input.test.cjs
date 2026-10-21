@@ -54,8 +54,9 @@ async function runPost(body) {
 test("memory content at 5000 characters is accepted by input validation", async () => {
   const { res, requests } = await runPost({ category: "personal", content: "x".repeat(5000), importance: 3 });
   assert.notEqual(res.statusCode, 400);
-  assert.equal(requests.length, 1);
+  assert.equal(requests.length, 2);
   assert.ok(requests[0].url.includes("content=eq."));
+  assert.equal(JSON.parse(requests[1].options.body).content.length, 5000);
 });
 
 test("memory content over 5000 characters is rejected before database access", async () => {
