@@ -102,3 +102,11 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 - Next step for live Preview tests: restore/grant the Vercel integration access to the `manato2` team, then identify a READY deployment whose Git SHA matches the latest security branch before sending even unauthenticated API probes. Do not test against the older Preview URL known to be on a stale commit.
 - No Production deployment, Supabase mutation, or privilege change was performed.
 
+
+
+## Memory read/write test coverage added (2026-10-21, head `11c2ab1f61a746a5293b05de1a90d44c1154a953`)
+
+- Added `scripts/memory-read-write.test.cjs` to cover GET owner scoping, unauthenticated GET without database access, invalid POST payload rejection, normalized owner-scoped insertion, owner-scoped duplicate lookup/update, and sanitized database lookup errors.
+- Added this test file to `.github/workflows/security-source-check.yml`.
+- GitHub Actions run succeeded: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39571897143. All 12 validation steps passed, including the new memory read/write ownership tests.
+- These are mocked API tests; they do not replace authenticated live Preview testing or Kaede account-isolation testing. No production deployment, merge, or Supabase mutation was performed.
