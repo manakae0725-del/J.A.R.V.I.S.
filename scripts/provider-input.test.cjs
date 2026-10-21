@@ -5,7 +5,7 @@ const authPath = require.resolve("../api/_auth");
 const ratePath = require.resolve("../api/_rateLimit");
 const geminiPath = require.resolve("../api/gemini");
 
-async function runGemini(body) {
+async function runGemini(body, providerResponse) {
   const originalFetch = global.fetch;
   const envKeys = ["SUPABASE_URL", "SUPABASE_SECRET_KEY", "GEMINI_API_KEY", "SERPER_API_KEY", "TAVILY_API_KEY"];
   const originalEnv = Object.fromEntries(envKeys.map(k => [k, process.env[k]]));
@@ -22,7 +22,8 @@ async function runGemini(body) {
   global.fetch = async (url, options = {}) => {
     requests.push({ url: String(url), options });
     if (String(url).includes("/rest/v1/api_usage")) return { ok: true, status: 201, async json() { return {}; } };
-    throw new Error("Provider request should not run for invalid input");
+    if (String(url).includes("/v1/interactions") && providerResponse) return providerResponse;
+    throw new Error("Unexpected outbound request");
   };
   try {
     const handler = require("../api/gemini");
@@ -93,4 +94,27 @@ test("TTS rejects text above 3000 characters before calling paid provider", asyn
       if (modules.get(key)) require.cache[key] = modules.get(key);
     }
   }
+});
+
+
+test("Gemini non-OK response with non-JSON body returns sanitized 502", async () => {
+  const providerResponse = {
+    ok: false,
+    status: 500,
+    async json() { throw new Error("private provider response"); }
+  };
+  const { res } = await runGemini({ text: "hello" }, providerResponse);
+  assert.equal(res.statusCode, 502);
+  assert.deepEqual(res.body, { error: "AI service unavailable." });
+});
+
+test("Gemini successful HTTP response with invalid JSON returns sanitized 502", async () => {
+  const providerResponse = {
+    ok: true,
+    status: 200,
+    async json() { throw new Error("private provider response"); }
+  };
+  const { res } = await runGemini({ text: "hello" }, providerResponse);
+  assert.equal(res.statusCode, 502);
+  assert.deepEqual(res.body, { error: "AI service returned an invalid response." });
 });
