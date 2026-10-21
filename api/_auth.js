@@ -38,6 +38,14 @@ async function requireAuth(req, res) {
       }
     );
 
+    if (response.status >= 500) {
+      console.error("Supabase auth service returned an error", {
+        status: response.status
+      });
+      res.status(503).json({ error: "Authentication service unavailable" });
+      return null;
+    }
+
     if (!response.ok) {
       console.warn("Supabase session validation rejected", {
         status: response.status
