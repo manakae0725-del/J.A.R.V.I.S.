@@ -95,3 +95,10 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 - `api/memory.js` scopes GET, duplicate lookup, update, insert, and soft-delete operations to the authenticated user ID; DELETE has mocked tests for owner scoping, malformed IDs, not-found, database failure, and unauthenticated access. GET/POST behavior is still primarily code-reviewed rather than comprehensively covered by dedicated mocked tests.
 - No source change was made in this follow-up because the remaining high-value checks require either new test coverage or live environment/account access. Live Preview verification, Kaede account isolation, external `/api/token` caller confirmation, and Supabase permission changes remain outstanding/deferred. No Production merge/deployment or live database mutation was performed.
 
+## Test pass attempt (2026-10-21, head `ed1bd02cdeef340f5ed668480c9ae5cbc7f11450`)
+
+- CI for the latest head completed successfully: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39563709724
+- Attempted to locate the current Preview deployment for the security branch through the connected Vercel integration. The integration returned 403 because this connection is not authorized for team scope `team_manato2`; no Preview deployment was selected and no HTTP test requests were sent. This is an access blocker, not a failed application test.
+- Next step for live Preview tests: restore/grant the Vercel integration access to the `manato2` team, then identify a READY deployment whose Git SHA matches the latest security branch before sending even unauthenticated API probes. Do not test against the older Preview URL known to be on a stale commit.
+- No Production deployment, Supabase mutation, or privilege change was performed.
+
