@@ -29,6 +29,8 @@ jobs:
         run: node --test scripts/memory-input.test.cjs
       - name: Run Gemini and TTS input boundary tests
         run: node --test scripts/provider-input.test.cjs
+      - name: Run TTS provider response tests
+        run: node --test scripts/tts-provider.test.cjs
       - name: Run mocked memory API tests
         run: node --test scripts/memory-api.test.cjs
       - name: Run mocked Gemini token API tests
