@@ -55,7 +55,7 @@ async function runAuth({ authorization = "Bearer test-session", status = 200, pa
 }
 
 test("missing bearer token returns 401 without calling Supabase", async () => {
-  const { user, res, requests } = await runAuth({ authorization: undefined });
+  const { user, res, requests } = await runAuth({ authorization: null });
   assert.equal(user, null);
   assert.equal(res.statusCode, 401);
   assert.deepEqual(res.body, { error: "Authentication required" });
