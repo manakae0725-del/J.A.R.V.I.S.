@@ -94,6 +94,7 @@ test("TTS success returns audio and does not expose provider credentials", async
   }));
   assert.equal(res.statusCode, 200);
   assert.deepEqual(res.body, { audio: "AQID" });
+  assert.equal(JSON.stringify(res.body).includes("test-elevenlabs"), false);
   const providerRequest = requests.find(request => request.url.includes("api.elevenlabs.io"));
   assert.ok(providerRequest);
   assert.equal(providerRequest.options.headers["xi-api-key"], "test-elevenlabs");
