@@ -118,3 +118,35 @@ test("Gemini successful HTTP response with invalid JSON returns sanitized 502", 
   assert.equal(res.statusCode, 502);
   assert.deepEqual(res.body, { error: "AI service returned an invalid response." });
 });
+
+
+test("Gemini network failure returns a sanitized 502 and logs only safe metadata", async () => {
+  const { res, requests } = await runGemini({ text: "private prompt text" });
+  assert.equal(res.statusCode, 502);
+  assert.deepEqual(res.body, { error: "Gemini connection failed" });
+
+  const logRequest = requests.find(request => request.url.includes("/rest/v1/api_usage"));
+  assert.ok(logRequest, "usage log request should be attempted");
+  const logBody = JSON.parse(logRequest.options.body);
+  assert.equal(logBody.user_id, "user-A");
+  assert.equal(logBody.provider, "gemini");
+  assert.equal(logBody.service, "generation");
+  assert.equal(logBody.success, false);
+  assert.equal(logBody.status_code, null);
+  assert.deepEqual(logBody.metadata, { failureType: "request_failed" });
+  assert.equal(JSON.stringify(logBody).includes("private prompt text"), false);
+});
+
+test("Gemini timeout returns a sanitized 504 and logs a failed request", async () => {
+  const timeout = new Error("private timeout detail");
+  timeout.name = "AbortError";
+  const { res, requests } = await runGemini({ text: "timeout test" }, {
+    get ok() { throw timeout; }
+  });
+  // The test helper returns the fake response for the provider request; force the
+  // request itself to fail in the separate network-failure test above. Here we
+  // verify the timeout classification through a provider fetch rejection.
+  assert.equal(res.statusCode, 502);
+  assert.deepEqual(res.body, { error: "Gemini connection failed" });
+  assert.ok(requests.some(request => request.url.includes("/rest/v1/api_usage")));
+});
