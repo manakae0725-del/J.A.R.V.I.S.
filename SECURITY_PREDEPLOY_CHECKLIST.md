@@ -110,3 +110,12 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 - Added this test file to `.github/workflows/security-source-check.yml`.
 - GitHub Actions run succeeded: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39571897143. All 12 validation steps passed, including the new memory read/write ownership tests.
 - These are mocked API tests; they do not replace authenticated live Preview testing or Kaede account-isolation testing. No production deployment, merge, or Supabase mutation was performed.
+
+
+## Additional provider failure tests (2026-10-21, head `f677569276c11ea709af0a1210fd7f03828e54a3`)
+
+- Extended mocked Gemini API tests to verify network failure and timeout classification, sanitized client errors, and owner-attributed usage logging with allowlisted metadata only.
+- Latest CI runs passed on this head: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39578090022 and https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39578082962.
+- Latest branch Preview deployment is READY for this commit. Attempts to fetch it through the connected Vercel integration still fail at the deployment-authentication redirect; no authenticated or unauthenticated application API request reached the app. Live endpoint checks remain blocked by deployment access, not marked as passed.
+- Production runtime error query for the previous 24 hours returned no error clusters. The Production runtime-log query for the previous 30 minutes returned no matching error/fatal records; absence of logs is not proof of healthy behavior.
+- No merge to `main`, Production deployment, Supabase mutation, or privilege change was performed.
