@@ -1087,13 +1087,17 @@ WEATHER RESPONSE RULES
       }
     });
 
-    const data = await response.json();
-
-
-
     if (!response.ok) {
       console.error("Gemini API request failed", { status: response.status });
       return res.status(502).json({ error: "AI service unavailable." });
+    }
+
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      console.error("Gemini API returned invalid JSON");
+      return res.status(502).json({ error: "AI service returned an invalid response." });
     }
 
     // ==========================================
