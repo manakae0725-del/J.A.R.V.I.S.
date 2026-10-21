@@ -13,7 +13,7 @@ const cleanupSql = read("../supabase/migrations/202610190001_cleanup_api_rate_li
 const usageSql = read("../supabase/migrations/202610180001_api_usage_user_id.sql");
 
 const checks = [
-  ["shared auth validates Supabase session", /\/auth\/v1\/user/.test(auth) && /if \(!response\.ok\)/.test(auth)],
+  ["shared auth validates Supabase session and distinguishes provider failures", /\/auth\/v1\/user/.test(auth) && /response\.status >= 500/.test(auth) && /if \(!response\.ok\)/.test(auth)],
   ["Gemini requires auth and quota", /requireAuth\(req, res\)/.test(gemini) && /consumeRateLimit\(user\.id, "gemini", res\)/.test(gemini)],
   ["Gemini usage logging authenticates to Supabase", gemini.includes("Authorization: `Bearer ${supabaseKey}`")],
   ["search quota is enforced", /consumeRateLimit\(user\.id, "search", res\)/.test(gemini)],
