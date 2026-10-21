@@ -78,3 +78,11 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 ## Backup timing decision (2026-10-21)
 
 真人さん explicitly confirmed that Supabase backup cannot be performed now and must wait until project completion. This is a planned deferral, not an outstanding request to ask again. Continue safe, non-destructive review and testing meanwhile. No direct table grant revocations, cleanup scheduling, destructive migration, or Production merge/deployment is authorized by this timing decision.
+
+## Additional review updates (2026-10-21, latest head `c01538eb9cb65dc08768256b00e4fd0d459a4682`)
+
+- Added a client-side account-change handler: when the authenticated user ID changes, clear in-memory browser memories, reset `previousInteractionId`, and clear the text input. This reduces accidental reuse of user-scoped client state; it does not replace live account-isolation tests.
+- Removed 22 `console.log` debug calls from `api/gemini.js`; a fresh source fetch confirmed no `console.log(` calls remain in that file. Sanitized `console.error` events remain for operational failures.
+- Repository-wide GitHub code search for `"/api/token"` found no caller in indexed repository files. This does not rule out external clients or callers outside the repository; keep the endpoint until those are ruled out.
+- CI passed for latest head `c01538eb9cb65dc08768256b00e4fd0d459a4682`: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39562980806
+- The PR remains draft and unmerged. No live Preview requests, Production deployment, or Supabase privilege/data changes were performed as part of these updates.
