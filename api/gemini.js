@@ -274,7 +274,7 @@ module.exports = async function handler(req, res) {
     // ==========================================
 
     if (serperKey && isSearchQuestion) {
-      console.log("[DEBUG] Serper: START");
+      
 
       const serperStart = Date.now();
 
@@ -283,10 +283,10 @@ module.exports = async function handler(req, res) {
           ? "https://google.serper.dev/news"
           : "https://google.serper.dev/search";
 
-        console.log(
-          "[DEBUG] Serper endpoint:",
-          serperEndpoint
-        );
+        
+
+
+
 
         const response = await fetch(
           serperEndpoint,
@@ -309,10 +309,10 @@ module.exports = async function handler(req, res) {
         const serperDuration =
           Date.now() - serperStart;
 
-        console.log(
-          "[DEBUG] Serper HTTP status:",
-          response.status
-        );
+        
+
+
+
 
         await logApiUsage({
           userId: user.id,
@@ -339,30 +339,30 @@ module.exports = async function handler(req, res) {
             ? data.news.length
             : 0;
 
-          console.log(
-            "[DEBUG] Serper organic count:",
-            organicCount
-          );
+          
 
-          console.log(
-            "[DEBUG] Serper news count:",
-            newsCount
-          );
 
-          console.log(
-            "[DEBUG] Serper answerBox:",
-            !!data.answerBox
-          );
 
-          console.log(
-            "[DEBUG] Serper knowledgeGraph:",
-            !!data.knowledgeGraph
-          );
 
-          console.log(
-            "[DEBUG] Serper weather:",
-            !!data.weather
-          );
+          
+
+
+
+
+          
+
+
+
+
+          
+
+
+
+
+          
+
+
+
 
 
 
@@ -472,15 +472,15 @@ Snippet: ${snippet}
             }
           }
 
-          console.log(
-            "[DEBUG] SearchContext length after Serper:",
-            searchContext.length
-          );
+          
 
-          console.log(
-            "[DEBUG] Sources count after Serper:",
-            sources.length
-          );
+
+
+
+          
+
+
+
         } else {
           console.error("[SEARCH] Serper returned a non-success status", { status: response.status });
         }
@@ -508,9 +508,9 @@ Snippet: ${snippet}
         });
       }
     } else {
-      console.log(
-        "[DEBUG] Serper: API key not configured"
-      );
+      
+
+
     }
 
     // ==========================================
@@ -534,9 +534,9 @@ if (
   isSearchQuestion
 ) {
 
-      console.log(
-        "[DEBUG] Tavily fallback: START"
-      );
+      
+
+
 
       const tavilyStart = Date.now();
 
@@ -564,10 +564,10 @@ if (
         const tavilyDuration =
           Date.now() - tavilyStart;
 
-        console.log(
-          "[DEBUG] Tavily HTTP status:",
-          response.status
-        );
+        
+
+
+
 
         await logApiUsage({
           userId: user.id,
@@ -590,15 +590,15 @@ if (
               ? data.results.length
               : 0;
 
-          console.log(
-            "[DEBUG] Tavily result count:",
-            tavilyResultCount
-          );
+          
 
-          console.log(
-            "[DEBUG] Tavily answer:",
-            !!data.answer
-          );
+
+
+
+          
+
+
+
 
           if (data.answer) {
             searchContext += `
@@ -628,15 +628,15 @@ Content: ${result.content || ""}
             }
           }
 
-          console.log(
-            "[DEBUG] SearchContext length after Tavily:",
-            searchContext.length
-          );
+          
 
-          console.log(
-            "[DEBUG] Sources count after Tavily:",
-            sources.length
-          );
+
+
+
+          
+
+
+
         } else {
           console.error("[SEARCH] Tavily returned a non-success status", { status: response.status });
         }
@@ -663,24 +663,24 @@ Content: ${result.content || ""}
         });
       }
     } else if (!searchContext) {
-      console.log(
-        "[DEBUG] Tavily fallback: NOT USED"
-      );
+      
+
+
     }
 
     // ==========================================
     // Final Search Debug
     // ==========================================
 
-    console.log(
-      "[DEBUG] Final searchContext length:",
-      searchContext.length
-    );
+    
 
-    console.log(
-      "[DEBUG] Final sources count:",
-      sources.length
-    );
+
+
+
+    
+
+
+
 
     // ==========================================
     // Gemini Input
@@ -1001,14 +1001,14 @@ WEATHER RESPONSE RULES
     // Gemini Debug
     // ==========================================
 
-    console.log(
-      "[DEBUG] Gemini input searchContext length:",
-      searchContext.length
-    );
+    
 
-    console.log(
-      "[DEBUG] Gemini request: START"
-    );
+
+
+
+    
+
+
 
     // ==========================================
     // Gemini Interactions API
