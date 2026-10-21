@@ -18,6 +18,8 @@ const checks = [
   ["Gemini usage logging authenticates to Supabase", gemini.includes("Authorization: `Bearer ${supabaseKey}`")],
   ["search quota is enforced", /consumeRateLimit\(user\.id, "search", res\)/.test(gemini)],
   ["Gemini input and context bounds exist", /text\.length > 12000/.test(gemini) && /memoryContext\.length > 12000/.test(gemini)],
+  ["Gemini provider error JSON parsing is sanitized", /if \(!response\.ok\)[\\s\\S]*?let data;[\\s\\S]*?data = await response\.json\(\)/.test(gemini) && /AI service returned an invalid response\./.test(gemini)],
+  ["Search logs do not directly log raw user query or prompt", !/console\.(?:log|warn|error)\([^;]*(?:searchQuery|rawText|memoryContext|req\.body|spokenText)/s.test(gemini)],
   ["TTS requires auth, quota, and text bound", /requireAuth\(req, res\)/.test(tts) && /consumeRateLimit\(user\.id, "tts", res\)/.test(tts) && /text\.length > 3000/.test(tts)],
   ["memory queries are scoped to authenticated user", (memory.match(/user_id: `eq\.\${user\.id\}`/g) || []).length >= 3 && /user_id: user\.id/.test(memory)],
   ["memory REST requests authenticate with the service key", memory.includes("Authorization: `Bearer ${SUPABASE_SECRET_KEY}`")],
