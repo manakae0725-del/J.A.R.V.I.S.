@@ -10,17 +10,17 @@ Status: review branch only. No production merge or Vercel deployment has been ex
 - `public.consume_api_quota(uuid,text,integer)`: function exists; it is SECURITY DEFINER with an empty search_path; EXECUTE is false for anon/authenticated and true for service_role.
 - `public.cleanup_api_rate_limits()`: function exists; it is SECURITY DEFINER with an empty search_path; EXECUTE is false for anon/authenticated and true for service_role.
 - `cron.job` resolves to NULL in this database, so the pg_cron job table is not available under that name. No scheduled cleanup was verified.
-- RLS is enabled on `memories` and `api_usage`, but no policies were returned for either table. The screenshots showed direct table grants to anon/authenticated. Do not revoke those grants until backup and all access paths are confirmed.
+- RLS is enabled on `memories` and `api_usage`, but no policies were returned for either table. The screenshots showed direct table grants to anon/authenticated. Per 真人さん’s instruction, backup is deferred until project completion; keep these grants unchanged for now and do not run privilege-changing SQL. Reassess after backup and confirmation of all access paths.
 - Browser source review found memory requests going through `/api/memory`; no direct browser REST access to `memories` or `api_usage` was found in the searched source. This is not a substitute for Preview tests or checking other clients.
 
 ## Blocking order
 
 1. Confirm the correct Vercel project and Preview/Production environment scope. Never expose environment variable values.
-2. Take/export a backup before any data-changing operation or privilege changes.
+2. Backup is deferred until the project is complete, per 真人さん’s explicit instruction. Until then, continue only non-destructive code review, CI, and Preview checks; do not perform database data changes, privilege revocations, or other irreversible Supabase operations.
 3. Do not run `202610180002_assign_legacy_memories.sql`; live memory ownership does not match its assumptions.
 4. Completed: `api_usage_user_id_fkey` was added and verified in Supabase SQL Editor. Do not re-run migration 001 blindly; the live foreign key is already present.
 5. The live schema already contains the expected table/function/privileges for `202610180003_durable_api_rate_limits.sql`; compare the migration definition with the live definitions before deciding whether reapplying is needed. The deployed code fails closed with HTTP 503 if the quota RPC is unavailable.
-6. Apply `202610180004_revoke_direct_client_table_access.sql` only after backup and confirming all intended clients use server APIs. It removes direct privileges for PUBLIC, anon, and authenticated on `memories` and `api_usage`.
+6. Deferred until project completion and backup: do not apply `202610180004_revoke_direct_client_table_access.sql` yet. Before that future step, confirm all intended clients use server APIs. The migration removes direct privileges for PUBLIC, anon, and authenticated on `memories` and `api_usage`.
 7. The cleanup function from `202610190001_cleanup_api_rate_limits.sql` already exists. Do not schedule cleanup until the available scheduler, timezone, and existing jobs are confirmed. No cleanup job has been verified.
 8. Run the required tests against the existing Vercel Preview deployment and record actual outcomes. The available remote request check was blocked, so these tests remain unverified. Do not merge to main until blockers pass.
 
@@ -73,3 +73,8 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 - Rate limits are checked before request-body validation on Gemini/TTS/token routes. This intentionally prevents repeated malformed requests from bypassing request quotas, but invalid requests can consume quota. Keep this as a documented behavior unless product requirements say otherwise.
 - No live Preview requests were performed during this review. Do not mark the live checklist items complete based on CI.
 - Kaede account isolation remains pending until both intended accounts are available.
+
+
+## Backup timing decision (2026-10-21)
+
+真人さん explicitly confirmed that Supabase backup cannot be performed now and must wait until project completion. This is a planned deferral, not an outstanding request to ask again. Continue safe, non-destructive review and testing meanwhile. No direct table grant revocations, cleanup scheduling, destructive migration, or Production merge/deployment is authorized by this timing decision.
