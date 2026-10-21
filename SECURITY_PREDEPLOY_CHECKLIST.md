@@ -51,3 +51,25 @@ Status: review branch only. No production merge or Vercel deployment has been ex
 - Cleanup function exists, but no schedule has been verified. First identify an approved scheduler and check existing jobs; never assume pg_cron is installed.
 - The `/api/token` endpoint has no caller in the inspected browser source; confirm there is no external caller before removing it.
 - Browser source review found no direct REST calls to `memories` or `api_usage`, but this must be rechecked against all clients before revoking table privileges.
+
+## Automated checks updated 2026-10-21 (security branch only)
+
+Latest confirmed successful GitHub Actions run: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39535805612
+
+Covered by CI mocks/static checks:
+- Shared authentication: missing bearer token, invalid session, Supabase 5xx, network failure, malformed user payload, valid session.
+- Rate limit: allow, deny/429 headers, RPC HTTP failure/network failure fail closed with 503, independent user keys, unexpected non-boolean response.
+- Memory input boundaries: content at 5,000 characters, content over 5,000, category over 100, invalid importance values.
+- Gemini/TTS boundaries: Gemini text over 12,000, memory context over 12,000, previous interaction ID over 200, TTS text over 3,000; invalid inputs must not call paid providers.
+- Gemini provider response failures: malformed JSON and non-OK provider response return sanitized errors.
+- Existing mocked memory API and token API tests continue to pass.
+- Static source checks include auth failure classification, authenticated quota checks, memory owner scoping, bounded requests, function grants, and a source-level check that raw query/prompt variables are not directly passed to console logging.
+
+These checks do not validate live Vercel Preview, live Supabase grants/RLS, real quota counter behavior, account separation, provider timeouts under live conditions, actual logs, or cost attribution.
+
+## Current branch review notes (2026-10-21)
+
+- api/gemini.js: provider HTTP non-OK is now checked before JSON parsing; malformed JSON from a successful provider response returns a sanitized 502. No direct logging of raw searchQuery, rawText, memoryContext, request body, or TTS spoken text was found by the current source-level check. Existing debug logs still emit endpoint/status/count/boolean/context-length metadata; remove or reduce these before Production if operationally unnecessary.
+- Rate limits are checked before request-body validation on Gemini/TTS/token routes. This intentionally prevents repeated malformed requests from bypassing request quotas, but invalid requests can consume quota. Keep this as a documented behavior unless product requirements say otherwise.
+- No live Preview requests were performed during this review. Do not mark the live checklist items complete based on CI.
+- Kaede account isolation remains pending until both intended accounts are available.
