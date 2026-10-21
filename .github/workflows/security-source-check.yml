@@ -33,5 +33,7 @@ jobs:
         run: node --test scripts/tts-provider.test.cjs
       - name: Run mocked memory API tests
         run: node --test scripts/memory-api.test.cjs
+      - name: Run memory read/write ownership tests
+        run: node --test scripts/memory-read-write.test.cjs
       - name: Run mocked Gemini token API tests
         run: node --test scripts/token-api.test.cjs
