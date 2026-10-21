@@ -86,3 +86,12 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 - Repository-wide GitHub code search for `"/api/token"` found no caller in indexed repository files. This does not rule out external clients or callers outside the repository; keep the endpoint until those are ruled out.
 - CI passed for latest head `c01538eb9cb65dc08768256b00e4fd0d459a4682`: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39562980806
 - The PR remains draft and unmerged. No live Preview requests, Production deployment, or Supabase privilege/data changes were performed as part of these updates.
+
+## Follow-up review (2026-10-21, head `9c5141d1c2f2e1c3ba80fbe6864aee5229f7e4e1`)
+
+- Latest CI run for the checklist commit completed successfully: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39563204632
+- Re-reviewed the browser auth flow: the browser obtains a session token through `jarvisGetAccessToken`; auth-state changes clear the in-memory memories, prior Gemini interaction ID, and text input when the user ID changes (including sign-out). This is defense in depth only; live account switching still needs testing.
+- Remaining browser console messages observed are generic UI/audio status messages; no transcript text is included in the speech-recognition success log. `api/gemini.js` has no remaining `console.log(` calls. Operational `console.error` calls remain in API handlers.
+- `api/memory.js` scopes GET, duplicate lookup, update, insert, and soft-delete operations to the authenticated user ID; DELETE has mocked tests for owner scoping, malformed IDs, not-found, database failure, and unauthenticated access. GET/POST behavior is still primarily code-reviewed rather than comprehensively covered by dedicated mocked tests.
+- No source change was made in this follow-up because the remaining high-value checks require either new test coverage or live environment/account access. Live Preview verification, Kaede account isolation, external `/api/token` caller confirmation, and Supabase permission changes remain outstanding/deferred. No Production merge/deployment or live database mutation was performed.
+
