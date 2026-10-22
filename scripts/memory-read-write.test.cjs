@@ -153,3 +153,43 @@ test("POST sanitizes database errors during duplicate lookup", async () => {
   assert.equal(res.statusCode, 500);
   assert.deepEqual(res.body, { error: "Failed to save memory" });
 });
+
+test("GET sanitizes database read failures", async () => {
+  const { res, requests } = await runMemory({
+    method: "GET",
+    db: [[]],
+    dbStatuses: [503]
+  });
+  assert.equal(res.statusCode, 500);
+  assert.deepEqual(res.body, { error: "Failed to load memories" });
+  assert.equal(requests.length, 1);
+});
+
+test("POST sanitizes duplicate-memory update failures", async () => {
+  const { res, requests } = await runMemory({
+    method: "POST",
+    body: { category: "note", content: "same", importance: 4 },
+    db: [[{ id: 7 }], []],
+    dbStatuses: [200, 503]
+  });
+  assert.equal(res.statusCode, 500);
+  assert.deepEqual(res.body, { error: "Failed to save memory" });
+  assert.equal(requests.length, 2);
+  assert.equal(requests[1].options.method, "PATCH");
+  const update = new URL(requests[1].url);
+  assert.equal(update.searchParams.get("user_id"), "eq.user-A");
+});
+
+test("POST sanitizes new-memory insert failures", async () => {
+  const { res, requests } = await runMemory({
+    method: "POST",
+    body: { category: "note", content: "new memory", importance: 2 },
+    db: [[], []],
+    dbStatuses: [200, 503]
+  });
+  assert.equal(res.statusCode, 500);
+  assert.deepEqual(res.body, { error: "Failed to save memory" });
+  assert.equal(requests.length, 2);
+  assert.equal(requests[1].options.method, "POST");
+  assert.equal(JSON.parse(requests[1].options.body).user_id, "user-A");
+});
