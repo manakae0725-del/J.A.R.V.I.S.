@@ -135,3 +135,11 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 - Memory API tests now verify unauthenticated POST returns 401 without issuing database requests.
 - GitHub Actions security-source-check run passed: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39788409310. All configured workflow steps completed successfully.
 - These remain mocked tests; live Preview API probes and cross-account isolation remain pending. PR #2 remains open and draft. No production merge/deployment or Supabase data/privilege changes were performed.
+
+
+## Live Supabase privilege change (2026-10-22)
+
+- Applied `REVOKE ALL PRIVILEGES ON TABLE public.memories FROM PUBLIC, anon, authenticated` and the equivalent revoke on `public.api_usage` in Supabase SQL Editor, inside a transaction.
+- The post-change `has_table_privilege` query returned six rows. For both tables, all four privileges (SELECT, INSERT, UPDATE, DELETE) are `false` for `anon` and `authenticated`, and `true` for `service_role`.
+- This is verified from the user-provided live SQL Editor result screenshots. It confirms table grants only; it does not establish that authenticated Preview APIs work correctly.
+- Next: verify Preview API routes through the current deployment and run valid-session checks without exposing access tokens. Do not mark authenticated API behavior or cross-account isolation complete until actually tested.
