@@ -99,3 +99,24 @@ test("TTS success returns audio and does not expose provider credentials", async
   assert.ok(providerRequest);
   assert.equal(providerRequest.options.headers["xi-api-key"], "test-elevenlabs");
 });
+
+test("TTS empty audio payload returns a sanitized server error", async () => {
+  const { res } = await runTts(async () => ({
+    ok: true,
+    status: 200,
+    async arrayBuffer() { return new ArrayBuffer(0); }
+  }));
+  assert.equal(res.statusCode, 500);
+  assert.deepEqual(res.body, { error: "Audio data was not returned." });
+});
+
+test("TTS malformed audio response is sanitized as provider failure", async () => {
+  const { res } = await runTts(async () => ({
+    ok: true,
+    status: 200,
+    async arrayBuffer() { throw new Error("private audio response detail"); }
+  }));
+  assert.equal(res.statusCode, 502);
+  assert.deepEqual(res.body, { error: "TTS service unavailable." });
+  assert.equal(JSON.stringify(res.body).includes("private audio response detail"), false);
+});
