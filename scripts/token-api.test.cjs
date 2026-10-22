@@ -16,7 +16,7 @@ function makeRes() {
   };
 }
 
-async function runToken({ method = "POST", authorization, authStatus = 200 } = {}) {
+async function runToken({ method = "POST", authorization, authStatus = 200, quotaStatus = 200, quotaAllowed = true } = {}) {
   const originalFetch = global.fetch;
   const originalEnv = {
     SUPABASE_URL: process.env.SUPABASE_URL,
@@ -48,7 +48,7 @@ async function runToken({ method = "POST", authorization, authStatus = 200 } = {
       };
     }
     if (String(url).includes("/rest/v1/rpc/consume_api_quota")) {
-      return { ok: true, status: 200, async json() { return true; } };
+      return { ok: quotaStatus >= 200 && quotaStatus < 300, status: quotaStatus, async json() { return quotaAllowed; } };
     }
     if (String(url).includes("/v1beta/auth_tokens")) {
       return {
@@ -119,4 +119,29 @@ test("token endpoint issues a token only after session authentication", async ()
   assert.ok(requests[1].url.includes("/rest/v1/rpc/consume_api_quota"));
   assert.ok(requests[2].url.includes("/v1beta/auth_tokens"));
   assert.equal(requests[2].options.method, "POST");
+});
+
+test("token endpoint does not call Gemini when quota is exceeded", async () => {
+  const { res, requests } = await runToken({
+    method: "POST",
+    authorization: "Bearer valid-session",
+    quotaAllowed: false
+  });
+  assert.equal(res.statusCode, 429);
+  assert.deepEqual(res.body, { error: "Rate limit exceeded. Try again shortly." });
+  assert.equal(res.headers["Retry-After"], "60");
+  assert.equal(requests.length, 2);
+  assert.ok(requests[1].url.includes("/rest/v1/rpc/consume_api_quota"));
+});
+
+test("token endpoint fails closed when quota service is unavailable", async () => {
+  const { res, requests } = await runToken({
+    method: "POST",
+    authorization: "Bearer valid-session",
+    quotaStatus: 503
+  });
+  assert.equal(res.statusCode, 503);
+  assert.deepEqual(res.body, { error: "Usage protection unavailable" });
+  assert.equal(requests.length, 2);
+  assert.ok(requests[1].url.includes("/rest/v1/rpc/consume_api_quota"));
 });
