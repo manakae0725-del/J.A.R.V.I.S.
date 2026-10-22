@@ -119,3 +119,11 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 - Latest branch Preview deployment is READY for this commit. Attempts to fetch it through the connected Vercel integration still fail at the deployment-authentication redirect; no authenticated or unauthenticated application API request reached the app. Live endpoint checks remain blocked by deployment access, not marked as passed.
 - Production runtime error query for the previous 24 hours returned no error clusters. The Production runtime-log query for the previous 30 minutes returned no matching error/fatal records; absence of logs is not proof of healthy behavior.
 - No merge to `main`, Production deployment, Supabase mutation, or privilege change was performed.
+
+## Security test coverage update (2026-10-22, head `d3bd642979cd4a5673103d8b5b4b66f997c74d0a`)
+
+- Expanded mocked memory API tests for database read failures, duplicate-memory update failures, and new-memory insert failures; error responses are asserted to remain sanitized and ownership filters are checked where applicable.
+- Expanded authentication tests for malformed/non-Bearer authorization headers and the publishable-key fallback when the anon key is not configured.
+- Expanded rate-limit tests for invalid configured limits falling back to defaults, the configured limit cap of 1000, missing Supabase configuration failing closed without a network call, and unknown services being rejected.
+- GitHub Actions security-source-check run succeeded on this head: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39786992013. Static checks and all configured mocked test steps completed successfully.
+- The latest Vercel status check reports success for the commit, but this is not proof that the live API routes were exercised. Authenticated Preview endpoint tests and Kaede account-isolation testing remain pending. No merge to `main`, Production deployment, or Supabase data/privilege changes were performed.
