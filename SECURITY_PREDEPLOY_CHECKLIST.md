@@ -127,3 +127,11 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 - Expanded rate-limit tests for invalid configured limits falling back to defaults, the configured limit cap of 1000, missing Supabase configuration failing closed without a network call, and unknown services being rejected.
 - GitHub Actions security-source-check run succeeded on this head: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39786992013. Static checks and all configured mocked test steps completed successfully.
 - The latest Vercel status check reports success for the commit, but this is not proof that the live API routes were exercised. Authenticated Preview endpoint tests and Kaede account-isolation testing remain pending. No merge to `main`, Production deployment, or Supabase data/privilege changes were performed.
+
+## Additional mocked failure-path coverage (2026-10-22, head `56740aa229f21a1bd62b544dd2413cb4bc2c26d6`)
+
+- TTS tests now cover empty audio payloads and exceptions while reading provider audio, asserting sanitized error responses.
+- Token API tests now verify that quota denial returns 429 with `Retry-After` and does not proceed to the provider, and that quota service HTTP failure returns 503 (fail closed).
+- Memory API tests now verify unauthenticated POST returns 401 without issuing database requests.
+- GitHub Actions security-source-check run passed: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39788409310. All configured workflow steps completed successfully.
+- These remain mocked tests; live Preview API probes and cross-account isolation remain pending. PR #2 remains open and draft. No production merge/deployment or Supabase data/privilege changes were performed.
