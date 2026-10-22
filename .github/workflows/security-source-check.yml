@@ -1,0 +1,39 @@
+name: Security source checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [security-audit-baseline-2026-10-17]
+
+permissions:
+  contents: read
+
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run static security source checks
+        run: node scripts/security-source-check.mjs
+      - name: Run authentication API tests
+        run: node --test scripts/auth.test.cjs
+      - name: Run rate-limit API tests
+        run: node --test scripts/rate-limit.test.cjs
+      - name: Run memory input validation tests
+        run: node --test scripts/memory-input.test.cjs
+      - name: Run Gemini and TTS input boundary tests
+        run: node --test scripts/provider-input.test.cjs
+      - name: Run TTS provider response tests
+        run: node --test scripts/tts-provider.test.cjs
+      - name: Run mocked memory API tests
+        run: node --test scripts/memory-api.test.cjs
+      - name: Run memory read/write ownership tests
+        run: node --test scripts/memory-read-write.test.cjs
+      - name: Run mocked Gemini token API tests
+        run: node --test scripts/token-api.test.cjs

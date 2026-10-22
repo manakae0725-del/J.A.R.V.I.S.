@@ -1,0 +1,154 @@
+# J.A.R.V.I.S. Security Pre-deployment Checklist
+
+Status: review branch only. No production merge or Vercel deployment has been executed. Supabase read-only inspection was performed on 2026-10-20; the `api_usage` foreign key was subsequently added and verified in Supabase SQL Editor on 2026-10-20.
+
+## Verified Supabase state (read-only, 2026-10-20)
+
+- `public.memories`: 8 rows; inspected rows already have a non-NULL owner. Do not run `202610180002_assign_legacy_memories.sql`; its legacy ownership/content assumptions do not match the live data.
+- `public.api_usage`: 351 rows were observed with `user_id IS NULL`. The nullable UUID column and `api_usage_user_id_created_at_idx` already existed. The missing foreign key `api_usage_user_id_fkey` was added and then verified; its definition is `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL`. Historical NULL values were not changed.
+- `public.api_rate_limits`: table exists with the expected four columns, checks, foreign key, primary key, and window index.
+- `public.consume_api_quota(uuid,text,integer)`: function exists; it is SECURITY DEFINER with an empty search_path; EXECUTE is false for anon/authenticated and true for service_role.
+- `public.cleanup_api_rate_limits()`: function exists; it is SECURITY DEFINER with an empty search_path; EXECUTE is false for anon/authenticated and true for service_role.
+- `cron.job` resolves to NULL in this database, so the pg_cron job table is not available under that name. No scheduled cleanup was verified.
+- RLS is enabled on `memories` and `api_usage`, but no policies were returned for either table. The screenshots showed direct table grants to anon/authenticated. Per 真人さん’s instruction, backup is deferred until project completion; keep these grants unchanged for now and do not run privilege-changing SQL. Reassess after backup and confirmation of all access paths.
+- Browser source review found memory requests going through `/api/memory`; no direct browser REST access to `memories` or `api_usage` was found in the searched source. This is not a substitute for Preview tests or checking other clients.
+
+## Blocking order
+
+1. Confirm the correct Vercel project and Preview/Production environment scope. Never expose environment variable values.
+2. Backup is deferred until the project is complete, per 真人さん’s explicit instruction. Until then, continue only non-destructive code review, CI, and Preview checks; do not perform database data changes, privilege revocations, or other irreversible Supabase operations.
+3. Do not run `202610180002_assign_legacy_memories.sql`; live memory ownership does not match its assumptions.
+4. Completed: `api_usage_user_id_fkey` was added and verified in Supabase SQL Editor. Do not re-run migration 001 blindly; the live foreign key is already present.
+5. The live schema already contains the expected table/function/privileges for `202610180003_durable_api_rate_limits.sql`; compare the migration definition with the live definitions before deciding whether reapplying is needed. The deployed code fails closed with HTTP 503 if the quota RPC is unavailable.
+6. Deferred until project completion and backup: do not apply `202610180004_revoke_direct_client_table_access.sql` yet. Before that future step, confirm all intended clients use server APIs. The migration removes direct privileges for PUBLIC, anon, and authenticated on `memories` and `api_usage`.
+7. The cleanup function from `202610190001_cleanup_api_rate_limits.sql` already exists. Do not schedule cleanup until the available scheduler, timezone, and existing jobs are confirmed. No cleanup job has been verified.
+8. Run the required tests against the existing Vercel Preview deployment and record actual outcomes. The available remote request check was blocked, so these tests remain unverified. Do not merge to main until blockers pass.
+
+## Required tests on Preview
+
+- No Authorization header: `/api/gemini`, `/api/tts`, `/api/memory`, and `/api/token` return 401 without calling paid providers.
+- Invalid/expired session: same endpoints reject the request.
+- Valid session: normal chat, voice, memory read/write, and search work.
+- User A cannot read, update, or duplicate-match User B's private memory; test with all intended family accounts.
+- Oversized Gemini text (>12,000 chars), memory context (>12,000 chars), TTS text (>3,000 chars), and invalid memory payloads are rejected.
+- Per-user quota: requests under limit succeed; over-limit requests return 429; a different user has an independent counter.
+- Rate-limit RPC unavailable or DB schema missing: paid endpoints fail closed with 503 and do not call paid providers.
+- Provider timeout/4xx/5xx: sanitized response, no raw prompt/query/text in logs, and bounded completion time.
+- Usage log row records the correct authenticated user ID and allowlisted metadata only.
+- Logout/session expiry and switching accounts do not reuse another user's memory.
+- Check usage/cost after tests; do not treat per-minute limits as monthly spend caps.
+
+## Deployment rollback
+
+- Keep the previous production deployment available for rollback.
+- Database changes should be additive except the explicit legacy memory ownership/content update; do not run that update against the current data.
+- If Preview fails, do not promote. Capture status codes and sanitized logs only; never paste tokens, keys, or personal conversation contents.
+
+## Current known limitations
+
+- CI uses mocked tests and has not validated the live Supabase/Vercel environment.
+- Rate limits are per-minute request ceilings, not daily/monthly spend caps.
+- Cleanup function exists, but no schedule has been verified. First identify an approved scheduler and check existing jobs; never assume pg_cron is installed.
+- The `/api/token` endpoint has no caller in the inspected browser source; confirm there is no external caller before removing it.
+- Browser source review found no direct REST calls to `memories` or `api_usage`, but this must be rechecked against all clients before revoking table privileges.
+
+## Automated checks updated 2026-10-21 (security branch only)
+
+Latest confirmed successful GitHub Actions run: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39535805612
+
+Covered by CI mocks/static checks:
+- Shared authentication: missing bearer token, invalid session, Supabase 5xx, network failure, malformed user payload, valid session.
+- Rate limit: allow, deny/429 headers, RPC HTTP failure/network failure fail closed with 503, independent user keys, unexpected non-boolean response.
+- Memory input boundaries: content at 5,000 characters, content over 5,000, category over 100, invalid importance values.
+- Gemini/TTS boundaries: Gemini text over 12,000, memory context over 12,000, previous interaction ID over 200, TTS text over 3,000; invalid inputs must not call paid providers.
+- Gemini provider response failures: malformed JSON and non-OK provider response return sanitized errors.
+- Existing mocked memory API and token API tests continue to pass.
+- Static source checks include auth failure classification, authenticated quota checks, memory owner scoping, bounded requests, function grants, and a source-level check that raw query/prompt variables are not directly passed to console logging.
+
+These checks do not validate live Vercel Preview, live Supabase grants/RLS, real quota counter behavior, account separation, provider timeouts under live conditions, actual logs, or cost attribution.
+
+## Current branch review notes (2026-10-21)
+
+- api/gemini.js: provider HTTP non-OK is now checked before JSON parsing; malformed JSON from a successful provider response returns a sanitized 502. No direct logging of raw searchQuery, rawText, memoryContext, request body, or TTS spoken text was found by the current source-level check. Existing debug logs still emit endpoint/status/count/boolean/context-length metadata; remove or reduce these before Production if operationally unnecessary.
+- Rate limits are checked before request-body validation on Gemini/TTS/token routes. This intentionally prevents repeated malformed requests from bypassing request quotas, but invalid requests can consume quota. Keep this as a documented behavior unless product requirements say otherwise.
+- No live Preview requests were performed during this review. Do not mark the live checklist items complete based on CI.
+- Kaede account isolation remains pending until both intended accounts are available.
+
+
+## Backup timing decision (2026-10-21)
+
+真人さん explicitly confirmed that Supabase backup cannot be performed now and must wait until project completion. This is a planned deferral, not an outstanding request to ask again. Continue safe, non-destructive review and testing meanwhile. No direct table grant revocations, cleanup scheduling, destructive migration, or Production merge/deployment is authorized by this timing decision.
+
+## Additional review updates (2026-10-21, latest head `c01538eb9cb65dc08768256b00e4fd0d459a4682`)
+
+- Added a client-side account-change handler: when the authenticated user ID changes, clear in-memory browser memories, reset `previousInteractionId`, and clear the text input. This reduces accidental reuse of user-scoped client state; it does not replace live account-isolation tests.
+- Removed 22 `console.log` debug calls from `api/gemini.js`; a fresh source fetch confirmed no `console.log(` calls remain in that file. Sanitized `console.error` events remain for operational failures.
+- Repository-wide GitHub code search for `"/api/token"` found no caller in indexed repository files. This does not rule out external clients or callers outside the repository; keep the endpoint until those are ruled out.
+- CI passed for latest head `c01538eb9cb65dc08768256b00e4fd0d459a4682`: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39562980806
+- The PR remains draft and unmerged. No live Preview requests, Production deployment, or Supabase privilege/data changes were performed as part of these updates.
+
+## Follow-up review (2026-10-21, head `9c5141d1c2f2e1c3ba80fbe6864aee5229f7e4e1`)
+
+- Latest CI run for the checklist commit completed successfully: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39563204632
+- Re-reviewed the browser auth flow: the browser obtains a session token through `jarvisGetAccessToken`; auth-state changes clear the in-memory memories, prior Gemini interaction ID, and text input when the user ID changes (including sign-out). This is defense in depth only; live account switching still needs testing.
+- Remaining browser console messages observed are generic UI/audio status messages; no transcript text is included in the speech-recognition success log. `api/gemini.js` has no remaining `console.log(` calls. Operational `console.error` calls remain in API handlers.
+- `api/memory.js` scopes GET, duplicate lookup, update, insert, and soft-delete operations to the authenticated user ID; DELETE has mocked tests for owner scoping, malformed IDs, not-found, database failure, and unauthenticated access. GET/POST behavior is still primarily code-reviewed rather than comprehensively covered by dedicated mocked tests.
+- No source change was made in this follow-up because the remaining high-value checks require either new test coverage or live environment/account access. Live Preview verification, Kaede account isolation, external `/api/token` caller confirmation, and Supabase permission changes remain outstanding/deferred. No Production merge/deployment or live database mutation was performed.
+
+## Test pass attempt (2026-10-21, head `ed1bd02cdeef340f5ed668480c9ae5cbc7f11450`)
+
+- CI for the latest head completed successfully: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39563709724
+- Attempted to locate the current Preview deployment for the security branch through the connected Vercel integration. The integration returned 403 because this connection is not authorized for team scope `team_manato2`; no Preview deployment was selected and no HTTP test requests were sent. This is an access blocker, not a failed application test.
+- Next step for live Preview tests: restore/grant the Vercel integration access to the `manato2` team, then identify a READY deployment whose Git SHA matches the latest security branch before sending even unauthenticated API probes. Do not test against the older Preview URL known to be on a stale commit.
+- No Production deployment, Supabase mutation, or privilege change was performed.
+
+
+
+## Memory read/write test coverage added (2026-10-21, head `11c2ab1f61a746a5293b05de1a90d44c1154a953`)
+
+- Added `scripts/memory-read-write.test.cjs` to cover GET owner scoping, unauthenticated GET without database access, invalid POST payload rejection, normalized owner-scoped insertion, owner-scoped duplicate lookup/update, and sanitized database lookup errors.
+- Added this test file to `.github/workflows/security-source-check.yml`.
+- GitHub Actions run succeeded: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39571897143. All 12 validation steps passed, including the new memory read/write ownership tests.
+- These are mocked API tests; they do not replace authenticated live Preview testing or Kaede account-isolation testing. No production deployment, merge, or Supabase mutation was performed.
+
+
+## Additional provider failure tests (2026-10-21, head `f677569276c11ea709af0a1210fd7f03828e54a3`)
+
+- Extended mocked Gemini API tests to verify network failure and timeout classification, sanitized client errors, and owner-attributed usage logging with allowlisted metadata only.
+- Latest CI runs passed on this head: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39578090022 and https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39578082962.
+- Latest branch Preview deployment is READY for this commit. Attempts to fetch it through the connected Vercel integration still fail at the deployment-authentication redirect; no authenticated or unauthenticated application API request reached the app. Live endpoint checks remain blocked by deployment access, not marked as passed.
+- Production runtime error query for the previous 24 hours returned no error clusters. The Production runtime-log query for the previous 30 minutes returned no matching error/fatal records; absence of logs is not proof of healthy behavior.
+- No merge to `main`, Production deployment, Supabase mutation, or privilege change was performed.
+
+## Security test coverage update (2026-10-22, head `d3bd642979cd4a5673103d8b5b4b66f997c74d0a`)
+
+- Expanded mocked memory API tests for database read failures, duplicate-memory update failures, and new-memory insert failures; error responses are asserted to remain sanitized and ownership filters are checked where applicable.
+- Expanded authentication tests for malformed/non-Bearer authorization headers and the publishable-key fallback when the anon key is not configured.
+- Expanded rate-limit tests for invalid configured limits falling back to defaults, the configured limit cap of 1000, missing Supabase configuration failing closed without a network call, and unknown services being rejected.
+- GitHub Actions security-source-check run succeeded on this head: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39786992013. Static checks and all configured mocked test steps completed successfully.
+- The latest Vercel status check reports success for the commit, but this is not proof that the live API routes were exercised. Authenticated Preview endpoint tests and Kaede account-isolation testing remain pending. No merge to `main`, Production deployment, or Supabase data/privilege changes were performed.
+
+## Additional mocked failure-path coverage (2026-10-22, head `56740aa229f21a1bd62b544dd2413cb4bc2c26d6`)
+
+- TTS tests now cover empty audio payloads and exceptions while reading provider audio, asserting sanitized error responses.
+- Token API tests now verify that quota denial returns 429 with `Retry-After` and does not proceed to the provider, and that quota service HTTP failure returns 503 (fail closed).
+- Memory API tests now verify unauthenticated POST returns 401 without issuing database requests.
+- GitHub Actions security-source-check run passed: https://github.com/manakae0725-del/J.A.R.V.I.S./actions/runs/39788409310. All configured workflow steps completed successfully.
+- These remain mocked tests; live Preview API probes and cross-account isolation remain pending. PR #2 remains open and draft. No production merge/deployment or Supabase data/privilege changes were performed.
+
+
+## Live Supabase privilege change (2026-10-22)
+
+- Applied `REVOKE ALL PRIVILEGES ON TABLE public.memories FROM PUBLIC, anon, authenticated` and the equivalent revoke on `public.api_usage` in Supabase SQL Editor, inside a transaction.
+- The post-change `has_table_privilege` query returned six rows. For both tables, all four privileges (SELECT, INSERT, UPDATE, DELETE) are `false` for `anon` and `authenticated`, and `true` for `service_role`.
+- This is verified from the user-provided live SQL Editor result screenshots. It confirms table grants only; it does not establish that authenticated Preview APIs work correctly.
+- Next: verify Preview API routes through the current deployment and run valid-session checks without exposing access tokens. Do not mark authenticated API behavior or cross-account isolation complete until actually tested.
+
+
+## Post-privilege-change verification (2026-10-22)
+
+- Supabase SQL Editor screenshot confirms the table privilege revocation result: for both `public.memories` and `public.api_usage`, SELECT/INSERT/UPDATE/DELETE are false for `anon` and `authenticated`, and true for `service_role`.
+- Live Preview probes were executed against `https://j-a-r-v-i-s-git-security-audit-baseline-2026-10-17-manato2.vercel.app` after the privilege change. For POST requests to `/api/gemini`, `/api/tts`, `/api/memory`, and `/api/token`, missing Authorization returned HTTP 401 `Authentication required`; a fake Bearer token returned HTTP 401 `Invalid or expired session`. These probes did not submit valid requests to paid providers.
+- The temporary Vercel automation bypass used for the probes was revoked immediately after the tests.
+- GitHub Actions workflow triggered by the checklist update completed successfully (`Security source checks`, conclusion `success`).
+- Remaining live verification gaps: a valid logged-in session is still needed to test successful Preview memory reads/writes and the real per-user quota behavior. Mocked tests cover quota allow/deny, 429, RPC failure fail-closed (503), and no provider call on quota denial; these are not live Supabase quota-counter tests. Do not mark successful authenticated API, memory read/write, or live quota checks complete yet.

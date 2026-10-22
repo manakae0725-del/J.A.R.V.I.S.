@@ -5,8 +5,10 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 
 module.exports = async function handler(req, res) {
-  if (req.method !== "GET" && req.method !== "POST") {
-    res.setHeader("Allow", "GET, POST");
+  res.setHeader("Cache-Control", "no-store");
+
+  if (req.method !== "GET" && req.method !== "POST" && req.method !== "DELETE") {
+    res.setHeader("Allow", "GET, POST, DELETE");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
@@ -23,10 +25,39 @@ module.exports = async function handler(req, res) {
 
   const headers = {
     apikey: SUPABASE_SECRET_KEY,
+    Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
     "Content-Type": "application/json"
   };
 
   try {
+    if (req.method === "DELETE") {
+      const rawId = req.query && req.query.id;
+      const memoryId = typeof rawId === "string" ? rawId : "";
+      if (!/^\d{1,12}$/.test(memoryId)) {
+        return res.status(400).json({ error: "Invalid memory id" });
+      }
+
+      const deleteParams = new URLSearchParams({
+        id: `eq.${memoryId}`,
+        user_id: `eq.${user.id}`,
+        is_active: "eq.true",
+        select: "id"
+      });
+      const deleteResponse = await fetch(`${baseUrl}?${deleteParams}`, {
+        method: "PATCH",
+        headers: { ...headers, Prefer: "return=representation" },
+        body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() }),
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!deleteResponse.ok) {
+        console.error("Memory deactivation failed", deleteResponse.status);
+        return res.status(500).json({ error: "Failed to delete memory" });
+      }
+      const deactivated = await deleteResponse.json();
+      if (!deactivated.length) return res.status(404).json({ error: "Memory not found" });
+      return res.status(200).json({ ok: true });
+    }
+
     if (req.method === "GET") {
       const params = new URLSearchParams({
         select: "*",
@@ -35,7 +66,7 @@ module.exports = async function handler(req, res) {
         order: "importance.desc,updated_at.desc"
       });
 
-      const response = await fetch(`${baseUrl}?${params}`, { headers });
+      const response = await fetch(`${baseUrl}?${params}`, { headers, signal: AbortSignal.timeout(10000) });
 
       if (!response.ok) {
         console.error("Memory read failed", response.status);
@@ -50,8 +81,10 @@ module.exports = async function handler(req, res) {
     if (
       typeof category !== "string" ||
       !category.trim() ||
+      category.trim().length > 100 ||
       typeof content !== "string" ||
       !content.trim() ||
+      content.length > 5000 ||
       !Number.isInteger(importance) ||
       importance < 1 ||
       importance > 5
@@ -72,9 +105,7 @@ module.exports = async function handler(req, res) {
     });
 
     const searchResponse = await fetch(
-      `${baseUrl}?${searchParams}`,
-      { headers }
-    );
+      `${baseUrl}?${searchParams}`, { headers, signal: AbortSignal.timeout(10000) });
 
     if (!searchResponse.ok) {
       console.error("Memory duplicate check failed", searchResponse.status);
@@ -97,10 +128,8 @@ module.exports = async function handler(req, res) {
             ...headers,
             Prefer: "return=representation"
           },
-          body: JSON.stringify({
-            importance,
-            updated_at: new Date().toISOString()
-          })
+          body: JSON.stringify({ importance, updated_at: new Date().toISOString() }),
+          signal: AbortSignal.timeout(10000)
         }
       );
 
@@ -124,7 +153,8 @@ module.exports = async function handler(req, res) {
         content: normalizedContent,
         importance,
         is_active: true
-      })
+       }),
+      signal: AbortSignal.timeout(10000)
     });
 
     if (!insertResponse.ok) {
