@@ -193,3 +193,14 @@ test("POST sanitizes new-memory insert failures", async () => {
   assert.equal(requests[1].options.method, "POST");
   assert.equal(JSON.parse(requests[1].options.body).user_id, "user-A");
 });
+
+test("POST does not read or write memories without an authenticated user", async () => {
+  const { res, requests } = await runMemory({
+    method: "POST",
+    user: null,
+    body: { category: "note", content: "private", importance: 2 }
+  });
+  assert.equal(res.statusCode, 401);
+  assert.deepEqual(res.body, { error: "Unauthorized" });
+  assert.equal(requests.length, 0);
+});
