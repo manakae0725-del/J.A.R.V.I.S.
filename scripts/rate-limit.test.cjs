@@ -104,3 +104,54 @@ test("unexpected non-boolean quota response is denied", async () => {
   assert.equal(result, false);
   assert.equal(res.statusCode, 429);
 });
+
+test("quota limit defaults safely when configured value is invalid", async () => {
+  for (const configuredLimit of ["0", "-1", "1.5", "not-a-number"]) {
+    const { result, requests } = await runLimit({ configuredLimit, service: "gemini" });
+    assert.equal(result, true, configuredLimit);
+    assert.equal(JSON.parse(requests[0].options.body).p_limit, 30, configuredLimit);
+  }
+});
+
+test("configured quota limit is capped at 1000", async () => {
+  const { result, requests } = await runLimit({ configuredLimit: 5000 });
+  assert.equal(result, true);
+  assert.equal(JSON.parse(requests[0].options.body).p_limit, 1000);
+});
+
+test("missing Supabase configuration fails closed without making a request", async () => {
+  const originalUrl = process.env.SUPABASE_URL;
+  const originalSecret = process.env.SUPABASE_SECRET_KEY;
+  const originalModule = require.cache[limiterPath];
+  const originalFetch = global.fetch;
+  let called = false;
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_SECRET_KEY;
+  delete require.cache[limiterPath];
+  global.fetch = async () => { called = true; throw new Error("must not call fetch"); };
+  try {
+    const { consumeRateLimit } = require("../api/_rateLimit");
+    const res = makeRes();
+    const result = await consumeRateLimit("user-A", "gemini", res);
+    assert.equal(result, false);
+    assert.equal(res.statusCode, 503);
+    assert.deepEqual(res.body, { error: "Usage protection unavailable" });
+    assert.equal(called, false);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalUrl === undefined) delete process.env.SUPABASE_URL;
+    else process.env.SUPABASE_URL = originalUrl;
+    if (originalSecret === undefined) delete process.env.SUPABASE_SECRET_KEY;
+    else process.env.SUPABASE_SECRET_KEY = originalSecret;
+    delete require.cache[limiterPath];
+    if (originalModule) require.cache[limiterPath] = originalModule;
+  }
+});
+
+test("unknown service fails closed instead of sending an undefined quota", async () => {
+  const { result, res, requests } = await runLimit({ service: "unknown-service" });
+  assert.equal(result, false);
+  assert.equal(res.statusCode, 500);
+  assert.deepEqual(res.body, { error: "Invalid usage protection configuration" });
+  assert.equal(requests.length, 0);
+});
