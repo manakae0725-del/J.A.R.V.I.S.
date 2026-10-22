@@ -143,3 +143,12 @@ These checks do not validate live Vercel Preview, live Supabase grants/RLS, real
 - The post-change `has_table_privilege` query returned six rows. For both tables, all four privileges (SELECT, INSERT, UPDATE, DELETE) are `false` for `anon` and `authenticated`, and `true` for `service_role`.
 - This is verified from the user-provided live SQL Editor result screenshots. It confirms table grants only; it does not establish that authenticated Preview APIs work correctly.
 - Next: verify Preview API routes through the current deployment and run valid-session checks without exposing access tokens. Do not mark authenticated API behavior or cross-account isolation complete until actually tested.
+
+
+## Post-privilege-change verification (2026-10-22)
+
+- Supabase SQL Editor screenshot confirms the table privilege revocation result: for both `public.memories` and `public.api_usage`, SELECT/INSERT/UPDATE/DELETE are false for `anon` and `authenticated`, and true for `service_role`.
+- Live Preview probes were executed against `https://j-a-r-v-i-s-git-security-audit-baseline-2026-10-17-manato2.vercel.app` after the privilege change. For POST requests to `/api/gemini`, `/api/tts`, `/api/memory`, and `/api/token`, missing Authorization returned HTTP 401 `Authentication required`; a fake Bearer token returned HTTP 401 `Invalid or expired session`. These probes did not submit valid requests to paid providers.
+- The temporary Vercel automation bypass used for the probes was revoked immediately after the tests.
+- GitHub Actions workflow triggered by the checklist update completed successfully (`Security source checks`, conclusion `success`).
+- Remaining live verification gaps: a valid logged-in session is still needed to test successful Preview memory reads/writes and the real per-user quota behavior. Mocked tests cover quota allow/deny, 429, RPC failure fail-closed (503), and no provider call on quota denial; these are not live Supabase quota-counter tests. Do not mark successful authenticated API, memory read/write, or live quota checks complete yet.
