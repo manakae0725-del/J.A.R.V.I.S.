@@ -10,7 +10,7 @@ async function enforceRateLimit(res, user, bucket, limit, windowSeconds) {
 
   try {
     const response = await fetch(
-      `${SUPABASE_URL.replace(/\\/+$/, "")}/rest/v1/rpc/jarvis_check_rate_limit`,
+      `${SUPABASE_URL.replace(/\/+$/, "")}/rest/v1/rpc/jarvis_check_rate_limit`,
       {
         method: "POST",
         headers: {
