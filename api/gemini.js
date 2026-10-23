@@ -1072,10 +1072,9 @@ WEATHER RESPONSE RULES
         });
       }
 
-      console.error(
-        "Gemini network error:",
-        error
-      );
+      console.error("Gemini network request failed", {
+        name: error?.name || "Error"
+      });
 
       return res.status(502).json({
         error: "Gemini connection failed",
@@ -1106,13 +1105,12 @@ WEATHER RESPONSE RULES
     );
 
     if (!response.ok) {
-      console.error(
-        "Gemini API error:",
-        data
-      );
+      console.error("Gemini API request failed", {
+        status: response.status
+      });
 
-      return res.status(response.status).json({
-        error: data,
+      return res.status(502).json({
+        error: "Gemini request failed",
       });
     }
 
@@ -1153,9 +1151,9 @@ WEATHER RESPONSE RULES
     }
 
     if (!outputText) {
-      return res.status(500).json({
-        error: "No text response from Gemini",
-        data,
+      console.error("Gemini response contained no output text");
+      return res.status(502).json({
+        error: "No valid response from Gemini",
       });
     }
 
@@ -1168,14 +1166,10 @@ WEATHER RESPONSE RULES
     try {
       result = JSON.parse(outputText);
     } catch (error) {
-      console.error(
-        "JSON parse error:",
-        outputText
-      );
+      console.error("Gemini returned invalid JSON output");
 
-      return res.status(500).json({
-        error: "Gemini returned invalid JSON",
-        raw: outputText,
+      return res.status(502).json({
+        error: "Gemini returned an invalid response",
       });
     }
 
@@ -1190,10 +1184,9 @@ WEATHER RESPONSE RULES
       typeof result.memory.shouldSave !==
         "boolean"
     ) {
-      return res.status(500).json({
-        error:
-          "Invalid Gemini response structure",
-        data: result,
+      console.error("Gemini response structure validation failed");
+      return res.status(502).json({
+        error: "Gemini returned an invalid response",
       });
     }
 
@@ -1237,10 +1230,9 @@ WEATHER RESPONSE RULES
       sources,
     });
   } catch (error) {
-    console.error(
-      "Internal error:",
-      error
-    );
+    console.error("Gemini handler failed", {
+      name: error?.name || "Error"
+    });
 
     return res.status(500).json({
       error: "Internal Server Error",
