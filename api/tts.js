@@ -82,8 +82,7 @@ export default async function handler(req, res) {
   );
 
   if (settingsResponse.ok) {
-    const settings = await settingsResponse.json();
-    console.log("[JARVIS VOICE SETTINGS]", settings);
+    // Voice settings are intentionally not logged.
   } else {
     console.error(
       "[JARVIS VOICE SETTINGS] Failed:",
