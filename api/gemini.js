@@ -91,10 +91,7 @@ module.exports = async function handler(req, res) {
       ? userMarker[1].trim()
       : rawText;
 
-    console.log(
-      "[DEBUG] User text:",
-      userText
-    );
+    // ユーザーの発言内容はログに出力しない。
 
     // ==========================================
     // Weather Detection
