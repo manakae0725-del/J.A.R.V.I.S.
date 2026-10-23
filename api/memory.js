@@ -1,5 +1,6 @@
 
 const { requireAuth } = require("./_auth");
+const { enforceRateLimit } = require("./_rateLimit");
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
@@ -12,6 +13,9 @@ module.exports = async function handler(req, res) {
 
   const user = await requireAuth(req, res);
   if (!user) return;
+
+  if (!(await enforceRateLimit(res, user, "memory-minute", 60, 60))) return;
+  if (!(await enforceRateLimit(res, user, "memory-day", 500, 86400))) return;
 
   if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
     console.error("Memory API environment variables are missing");
@@ -57,6 +61,10 @@ module.exports = async function handler(req, res) {
       importance > 5
     ) {
       return res.status(400).json({ error: "Invalid memory data" });
+    }
+
+    if (category.trim().length > 40 || content.length > 4000) {
+      return res.status(413).json({ error: "Memory category or content exceeds the allowed size" });
     }
 
     const normalizedCategory = category.trim();
