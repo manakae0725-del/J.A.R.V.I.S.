@@ -44,6 +44,7 @@ async function logApiUsage({
 
 
 const { requireAuth } = require("./_auth");
+const { enforceRateLimit } = require("./_rateLimit");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -54,6 +55,9 @@ module.exports = async function handler(req, res) {
 
   const user = await requireAuth(req, res);
   if (!user) return;
+
+  if (!(await enforceRateLimit(res, user, "gemini-minute", 10, 60))) return;
+  if (!(await enforceRateLimit(res, user, "gemini-day", 200, 86400))) return;
 
   try {
  const {
@@ -66,6 +70,10 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({
         error: "text is required",
       });
+    }
+
+    if (typeof text !== "string" || text.length > 12000) {
+      return res.status(413).json({ error: "Text exceeds the 12000-character limit" });
     }
 
     const geminiKey = process.env.GEMINI_API_KEY;
