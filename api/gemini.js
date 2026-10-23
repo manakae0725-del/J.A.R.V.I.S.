@@ -35,10 +35,7 @@ async function logApiUsage({
       }
     );
   } catch (error) {
-    console.error(
-      "[API USAGE] Log failed:",
-      error
-    );
+    console.error("[API USAGE] Log failed");
   }
 }
 
@@ -511,16 +508,13 @@ Snippet: ${snippet}
           statusCode: null,
           durationMs: serperDuration,
           metadata: {
-            error:
-              error?.message ||
-              "Unknown error"
+            error: "request_failed"
           }
         });
 
-        console.error(
-          "[DEBUG] Serper search error:",
-          error
-        );
+        console.error("[DEBUG] Serper search failed", {
+          name: error?.name || "Error"
+        });
       }
     } else {
       console.log(
@@ -668,10 +662,9 @@ Content: ${result.content || ""}
           }
         });
 
-        console.error(
-          "[DEBUG] Tavily search error:",
-          error
-        );
+        console.error("[DEBUG] Tavily search failed", {
+          name: error?.name || "Error"
+        });
       }
     } else if (!searchContext) {
       console.log(
@@ -1060,9 +1053,7 @@ WEATHER RESPONSE RULES
         statusCode: null,
         durationMs: geminiDuration,
         metadata: {
-          error:
-            error?.message ||
-            "Unknown error"
+          error: "request_failed"
         }
       });
 
