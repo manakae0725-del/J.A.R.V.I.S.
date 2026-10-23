@@ -186,8 +186,11 @@ export default async function handler(req, res) {
           errorMessage;
       } catch (e) {}
 
-      return res.status(response.status).json({
-        error: errorMessage
+      console.error("ElevenLabs TTS request failed", {
+        status: response.status
+      });
+      return res.status(502).json({
+        error: "Speech synthesis failed"
       });
     }
 
@@ -208,10 +211,11 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
+    console.error("TTS handler failed", {
+      name: error?.name || "Error"
+    });
     return res.status(500).json({
-      error:
-        error?.message ||
-        "TTS server error."
+      error: "TTS server error."
     });
   }
 }

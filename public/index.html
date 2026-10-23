@@ -1891,10 +1891,7 @@ if (SpeechRecognition) {
     const text =
         event.results[0][0].transcript;
 
-            console.log(
-                "【音声エンジン疎通確認】認識成功テキスト:",
-                text
-            );
+            // Do not log recognized speech; it may contain private information.
 
             if (!conversationActive) return;
 
