@@ -45,6 +45,7 @@ async function logApiUsage({
 
 
 import { requireAuth } from "./_auth.js";
+import { enforceRateLimit } from "./_rateLimit.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -56,6 +57,9 @@ export default async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
+  if (!(await enforceRateLimit(res, user, "tts-minute", 20, 60))) return;
+  if (!(await enforceRateLimit(res, user, "tts-day", 300, 86400))) return;
+
   try {
     const { text } = req.body || {};
 
@@ -63,6 +67,10 @@ export default async function handler(req, res) {
       return res.status(400).json({
         error: "Text is required."
       });
+    }
+
+    if (typeof text !== "string" || text.length > 5000) {
+      return res.status(413).json({ error: "Text exceeds the 5000-character limit" });
     }
 
     const apiKey =
