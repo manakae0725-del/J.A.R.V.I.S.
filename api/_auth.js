@@ -64,6 +64,24 @@ async function requireAuth(req, res) {
       return null;
     }
 
+    // Fail closed: only explicitly configured Supabase user IDs may use J.A.R.V.I.S.
+    const allowedUserIds = (process.env.JARVIS_ALLOWED_USER_IDS || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    if (allowedUserIds.length === 0) {
+      console.error("J.A.R.V.I.S. allowed-user list is not configured");
+      res.status(503).json({ error: "Access control unavailable" });
+      return null;
+    }
+
+    if (!allowedUserIds.includes(user.id)) {
+      console.warn("Authenticated user is not allowlisted");
+      res.status(403).json({ error: "Access denied" });
+      return null;
+    }
+
     return user;
   } catch (error) {
     console.error("Supabase auth verification failed", {
