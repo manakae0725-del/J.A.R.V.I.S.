@@ -180,11 +180,6 @@ module.exports = async function handler(req, res) {
 
     let searchQuery = userText;
 
-    console.log(
-      "[DEBUG] Clean search query:",
-      searchQuery
-    );
-
     if (isWeatherQuestion) {
       let location = "札幌市";
 
@@ -234,22 +229,11 @@ module.exports = async function handler(req, res) {
 
       searchQuery = `${location} 天気 ${day}`;
 
-      console.log(
-        "[DEBUG] Weather search query generated:",
-        searchQuery
-      );
     }
 
     // ==========================================
     // News Search Query
     // ==========================================
-
-    if (isNewsQuestion && !isWeatherQuestion) {
-      console.log(
-        "[DEBUG] News search query:",
-        searchQuery
-      );
-    }
 
     // ==========================================
     // Serper Search
@@ -307,7 +291,6 @@ module.exports = async function handler(req, res) {
           statusCode: response.status,
           durationMs: serperDuration,
           metadata: {
-            query: searchQuery
           }
         });
 
@@ -520,7 +503,6 @@ Snippet: ${snippet}
           statusCode: null,
           durationMs: serperDuration,
           metadata: {
-            query: searchQuery,
             error:
               error?.message ||
               "Unknown error"
@@ -595,7 +577,6 @@ if (
           statusCode: response.status,
           durationMs: tavilyDuration,
           metadata: {
-            query: searchQuery,
             fallback: true
           }
         });
@@ -672,7 +653,6 @@ Content: ${result.content || ""}
           statusCode: null,
           durationMs: tavilyDuration,
           metadata: {
-            query: searchQuery,
             fallback: true,
             error:
               error?.message ||
