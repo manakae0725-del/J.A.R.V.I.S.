@@ -1043,7 +1043,7 @@ POWER
  let client=null,resolveReady;
  window.jarvisAuthReady=new Promise(resolve=>{resolveReady=resolve;});
  window.jarvisGetAccessToken=async function(){await window.jarvisAuthReady;if(!client)return null;const result=await client.auth.getSession();return result.data.session?result.data.session.access_token:null;};
- function show(signedIn){screen.hidden=signedIn;document.querySelector(".jarvis-screen").style.visibility=signedIn?"visible":"hidden";signOut.hidden=!signedIn;if(signedIn)message.textContent="";}
+ function show(session){const signedIn=Boolean(session);screen.hidden=signedIn;document.querySelector(".jarvis-screen").style.visibility=signedIn?"visible":"hidden";signOut.hidden=!signedIn;if(signedIn)message.textContent="";window.jarvisCurrentUserId=signedIn&&session.user&&typeof session.user.id==="string"?session.user.id:null;window.dispatchEvent(new CustomEvent("jarvis-auth-change",{detail:{userId:window.jarvisCurrentUserId}}));}
  async function init(){try{
   if(!window.supabase||!window.supabase.createClient)throw new Error("認証ライブラリを読み込めません。再読み込みしてください。");
   const response=await fetch("/api/auth-config",{cache:"no-store"}),config=await response.json();
@@ -1051,7 +1051,7 @@ POWER
   client=window.supabase.createClient(config.url,config.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   window.jarvisSupabase=client;
   const result=await client.auth.getSession();if(result.error)throw result.error;
-  show(Boolean(result.data.session));client.auth.onAuthStateChange((_event,session)=>show(Boolean(session)));resolveReady();
+  show(result.data.session);client.auth.onAuthStateChange((_event,session)=>show(session));resolveReady();
  }catch(error){message.textContent=error?.message||"認証の初期化に失敗しました。";button.disabled=true;resolveReady();}}
  button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;message.textContent="Google認証へ接続しています…";try{const result=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(result.error)throw result.error;}catch(error){message.textContent=error?.message||"サインインを開始できませんでした。";button.disabled=false;}});
  signOut.addEventListener("click",async()=>{if(!client)return;signOut.disabled=true;const result=await client.auth.signOut();if(result.error)message.textContent="サインアウトに失敗しました。";signOut.disabled=false;});
@@ -1377,6 +1377,25 @@ var currentMode="voice";
    ========================================================= */
 
 let memories = [];
+let memoryLoadGeneration = 0;
+let memoryOwnerId = window.jarvisCurrentUserId || null;
+
+window.addEventListener("jarvis-auth-change", (event) => {
+    const nextUserId = event && event.detail && typeof event.detail.userId === "string"
+        ? event.detail.userId
+        : null;
+
+    if (nextUserId === memoryOwnerId) return;
+
+    memoryOwnerId = nextUserId;
+    memoryLoadGeneration++;
+    memories = [];
+    previousInteractionId = null;
+
+    if (nextUserId) {
+        void loadMemories();
+    }
+});
 
 function getErrorMessage(error) {
     if (typeof error === "string") return error;
@@ -1395,9 +1414,20 @@ function getErrorMessage(error) {
 }
 
 async function loadMemories() {
+    const generation = ++memoryLoadGeneration;
+    const requestUserId = window.jarvisCurrentUserId || null;
+
+    if (!requestUserId) {
+        memories = [];
+        return [];
+    }
+
     try {
         const accessToken = await window.jarvisGetAccessToken();
-        if (!accessToken) { memories = []; return []; }
+        if (!accessToken || requestUserId !== window.jarvisCurrentUserId) {
+            return [];
+        }
+
         const response = await fetch(
             "/api/memory",
             {
@@ -1415,6 +1445,13 @@ async function loadMemories() {
             );
         }
 
+        if (
+            generation !== memoryLoadGeneration ||
+            requestUserId !== window.jarvisCurrentUserId
+        ) {
+            return [];
+        }
+
         memories =
             Array.isArray(data.memories)
                 ? data.memories.slice(0, 30)
@@ -1423,13 +1460,13 @@ async function loadMemories() {
         return memories;
 
     } catch (error) {
-
-        console.error(
-            "Memory load error:",
-            error
-        );
-
-        memories = [];
+        if (
+            generation === memoryLoadGeneration &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            console.error("Memory load error:", error);
+            memories = [];
+        }
 
         return [];
     }
