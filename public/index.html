@@ -2323,6 +2323,46 @@ async function sendToGemini(text) {
                     }
                 }, 300);
             }
+        } else if (
+            conversationActive &&
+            currentMode === "voice" &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            // 音声合成に失敗しても、会話セッションを終了させず再入力を受け付ける。
+            status.textContent = "音声応答に失敗しました。もう一度お話しください。";
+            updateHudStatus("ONLINE", "LISTENING", "READY", "RECOVERY");
+            setTimeout(() => {
+                if (
+                    conversationActive &&
+                    currentMode === "voice" &&
+                    requestUserId === window.jarvisCurrentUserId
+                ) {
+                    startListening();
+                }
+            }, 1000);
+        }
+    } catch (error) {
+        // 通信・JSON解析などの失敗で処理が中断しても、画面状態と音声会話を復旧する。
+        if (requestUserId === window.jarvisCurrentUserId) {
+            console.error("Gemini conversation failed:", error);
+            const message = getErrorMessage(error);
+            document.getElementById("response").textContent =
+                "処理に失敗しました。通信状態を確認して、もう一度お試しください。";
+            document.getElementById("jarvisHoloPanel").classList.add("show");
+            status.textContent = "処理に失敗しました";
+            updateHudStatus("ONLINE", "STANDBY", "ERROR", "RECOVERY");
+
+            if (conversationActive && currentMode === "voice") {
+                setTimeout(() => {
+                    if (
+                        conversationActive &&
+                        currentMode === "voice" &&
+                        requestUserId === window.jarvisCurrentUserId
+                    ) {
+                        startListening();
+                    }
+                }, 1000);
+            }
         }
     } finally {
         clearTimeout(timeout);
