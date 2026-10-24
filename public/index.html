@@ -1525,9 +1525,14 @@ ${text}
 `;
 }
 
-async function saveMemory(memory) {
+async function saveMemory(memory, expectedUserId) {
 
-    if (!memory || !memory.shouldSave) {
+    if (
+        !memory ||
+        !memory.shouldSave ||
+        !expectedUserId ||
+        expectedUserId !== window.jarvisCurrentUserId
+    ) {
         return false;
     }
 
@@ -1563,33 +1568,38 @@ async function saveMemory(memory) {
             : 1;
 
     try {
-
         const accessToken = await window.jarvisGetAccessToken();
-        if (!accessToken) return false;
 
-        const response =
-            await fetch(
-                "/api/memory",
-                {
-                    method: "POST",
+        // アクセストークン取得中にアカウントが変わっていたら保存しない。
+        if (
+            !accessToken ||
+            expectedUserId !== window.jarvisCurrentUserId
+        ) {
+            return false;
+        }
 
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-                        Authorization: "Bearer " + accessToken
-                    },
+        const response = await fetch(
+            "/api/memory",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + accessToken
+                },
+                body: JSON.stringify({
+                    category,
+                    content,
+                    importance
+                })
+            }
+        );
 
-                    body:
-                        JSON.stringify({
-                            category,
-                            content,
-                            importance
-                        })
-                }
-            );
+        const data = await response.json();
 
-        const data =
-            await response.json();
+        // 保存リクエストの応答後も、別ユーザーの画面を更新しない。
+        if (expectedUserId !== window.jarvisCurrentUserId) {
+            return false;
+        }
 
         if (!response.ok || !data.ok) {
             throw new Error(
@@ -1599,16 +1609,10 @@ async function saveMemory(memory) {
         }
 
         await loadMemories();
-
         return true;
 
     } catch (error) {
-
-        console.error(
-            "Memory save error:",
-            error
-        );
-
+        console.error("Memory save error:", error);
         return false;
     }
 }
@@ -2192,150 +2196,136 @@ return true;
 
 async function sendToGemini(text) {
 
+    const requestUserId = window.jarvisCurrentUserId || null;
     const cleanText =
         typeof text === "string"
             ? text.trim()
             : "";
 
-    if (!cleanText) {
+    if (!cleanText || !requestUserId) {
         return;
     }
 
-   await loadMemories();
+    await loadMemories();
 
-status.textContent =
-    "考えています…";
+    // メモリ読み込み中にアカウントが変わった場合、古い会話を開始しない。
+    if (requestUserId !== window.jarvisCurrentUserId) {
+        return;
+    }
 
-updateHudStatus(
-    "ONLINE",
-    "STANDBY",
-    "PROCESSING",
-    "ACTIVE"
-);
+    status.textContent = "考えています…";
 
-const controller =
-    new AbortController();
-    const timeout =
-        setTimeout(
-            () => {
-                controller.abort();
-            },
-            240000
-        );
+    updateHudStatus(
+        "ONLINE",
+        "STANDBY",
+        "PROCESSING",
+        "ACTIVE"
+    );
 
-    const accessToken = await window.jarvisGetAccessToken();
-    if (!accessToken) throw new Error("サインインが必要です.");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+        controller.abort();
+    }, 240000);
 
-    const response =
-        await fetch(
+    try {
+        const accessToken = await window.jarvisGetAccessToken();
+
+        // トークン取得中のアカウント切り替えを検出する。
+        if (
+            !accessToken ||
+            requestUserId !== window.jarvisCurrentUserId
+        ) {
+            return;
+        }
+
+        const response = await fetch(
             "/api/gemini",
             {
                 method: "POST",
-
                 headers: {
-                    "Content-Type":
-                        "application/json",
+                    "Content-Type": "application/json",
                     Authorization: "Bearer " + accessToken
                 },
-
                 body: JSON.stringify({
-
-                    text:
-                        cleanText,
-
-                    previousInteractionId:
-                        previousInteractionId,
-
-                    memoryContext:
-                        buildMemoryContext()
-
+                    text: cleanText,
+                    previousInteractionId: previousInteractionId,
+                    memoryContext: buildMemoryContext()
                 }),
-
-                signal:
-                    controller.signal
+                signal: controller.signal
             }
         );
 
-    clearTimeout(timeout);
+        const data = await response.json();
 
-    const data =
-        await response.json();
+        // 応答待ちの間にアカウントが変わっていたら、古い応答を破棄する。
+        if (requestUserId !== window.jarvisCurrentUserId) {
+            return;
+        }
 
-    if (!response.ok) {
-
-        throw new Error(
-            data.error ||
-            "Gemini HTTP " +
-            response.status
-        );
-    }
-
-    if (!data.text) {
-
-        throw new Error(
-            "Geminiから回答テキストがありません"
-        );
-    }
-
-    if (data.interactionId) {
-
-        previousInteractionId =
-            data.interactionId;
-    }
-
-    if (
-        data.memory &&
-        data.memory.shouldSave === true
-    ) {
-
-        await saveMemory(
-            data.memory
-        );
-    }
-
-  document.getElementById("response").textContent =
-    data.text;
-
-document
-    .getElementById("jarvisHoloPanel")
-    .classList.add("show");
-
-status.textContent = "";
-
-    /* =================================================
-       TTS → 再生
-       ================================================= */
-
-    if (
-        currentMode === "voice" &&
-        conversationActive
-    ) {
-
-        const spoken =
-            await speakWithGemini(
-                data.speechText ||
-                data.text
-            );
-
-
-        /* =============================================
-           ⑥ 会話ループ
-           再生終了 → 再び聞く
-           ============================================= */
-
-        if (
-            spoken &&
-            conversationActive &&
-            currentMode === "voice"
-        ) {
-
-            setTimeout(
-                () => {
-                    startListening();
-                },
-                300
+        if (!response.ok) {
+            throw new Error(
+                data.error ||
+                "Gemini HTTP " + response.status
             );
         }
+
+        if (!data.text) {
+            throw new Error("Geminiから回答テキストがありません");
+        }
+
+        // 会話IDは、開始時と同じユーザーの応答である場合のみ更新する。
+        if (
+            data.interactionId &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            previousInteractionId = data.interactionId;
+        }
+
+        if (
+            data.memory &&
+            data.memory.shouldSave === true &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            await saveMemory(data.memory, requestUserId);
+        }
+
+        // 保存処理の待機中にアカウントが変わった場合も、表示・読み上げしない。
+        if (requestUserId !== window.jarvisCurrentUserId) {
+            return;
+        }
+
+        document.getElementById("response").textContent = data.text;
+
+        document
+            .getElementById("jarvisHoloPanel")
+            .classList.add("show");
+
+        status.textContent = "";
+
+        if (
+            currentMode === "voice" &&
+            conversationActive &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            const spoken = await speakWithGemini(
+                data.speechText || data.text
+            );
+
+            if (
+                spoken &&
+                conversationActive &&
+                currentMode === "voice" &&
+                requestUserId === window.jarvisCurrentUserId
+            ) {
+                setTimeout(() => {
+                    if (requestUserId === window.jarvisCurrentUserId) {
+                        startListening();
+                    }
+                }, 300);
+            }
+        }
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
