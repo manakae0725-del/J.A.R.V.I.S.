@@ -82,6 +82,29 @@ export default async function handler(req, res) {
       return res.status(413).json({ error: "Text exceeds the 5000-character limit" });
     }
 
+    // Preview-only failure-path test. Never enabled in Production.
+    if (
+      process.env.VERCEL_ENV === "preview" &&
+      req.body?.testMode === "simulate-timeout"
+    ) {
+      const durationMs = 0;
+      await logApiUsage({
+        provider: "elevenlabs",
+        service: "tts",
+        success: false,
+        statusCode: 504,
+        durationMs,
+        metadata: {
+          model: "eleven_v3",
+          voice: "XrrS5KddqXY8b3ulN2uu",
+          error: "TTS request timed out",
+          test: true
+        }
+      });
+      console.error("ElevenLabs TTS timeout test simulated", { durationMs });
+      return res.status(504).json({ error: "Speech synthesis timed out" });
+    }
+
     const apiKey =
       process.env.ELEVENLABS_API_KEY;
 
