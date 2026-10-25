@@ -4,50 +4,36 @@ async function logApiUsage({
   success,
   statusCode,
   durationMs,
-  metadata = {},
-  testFailureMode = null
+  metadata = {}
 }) {
   try {
-    const testModeEnabled =
-      process.env.VERCEL_ENV === "preview" &&
-      Boolean(process.env.JARVIS_USAGE_LOG_TEST_TOKEN) &&
-      ["http", "network"].includes(testFailureMode);
-
     const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+    const supabaseKey =
+      process.env.SUPABASE_SECRET_KEY;
 
-    if (!testModeEnabled && (!supabaseUrl || !supabaseKey)) {
+    if (!supabaseUrl || !supabaseKey) {
       return;
     }
 
-    let response;
-
-    if (testModeEnabled && testFailureMode === "network") {
-      throw new TypeError("Simulated API usage log network failure");
-    } else if (testModeEnabled && testFailureMode === "http") {
-      response = { ok: false, status: 503 };
-    } else {
-      response = await fetch(
-        `${supabaseUrl}/rest/v1/api_usage`,
-        {
-          method: "POST",
-          headers: {
-            apikey: supabaseKey,
-            "Content-Type": "application/json",
-            Prefer: "return=minimal"
-          },
-          body: JSON.stringify({
-            provider,
-            service,
-            success,
-            status_code: statusCode,
-            duration_ms: durationMs,
-            metadata
-          })
-        }
-      );
-    }
-
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/api_usage`,
+      {
+        method: "POST",
+        headers: {
+          apikey: supabaseKey,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify({
+          provider,
+          service,
+          success,
+          status_code: statusCode,
+          duration_ms: durationMs,
+          metadata
+        })
+      }
+    );
     if (!response.ok) {
       console.error("[API USAGE] Log write rejected", {
         provider,
@@ -61,6 +47,7 @@ async function logApiUsage({
       service,
       name: error?.name || "Error"
     });
+
   }
 }
 
@@ -1255,5 +1242,3 @@ WEATHER RESPONSE RULES
     });
   }
 };
-
-module.exports.logApiUsage = logApiUsage;
