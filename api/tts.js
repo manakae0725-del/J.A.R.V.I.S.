@@ -118,51 +118,54 @@ export default async function handler(req, res) {
     const ttsStart = Date.now();
 
     let response;
+    const ttsController = new AbortController();
+    const ttsTimeout = setTimeout(() => ttsController.abort(), 25000);
 
     try {
       response = await fetch(
         "https://api.elevenlabs.io/v1/text-to-speech/XrrS5KddqXY8b3ulN2uu?output_format=pcm_24000",
         {
           method: "POST",
-
           headers: {
             "xi-api-key": apiKey,
             "Content-Type": "application/json"
           },
-
-         body: JSON.stringify({
-  text: spokenText,
- model_id: "eleven_v3",
-  voice_settings: {
-    stability: 0.77,
-    similarity_boost: 0.75,
-    style: 0,
-    use_speaker_boost: true,
-    speed: 0.9
-  }
-})
+          body: JSON.stringify({
+            text: spokenText,
+            model_id: "eleven_v3",
+            voice_settings: {
+              stability: 0.77,
+              similarity_boost: 0.75,
+              style: 0,
+              use_speaker_boost: true,
+              speed: 0.9
+            }
+          }),
+          signal: ttsController.signal
         }
       );
     } catch (error) {
-      const durationMs =
-        Date.now() - ttsStart;
-
+      const durationMs = Date.now() - ttsStart;
+      const timedOut = error?.name === "AbortError";
       await logApiUsage({
         provider: "elevenlabs",
         service: "tts",
         success: false,
-        statusCode: null,
+        statusCode: timedOut ? 504 : null,
         durationMs,
         metadata: {
           model: "eleven_v3",
           voice: "XrrS5KddqXY8b3ulN2uu",
-          error:
-            error?.message ||
-            "Unknown error"
+          error: timedOut ? "TTS request timed out" : (error?.message || "Unknown error")
         }
       });
-
+      if (timedOut) {
+        console.error("ElevenLabs TTS request timed out", { durationMs });
+        return res.status(504).json({ error: "Speech synthesis timed out" });
+      }
       throw error;
+    } finally {
+      clearTimeout(ttsTimeout);
     }
 
     const durationMs =
