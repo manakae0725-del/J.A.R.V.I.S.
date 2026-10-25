@@ -1077,6 +1077,12 @@ WEATHER RESPONSE RULES
       });
 
       if (error.name === "AbortError") {
+        console.error("[GEMINI TIMEOUT TEST] AbortError confirmed", {
+          timeoutMs: Number.isFinite(testTimeoutMs) && testTimeoutMs > 0
+            ? testTimeoutMs
+            : 120000,
+          statusCode: 504
+        });
         return res.status(504).json({
           error: "Gemini request timed out",
         });
