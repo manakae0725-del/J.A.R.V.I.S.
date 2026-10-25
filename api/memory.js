@@ -1,4 +1,3 @@
-
 const { requireAuth } = require("./_auth");
 const { enforceRateLimit } = require("./_rateLimit");
 
@@ -22,11 +21,11 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: "Memory service unavailable" });
   }
 
-  const baseUrl =
-    `${SUPABASE_URL.replace(/\/+$/, "")}/rest/v1/memories`;
-
+  const supabaseUrl = SUPABASE_URL.replace(/\/+$/, "");
+  const baseUrl = `${supabaseUrl}/rest/v1/memories`;
   const headers = {
     apikey: SUPABASE_SECRET_KEY,
+    Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
     "Content-Type": "application/json"
   };
 
@@ -63,86 +62,35 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Invalid memory data" });
     }
 
-    if (category.trim().length > 40 || content.length > 4000) {
-      return res.status(413).json({ error: "Memory category or content exceeds the allowed size" });
-    }
-
     const normalizedCategory = category.trim();
     const normalizedContent = content.trim();
 
-    const searchParams = new URLSearchParams({
-      select: "id",
-      user_id: `eq.${user.id}`,
-      category: `eq.${normalizedCategory}`,
-      content: `eq.${normalizedContent}`,
-      is_active: "eq.true",
-      limit: "1"
-    });
-
-    const searchResponse = await fetch(
-      `${baseUrl}?${searchParams}`,
-      { headers }
-    );
-
-    if (!searchResponse.ok) {
-      console.error("Memory duplicate check failed", searchResponse.status);
-      return res.status(500).json({ error: "Failed to save memory" });
+    if (normalizedCategory.length > 40 || normalizedContent.length > 4000) {
+      return res.status(413).json({ error: "Memory category or content exceeds the allowed size" });
     }
 
-    const existing = await searchResponse.json();
-
-    if (existing.length > 0) {
-      const updateParams = new URLSearchParams({
-        id: `eq.${existing[0].id}`,
-        user_id: `eq.${user.id}`
-      });
-
-      const updateResponse = await fetch(
-        `${baseUrl}?${updateParams}`,
-        {
-          method: "PATCH",
-          headers: {
-            ...headers,
-            Prefer: "return=representation"
-          },
-          body: JSON.stringify({
-            importance,
-            updated_at: new Date().toISOString()
-          })
-        }
-      );
-
-      if (!updateResponse.ok) {
-        console.error("Memory update failed", updateResponse.status);
-        return res.status(500).json({ error: "Failed to save memory" });
-      }
-
-      return res.status(200).json({ ok: true, memories: await updateResponse.json() });
-    }
-
-    const insertResponse = await fetch(baseUrl, {
+    // Use the database function so duplicate detection and insert/update happen atomically.
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/save_memory_atomic`, {
       method: "POST",
-      headers: {
-        ...headers,
-        Prefer: "return=representation"
-      },
+      headers,
       body: JSON.stringify({
-        user_id: user.id,
-        category: normalizedCategory,
-        content: normalizedContent,
-        importance,
-        is_active: true
+        p_user_id: user.id,
+        p_category: normalizedCategory,
+        p_content: normalizedContent,
+        p_importance: importance
       })
     });
 
-    if (!insertResponse.ok) {
-      console.error("Memory insert failed", insertResponse.status);
+    if (!response.ok) {
+      const responseText = await response.text();
+      console.error("Atomic memory save failed", response.status, responseText.slice(0, 300));
       return res.status(500).json({ error: "Failed to save memory" });
     }
 
-    return res.status(201).json({ ok: true, memories: await insertResponse.json() });
+    const memories = await response.json();
+    return res.status(200).json({ ok: true, memories });
   } catch (error) {
-    console.error("Memory API request failed");
+    console.error("Memory API request failed", error?.name || "UnknownError");
     return res.status(500).json({ error: "Memory service unavailable" });
   }
 };
