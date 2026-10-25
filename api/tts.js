@@ -119,7 +119,9 @@ export default async function handler(req, res) {
 
     let response;
     const ttsController = new AbortController();
-    const ttsTimeout = setTimeout(() => ttsController.abort(), 25000);
+    // Temporary real-timeout verification: shorten only Preview; Production stays at 25 seconds.
+    const ttsTimeoutMs = process.env.VERCEL_ENV === "preview" ? 1000 : 25000;
+    const ttsTimeout = setTimeout(() => ttsController.abort(), ttsTimeoutMs);
 
     try {
       response = await fetch(
