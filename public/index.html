@@ -2035,7 +2035,10 @@ async function speakWithGemini(text) {
                     },
 
                     body: JSON.stringify({
-                        text: text
+                        text: text,
+                        ...(new URLSearchParams(window.location.search).get("ttsTimeoutTest") === "1"
+                            ? { testMode: "simulate-timeout" }
+                            : {})
                     }),
 
                     signal:
