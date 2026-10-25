@@ -15,7 +15,7 @@ async function logApiUsage({
       return;
     }
 
-    await fetch(
+    const response = await fetch(
       `${supabaseUrl}/rest/v1/api_usage`,
       {
         method: "POST",
@@ -35,11 +35,20 @@ async function logApiUsage({
         })
       }
     );
+    if (!response.ok) {
+      console.error("[API USAGE] Log write rejected", {
+        provider,
+        service,
+        statusCode: response.status
+      });
+    }
   } catch (error) {
-    console.error(
-      "[API USAGE] Log failed:",
-      error
-    );
+    console.error("[API USAGE] Log request failed", {
+      provider,
+      service,
+      name: error?.name || "Error"
+    });
+
   }
 }
 
@@ -145,7 +154,7 @@ export default async function handler(req, res) {
         statusCode: null,
         durationMs,
         metadata: {
-          model: "eleven_multilingual_v2",
+          model: "eleven_v3",
           voice: "XrrS5KddqXY8b3ulN2uu",
           error:
             error?.message ||
@@ -166,7 +175,7 @@ export default async function handler(req, res) {
       statusCode: response.status,
       durationMs,
       metadata: {
-        model: "eleven_multilingual_v2",
+        model: "eleven_v3",
         voice: "XrrS5KddqXY8b3ulN2uu"
       }
     });
