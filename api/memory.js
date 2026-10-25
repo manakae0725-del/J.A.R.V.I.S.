@@ -31,6 +31,7 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
+      console.info("Memory GET diagnostic: request authorized");
       const params = new URLSearchParams({
         select: "*",
         user_id: `eq.${user.id}`,
@@ -39,13 +40,16 @@ module.exports = async function handler(req, res) {
       });
 
       const response = await fetch(`${baseUrl}?${params}`, { headers });
+      console.info("Memory GET diagnostic: Supabase response", { status: response.status });
 
       if (!response.ok) {
         console.error("Memory read failed", response.status);
         return res.status(500).json({ error: "Failed to load memories" });
       }
 
-      return res.status(200).json({ ok: true, memories: await response.json() });
+      const loadedMemories = await response.json();
+      console.info("Memory GET diagnostic: load succeeded", { count: Array.isArray(loadedMemories) ? loadedMemories.length : -1 });
+      return res.status(200).json({ ok: true, memories: loadedMemories });
     }
 
     const { category, content, importance } = req.body || {};
