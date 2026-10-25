@@ -2371,6 +2371,61 @@ async function sendToGemini(text) {
     }
 }
 
+
+/* Preview-only TTS timeout test control. Hidden on the production hostname. */
+(function installTtsTimeoutTestControl() {
+    const hostname = window.location.hostname;
+    const isPreviewHost =
+        hostname.endsWith(".vercel.app") &&
+        hostname !== "j-a-r-v-i-s-gold.vercel.app";
+
+    if (!isPreviewHost) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "TTSタイムアウト検証";
+    button.setAttribute("aria-label", "TTSタイムアウト検証");
+    button.style.cssText =
+        "position:fixed;right:12px;bottom:12px;z-index:20000;" +
+        "padding:10px 12px;background:#071b2d;color:#bfeaff;" +
+        "border:1px solid #0099ff;border-radius:6px;font-size:12px;";
+
+    button.addEventListener("click", async function () {
+        button.disabled = true;
+        button.textContent = "検証中…";
+        try {
+            const accessToken = await window.jarvisGetAccessToken();
+            if (!accessToken) {
+                alert("ログインが必要です。ログイン後に再実行してください。");
+                return;
+            }
+
+            const response = await fetch("/api/tts", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + accessToken
+                },
+                body: JSON.stringify({
+                    text: "TTS timeout test",
+                    testMode: "simulate-timeout"
+                })
+            });
+
+            const data = await response.json().catch(() => ({}));
+            alert("TTSテスト結果: HTTP " + response.status + "\n" +
+                (data.error || "エラー内容なし"));
+        } catch (error) {
+            alert("TTSテスト通信エラー: " + (error?.message || "不明なエラー"));
+        } finally {
+            button.disabled = false;
+            button.textContent = "TTSタイムアウト検証";
+        }
+    });
+
+    document.body.appendChild(button);
+})();
+
 </script>
 </body>
 </html>
