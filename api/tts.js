@@ -48,10 +48,7 @@ async function logApiUsage({
       service,
       name: error?.name || "Error"
     });
-    console.error(
-      "[API USAGE] Log failed:",
-      error
-    );
+
   }
 }
 
@@ -157,7 +154,7 @@ export default async function handler(req, res) {
         statusCode: null,
         durationMs,
         metadata: {
-          model: "eleven_multilingual_v2",
+          model: "eleven_v3",
           voice: "XrrS5KddqXY8b3ulN2uu",
           error:
             error?.message ||
@@ -178,7 +175,7 @@ export default async function handler(req, res) {
       statusCode: response.status,
       durationMs,
       metadata: {
-        model: "eleven_multilingual_v2",
+        model: "eleven_v3",
         voice: "XrrS5KddqXY8b3ulN2uu"
       }
     });
