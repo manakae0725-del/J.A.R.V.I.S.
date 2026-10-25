@@ -47,7 +47,7 @@ async function logApiUsage({
       service,
       name: error?.name || "Error"
     });
-    console.error("[API USAGE] Log failed");
+
   }
 }
 
