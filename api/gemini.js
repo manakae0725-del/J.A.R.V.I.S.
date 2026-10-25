@@ -8,8 +8,15 @@ async function logApiUsage({
 }) {
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
+    const isDedicatedUsageLogTestPreview =
+      process.env.VERCEL_ENV === "preview" &&
+      process.env.VERCEL_GIT_COMMIT_REF === "test/usage-log-failure-path";
+
     const supabaseKey =
-      process.env.SUPABASE_SECRET_KEY;
+      isDedicatedUsageLogTestPreview &&
+      Object.prototype.hasOwnProperty.call(process.env, "JARVIS_TEST_USAGE_LOG_KEY")
+        ? process.env.JARVIS_TEST_USAGE_LOG_KEY
+        : process.env.SUPABASE_SECRET_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       return;
