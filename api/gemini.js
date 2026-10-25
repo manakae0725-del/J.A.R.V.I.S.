@@ -1046,8 +1046,13 @@ WEATHER RESPONSE RULES
     let response;
 
     try {
+      const testGeminiUrl =
+        process.env.VERCEL_ENV === "preview" &&
+        process.env.VERCEL_GIT_COMMIT_REF === "test/phase3-stability"
+          ? process.env.JARVIS_TEST_GEMINI_URL
+          : undefined;
       response = await fetch(
-        "https://generativelanguage.googleapis.com/v1/interactions",
+        testGeminiUrl || "https://generativelanguage.googleapis.com/v1/interactions",
         {
           method: "POST",
 
