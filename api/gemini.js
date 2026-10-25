@@ -1029,9 +1029,16 @@ WEATHER RESPONSE RULES
 
     const controller = new AbortController();
 
+    const testTimeoutMs =
+      process.env.VERCEL_ENV === "preview" &&
+      process.env.VERCEL_GIT_COMMIT_REF === "test/phase3-stability"
+        ? Number(process.env.JARVIS_TEST_GEMINI_TIMEOUT_MS)
+        : NaN;
     const geminiTimeout = setTimeout(
       () => controller.abort(),
-      120000
+      Number.isFinite(testTimeoutMs) && testTimeoutMs > 0
+        ? testTimeoutMs
+        : 120000
     );
 
     const geminiStart = Date.now();
