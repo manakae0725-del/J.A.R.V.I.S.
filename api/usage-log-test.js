@@ -1,3 +1,4 @@
+// Temporary diagnostic endpoint; guarded to a token-protected Vercel Preview deployment only.
 const geminiHandler = require("./gemini");
 
 module.exports = async function handler(req, res) {
