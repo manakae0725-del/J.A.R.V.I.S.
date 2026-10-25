@@ -1269,6 +1269,23 @@ sendButton.addEventListener(
             return;
         }
 
+        if (text === "P3-03-5-RACE-TEST") {
+            textInput.value = "";
+            const testMemory = {
+                shouldSave: true,
+                category: "preference",
+                content: "P3-03-5-RACE-20261025-A",
+                importance: 1
+            };
+            const testUserId = window.jarvisCurrentUserId;
+            const results = await Promise.all([
+                saveMemory(testMemory, testUserId),
+                saveMemory(testMemory, testUserId)
+            ]);
+            alert("同時保存リクエスト完了。結果: " + results.map(v => v ? "成功" : "失敗").join(" / ") + "。Supabaseで P3-03-5-RACE-20261025-A の件数を確認してください。");
+            return;
+        }
+
         textInput.value="";
 
         await sendToGemini(
