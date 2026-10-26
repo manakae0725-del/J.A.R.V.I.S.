@@ -93,6 +93,8 @@ function frame(){
  ring(r*1.86,r*.79,.48-t*.14,-t*.17,.28,.8);
  ring(r*2.08,r*1.47,.12+t*.07,t*.07,.17,.7);
  ring(r*1.47,r*1.43,.9-t*.11,-t*.1,.22,.65);
+ ring(r*1.98,r*1.02,-.22-t*.08,t*.21,.24,.75);
+ ring(r*1.58,r*1.58,.64+t*.12,-t*.14,.19,.6);
  // Short segmented HUD ticks around the outer orbital path.
  ctx.save();ctx.translate(cx,cy);ctx.rotate(rot*.15+t*.025);
  for(let i=0;i<96;i++){const a=i*Math.PI*2/96;const major=i%8===0;const inner=r*(major?1.78:1.78),outer=r*(major?1.82:1.82);line(Math.cos(a)*inner,Math.sin(a)*inner,Math.cos(a)*outer,Math.sin(a)*outer,'rgba(90,180,255,'+(major?.98:.68)+')',major?1:.6)}
