@@ -32,7 +32,7 @@ function drawCore(r){
  // A fine, original-style dotted Voronoi boundary texture, not a 3D replacement.
  for(let x=cx-r;x<=cx+r;x+=5){for(let y=cy-r;y<=cy+r;y+=5){if(Math.hypot(x-cx,y-cy)>=r)continue;let d1=1e9,d2=1e9;for(const p of corePts){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){d2=d1;d1=d}else if(d<d2)d2=d}if(Math.abs(d1-d2)<1.2){ctx.fillStyle='rgba(0,220,255,.42)';ctx.fillRect(x,y,1,1)}}}
  corePts.forEach(p=>{ctx.fillStyle='rgba(180,240,255,.75)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
- ctx.restore();ctx.strokeStyle='rgba(120,210,255,.9)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+ ctx.restore();
 
  const coreGlow=ctx.createRadialGradient(cx,cy,0,cx,cy,r*.24);coreGlow.addColorStop(0,'#fff');coreGlow.addColorStop(.25,'rgba(170,235,255,.95)');coreGlow.addColorStop(1,'rgba(0,100,255,0)');ctx.fillStyle=coreGlow;ctx.beginPath();ctx.arc(cx,cy,r*.24,0,Math.PI*2);ctx.fill();
  ctx.save();ctx.font='bold '+(r*.18)+'px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J  A  R  V  I  S',cx,cy);ctx.restore();
