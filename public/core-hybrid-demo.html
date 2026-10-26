@@ -22,26 +22,27 @@ function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=wid
 function ring(rx,ry,tilt,phase,alpha,width){
  ctx.save();ctx.translate(cx,cy);ctx.rotate(tilt+rot*.16);ctx.beginPath();
  for(let i=0;i<=220;i++){const a=i/220*Math.PI*2+phase+rot*.12;const x=Math.cos(a)*rx,y=Math.sin(a)*ry*(.78+.22*Math.sin(a+rot));i?ctx.lineTo(x,y):ctx.moveTo(x,y)}
- ctx.strokeStyle='rgba(40,175,255,'+alpha+')';ctx.lineWidth=width;ctx.shadowColor='#008cff';ctx.shadowBlur=12;ctx.stroke();ctx.restore();
+ ctx.strokeStyle='rgba(15,95,230,'+(alpha*.9)+')';ctx.lineWidth=width;ctx.shadowColor='#075bff';ctx.shadowBlur=10;ctx.stroke();ctx.restore();
 }
 function drawCore(r){
  // Layered translucent gradients create a glass-like, holographic Core.
  const g=ctx.createRadialGradient(cx-r*.3,cy-r*.34,r*.04,cx,cy,r*1.08);
  g.addColorStop(0,'rgba(215,255,255,.66)');
  g.addColorStop(.18,'rgba(45,230,255,.52)');
- g.addColorStop(.48,'rgba(0,135,255,.38)');
- g.addColorStop(.76,'rgba(0,70,210,.3)');
- g.addColorStop(1,'rgba(0,165,255,.14)');
+ g.addColorStop(.38,'rgba(0,105,245,.42)');
+ g.addColorStop(.68,'rgba(0,48,170,.38)');
+ g.addColorStop(.88,'rgba(0,28,115,.3)');
+ g.addColorStop(1,'rgba(0,100,230,.18)');
  ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
  const rim=ctx.createRadialGradient(cx,cy,r*.68,cx,cy,r);
  rim.addColorStop(0,'rgba(70,210,255,0)');
  rim.addColorStop(.72,'rgba(70,210,255,.02)');
- rim.addColorStop(1,'rgba(115,235,255,.3)');
+ rim.addColorStop(1,'rgba(45,135,255,.24)');
  ctx.fillStyle=rim;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
  ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.clip();
  // A fine, original-style dotted Voronoi boundary texture, not a 3D replacement.
- for(let x=cx-r;x<=cx+r;x+=5){for(let y=cy-r;y<=cy+r;y+=5){if(Math.hypot(x-cx,y-cy)>=r)continue;let d1=1e9,d2=1e9;for(const p of corePts){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){d2=d1;d1=d}else if(d<d2)d2=d}if(Math.abs(d1-d2)<1.2){ctx.fillStyle='rgba(110,240,255,.42)';ctx.fillRect(x,y,1,1)}}}
- corePts.forEach(p=>{ctx.fillStyle='rgba(195,248,255,.68)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
+ for(let x=cx-r;x<=cx+r;x+=5){for(let y=cy-r;y<=cy+r;y+=5){if(Math.hypot(x-cx,y-cy)>=r)continue;let d1=1e9,d2=1e9;for(const p of corePts){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){d2=d1;d1=d}else if(d<d2)d2=d}if(Math.abs(d1-d2)<1.2){ctx.fillStyle='rgba(55,165,255,.36)';ctx.fillRect(x,y,1,1)}}}
+ corePts.forEach(p=>{ctx.fillStyle='rgba(120,195,255,.62)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
  ctx.restore();
 
  // Removed the small central glow spot as requested.
@@ -51,14 +52,14 @@ let corePts=[];
 for(let i=0;i<85;i++){const a=rand()*Math.PI*2,rr=Math.sqrt(rand())*176;corePts.push({x:500+rr*Math.cos(a),y:500+rr*Math.sin(a)})}
 function frame(){
  requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
- stars.forEach(s=>{ctx.fillStyle='rgba(75,165,255,'+(s.a*(.6+.4*Math.sin(t+s.x*10))+0.02)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
+ stars.forEach(s=>{ctx.fillStyle='rgba(25,90,230,'+(s.a*(.6+.4*Math.sin(t+s.x*10))+0.02)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
  const r=Math.min(w,h)*.175;
  // Long crosshair beams behind the Core, extending across the full viewport.
  const beamGradH=ctx.createLinearGradient(0,cy,w,cy);
  beamGradH.addColorStop(0,'rgba(0,120,255,0)');
- beamGradH.addColorStop(.18,'rgba(30,160,255,.18)');
- beamGradH.addColorStop(.42,'rgba(120,225,255,.58)');
- beamGradH.addColorStop(.5,'rgba(225,250,255,.9)');
+ beamGradH.addColorStop(.18,'rgba(10,75,220,.2)');
+ beamGradH.addColorStop(.42,'rgba(55,145,255,.52)');
+ beamGradH.addColorStop(.5,'rgba(120,185,255,.76)');
  beamGradH.addColorStop(.58,'rgba(120,225,255,.58)');
  beamGradH.addColorStop(.82,'rgba(30,160,255,.18)');
  beamGradH.addColorStop(1,'rgba(0,120,255,0)');
@@ -81,7 +82,7 @@ function frame(){
  ring(r*1.34,r*1.31,.9,-t*.1,.22,.65);
  // Short segmented HUD ticks around the outer orbital path.
  ctx.save();ctx.translate(cx,cy);ctx.rotate(rot*.15+t*.025);
- for(let i=0;i<96;i++){const a=i*Math.PI*2/96;const major=i%8===0;const inner=r*(major?1.72:1.78),outer=r*(major?1.86:1.82);line(Math.cos(a)*inner,Math.sin(a)*inner,Math.cos(a)*outer,Math.sin(a)*outer,'rgba(45,175,255,'+(major?.65:.22)+')',major?1:.6)}
+ for(let i=0;i<96;i++){const a=i*Math.PI*2/96;const major=i%8===0;const inner=r*(major?1.72:1.78),outer=r*(major?1.86:1.82);line(Math.cos(a)*inner,Math.sin(a)*inner,Math.cos(a)*outer,Math.sin(a)*outer,'rgba(20,100,245,'+(major?.7:.28)+')',major?1:.6)}
  ctx.restore();
  // Particle flow surrounds and lightly overlaps the core silhouette.
  particles.forEach(p=>{
@@ -91,15 +92,15 @@ function frame(){
   const x=cx+Math.cos(a)*rr;
   const y=cy+Math.sin(a)*rr*(.86+p.z*.1);
   const twinkle=.35+.65*(.5+.5*Math.sin(t*2+p.phase));
-  ctx.fillStyle='rgba(105,220,255,'+(twinkle*(p.r>.78?.85:.48))+')';
-  ctx.shadowColor='#008cff';ctx.shadowBlur=p.r>.82?8:3;
+  ctx.fillStyle='rgba(65,145,255,'+(twinkle*(p.r>.78?.82:.46))+')';
+  ctx.shadowColor='#075bff';ctx.shadowBlur=p.r>.82?7:2;
   ctx.beginPath();ctx.arc(x,y,p.s*(p.r>.88?1.15:.75),0,Math.PI*2);ctx.fill();
  });
  ctx.shadowBlur=0;
  // Core remains a flat graphic at the center; particles and 3D-style orbit rings add depth.
  drawCore(r);
  // Fine particles crossing the foreground give a subtle layered effect.
- particles.filter(p=>p.r>.9).forEach(p=>{const a=p.a-t*p.speed*.16;const rr=r*(.72+Math.sin(t+p.phase)*.05);const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.8;ctx.fillStyle='rgba(185,245,255,.7)';ctx.beginPath();ctx.arc(x,y,p.s*.5,0,Math.PI*2);ctx.fill()});
+ particles.filter(p=>p.r>.9).forEach(p=>{const a=p.a-t*p.speed*.16;const rr=r*(.72+Math.sin(t+p.phase)*.05);const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.8;ctx.fillStyle='rgba(100,170,255,.62)';ctx.beginPath();ctx.arc(x,y,p.s*.5,0,Math.PI*2);ctx.fill()});
 }
 frame();
 </script></body></html>
