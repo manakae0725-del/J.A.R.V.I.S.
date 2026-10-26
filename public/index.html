@@ -181,22 +181,54 @@ box-shadow: 0 0 14px rgba(0, 136, 255,
 }
 .core-sphere-nucleus {
 position: absolute;
+isolation: isolate;
+overflow: hidden;
 width: 115px;
 height: 115px;
 border-radius: 50%;
-background: radial-gradient(circle,
-#ffffff 0%, #0088ff 30%, #0022aa 75%,
-#000411 100%);
-box-shadow: 0 0 38px #0077ff, 0 0 75px
-rgba(0, 85, 255, 0.95), inset 0 0 20px
-#ffffff;
+background:
+radial-gradient(ellipse at 35% 25%, rgba(218,249,255,.95) 0%, rgba(67,174,255,.72) 9%, transparent 25%),
+radial-gradient(ellipse at 62% 72%, rgba(0,28,133,.92) 0%, transparent 44%),
+radial-gradient(circle at 50% 48%, #087dff 0%, #0649c9 42%, #03133e 76%, #000411 100%);
+box-shadow:
+0 0 12px rgba(68,190,255,.95),
+0 0 32px rgba(0,119,255,.95),
+0 0 72px rgba(0,85,255,.72),
+inset 0 0 14px rgba(255,255,255,.9),
+inset -12px -14px 24px rgba(0,0,30,.85),
+inset 8px 7px 18px rgba(112,220,255,.75);
 display: flex;
 justify-content: center;
 align-items: center;
-animation: corePulse 3.5s ease-in-out
-infinite;
+animation: corePulse 3.5s ease-in-out infinite;
 z-index: 5;
-border: 1px solid rgba(0, 200, 255, 0.4);
+border: 1px solid rgba(122,220,255,.8);
+}
+.core-sphere-nucleus::before {
+content: "";
+position: absolute;
+inset: 5%;
+border-radius: 50%;
+background:
+repeating-linear-gradient(0deg, transparent 0 9px, rgba(120,220,255,.14) 10px, transparent 11px),
+repeating-linear-gradient(90deg, transparent 0 11px, rgba(120,220,255,.12) 12px, transparent 13px),
+radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(87,205,255,.28) 70%, transparent 72%);
+box-shadow: inset 0 0 15px rgba(126,220,255,.4);
+opacity: .85;
+pointer-events: none;
+z-index: 1;
+}
+.core-sphere-nucleus::after {
+content: "";
+position: absolute;
+inset: 0;
+border-radius: 50%;
+background:
+linear-gradient(115deg, transparent 20%, rgba(205,247,255,.24) 42%, transparent 57%),
+radial-gradient(ellipse at 32% 24%, rgba(255,255,255,.65), transparent 20%);
+mix-blend-mode: screen;
+pointer-events: none;
+z-index: 2;
 }
 @media (min-width: 768px) {.core-sphere-nucleus {
 width: 135px;
