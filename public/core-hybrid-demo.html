@@ -33,8 +33,7 @@ function drawCore(r){
  for(let x=cx-r;x<=cx+r;x+=5){for(let y=cy-r;y<=cy+r;y+=5){if(Math.hypot(x-cx,y-cy)>=r)continue;let d1=1e9,d2=1e9;for(const p of corePts){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){d2=d1;d1=d}else if(d<d2)d2=d}if(Math.abs(d1-d2)<1.2){ctx.fillStyle='rgba(0,220,255,.42)';ctx.fillRect(x,y,1,1)}}}
  corePts.forEach(p=>{ctx.fillStyle='rgba(180,240,255,.75)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
  ctx.restore();ctx.strokeStyle='rgba(120,210,255,.9)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
- const hgr=ctx.createLinearGradient(cx-r*1.7,cy,cx+r*1.7,cy);hgr.addColorStop(0,'rgba(0,130,255,0)');hgr.addColorStop(.47,'rgba(130,225,255,.9)');hgr.addColorStop(.5,'#fff');hgr.addColorStop(.53,'rgba(130,225,255,.9)');hgr.addColorStop(1,'rgba(0,130,255,0)');line(cx-r*1.7,cy,cx+r*1.7,cy,hgr,1);
- const vgr=ctx.createLinearGradient(cx,cy-r*1.7,cx,cy+r*1.7);vgr.addColorStop(0,'rgba(0,130,255,0)');vgr.addColorStop(.47,'rgba(130,225,255,.9)');vgr.addColorStop(.5,'#fff');vgr.addColorStop(.53,'rgba(130,225,255,.9)');vgr.addColorStop(1,'rgba(0,130,255,0)');line(cx,cy-r*1.7,cx,cy+r*1.7,vgr,1);
+
  const coreGlow=ctx.createRadialGradient(cx,cy,0,cx,cy,r*.24);coreGlow.addColorStop(0,'#fff');coreGlow.addColorStop(.25,'rgba(170,235,255,.95)');coreGlow.addColorStop(1,'rgba(0,100,255,0)');ctx.fillStyle=coreGlow;ctx.beginPath();ctx.arc(cx,cy,r*.24,0,Math.PI*2);ctx.fill();
  ctx.save();ctx.font='bold '+(r*.18)+'px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J  A  R  V  I  S',cx,cy);ctx.restore();
 }
@@ -44,6 +43,27 @@ function frame(){
  requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
  stars.forEach(s=>{ctx.fillStyle='rgba(75,165,255,'+(s.a*(.6+.4*Math.sin(t+s.x*10))+0.02)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
  const r=Math.min(w,h)*.175;
+ // Long crosshair beams behind the Core, extending across the full viewport.
+ const beamGradH=ctx.createLinearGradient(0,cy,w,cy);
+ beamGradH.addColorStop(0,'rgba(0,120,255,0)');
+ beamGradH.addColorStop(.18,'rgba(30,160,255,.18)');
+ beamGradH.addColorStop(.42,'rgba(120,225,255,.58)');
+ beamGradH.addColorStop(.5,'rgba(225,250,255,.9)');
+ beamGradH.addColorStop(.58,'rgba(120,225,255,.58)');
+ beamGradH.addColorStop(.82,'rgba(30,160,255,.18)');
+ beamGradH.addColorStop(1,'rgba(0,120,255,0)');
+ ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor='#008cff';ctx.shadowBlur=9;
+ line(0,cy,w,cy,beamGradH,.8);
+ const beamGradV=ctx.createLinearGradient(cx,0,cx,h);
+ beamGradV.addColorStop(0,'rgba(0,120,255,0)');
+ beamGradV.addColorStop(.18,'rgba(30,160,255,.18)');
+ beamGradV.addColorStop(.42,'rgba(120,225,255,.58)');
+ beamGradV.addColorStop(.5,'rgba(225,250,255,.9)');
+ beamGradV.addColorStop(.58,'rgba(120,225,255,.58)');
+ beamGradV.addColorStop(.82,'rgba(30,160,255,.18)');
+ beamGradV.addColorStop(1,'rgba(0,120,255,0)');
+ line(cx,0,cx,h,beamGradV,.8);
+ ctx.restore();
  // Layered rings behind the unchanged graphic core.
  ring(r*1.55,r*1.08,-.55,t*.13,.36,1);
  ring(r*1.72,r*.72,.48,-t*.17,.28,.8);
