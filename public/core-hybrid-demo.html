@@ -26,9 +26,9 @@ function ring(rx,ry,tilt,phase,alpha,width){
 }
 function drawCore(r){
  // Layered translucent gradients create a glass-like, holographic Core.
- const g=ctx.createRadialGradient(cx-r*.3,cy-r*.34,r*.04,cx,cy,r*1.08);
- g.addColorStop(0,'rgba(215,255,255,.66)');
- g.addColorStop(.18,'rgba(45,230,255,.52)');
+ const g=ctx.createRadialGradient(cx,cy,r*.08,cx,cy,r*1.08);
+ g.addColorStop(0,'rgba(45,150,255,.28)');
+ g.addColorStop(.18,'rgba(25,125,255,.36)');
  g.addColorStop(.38,'rgba(0,105,245,.42)');
  g.addColorStop(.68,'rgba(0,48,170,.38)');
  g.addColorStop(.88,'rgba(0,28,115,.3)');
