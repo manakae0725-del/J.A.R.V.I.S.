@@ -95,76 +95,69 @@
       });
     }
 
-    // Voronoi-style shell plates: draw actual connected crack edges.
-    // A coarse nearest-cell map is used to keep the texture static and lightweight.
-    const step = 1;
-    const grid = [];
-    for (let gy = cy - radius; gy <= cy + radius; gy += step) {
-      const row = [];
-      for (let gx = cx - radius; gx <= cx + radius; gx += step) {
-        if (Math.hypot(gx - cx, gy - cy) >= radius) {
-          row.push(-1);
-          continue;
-        }
-        let nearest = -1;
-        let nearestDistance = Infinity;
+    // 4. 甲羅状（ボロノイ多角形）ネットワークパターンの静的描画
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
+    ctx.clip(); // 球体内部のみにクリッピング
+
+    // シードポイント生成（再現性のための擬似乱数）
+    let seed = 12345;
+    function pseudoRandom() {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    }
+
+    const points = [];
+    const numPoints = 85;
+    for (let i = 0; i < numPoints; i++) {
+      const ang = pseudoRandom() * Math.PI * 2;
+      const r = Math.sqrt(pseudoRandom()) * (radius * 0.95);
+      points.push({
+        x: cx + r * Math.cos(ang),
+        y: cy + r * Math.sin(ang)
+      });
+    }
+
+    // 甲羅風のボロノイ境界線（極細線）の描画
+    ctx.strokeStyle = 'rgba(0, 230, 255, 0.28)';
+    ctx.lineWidth = 0.75;
+
+    for (let x = cx - radius; x <= cx + radius; x += 6) {
+      for (let y = cy - radius; y <= cy + radius; y += 6) {
+        const distToCenter = Math.hypot(x - cx, y - cy);
+        if (distToCenter >= radius) continue;
+
+        // 最寄りの2点を探索
+        let d1 = Infinity, d2 = Infinity;
         for (let i = 0; i < points.length; i++) {
-          const dx = gx - points[i].x;
-          const dy = gy - points[i].y;
-          const d = dx * dx + dy * dy;
-          if (d < nearestDistance) {
-            nearestDistance = d;
-            nearest = i;
+          const d = Math.hypot(x - points[i].x, y - points[i].y);
+          if (d < d1) {
+            d2 = d1;
+            d1 = d;
+          } else if (d < d2) {
+            d2 = d;
           }
         }
-        row.push(nearest);
-      }
-      grid.push(row);
-    }
 
-    // Dark seams, bright glass-like edges and a few fine branching fractures.
-    ctx.lineCap = 'round';
-    for (let gy = 0; gy < grid.length; gy++) {
-      for (let gx = 0; gx < grid[gy].length; gx++) {
-        const cell = grid[gy][gx];
-        if (cell < 0) continue;
-        const x = cx - radius + gx * step;
-        const y = cy - radius + gy * step;
-        const right = gx + 1 < grid[gy].length ? grid[gy][gx + 1] : -1;
-        const down = gy + 1 < grid.length && gx < grid[gy + 1].length ? grid[gy + 1][gx] : -1;
-
-        if (right >= 0 && right !== cell) {
-          ctx.strokeStyle = 'rgba(220, 248, 255, 0.88)';
-          ctx.lineWidth = 0.4;
-          ctx.beginPath();
-          ctx.moveTo(x + step * 0.5, y - step * 0.25);
-          ctx.lineTo(x + step * 0.5, y + step * 1.15);
-          ctx.stroke();
-
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
-          ctx.lineWidth = 0.2;
-          ctx.beginPath();
-          ctx.moveTo(x + step * 0.5 - 0.7, y - step * 0.15);
-          ctx.lineTo(x + step * 0.5 - 0.7, y + step * 1.05);
-          ctx.stroke();
-        }
-        if (down >= 0 && down !== cell) {
-          ctx.strokeStyle = 'rgba(220, 248, 255, 0.88)';
-          ctx.lineWidth = 0.4;
-          ctx.beginPath();
-          ctx.moveTo(x - step * 0.25, y + step * 0.5);
-          ctx.lineTo(x + step * 1.15, y + step * 0.5);
-          ctx.stroke();
-
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
-          ctx.lineWidth = 0.2;
-          ctx.beginPath();
-          ctx.moveTo(x - step * 0.15, y + step * 0.5 - 0.7);
-          ctx.lineTo(x + step * 1.05, y + step * 0.5 - 0.7);
-          ctx.stroke();
+        // 境界線付近のみを点描・描画
+        if (Math.abs(d1 - d2) < 1.2) {
+          ctx.fillStyle = 'rgba(0, 200, 255, 0.35)';
+          ctx.fillRect(x, y, 1, 1);
         }
       }
     }
+
+    // ネットワークノード（細かな光点）
+    points.forEach(p => {
+      const d = Math.hypot(p.x - cx, p.y - cy);
+      if (d < radius * 0.92) {
+        ctx.fillStyle = 'rgba(180, 240, 255, 0.7)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
 
     // Uneven translucent plate facets create depth like cracked glass or an eggshell.
     points.forEach((p, i) => {
