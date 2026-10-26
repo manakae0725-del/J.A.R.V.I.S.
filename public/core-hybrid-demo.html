@@ -45,14 +45,16 @@ function drawCore(r){
  corePts.forEach(p=>{ctx.fillStyle='rgba(120,195,255,.62)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
  ctx.restore();
 
- // Strong blue light at the exact intersection of the Core and crosshair.
- const glowR=r*.2;
+ // Strong center light with a broad radial falloff reaching the Core's outer edge.
+ const glowR=r*1.02;
  const blueGlow=ctx.createRadialGradient(cx,cy,0,cx,cy,glowR);
- blueGlow.addColorStop(0,'rgba(185,235,255,1)');
- blueGlow.addColorStop(.16,'rgba(45,155,255,.98)');
- blueGlow.addColorStop(.48,'rgba(0,95,255,.7)');
- blueGlow.addColorStop(1,'rgba(0,65,255,0)');
- ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor='#1685ff';ctx.shadowBlur=28;
+ blueGlow.addColorStop(0,'rgba(185,235,255,.95)');
+ blueGlow.addColorStop(.12,'rgba(45,155,255,.72)');
+ blueGlow.addColorStop(.34,'rgba(0,105,255,.38)');
+ blueGlow.addColorStop(.62,'rgba(0,75,235,.2)');
+ blueGlow.addColorStop(.84,'rgba(0,55,200,.1)');
+ blueGlow.addColorStop(1,'rgba(0,45,170,0)');
+ ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor='#1685ff';ctx.shadowBlur=36;
  ctx.fillStyle=blueGlow;ctx.beginPath();ctx.arc(cx,cy,glowR,0,Math.PI*2);ctx.fill();ctx.restore();
 
  // Removed the misplaced highlight.
