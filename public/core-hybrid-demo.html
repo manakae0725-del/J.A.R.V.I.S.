@@ -24,12 +24,25 @@ function ring(rx,ry,tilt,phase,alpha,width,band=false){
  const path=new Path2D();
  for(let i=0;i<=260;i++){const a=i/260*Math.PI*2+phase+rot*.12;const x=Math.cos(a)*rx,y=Math.sin(a)*ry*(.78+.22*Math.sin(a+rot));i?path.lineTo(x,y):path.moveTo(x,y)}
  if(band){
-  // Broad, layered energy band: soft halo, saturated body, then a fine bright core.
+  // Alternate thin and thick luminous sections around the same orbital ring.
   ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.strokeStyle='rgba(0,95,255,.16)';ctx.lineWidth=9;ctx.shadowColor='#168cff';ctx.shadowBlur=24;ctx.stroke(path);
-  ctx.strokeStyle='rgba(35,145,255,.34)';ctx.lineWidth=4.5;ctx.shadowBlur=13;ctx.stroke(path);
-  ctx.strokeStyle='rgba(90,205,255,.9)';ctx.lineWidth=1.25;ctx.shadowBlur=8;ctx.stroke(path);
-  ctx.strokeStyle='rgba(220,250,255,.82)';ctx.lineWidth=.45;ctx.shadowBlur=4;ctx.stroke(path);
+  for(let s=0;s<32;s++){
+   const a0=s/32*Math.PI*2+phase+rot*.12;
+   const a1=(s+1)/32*Math.PI*2+phase+rot*.12;
+   const thick=s%2===1;
+   const seg=new Path2D();
+   for(let j=0;j<=12;j++){
+    const a=a0+(a1-a0)*j/12;
+    const x=Math.cos(a)*rx,y=Math.sin(a)*ry*(.78+.22*Math.sin(a+rot));
+    j?seg.lineTo(x,y):seg.moveTo(x,y);
+   }
+   ctx.strokeStyle=thick?'rgba(25,135,255,.42)':'rgba(45,155,255,.2)';
+   ctx.lineWidth=thick?7:2;ctx.shadowColor='#168cff';ctx.shadowBlur=thick?22:12;ctx.stroke(seg);
+   ctx.strokeStyle=thick?'rgba(105,220,255,.98)':'rgba(100,205,255,.78)';
+   ctx.lineWidth=thick?2:0.8;ctx.shadowBlur=thick?10:5;ctx.stroke(seg);
+   ctx.strokeStyle=thick?'rgba(235,253,255,.9)':'rgba(200,245,255,.65)';
+   ctx.lineWidth=thick?.55:.3;ctx.shadowBlur=3;ctx.stroke(seg);
+  }
  }else{
   ctx.strokeStyle='rgba(65,165,255,'+Math.min(alpha*1.65,1)+')';ctx.lineWidth=width;ctx.shadowColor='#168cff';ctx.shadowBlur=30;ctx.stroke(path);
  }
