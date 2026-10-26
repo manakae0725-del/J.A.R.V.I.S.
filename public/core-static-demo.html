@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>J.A.R.V.I.S. Core UI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #000000;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      position: relative;
+      width: min(100vw, 100vh);
+      height: min(100vw, 100vh);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000000;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <canvas id="jarvisCanvas" width="1000" height="1000"></canvas>
+  </div>
+  <script>
+    const canvas = document.getElementById('jarvisCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const cx = width / 2;
+    const cy = height / 2;
+    const radius = 185;
+
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, width, height);
+
+    const outerGlow = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius * 1.45);
+    outerGlow.addColorStop(0, 'rgba(0, 140, 255, 0.8)');
+    outerGlow.addColorStop(0.2, 'rgba(0, 100, 255, 0.4)');
+    outerGlow.addColorStop(0.5, 'rgba(0, 60, 200, 0.15)');
+    outerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = outerGlow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    const innerBg = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    innerBg.addColorStop(0, 'rgba(0, 210, 255, 0.9)');
+    innerBg.addColorStop(0.35, 'rgba(0, 110, 245, 0.7)');
+    innerBg.addColorStop(0.75, 'rgba(0, 40, 160, 0.85)');
+    innerBg.addColorStop(0.96, 'rgba(0, 20, 90, 0.95)');
+    innerBg.addColorStop(1, 'rgba(0, 150, 255, 1)');
+    ctx.fillStyle = innerBg;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
+    ctx.clip();
+
+    let seed = 12345;
+    function pseudoRandom() {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    }
+
+    const points = [];
+    const numPoints = 85;
+    for (let i = 0; i < numPoints; i++) {
+      const ang = pseudoRandom() * Math.PI * 2;
+      const r = Math.sqrt(pseudoRandom()) * (radius * 0.95);
+      points.push({
+        x: cx + r * Math.cos(ang),
+        y: cy + r * Math.sin(ang)
+      });
+    }
+
+    for (let x = cx - radius; x <= cx + radius; x += 6) {
+      for (let y = cy - radius; y <= cy + radius; y += 6) {
+        const distToCenter = Math.hypot(x - cx, y - cy);
+        if (distToCenter >= radius) continue;
+
+        let d1 = Infinity, d2 = Infinity;
+        for (let i = 0; i < points.length; i++) {
+          const d = Math.hypot(x - points[i].x, y - points[i].y);
+          if (d < d1) {
+            d2 = d1;
+            d1 = d;
+          } else if (d < d2) {
+            d2 = d;
+          }
+        }
+
+        if (Math.abs(d1 - d2) < 1.2) {
+          ctx.fillStyle = 'rgba(0, 200, 255, 0.35)';
+          ctx.fillRect(x, y, 1, 1);
+        }
+      }
+    }
+
+    points.forEach(p => {
+      const d = Math.hypot(p.x - cx, p.y - cy);
+      if (d < radius * 0.92) {
+        ctx.fillStyle = 'rgba(180, 240, 255, 0.7)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(120, 210, 255, 0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const hGlow = ctx.createLinearGradient(0, cy, width, cy);
+    hGlow.addColorStop(0, 'rgba(0, 100, 255, 0)');
+    hGlow.addColorStop(0.35, 'rgba(0, 160, 255, 0.4)');
+    hGlow.addColorStop(0.48, 'rgba(180, 230, 255, 0.95)');
+    hGlow.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
+    hGlow.addColorStop(0.52, 'rgba(180, 230, 255, 0.95)');
+    hGlow.addColorStop(0.65, 'rgba(0, 160, 255, 0.4)');
+    hGlow.addColorStop(1, 'rgba(0, 100, 255, 0)');
+
+    ctx.strokeStyle = hGlow;
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    ctx.lineTo(width, cy);
+    ctx.stroke();
+
+    const vGlow = ctx.createLinearGradient(cx, 0, cx, height);
+    vGlow.addColorStop(0, 'rgba(0, 100, 255, 0)');
+    vGlow.addColorStop(0.35, 'rgba(0, 160, 255, 0.4)');
+    vGlow.addColorStop(0.48, 'rgba(180, 230, 255, 0.95)');
+    vGlow.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
+    vGlow.addColorStop(0.52, 'rgba(180, 230, 255, 0.95)');
+    vGlow.addColorStop(0.65, 'rgba(0, 160, 255, 0.4)');
+    vGlow.addColorStop(1, 'rgba(0, 100, 255, 0)');
+
+    ctx.strokeStyle = vGlow;
+    ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.moveTo(cx, 0);
+    ctx.lineTo(cx, height);
+    ctx.stroke();
+
+    const centerCore = ctx.createRadialGradient(cx, cy, 0, cx, cy, 35);
+    centerCore.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    centerCore.addColorStop(0.2, 'rgba(160, 230, 255, 0.9)');
+    centerCore.addColorStop(0.6, 'rgba(0, 140, 255, 0.4)');
+    centerCore.addColorStop(1, 'rgba(0, 100, 255, 0)');
+    ctx.fillStyle = centerCore;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 35, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 34px "Times New Roman", Times, "Cinzel", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0, 180, 255, 0.8)';
+    ctx.shadowBlur = 8;
+    ctx.fillText('J  A  R  V  I  S', cx, cy);
+  </script>
+</body>
+</html>
