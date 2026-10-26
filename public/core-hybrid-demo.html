@@ -16,7 +16,7 @@ canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;canvas.setPo
 canvas.addEventListener('pointermove',e=>{if(drag){rot+=(e.clientX-lastX)*.008;lastX=e.clientX}});
 canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
 let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
-const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:(rand()<.72?.18+rand()*.22:rand()<.88?.42+rand()*.28:.72+rand()*.42),phase:rand()*Math.PI*2,speed:.15+rand()*.55,brightness:.35+rand()*.65,blur:rand()}));
+const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:(rand()<.72?.25+rand()*.27:rand()<.88?.52+rand()*.32:.88+rand()*.48),phase:rand()*Math.PI*2,speed:.15+rand()*.55,brightness:.35+rand()*.65,blur:rand()}));
 const stars=Array.from({length:90},()=>({x:rand(),y:rand(),a:.15+rand()*.42,r:.35+rand()*.95}));
 function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
 function drawCore(r){
