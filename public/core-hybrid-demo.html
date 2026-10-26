@@ -37,7 +37,7 @@ function drawCore(r){
  const rim=ctx.createRadialGradient(cx,cy,r*.68,cx,cy,r);
  rim.addColorStop(0,'rgba(70,210,255,0)');
  rim.addColorStop(.72,'rgba(70,210,255,.02)');
- rim.addColorStop(1,'rgba(80,165,255,.32)');
+ rim.addColorStop(1,'rgba(80,165,255,.14)');
  ctx.fillStyle=rim;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
  ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.clip();
  // A fine, original-style dotted Voronoi boundary texture, not a 3D replacement.
