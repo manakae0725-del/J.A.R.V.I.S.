@@ -73,35 +73,12 @@
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.fill();
 
+    // 4. 甲羅状（ボロノイ多角形）ネットワークパターンの静的描画
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
     ctx.clip();
 
-    let seed = 12345;
-    function pseudoRandom() {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    }
-
-    const points = [];
-    const numPoints = 42;
-    for (let i = 0; i < numPoints; i++) {
-      const ang = pseudoRandom() * Math.PI * 2;
-      const r = Math.sqrt(pseudoRandom()) * (radius * 0.95);
-      points.push({
-        x: cx + r * Math.cos(ang),
-        y: cy + r * Math.sin(ang)
-      });
-    }
-
-    // 4. 甲羅状（ボロノイ多角形）ネットワークパターンの静的描画
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
-    ctx.clip(); // 球体内部のみにクリッピング
-
-    // シードポイント生成（再現性のための擬似乱数）
     let seed = 12345;
     function pseudoRandom() {
       seed = (seed * 9301 + 49297) % 233280;
@@ -119,7 +96,6 @@
       });
     }
 
-    // 甲羅風のボロノイ境界線（極細線）の描画
     ctx.strokeStyle = 'rgba(0, 230, 255, 0.28)';
     ctx.lineWidth = 0.75;
 
@@ -128,7 +104,6 @@
         const distToCenter = Math.hypot(x - cx, y - cy);
         if (distToCenter >= radius) continue;
 
-        // 最寄りの2点を探索
         let d1 = Infinity, d2 = Infinity;
         for (let i = 0; i < points.length; i++) {
           const d = Math.hypot(x - points[i].x, y - points[i].y);
@@ -140,43 +115,12 @@
           }
         }
 
-        // 境界線付近のみを点描・描画
         if (Math.abs(d1 - d2) < 1.2) {
           ctx.fillStyle = 'rgba(0, 200, 255, 0.35)';
           ctx.fillRect(x, y, 1, 1);
         }
       }
     }
-
-    // ネットワークノード（細かな光点）
-    points.forEach(p => {
-      const d = Math.hypot(p.x - cx, p.y - cy);
-      if (d < radius * 0.92) {
-        ctx.fillStyle = 'rgba(180, 240, 255, 0.7)';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
-
-    // Uneven translucent plate facets create depth like cracked glass or an eggshell.
-    points.forEach((p, i) => {
-      const next = points[(i + 7) % points.length];
-      const d = Math.hypot(p.x - cx, p.y - cy);
-      if (d > radius * 0.9) return;
-      ctx.fillStyle = i % 3 === 0
-        ? 'rgba(70, 210, 255, 0.10)'
-        : i % 3 === 1
-          ? 'rgba(0, 35, 150, 0.12)'
-          : 'rgba(130, 235, 255, 0.07)';
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.lineTo(next.x, next.y);
-      ctx.lineTo(cx + (p.x - cx) * 0.82, cy + (p.y - cy) * 0.82);
-      ctx.closePath();
-      ctx.fill();
-    });
-
 
     points.forEach(p => {
       const d = Math.hypot(p.x - cx, p.y - cy);
