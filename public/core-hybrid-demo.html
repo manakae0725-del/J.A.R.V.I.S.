@@ -16,7 +16,7 @@ canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;canvas.setPo
 canvas.addEventListener('pointermove',e=>{if(drag){rot+=(e.clientX-lastX)*.008;lastX=e.clientX}});
 canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
 let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
-const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:.22+rand()*.48,phase:rand()*Math.PI*2,speed:.15+rand()*.55}));
+const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:(rand()<.72?.18+rand()*.22:rand()<.88?.42+rand()*.28:.72+rand()*.42),phase:rand()*Math.PI*2,speed:.15+rand()*.55,brightness:.35+rand()*.65,blur:rand()}));
 const stars=Array.from({length:90},()=>({x:rand(),y:rand(),a:.15+rand()*.42,r:.35+rand()*.95}));
 function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
 function drawCore(r){
@@ -90,10 +90,11 @@ function frame(){
   const rr=spread*(.06+.94*Math.pow(p.r,1.35));
   const x=cx+Math.cos(a)*rr;
   const y=cy+Math.sin(a)*rr*(.86+p.z*.1);
-  const twinkle=.35+.65*(.5+.5*Math.sin(t*2+p.phase));
-  ctx.fillStyle='rgba(95,175,255,'+(twinkle*(p.r>.78?.95:.62))+')';
-  ctx.shadowColor='#1685ff';ctx.shadowBlur=p.r>.82?10:4;
-  ctx.beginPath();ctx.arc(x,y,p.s*(p.r>.88?1.15:.75),0,Math.PI*2);ctx.fill();
+  const twinkle=(.28+.72*(.5+.5*Math.sin(t*(1.2+p.speed)+p.phase)))*p.brightness;
+  const outerFade=.72+.28*p.r;
+  ctx.fillStyle='rgba(105,190,255,'+(twinkle*outerFade)+')';
+  ctx.shadowColor='#1685ff';ctx.shadowBlur=2+p.blur*7+(p.s>.7?3:0);
+  ctx.beginPath();ctx.arc(x,y,p.s,0,Math.PI*2);ctx.fill();
  });
  ctx.shadowBlur=0;
  // Core remains a flat graphic at the center; particles and 3D-style orbit rings add depth.
