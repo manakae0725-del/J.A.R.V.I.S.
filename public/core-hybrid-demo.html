@@ -45,13 +45,7 @@ function drawCore(r){
  corePts.forEach(p=>{ctx.fillStyle='rgba(120,195,255,.62)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
  ctx.restore();
 
- // Small highlight centered precisely on the Core's geometric center.
- const glowX=cx+r*.13,glowY=cy,glowR=r*.065;
- const coreGlow=ctx.createRadialGradient(glowX,glowY,0,glowX,glowY,glowR);
- coreGlow.addColorStop(0,'rgba(235,250,255,.62)');
- coreGlow.addColorStop(.3,'rgba(95,185,255,.34)');
- coreGlow.addColorStop(1,'rgba(0,90,255,0)');
- ctx.fillStyle=coreGlow;ctx.beginPath();ctx.arc(glowX,glowY,glowR,0,Math.PI*2);ctx.fill();
+ // Removed the misplaced highlight.
  ctx.save();ctx.font='bold '+(r*.18)+'px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J  A  R  V  I  S',cx,cy);ctx.restore();
 }
 let corePts=[];
