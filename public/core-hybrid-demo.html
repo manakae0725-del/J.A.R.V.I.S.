@@ -63,6 +63,22 @@ function frame(){
  requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
  stars.forEach(s=>{ctx.fillStyle='rgba(45,120,255,'+(s.a*(.65+.35*Math.sin(t+s.x*10))+0.04)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
  const r=Math.min(w,h)*.175;
+ // Soft blue mist drifting around the Core; kept translucent so the silhouette stays readable.
+ ctx.save();ctx.globalCompositeOperation='screen';
+ for(let i=0;i<9;i++){
+  const a=t*(.045+(i%3)*.012)+i*2.399;
+  const orbitR=r*(1.03+(i%4)*.16);
+  const mx=cx+Math.cos(a)*orbitR;
+  const my=cy+Math.sin(a)*orbitR*.72;
+  const mr=r*(.24+(i%3)*.09);
+  const mist=ctx.createRadialGradient(mx,my,0,mx,my,mr);
+  const mistAlpha=.018+.012*(.5+.5*Math.sin(t*.55+i*1.8));
+  mist.addColorStop(0,'rgba(70,155,255,'+mistAlpha+')');
+  mist.addColorStop(.55,'rgba(45,120,255,'+(mistAlpha*.45)+')');
+  mist.addColorStop(1,'rgba(35,100,255,0)');
+  ctx.fillStyle=mist;ctx.beginPath();ctx.ellipse(mx,my,mr*1.35,mr*.72,a*.2,0,Math.PI*2);ctx.fill();
+ }
+ ctx.restore();
  // Stronger spacetime lensing: broad refractive haze and gently warped light bands, without ripple arcs.
  const warpPulse=.5+.5*Math.sin(t*.72);
  ctx.save();ctx.globalCompositeOperation='lighter';
