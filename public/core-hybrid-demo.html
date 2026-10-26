@@ -19,7 +19,7 @@ let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
 const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:(rand()<.72?.25+rand()*.27:rand()<.88?.52+rand()*.32:.88+rand()*.48),phase:rand()*Math.PI*2,speed:.15+rand()*.55,brightness:.35+rand()*.65,blur:rand()}));
 const stars=Array.from({length:90},()=>({x:rand(),y:rand(),a:.15+rand()*.42,r:.35+rand()*.95}));
 // Cyan filaments follow distinct drifting paths and occasionally cross the particle field.
-const filaments=Array.from({length:7},(_,i)=>({phase:rand()*Math.PI*2,rate:.12+rand()*.2,amp:.16+rand()*.28,drift:rand()*Math.PI*2,alpha:.16+rand()*.24,width:.35+rand()*.45,frequency:1.2+rand()*1.4,offset:(i-3)*.12}));
+const filaments=Array.from({length:7},(_,i)=>({phase:rand()*Math.PI*2,rate:.12+rand()*.2,amp:.28+rand()*.42,drift:rand()*Math.PI*2,alpha:.2+rand()*.28,width:.35+rand()*.45,frequency:1.2+rand()*1.4,offset:(i-3)*.12}));
 // Segmented precision HUD ticks: isolated marks, never a continuous circular outline.
  const hudTicks=Array.from({length:64},(_,i)=>({a:(i/64)*Math.PI*2+(rand()-.5)*.018,len:i%8===0?7+rand()*3:i%4===0?4+rand()*2:2+rand()*2,offset:rand()*5,alpha:.18+rand()*.42}));
 function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
@@ -65,30 +65,33 @@ function frame(){
  requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
  stars.forEach(s=>{ctx.fillStyle='rgba(45,120,255,'+(s.a*(.65+.35*Math.sin(t+s.x*10))+0.04)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
  const r=Math.min(w,h)*.175;
- // Broad, soft light band around the Core with a faint refractive shimmer; no ripple arcs.
+ // Stronger spacetime lensing: broad refractive haze and gently warped light bands, without ripple arcs.
  const warpPulse=.5+.5*Math.sin(t*.72);
  ctx.save();ctx.globalCompositeOperation='lighter';
- const band=ctx.createRadialGradient(cx,cy,r*.92,cx,cy,r*1.72);
+ const band=ctx.createRadialGradient(cx,cy,r*.9,cx,cy,r*1.9);
  band.addColorStop(0,'rgba(35,135,255,0)');
- band.addColorStop(.34,'rgba(35,135,255,0)');
- band.addColorStop(.48,'rgba(55,155,255,'+(.045+.018*warpPulse)+')');
- band.addColorStop(.58,'rgba(95,205,255,'+(.075+.025*warpPulse)+')');
- band.addColorStop(.67,'rgba(45,135,255,'+(.045+.018*warpPulse)+')');
- band.addColorStop(.82,'rgba(35,115,255,.018)');
+ band.addColorStop(.3,'rgba(35,135,255,0)');
+ band.addColorStop(.43,'rgba(55,155,255,'+(.065+.025*warpPulse)+')');
+ band.addColorStop(.55,'rgba(95,205,255,'+(.11+.035*warpPulse)+')');
+ band.addColorStop(.66,'rgba(45,135,255,'+(.07+.025*warpPulse)+')');
+ band.addColorStop(.82,'rgba(35,115,255,.028)');
  band.addColorStop(1,'rgba(35,115,255,0)');
- ctx.fillStyle=band;ctx.beginPath();ctx.arc(cx,cy,r*1.72,0,Math.PI*2);ctx.fill();
- // Soft horizontal refraction streaks create the impression of light bending through space.
- for(let i=0;i<5;i++){
-  const yy=cy-r*.9+i*r*.45+Math.sin(t*.42+i*1.7)*2.2;
-  const span=r*(1.2+.18*Math.sin(t*.5+i));
+ ctx.fillStyle=band;ctx.beginPath();ctx.arc(cx,cy,r*1.9,0,Math.PI*2);ctx.fill();
+ // Curved refraction bands bend around the Core, like light passing through a distorted lens.
+ for(let i=0;i<7;i++){
+  const yy=cy-r*1.05+i*r*.35+Math.sin(t*.42+i*1.7)*4;
+  const span=r*(1.28+.22*Math.sin(t*.5+i));
   const fade=ctx.createLinearGradient(cx-span,yy,cx+span,yy);
   fade.addColorStop(0,'rgba(70,175,255,0)');
-  fade.addColorStop(.28,'rgba(70,175,255,'+(.025+.012*warpPulse)+')');
-  fade.addColorStop(.5,'rgba(135,220,255,'+(.045+.015*warpPulse)+')');
-  fade.addColorStop(.72,'rgba(70,175,255,'+(.025+.012*warpPulse)+')');
+  fade.addColorStop(.25,'rgba(70,175,255,'+(.035+.016*warpPulse)+')');
+  fade.addColorStop(.5,'rgba(135,220,255,'+(.06+.02*warpPulse)+')');
+  fade.addColorStop(.75,'rgba(70,175,255,'+(.035+.016*warpPulse)+')');
   fade.addColorStop(1,'rgba(70,175,255,0)');
-  ctx.strokeStyle=fade;ctx.lineWidth=1.1;
-  ctx.beginPath();ctx.moveTo(cx-span,yy);ctx.lineTo(cx+span,yy);ctx.stroke();
+  ctx.strokeStyle=fade;ctx.lineWidth=1.25;
+  ctx.beginPath();
+  ctx.moveTo(cx-span,yy);
+  ctx.bezierCurveTo(cx-span*.45,yy+Math.sin(t*.7+i)*r*.13,cx+span*.35,yy-Math.cos(t*.6+i)*r*.16,cx+span,yy);
+  ctx.stroke();
  }
  ctx.restore();ctx.shadowBlur=0;
  // Long crosshair beams behind the Core, extending across the full viewport.
@@ -119,12 +122,13 @@ function frame(){
   const steps=70;
   for(let j=0;j<=steps;j++){
    const u=j/steps;
-   const angle=f.phase+t*f.rate+u*f.frequency*2.5+f.drift;
-   const baseR=r*(.72+u*(1.45+f.amp));
-   const wobble=Math.sin(u*8+t*(.45+i*.035)+f.drift)*r*f.amp*.22;
+   const angle=f.phase+t*f.rate+u*f.frequency*2.5+f.drift+Math.sin(u*5.5+t*.55+f.phase)*f.amp*.8;
+   const baseR=r*(.68+u*(1.5+f.amp));
+   const wobble=Math.sin(u*8+t*(.45+i*.035)+f.drift)*r*f.amp*.48+Math.sin(u*17-t*.6+f.phase)*r*f.amp*.18;
    const rr=baseR+wobble;
-   const x=cx+Math.cos(angle)*rr+Math.sin(u*5+t*.32+f.drift)*r*f.offset;
-   const y=cy+Math.sin(angle)*rr*.78+Math.cos(u*6-t*.28+f.phase)*r*f.offset*.7;
+   const lensBend=Math.sin(angle*2.2-t*.45)*r*.09*(.3+u);
+   const x=cx+Math.cos(angle)*rr+Math.sin(u*5+t*.32+f.drift)*r*f.offset+Math.cos(angle+1.2)*lensBend;
+   const y=cy+Math.sin(angle)*rr*.78+Math.cos(u*6-t*.28+f.phase)*r*f.offset*.7+Math.sin(angle+1.2)*lensBend;
    if(j===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
   }
   const pulse=.65+.35*Math.sin(t*1.1+f.phase);
