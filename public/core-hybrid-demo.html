@@ -64,7 +64,7 @@ function drawCore(r){
 let corePts=[];
 for(let i=0;i<85;i++){const a=rand()*Math.PI*2,rr=Math.sqrt(rand())*176;corePts.push({x:500+rr*Math.cos(a),y:500+rr*Math.sin(a)})}
 function frame(){
- requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+ requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
  stars.forEach(s=>{ctx.fillStyle='rgba(45,120,255,'+(s.a*(.65+.35*Math.sin(t+s.x*10))+0.04)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
  const r=Math.min(w,h)*.175;
  // Long crosshair beams behind the Core, extending across the full viewport.
