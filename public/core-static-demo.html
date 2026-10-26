@@ -95,28 +95,95 @@
       });
     }
 
-    for (let x = cx - radius; x <= cx + radius; x += 6) {
-      for (let y = cy - radius; y <= cy + radius; y += 6) {
-        const distToCenter = Math.hypot(x - cx, y - cy);
-        if (distToCenter >= radius) continue;
-
-        let d1 = Infinity, d2 = Infinity;
+    // Voronoi-style shell plates: draw actual connected crack edges.
+    // A coarse nearest-cell map is used to keep the texture static and lightweight.
+    const step = 3;
+    const grid = [];
+    for (let gy = cy - radius; gy <= cy + radius; gy += step) {
+      const row = [];
+      for (let gx = cx - radius; gx <= cx + radius; gx += step) {
+        if (Math.hypot(gx - cx, gy - cy) >= radius) {
+          row.push(-1);
+          continue;
+        }
+        let nearest = -1;
+        let nearestDistance = Infinity;
         for (let i = 0; i < points.length; i++) {
-          const d = Math.hypot(x - points[i].x, y - points[i].y);
-          if (d < d1) {
-            d2 = d1;
-            d1 = d;
-          } else if (d < d2) {
-            d2 = d;
+          const dx = gx - points[i].x;
+          const dy = gy - points[i].y;
+          const d = dx * dx + dy * dy;
+          if (d < nearestDistance) {
+            nearestDistance = d;
+            nearest = i;
           }
         }
+        row.push(nearest);
+      }
+      grid.push(row);
+    }
 
-        if (Math.abs(d1 - d2) < 1.2) {
-          ctx.fillStyle = 'rgba(0, 200, 255, 0.35)';
-          ctx.fillRect(x, y, 1, 1);
+    // Dark seams, bright glass-like edges and a few fine branching fractures.
+    ctx.lineCap = 'round';
+    for (let gy = 0; gy < grid.length; gy++) {
+      for (let gx = 0; gx < grid[gy].length; gx++) {
+        const cell = grid[gy][gx];
+        if (cell < 0) continue;
+        const x = cx - radius + gx * step;
+        const y = cy - radius + gy * step;
+        const right = gx + 1 < grid[gy].length ? grid[gy][gx + 1] : -1;
+        const down = gy + 1 < grid.length && gx < grid[gy + 1].length ? grid[gy + 1][gx] : -1;
+
+        if (right >= 0 && right !== cell) {
+          ctx.strokeStyle = 'rgba(0, 15, 70, 0.72)';
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.moveTo(x + step * 0.5, y - step * 0.25);
+          ctx.lineTo(x + step * 0.5, y + step * 1.15);
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(95, 225, 255, 0.72)';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(x + step * 0.5 - 0.7, y - step * 0.15);
+          ctx.lineTo(x + step * 0.5 - 0.7, y + step * 1.05);
+          ctx.stroke();
+        }
+        if (down >= 0 && down !== cell) {
+          ctx.strokeStyle = 'rgba(0, 12, 65, 0.76)';
+          ctx.lineWidth = 2.1;
+          ctx.beginPath();
+          ctx.moveTo(x - step * 0.25, y + step * 0.5);
+          ctx.lineTo(x + step * 1.15, y + step * 0.5);
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(110, 225, 255, 0.68)';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(x - step * 0.15, y + step * 0.5 - 0.7);
+          ctx.lineTo(x + step * 1.05, y + step * 0.5 - 0.7);
+          ctx.stroke();
         }
       }
     }
+
+    // Uneven translucent plate facets create depth like cracked glass or an eggshell.
+    points.forEach((p, i) => {
+      const next = points[(i + 7) % points.length];
+      const d = Math.hypot(p.x - cx, p.y - cy);
+      if (d > radius * 0.9) return;
+      ctx.fillStyle = i % 3 === 0
+        ? 'rgba(70, 210, 255, 0.10)'
+        : i % 3 === 1
+          ? 'rgba(0, 35, 150, 0.12)'
+          : 'rgba(130, 235, 255, 0.07)';
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(next.x, next.y);
+      ctx.lineTo(cx + (p.x - cx) * 0.82, cy + (p.y - cy) * 0.82);
+      ctx.closePath();
+      ctx.fill();
+    });
+
 
     points.forEach(p => {
       const d = Math.hypot(p.x - cx, p.y - cy);
