@@ -28,8 +28,8 @@ function ring(rx,ry,tilt,phase,alpha,width){
   const a=a0+phase+rot*.12;
   const x=Math.cos(a)*rx,y=Math.sin(a)*ry*(.78+.22*Math.sin(a+rot));
   ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor='#66dfff';ctx.shadowBlur=18;
-  ctx.fillStyle='rgba(225,250,255,.98)';ctx.beginPath();ctx.arc(x,y,.55,0,Math.PI*2);ctx.fill();
-  ctx.shadowBlur=12;ctx.fillStyle='rgba(55,165,255,.52)';ctx.beginPath();ctx.arc(x,y,1.1,0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.fillStyle='rgba(245,253,255,1)';ctx.beginPath();ctx.arc(x,y,.65,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=24;ctx.fillStyle='rgba(65,185,255,.95)';ctx.beginPath();ctx.arc(x,y,1.1,0,Math.PI*2);ctx.fill();ctx.restore();
  }
  ctx.restore();
 }
