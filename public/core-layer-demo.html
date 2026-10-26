@@ -1,65 +1,30 @@
 <!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>J.A.R.V.I.S. — Core Layer Demo</title>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>J.A.R.V.I.S. Core — Layer Test</title>
 <style>
-:root{color-scheme:dark;--cyan:#36caff;--blue:#087dff}
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040a;font-family:Arial,sans-serif}
-.stage{position:relative;width:100%;height:100%;display:grid;place-items:center;isolation:isolate;background:radial-gradient(ellipse at 50% 50%,#06152b 0%,#020711 42%,#000 78%)}
-#particles{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none}
-.core{position:relative;width:min(88vw,560px,72vh);aspect-ratio:1;display:grid;place-items:center}
-.core-image{position:absolute;width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 50% 50%,transparent 0 29%,rgba(0,70,255,.1) 34%,transparent 52%);z-index:2}
-.orbit-layer{position:absolute;inset:-8%;pointer-events:none;transform-style:preserve-3d}
-.ring{position:absolute;left:50%;top:50%;width:88%;height:36%;border:1px solid rgba(42,195,255,.9);border-radius:50%;box-shadow:0 0 7px #087dff,0 0 18px #006bff55;transform-style:preserve-3d}
-.ring:after{content:"";position:absolute;inset:-2px;border:1px dashed rgba(80,205,255,.5);border-radius:50%}
-.r1{transform:translate(-50%,-50%) rotate(-26deg) rotateX(64deg);animation:orbit1 14s linear infinite}
-.r2{width:100%;height:42%;border-color:#0d7dff;transform:translate(-50%,-50%) rotate(56deg) rotateX(65deg);animation:orbit2 19s linear infinite}
-.r3{width:82%;height:31%;border-color:#5be5ff;transform:translate(-50%,-50%) rotate(78deg) rotateX(65deg);animation:orbit3 11s linear infinite}
-.r4{width:110%;height:48%;border-style:dotted;border-color:#0071ff77;transform:translate(-50%,-50%) rotate(12deg) rotateX(68deg);animation:orbit1 28s linear infinite reverse}
-.back{z-index:1;filter:brightness(.6);opacity:.7}
-.front{z-index:4}
-.sphere{position:relative;width:42%;aspect-ratio:1;border-radius:50%;z-index:3;background:radial-gradient(circle at 39% 30%,#b6f8ff 0%,#35caff 5%,#087dff 20%,#0645c8 48%,#02113c 76%,#000 100%);box-shadow:0 0 12px #4edaff,0 0 35px #087dff,0 0 75px #004cffb8,inset 0 0 18px #c9fbff,inset -18px -14px 32px #000c;animation:pulse 4s ease-in-out infinite}
-.sphere:before{content:"";position:absolute;inset:3%;border-radius:50%;background:repeating-linear-gradient(28deg,transparent 0 12px,#74eaff22 13px,transparent 14px 24px),repeating-linear-gradient(118deg,transparent 0 18px,#5be1ff20 19px,transparent 20px 31px);mask-image:radial-gradient(circle,#000 30%,transparent 76%)}
-.sphere:after{content:"";position:absolute;inset:-7%;border-radius:50%;border:1px solid #9befff;box-shadow:0 0 14px #19bfff,inset 0 0 14px #00aaff66}
-.cross{position:absolute;z-index:2;pointer-events:none;background:linear-gradient(90deg,transparent,#008aff66,transparent)}
-.cross.x{height:1px;width:170%;left:-35%;top:50%}
-.cross.y{width:1px;height:170%;top:-35%;left:50%;background:linear-gradient(180deg,transparent,#008aff99,#fff,#008aff99,transparent)}
-.word{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:clamp(13px,3vw,28px);font-weight:700;letter-spacing:.32em;text-shadow:0 0 8px #fff,0 0 20px #008cff;transform:translateX(.16em);z-index:6}
-.point{position:absolute;width:3px;height:3px;background:#c6f8ff;border-radius:50%;box-shadow:0 0 6px 2px #168dff;animation:blink var(--t,3s) ease-in-out infinite alternate}
-.toolbar{position:absolute;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:center;color:#79bfe9;font-size:11px;letter-spacing:.14em;z-index:10}
-.toolbar button{background:#06162c;border:1px solid #167bc1;color:#bfeeff;border-radius:4px;padding:8px 12px}
-@keyframes orbit1{from{rotate:0deg}to{rotate:360deg}}
-@keyframes orbit2{from{rotate:0deg}to{rotate:-360deg}}
-@keyframes orbit3{from{rotate:0deg}to{rotate:360deg}}
-@keyframes pulse{0%,100%{filter:brightness(.94)}50%{filter:brightness(1.12)}}
-@keyframes blink{0%{opacity:.2;transform:scale(.65)}100%{opacity:1;transform:scale(1.5)}}
-@media(prefers-reduced-motion:reduce){.ring,.sphere,.point{animation:none}}
-</style>
-</head>
-<body>
-<main class="stage" id="stage">
-<canvas id="particles" aria-hidden="true"></canvas>
-<div class="core" aria-label="JARVIS Core animated layer demo">
-<div class="orbit-layer back" aria-hidden="true"><i class="ring r1"></i><i class="ring r2"></i></div>
-<div class="cross x"></div><div class="cross y"></div>
-<div class="core-image"></div>
-<div class="sphere"></div><div class="word">JARVIS</div>
-<div class="orbit-layer front" aria-hidden="true"><i class="ring r3"></i><i class="ring r4"></i></div>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#02040a;overflow:hidden}
+.stage{position:relative;width:min(100vw,100vh);height:min(100vw,100vh);margin:auto;top:50%;transform:translateY(-50%);isolation:isolate}
+.core{position:absolute;inset:25% 25%;border-radius:50%;background:radial-gradient(circle at 50% 50%,#74efff 0,#078dff 9%,#0345b5 31%,#001642 61%,#000 72%);box-shadow:0 0 12px #9cefff,0 0 30px #078dff,0 0 65px #0055ff;z-index:2}
+.core:before{content:"";position:absolute;inset:1%;border:1px solid #a8f6ff;border-radius:50%;box-shadow:inset 0 0 20px #4ccfff}
+.core:after{content:"";position:absolute;inset:8%;border-radius:50%;background:repeating-conic-gradient(from 0deg,transparent 0 7deg,#3bbdff44 7.3deg 7.8deg,transparent 8deg 15deg);opacity:.65}
+.cross{position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(90deg,transparent 49.9%,#138cff 50%,#7feaff 50.08%,#138cff 50.16%,transparent 50.3%),linear-gradient(0deg,transparent 49.9%,#138cff 50%,#7feaff 50.08%,#138cff 50.16%,transparent 50.3%);opacity:.65}
+.logo{position:absolute;z-index:4;left:0;right:0;top:49%;text-align:center;color:#eafaff;font:500 clamp(18px,4vw,38px) Georgia,serif;letter-spacing:.32em;text-shadow:0 0 12px #fff,0 0 25px #00aaff}
+.ring{position:absolute;left:50%;top:50%;border:1px solid #25baff; border-radius:50%;box-shadow:0 0 6px #078cff,inset 0 0 5px #078cff;z-index:1;transform-style:preserve-3d}
+.r1{width:65%;height:28%;margin:-14% 0 0 -32.5%;transform:rotate(-28deg)}
+.r2{width:72%;height:38%;margin:-19% 0 0 -36%;transform:rotate(32deg)}
+.r3{width:57%;height:57%;margin:-28.5% 0 0 -28.5%;border-color:#1c8dff88}
+.r4{width:80%;height:80%;margin:-40% 0 0 -40%;border-style:dashed;border-color:#087cff66}
+.dots{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none}
+@media(min-aspect-ratio:1/1){.stage{width:min(100vw,100vh);height:min(100vw,100vh)}}
+</style></head><body>
+<div class="stage" id="stage">
+<div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div>
+<div class="core"></div><div class="cross"></div><div class="logo">J A R V I S</div>
+<canvas class="dots" id="dots"></canvas>
 </div>
-<div class="toolbar"><span>CORE LAYER TEST / PREVIEW</span><button id="toggle">PAUSE MOTION</button></div>
-</main>
 <script>
-(function(){
-const canvas=document.getElementById('particles'),ctx=canvas.getContext('2d'),stage=document.getElementById('stage'),toggle=document.getElementById('toggle');
-let w=0,h=0,dpr=1,paused=false,raf=0,pts=[];
-function resize(){dpr=Math.min(devicePixelRatio||1,1.5);w=stage.clientWidth;h=stage.clientHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);pts=Array.from({length:Math.min(75,Math.round(w*h/11000))},()=>({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.4+.35,a:Math.random()*.65+.15,vx:(Math.random()-.5)*.18,vy:(Math.random()-.5)*.18,p:Math.random()*6.28,sp:.008+Math.random()*.025}));}
-function draw(){ctx.clearRect(0,0,w,h);for(const p of pts){p.p+=p.sp;p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=w;if(p.x>w)p.x=0;if(p.y<0)p.y=h;if(p.y>h)p.y=0;const a=p.a*(.45+.55*(Math.sin(p.p)+1)/2);ctx.beginPath();ctx.fillStyle='rgba(75,190,255,'+a+')';ctx.shadowColor='#087dff';ctx.shadowBlur=6;ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}ctx.shadowBlur=0;raf=requestAnimationFrame(draw);}
-resize();window.addEventListener('resize',resize,{passive:true});draw();
-toggle.addEventListener('click',()=>{paused=!paused;document.querySelectorAll('.ring,.sphere,.point').forEach(e=>e.style.animationPlayState=paused?'paused':'running');if(paused){cancelAnimationFrame(raf);ctx.clearRect(0,0,w,h);toggle.textContent='RESUME MOTION';}else{toggle.textContent='PAUSE MOTION';draw();}});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf)}else if(!paused)draw()});
-})();
-</script>
-</body></html>
+const c=document.getElementById('dots'),ctx=c.getContext('2d');let w,h,pts=[];
+function resize(){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;w=r.width;h=r.height;c.width=w*d;c.height=h*d;ctx.setTransform(d,0,0,d,0,0);pts=Array.from({length:95},()=>({a:Math.random()*Math.PI*2,r:.22+Math.random()*.25,s:.5+Math.random()*1.4,v:(Math.random()-.5)*.004,tw:Math.random()*6.28}))}
+function draw(){ctx.clearRect(0,0,w,h);const t=performance.now()*.001;for(const p of pts){p.a+=p.v;const x=w*(.5+Math.cos(p.a)*p.r),y=h*(.5+Math.sin(p.a)*p.r*.8);const alpha=.25+.7*(.5+.5*Math.sin(t*2+p.tw));ctx.beginPath();ctx.fillStyle='rgba(40,177,255,'+alpha+')';ctx.shadowColor='#008cff';ctx.shadowBlur=8;ctx.arc(x,y,p.s,0,Math.PI*2);ctx.fill()}ctx.shadowBlur=0;requestAnimationFrame(draw)}
+addEventListener('resize',resize);resize();draw();
+</script></body></html>
