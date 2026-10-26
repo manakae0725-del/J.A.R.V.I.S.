@@ -55,7 +55,7 @@ function drawCore(r){
  ctx.fillStyle=blueGlow;ctx.beginPath();ctx.arc(cx,cy,glowR,0,Math.PI*2);ctx.fill();ctx.restore();
 
  // Removed the misplaced highlight.
- ctx.save();ctx.font='300 '+(r*.23)+'px "Eurostile", "Bank Gothic", "Arial", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.letterSpacing=(r*.045)+'px';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J.A.R.V.I.S.',cx,cy);ctx.restore();
+ ctx.save();ctx.font='500 '+(r*.23)+'px "Eurostile", "Bank Gothic", "Arial", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.letterSpacing=(r*.045)+'px';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J.A.R.V.I.S.',cx,cy);ctx.restore();
 }
 let corePts=[];
 for(let i=0;i<21;i++){const a=rand()*Math.PI*2,rr=Math.sqrt(rand())*176;corePts.push({x:500+rr*Math.cos(a),y:500+rr*Math.sin(a)})}
