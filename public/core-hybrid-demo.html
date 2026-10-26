@@ -19,10 +19,20 @@ let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
 const particles=Array.from({length:700},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:.22+rand()*.48,phase:rand()*Math.PI*2,speed:.15+rand()*.55}));
 const stars=Array.from({length:90},()=>({x:rand(),y:rand(),a:.15+rand()*.42,r:.35+rand()*.95}));
 function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
-function ring(rx,ry,tilt,phase,alpha,width){
- ctx.save();ctx.translate(cx,cy);ctx.rotate(tilt+rot*.16);ctx.beginPath();
- for(let i=0;i<=220;i++){const a=i/220*Math.PI*2+phase+rot*.12;const x=Math.cos(a)*rx,y=Math.sin(a)*ry*(.78+.22*Math.sin(a+rot));i?ctx.lineTo(x,y):ctx.moveTo(x,y)}
- ctx.strokeStyle='rgba(65,165,255,'+Math.min(alpha*1.65,1)+')';ctx.lineWidth=width;ctx.shadowColor='#168cff';ctx.shadowBlur=30;ctx.stroke();
+function ring(rx,ry,tilt,phase,alpha,width,band=false){
+ ctx.save();ctx.translate(cx,cy);ctx.rotate(tilt+rot*.16);
+ const path=new Path2D();
+ for(let i=0;i<=260;i++){const a=i/260*Math.PI*2+phase+rot*.12;const x=Math.cos(a)*rx,y=Math.sin(a)*ry*(.78+.22*Math.sin(a+rot));i?path.lineTo(x,y):path.moveTo(x,y)}
+ if(band){
+  // Broad, layered energy band: soft halo, saturated body, then a fine bright core.
+  ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(0,95,255,.16)';ctx.lineWidth=9;ctx.shadowColor='#168cff';ctx.shadowBlur=24;ctx.stroke(path);
+  ctx.strokeStyle='rgba(35,145,255,.34)';ctx.lineWidth=4.5;ctx.shadowBlur=13;ctx.stroke(path);
+  ctx.strokeStyle='rgba(90,205,255,.9)';ctx.lineWidth=1.25;ctx.shadowBlur=8;ctx.stroke(path);
+  ctx.strokeStyle='rgba(220,250,255,.82)';ctx.lineWidth=.45;ctx.shadowBlur=4;ctx.stroke(path);
+ }else{
+  ctx.strokeStyle='rgba(65,165,255,'+Math.min(alpha*1.65,1)+')';ctx.lineWidth=width;ctx.shadowColor='#168cff';ctx.shadowBlur=30;ctx.stroke(path);
+ }
  ctx.restore();
 }
 function drawCore(r){
@@ -89,7 +99,7 @@ function frame(){
  line(cx,0,cx,h,beamGradV,.8);
  ctx.restore();
  // Layered rings behind the unchanged graphic core.
- ring(r*1.68,r*1.17,-.55+t*.10,t*.13,.36,1);
+ ring(r*1.68,r*1.17,-.55+t*.10,t*.13,.36,1,true);
  ring(r*1.86,r*.79,.48-t*.14,-t*.17,.28,.8);
  ring(r*2.08,r*1.47,.12+t*.07,t*.07,.17,.7);
  ring(r*1.47,r*1.43,.9-t*.11,-t*.1,.22,.65);
