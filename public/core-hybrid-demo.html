@@ -45,7 +45,12 @@ function drawCore(r){
  corePts.forEach(p=>{ctx.fillStyle='rgba(120,195,255,.62)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
  ctx.restore();
 
- // Removed the small central glow spot as requested.
+ // A small, subtle light is centered behind the JARVIS wordmark.
+ const coreGlow=ctx.createRadialGradient(cx,cy,0,cx,cy,r*.12);
+ coreGlow.addColorStop(0,'rgba(235,250,255,.58)');
+ coreGlow.addColorStop(.28,'rgba(95,185,255,.32)');
+ coreGlow.addColorStop(1,'rgba(0,90,255,0)');
+ ctx.fillStyle=coreGlow;ctx.beginPath();ctx.arc(cx,cy,r*.12,0,Math.PI*2);ctx.fill();
  ctx.save();ctx.font='bold '+(r*.18)+'px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J  A  R  V  I  S',cx,cy);ctx.restore();
 }
 let corePts=[];
