@@ -18,8 +18,6 @@ canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('poi
 let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
 const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:(rand()<.72?.25+rand()*.27:rand()<.88?.52+rand()*.32:.88+rand()*.48),phase:rand()*Math.PI*2,speed:.15+rand()*.55,brightness:.35+rand()*.65,blur:rand()}));
 const stars=Array.from({length:90},()=>({x:rand(),y:rand(),a:.15+rand()*.42,r:.35+rand()*.95}));
-// Cyan filaments follow distinct drifting paths and occasionally cross the particle field.
-const filaments=Array.from({length:7},(_,i)=>({phase:rand()*Math.PI*2,rate:.12+rand()*.2,amp:.28+rand()*.42,drift:rand()*Math.PI*2,alpha:.2+rand()*.28,width:.35+rand()*.45,frequency:1.2+rand()*1.4,offset:(i-3)*.12}));
 // Segmented precision HUD ticks: isolated marks, never a continuous circular outline.
  const hudTicks=Array.from({length:64},(_,i)=>({a:(i/64)*Math.PI*2+(rand()-.5)*.018,len:i%8===0?7+rand()*3:i%4===0?4+rand()*2:2+rand()*2,offset:rand()*5,alpha:.18+rand()*.42}));
 function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
@@ -115,28 +113,6 @@ function frame(){
  beamGradV.addColorStop(1,'rgba(0,120,255,0)');
  line(cx,0,cx,h,beamGradV,.8);
  ctx.restore();
- // Fine cyan-blue filaments flow along independent curved trajectories through the particles.
- ctx.save();ctx.globalCompositeOperation='lighter';
- filaments.forEach((f,i)=>{
-  ctx.beginPath();
-  const steps=70;
-  for(let j=0;j<=steps;j++){
-   const u=j/steps;
-   const angle=f.phase+t*f.rate+u*f.frequency*2.5+f.drift+Math.sin(u*5.5+t*.55+f.phase)*f.amp*.8;
-   const baseR=r*(.68+u*(1.5+f.amp));
-   const wobble=Math.sin(u*8+t*(.45+i*.035)+f.drift)*r*f.amp*.48+Math.sin(u*17-t*.6+f.phase)*r*f.amp*.18;
-   const rr=baseR+wobble;
-   const lensBend=Math.sin(angle*2.2-t*.45)*r*.09*(.3+u);
-   const x=cx+Math.cos(angle)*rr+Math.sin(u*5+t*.32+f.drift)*r*f.offset+Math.cos(angle+1.2)*lensBend;
-   const y=cy+Math.sin(angle)*rr*.78+Math.cos(u*6-t*.28+f.phase)*r*f.offset*.7+Math.sin(angle+1.2)*lensBend;
-   if(j===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
-  }
-  const pulse=.65+.35*Math.sin(t*1.1+f.phase);
-  ctx.strokeStyle='rgba(80,210,255,'+(f.alpha*pulse)+')';
-  ctx.lineWidth=f.width;ctx.shadowColor='#20bfff';ctx.shadowBlur=2.5;
-  ctx.stroke();
- });
- ctx.restore();ctx.shadowBlur=0;
  // Particle flow surrounds and lightly overlaps the core silhouette.
  particles.forEach(p=>{
   const a=p.a+t*p.speed*.22+rot*.08;
