@@ -45,6 +45,16 @@ function drawCore(r){
  corePts.forEach(p=>{ctx.fillStyle='rgba(120,195,255,.62)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
  ctx.restore();
 
+ // Strong blue light at the exact intersection of the Core and crosshair.
+ const glowR=r*.2;
+ const blueGlow=ctx.createRadialGradient(cx,cy,0,cx,cy,glowR);
+ blueGlow.addColorStop(0,'rgba(185,235,255,1)');
+ blueGlow.addColorStop(.16,'rgba(45,155,255,.98)');
+ blueGlow.addColorStop(.48,'rgba(0,95,255,.7)');
+ blueGlow.addColorStop(1,'rgba(0,65,255,0)');
+ ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor='#1685ff';ctx.shadowBlur=28;
+ ctx.fillStyle=blueGlow;ctx.beginPath();ctx.arc(cx,cy,glowR,0,Math.PI*2);ctx.fill();ctx.restore();
+
  // Removed the misplaced highlight.
  ctx.save();ctx.font='bold '+(r*.18)+'px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J  A  R  V  I  S',cx,cy);ctx.restore();
 }
