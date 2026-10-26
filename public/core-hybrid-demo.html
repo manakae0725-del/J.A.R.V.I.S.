@@ -19,6 +19,8 @@ let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
 const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:(rand()<.72?.25+rand()*.27:rand()<.88?.52+rand()*.32:.88+rand()*.48),phase:rand()*Math.PI*2,speed:.15+rand()*.55,brightness:.35+rand()*.65,blur:rand()}));
 const stars=Array.from({length:90},()=>({x:rand(),y:rand(),a:.15+rand()*.42,r:.35+rand()*.95}));
 const rays=Array.from({length:10},(_,i)=>({a:(i/10)*Math.PI*2+(rand()-.5)*.34,len:.45+rand()*1.85,alpha:.12+rand()*.38,width:.35+rand()*.85,tip:rand()>.35}));
+ // Segmented precision HUD ticks: isolated marks, never a continuous circular outline.
+ const hudTicks=Array.from({length:64},(_,i)=>({a:(i/64)*Math.PI*2+(rand()-.5)*.018,len:i%8===0?7+rand()*3:i%4===0?4+rand()*2:2+rand()*2,offset:rand()*5,alpha:.18+rand()*.42}));
 function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
 function drawCore(r){
  // Layered translucent gradients create a glass-like, holographic Core.
@@ -83,6 +85,16 @@ function frame(){
  beamGradV.addColorStop(1,'rgba(0,120,255,0)');
  line(cx,0,cx,h,beamGradV,.8);
  ctx.restore();
+ // Segmented precision HUD marks arranged around the Core with gaps between every tick.
+ ctx.save();ctx.globalCompositeOperation='lighter';
+ hudTicks.forEach((tick,i)=>{
+  const a=tick.a+rot*.012;const base=r*(1.16+tick.offset*.012);const end=base+tick.len;
+  const x1=cx+Math.cos(a)*base,y1=cy+Math.sin(a)*base;
+  const x2=cx+Math.cos(a)*end,y2=cy+Math.sin(a)*end;
+  ctx.strokeStyle='rgba(75,175,255,'+tick.alpha+')';ctx.lineWidth=i%8===0?.8:.45;
+  ctx.shadowColor='#1685ff';ctx.shadowBlur=i%8===0?2.5:.8;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+ });ctx.restore();ctx.shadowBlur=0;
  // Fine radial energy rays extend outward from the Core, with varied lengths and restrained glow.
  ctx.save();ctx.globalCompositeOperation='lighter';
  rays.forEach(ray=>{
