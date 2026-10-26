@@ -27,24 +27,24 @@ function ring(rx,ry,tilt,phase,alpha,width){
 function drawCore(r){
  // Layered translucent gradients create a glass-like, holographic Core.
  const g=ctx.createRadialGradient(cx-r*.3,cy-r*.34,r*.04,cx,cy,r*1.08);
- g.addColorStop(0,'rgba(190,250,255,.48)');
- g.addColorStop(.18,'rgba(30,220,255,.34)');
- g.addColorStop(.48,'rgba(0,115,255,.24)');
- g.addColorStop(.76,'rgba(0,55,180,.19)');
- g.addColorStop(1,'rgba(0,150,255,.08)');
+ g.addColorStop(0,'rgba(215,255,255,.66)');
+ g.addColorStop(.18,'rgba(45,230,255,.52)');
+ g.addColorStop(.48,'rgba(0,135,255,.38)');
+ g.addColorStop(.76,'rgba(0,70,210,.3)');
+ g.addColorStop(1,'rgba(0,165,255,.14)');
  ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
  const rim=ctx.createRadialGradient(cx,cy,r*.68,cx,cy,r);
  rim.addColorStop(0,'rgba(70,210,255,0)');
  rim.addColorStop(.72,'rgba(70,210,255,.02)');
- rim.addColorStop(1,'rgba(100,225,255,.2)');
+ rim.addColorStop(1,'rgba(115,235,255,.3)');
  ctx.fillStyle=rim;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
  ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.clip();
  // A fine, original-style dotted Voronoi boundary texture, not a 3D replacement.
- for(let x=cx-r;x<=cx+r;x+=5){for(let y=cy-r;y<=cy+r;y+=5){if(Math.hypot(x-cx,y-cy)>=r)continue;let d1=1e9,d2=1e9;for(const p of corePts){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){d2=d1;d1=d}else if(d<d2)d2=d}if(Math.abs(d1-d2)<1.2){ctx.fillStyle='rgba(110,235,255,.3)';ctx.fillRect(x,y,1,1)}}}
- corePts.forEach(p=>{ctx.fillStyle='rgba(195,245,255,.52)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
+ for(let x=cx-r;x<=cx+r;x+=5){for(let y=cy-r;y<=cy+r;y+=5){if(Math.hypot(x-cx,y-cy)>=r)continue;let d1=1e9,d2=1e9;for(const p of corePts){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){d2=d1;d1=d}else if(d<d2)d2=d}if(Math.abs(d1-d2)<1.2){ctx.fillStyle='rgba(110,240,255,.42)';ctx.fillRect(x,y,1,1)}}}
+ corePts.forEach(p=>{ctx.fillStyle='rgba(195,248,255,.68)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
  ctx.restore();
 
- const coreGlow=ctx.createRadialGradient(cx-r*.04,cy-r*.03,0,cx,cy,r*.42);coreGlow.addColorStop(0,'rgba(255,255,255,.82)');coreGlow.addColorStop(.22,'rgba(170,245,255,.52)');coreGlow.addColorStop(.62,'rgba(0,160,255,.16)');coreGlow.addColorStop(1,'rgba(0,100,255,0)');ctx.fillStyle=coreGlow;ctx.beginPath();ctx.arc(cx,cy,r*.24,0,Math.PI*2);ctx.fill();
+ const coreGlow=ctx.createRadialGradient(cx-r*.04,cy-r*.03,0,cx,cy,r*.42);coreGlow.addColorStop(0,'rgba(255,255,255,.94)');coreGlow.addColorStop(.22,'rgba(170,245,255,.68)');coreGlow.addColorStop(.62,'rgba(0,175,255,.24)');coreGlow.addColorStop(1,'rgba(0,100,255,0)');ctx.fillStyle=coreGlow;ctx.beginPath();ctx.arc(cx,cy,r*.24,0,Math.PI*2);ctx.fill();
  ctx.save();ctx.font='bold '+(r*.18)+'px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J  A  R  V  I  S',cx,cy);ctx.restore();
 }
 let corePts=[];
