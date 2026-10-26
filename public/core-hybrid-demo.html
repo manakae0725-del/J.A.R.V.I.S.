@@ -44,7 +44,7 @@ function drawCore(r){
  corePts.forEach(p=>{ctx.fillStyle='rgba(195,248,255,.68)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
  ctx.restore();
 
- const coreGlow=ctx.createRadialGradient(cx-r*.04,cy-r*.03,0,cx,cy,r*.42);coreGlow.addColorStop(0,'rgba(255,255,255,.94)');coreGlow.addColorStop(.22,'rgba(170,245,255,.68)');coreGlow.addColorStop(.62,'rgba(0,175,255,.24)');coreGlow.addColorStop(1,'rgba(0,100,255,0)');ctx.fillStyle=coreGlow;ctx.beginPath();ctx.arc(cx,cy,r*.24,0,Math.PI*2);ctx.fill();
+ // Removed the small central glow spot as requested.
  ctx.save();ctx.font='bold '+(r*.18)+'px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J  A  R  V  I  S',cx,cy);ctx.restore();
 }
 let corePts=[];
