@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>J.A.R.V.I.S. 3D Core Preview</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#dffaff;font-family:Arial,sans-serif}
+#stage{position:fixed;inset:0}canvas{display:block;width:100%;height:100%}
+.label{position:fixed;left:0;right:0;top:calc(50% + min(27vw,27vh));text-align:center;letter-spacing:.48em;font:12px Arial,sans-serif;color:rgba(190,235,255,.7);pointer-events:none;text-shadow:0 0 12px #008cff}
+.hint{position:fixed;bottom:18px;left:0;right:0;text-align:center;font-size:10px;letter-spacing:.18em;color:rgba(160,205,255,.42);pointer-events:none}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="label">J.A.R.V.I.S.</div>
+<div class="hint">3D HOLOGRAPHIC CORE · DRAG TO ROTATE</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const stage=document.querySelector('#stage');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x000000);
+const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,.1,100);
+camera.position.set(0,0,8.4);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.35;
+stage.appendChild(renderer.domElement);
+
+const core=new THREE.Group();scene.add(core);
+const sphereGeo=new THREE.SphereGeometry(1.42,96,96);
+const sphereMat=new THREE.MeshPhysicalMaterial({
+ color:0x0355ce, emissive:0x003dff, emissiveIntensity:.72,
+ roughness:.24, metalness:.22, transparent:true, opacity:.72,
+ clearcoat:.8, clearcoatRoughness:.2
+});
+const sphere=new THREE.Mesh(sphereGeo,sphereMat);core.add(sphere);
+
+// Fine latitude/longitude structure, kept faint so the core remains luminous.
+const wire=new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.SphereGeometry(1.425,32,20)),
+ new THREE.LineBasicMaterial({color:0x31caff,transparent:true,opacity:.18}));
+core.add(wire);
+
+// Spherical shell plates: polygon cells formed on a real 3D sphere.
+let seed=12345;
+function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
+const dirs=[];
+for(let i=0;i<105;i++){
+ const z=rand()*2-1, a=rand()*Math.PI*2, r=Math.sqrt(1-z*z);
+ dirs.push(new THREE.Vector3(r*Math.cos(a),z,r*Math.sin(a)));
+}
+const crackPositions=[];
+const crackBright=[];
+for(let i=0;i<dirs.length;i++){
+ const p=dirs[i];
+ // Neighbour links on the spherical surface approximate irregular shell seams.
+ const near=dirs.map((q,j)=>({j,d:p.distanceToSquared(q)})).filter(v=>v.j!==i).sort((a,b)=>a.d-b.d).slice(0,3);
+ for(const n of near){
+  if(n.j<=i)continue;
+  const q=dirs[n.j];
+  const steps=14;
+  for(let k=0;k<steps;k++){
+   const t=k/steps;
+   const v=p.clone().multiplyScalar(1-t).addScaledVector(q,t).normalize().multiplyScalar(1.438);
+   crackPositions.push(v.x,v.y,v.z);
+   crackBright.push(.35+rand()*.65);
+  }
+  const v=q.clone().multiplyScalar(1.438);crackPositions.push(v.x,v.y,v.z);crackBright.push(.6);
+ }
+}
+const crackGeo=new THREE.BufferGeometry();
+crackGeo.setAttribute('position',new THREE.Float32BufferAttribute(crackPositions,3));
+crackGeo.setAttribute('aGlow',new THREE.Float32BufferAttribute(crackBright,1));
+const crackMat=new THREE.LineBasicMaterial({color:0xb9f7ff,transparent:true,opacity:.68,blending:THREE.AdditiveBlending,depthWrite:false});
+const cracks=new THREE.LineSegments(crackGeo,crackMat);core.add(cracks);
+
+// Tiny luminous nodes distributed over the sphere.
+const nodePos=[];
+for(let i=0;i<dirs.length;i++){const p=dirs[i].clone().multiplyScalar(1.455);nodePos.push(p.x,p.y,p.z)}
+const nodeGeo=new THREE.BufferGeometry();nodeGeo.setAttribute('position',new THREE.Float32BufferAttribute(nodePos,3));
+const nodes=new THREE.Points(nodeGeo,new THREE.PointsMaterial({color:0xc9faff,size:.027,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));core.add(nodes);
+
+// Inner white-blue energy core and layered glow shells.
+const inner=new THREE.Mesh(new THREE.SphereGeometry(.36,48,48),new THREE.MeshBasicMaterial({color:0x8feeff,transparent:true,opacity:.48,blending:THREE.AdditiveBlending,depthWrite:false}));
+core.add(inner);
+const center=new THREE.PointLight(0x55cfff,3.5,5);center.position.set(0,0,0);core.add(center);
+const glowMat=new THREE.MeshBasicMaterial({color:0x087dff,transparent:true,opacity:.075,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false});
+core.add(new THREE.Mesh(new THREE.SphereGeometry(1.58,48,48),glowMat));
+const haloMat=new THREE.MeshBasicMaterial({color:0x0077ff,transparent:true,opacity:.045,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false});
+core.add(new THREE.Mesh(new THREE.SphereGeometry(1.82,48,48),haloMat));
+
+// Crosshair light beams through the center.
+function beam(vertical){
+ const points=vertical?[new THREE.Vector3(0,-3.7,0),new THREE.Vector3(0,3.7,0)]:[new THREE.Vector3(-3.7,0,0),new THREE.Vector3(3.7,0,0)];
+ const geo=new THREE.BufferGeometry().setFromPoints(points);
+ const line=new THREE.Line(geo,new THREE.LineBasicMaterial({color:0x75dfff,transparent:true,opacity:.6,blending:THREE.AdditiveBlending}));
+ scene.add(line);return line;
+}
+beam(false);beam(true);
+
+// Soft blue light sources.
+scene.add(new THREE.AmbientLight(0x287dff,.8));
+const key=new THREE.PointLight(0x18aaff,2.2,12);key.position.set(3,2,4);scene.add(key);
+const rim=new THREE.PointLight(0x003cff,3,10);rim.position.set(-3,-1,-3);scene.add(rim);
+
+// Mouse / touch drag rotation.
+let dragging=false,px=0,py=0,rx=0,ry=0,targetX=0,targetY=0;
+renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(!dragging)return;targetY+=(e.clientX-px)*.008;targetX+=(e.clientY-py)*.008;px=e.clientX;py=e.clientY});
+renderer.domElement.addEventListener('pointerup',()=>dragging=false);
+renderer.domElement.addEventListener('pointercancel',()=>dragging=false);
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
+addEventListener('resize',resize);
+const clock=new THREE.Clock();
+function animate(){
+ requestAnimationFrame(animate);
+ const t=clock.getElapsedTime();
+ if(!dragging)targetY+=.0018;
+ rx+=(targetX-rx)*.06;ry+=(targetY-ry)*.06;
+ core.rotation.x=rx;core.rotation.y=ry;
+ const pulse=1+Math.sin(t*1.6)*.012;
+ sphere.scale.setScalar(pulse);inner.scale.setScalar(1+Math.sin(t*2.1)*.08);
+ sphereMat.emissiveIntensity=.62+Math.sin(t*1.4)*.12;
+ cracks.rotation.y=Math.sin(t*.25)*.012;
+ renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
