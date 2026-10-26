@@ -86,10 +86,10 @@ function frame(){
  // Particle flow surrounds and lightly overlaps the core silhouette.
  particles.forEach(p=>{
   const a=p.a+t*p.speed*.22+rot*.08;
-  const spread=(.92+p.z*.16+Math.sin(t*1.1+p.phase)*.035)*r*1.72;
-  const rr=spread*(.68+p.r*.42);
-  const x=cx+Math.cos(a)*rr*1.55;
-  const y=cy-Math.abs(Math.sin(a))*rr*2.35;
+  const spread=(2.35+Math.sin(t*1.1+p.phase)*.035)*r;
+  const rr=spread*(.06+.94*Math.pow(p.r,1.8));
+  const x=cx+Math.cos(a)*rr;
+  const y=cy+Math.sin(a)*rr*(.86+p.z*.1);
   const twinkle=.35+.65*(.5+.5*Math.sin(t*2+p.phase));
   ctx.fillStyle='rgba(95,175,255,'+(twinkle*(p.r>.78?.95:.62))+')';
   ctx.shadowColor='#1685ff';ctx.shadowBlur=p.r>.82?10:4;
