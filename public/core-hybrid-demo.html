@@ -46,7 +46,7 @@ function drawCore(r){
  ctx.restore();
 
  // Small highlight centered precisely on the Core's geometric center.
- const glowX=cx,glowY=cy,glowR=r*.085;
+ const glowX=cx+r*.13,glowY=cy,glowR=r*.065;
  const coreGlow=ctx.createRadialGradient(glowX,glowY,0,glowX,glowY,glowR);
  coreGlow.addColorStop(0,'rgba(235,250,255,.62)');
  coreGlow.addColorStop(.3,'rgba(95,185,255,.34)');
