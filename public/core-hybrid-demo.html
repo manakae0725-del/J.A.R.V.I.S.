@@ -19,38 +19,6 @@ let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
 const particles=Array.from({length:700},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:.22+rand()*.48,phase:rand()*Math.PI*2,speed:.15+rand()*.55}));
 const stars=Array.from({length:90},()=>({x:rand(),y:rand(),a:.15+rand()*.42,r:.35+rand()*.95}));
 function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
-function ring(rx,ry,tilt,phase,alpha,width,band=false){
- ctx.save();ctx.translate(cx,cy);ctx.rotate(tilt+rot*.16);
- const path=new Path2D();
- for(let i=0;i<=260;i++){const a=i/260*Math.PI*2+phase+rot*.12;const x=Math.cos(a)*rx,y=Math.sin(a)*ry*(.78+.22*Math.sin(a+rot));i?path.lineTo(x,y):path.moveTo(x,y)}
- if(band){
-  // Smoothly taper the ring width around its circumference instead of using abrupt segments.
-  ctx.lineCap='round';ctx.lineJoin='round';
-  const segments=220;
-  for(let s=0;s<segments;s++){
-   const a0=s/segments*Math.PI*2+phase+rot*.12;
-   const a1=(s+1.5)/segments*Math.PI*2+phase+rot*.12;
-   const mid=(a0+a1)*.5;
-   const pulse=(.5+.5*Math.cos(mid*3+phase*1.7+rot*.25));
-   const widthFactor=.12+.88*Math.pow(pulse,2.2);
-   const seg=new Path2D();
-   for(let j=0;j<=3;j++){
-    const a=a0+(a1-a0)*j/3;
-    const x=Math.cos(a)*rx,y=Math.sin(a)*ry*(.78+.22*Math.sin(a+rot));
-    j?seg.lineTo(x,y):seg.moveTo(x,y);
-   }
-   ctx.strokeStyle='rgba(0,105,255,'+(.12+.26*widthFactor)+')';
-   ctx.lineWidth=1.5+7*widthFactor;ctx.shadowColor='#168cff';ctx.shadowBlur=7+17*widthFactor;ctx.stroke(seg);
-   ctx.strokeStyle='rgba(75,190,255,'+(.42+.56*widthFactor)+')';
-   ctx.lineWidth=.5+1.8*widthFactor;ctx.shadowBlur=4+7*widthFactor;ctx.stroke(seg);
-   ctx.strokeStyle='rgba(225,250,255,'+(.3+.62*widthFactor)+')';
-   ctx.lineWidth=.25+.45*widthFactor;ctx.shadowBlur=2+3*widthFactor;ctx.stroke(seg);
-  }
- }else{
-  ctx.strokeStyle='rgba(65,165,255,'+Math.min(alpha*1.65,1)+')';ctx.lineWidth=width;ctx.shadowColor='#168cff';ctx.shadowBlur=30;ctx.stroke(path);
- }
- ctx.restore();
-}
 function drawCore(r){
  // Layered translucent gradients create a glass-like, holographic Core.
  const g=ctx.createRadialGradient(cx,cy,r*.08,cx,cy,r*1.08);
@@ -114,17 +82,7 @@ function frame(){
  beamGradV.addColorStop(1,'rgba(0,120,255,0)');
  line(cx,0,cx,h,beamGradV,.8);
  ctx.restore();
- // Layered rings behind the unchanged graphic core.
- ring(r*1.68,r*1.17,-.55+t*.10,t*.13,.36,1);
- ring(r*1.86,r*.79,.48-t*.14,-t*.17,.28,.8);
- ring(r*2.08,r*1.47,.12+t*.07,t*.07,.17,.7);
- ring(r*1.47,r*1.43,.9-t*.11,-t*.1,.22,.65);
- ring(r*1.98,r*1.02,-.22-t*.08,t*.21,.24,.75);
- ring(r*1.58,r*1.58,.64+t*.12,-t*.14,.19,.6);
- // Short segmented HUD ticks around the outer orbital path.
- ctx.save();ctx.translate(cx,cy);ctx.rotate(rot*.15+t*.025);
- for(let i=0;i<96;i++){const a=i*Math.PI*2/96;const major=i%8===0;const inner=r*(major?1.78:1.78),outer=r*(major?1.82:1.82);line(Math.cos(a)*inner,Math.sin(a)*inner,Math.cos(a)*outer,Math.sin(a)*outer,'rgba(90,180,255,'+(major?.98:.68)+')',major?1:.6)}
- ctx.restore();
+ // Rings and HUD ticks removed for the new visual direction.
  // Particle flow surrounds and lightly overlaps the core silhouette.
  particles.forEach(p=>{
   const a=p.a+t*p.speed*.22+rot*.08;
