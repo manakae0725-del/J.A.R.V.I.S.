@@ -731,6 +731,31 @@ opacity: 1;
 #jarvisSignOut{position:fixed;right:14px;top:14px;z-index:99999;padding:7px 10px;border:1px solid rgba(0,153,255,.45);background:rgba(0,5,14,.82);color:#8bcfff;font:10px 'Courier New',monospace;letter-spacing:1px;cursor:pointer}#jarvisSignOut[hidden]{display:none!important}
 @media(max-width:480px){.auth-card{padding:30px 22px 24px}.auth-title{letter-spacing:3px}}
 
+
+/* Preview-only Three.js Core treatment */
+.core-unit-center .jarvis-core-3d {
+position:absolute;
+inset:0;
+width:100%;
+height:100%;
+display:block;
+z-index:2;
+pointer-events:none;
+}
+.core-unit-center.is-webgl .meridian-orbit-ring { display:none; }
+.core-unit-center.is-webgl .core-sphere-nucleus {
+background:transparent;
+border-color:transparent;
+box-shadow:none;
+overflow:visible;
+animation:none;
+}
+.core-unit-center.is-webgl .core-sphere-nucleus::before,
+.core-unit-center.is-webgl .core-sphere-nucleus::after { display:none; }
+@media (prefers-reduced-motion: reduce) {
+.core-unit-center.is-webgl .jarvis-text-logo { animation:none; }
+}
+
 </style>
 </head>
 <body>
@@ -794,6 +819,7 @@ opacity: 1;
 <div class="disc-ring-line"></div>
 </div>
 <div class="core-unit-center">
+<canvas id="jarvisCore3dCanvas" class="jarvis-core-3d" aria-hidden="true"></canvas>
 <div class="vertical-light-beam"></div>
 <div class="meridian-orbit-ring meridian-1"></div><div class="meridian-orbit-ring meridian-2"></div>
 <div class="meridian-orbit-ring meridian-3"></div>
@@ -2401,5 +2427,144 @@ async function sendToGemini(text) {
 }
 
 </script>
+
+<script>
+/* Isolated Core visual experiment: the existing app and its controls remain untouched. */
+(function () {
+    const canvas = document.getElementById("jarvisCore3dCanvas");
+    const core = canvas && canvas.closest(".core-unit-center");
+    if (!canvas || !core) return;
+
+    function startCore(THREE) {
+        if (!THREE || canvas.dataset.started === "true") return;
+        canvas.dataset.started = "true";
+
+        let renderer;
+        try {
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                alpha: true,
+                antialias: true,
+                powerPreference: "low-power"
+            });
+        } catch (error) {
+            console.warn("Core WebGL unavailable; keeping CSS Core fallback.", error);
+            return;
+        }
+
+        renderer.setClearColor(0x000000, 0);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
+        camera.position.z = 465;
+
+        scene.add(new THREE.AmbientLight(0x4caeff, 1.15));
+        const keyLight = new THREE.PointLight(0x37baff, 2.1, 700);
+        keyLight.position.set(-95, 115, 190);
+        scene.add(keyLight);
+        const rimLight = new THREE.PointLight(0x004cff, 1.7, 700);
+        rimLight.position.set(100, -90, -100);
+        scene.add(rimLight);
+
+        const orb = new THREE.Group();
+        scene.add(orb);
+
+        const sphereGeometry = new THREE.SphereGeometry(73, 40, 32);
+        const sphere = new THREE.Mesh(
+            sphereGeometry,
+            new THREE.MeshPhongMaterial({
+                color: 0x0755bd,
+                emissive: 0x003bff,
+                emissiveIntensity: 0.72,
+                specular: 0x9deaff,
+                shininess: 90,
+                transparent: true,
+                opacity: 0.48
+            })
+        );
+        orb.add(sphere);
+
+        const wire = new THREE.Mesh(
+            new THREE.SphereGeometry(74, 30, 20),
+            new THREE.MeshBasicMaterial({
+                color: 0x39caff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.32,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            })
+        );
+        orb.add(wire);
+
+        const ringSpecs = [
+            { radius: 91, tube: 0.72, color: 0x19aaff, opacity: 0.78, x: 1.12, y: 0.25, z: 0.18 },
+            { radius: 111, tube: 0.58, color: 0x0877ff, opacity: 0.72, x: 0.42, y: 1.03, z: 0.7 },
+            { radius: 130, tube: 0.48, color: 0x55dfff, opacity: 0.62, x: 1.32, y: 0.52, z: 1.05 },
+            { radius: 143, tube: 0.38, color: 0x0066ff, opacity: 0.48, x: 0.1, y: 0.85, z: 0.3 }
+        ];
+        const rings = ringSpecs.map(function (spec) {
+            const mesh = new THREE.Mesh(
+                new THREE.TorusGeometry(spec.radius, spec.tube, 8, 180),
+                new THREE.MeshBasicMaterial({
+                    color: spec.color,
+                    transparent: true,
+                    opacity: spec.opacity,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                })
+            );
+            mesh.rotation.set(spec.x, spec.y, spec.z);
+            orb.add(mesh);
+            return mesh;
+        });
+
+        function resize() {
+            const width = Math.max(1, core.clientWidth);
+            const height = Math.max(1, core.clientHeight);
+            renderer.setSize(width, height, false);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+        resize();
+        window.addEventListener("resize", resize, { passive: true });
+
+        core.classList.add("is-webgl");
+
+        let frame = 0;
+        function animate() {
+            frame = requestAnimationFrame(animate);
+            if (document.hidden) return;
+            orb.rotation.y += 0.0018;
+            orb.rotation.x = Math.sin(performance.now() * 0.00022) * 0.055;
+            rings[0].rotation.z += 0.0012;
+            rings[1].rotation.y -= 0.0010;
+            rings[2].rotation.x += 0.0008;
+            rings[3].rotation.z -= 0.0007;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden && !frame) animate();
+        });
+    }
+
+    if (window.THREE) {
+        startCore(window.THREE);
+    } else {
+        const loader = document.createElement("script");
+        loader.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+        loader.async = true;
+        loader.onload = function () { startCore(window.THREE); };
+        loader.onerror = function () {
+            console.warn("Three.js failed to load; keeping CSS Core fallback.");
+        };
+        document.head.appendChild(loader);
+    }
+})();
+</script>
+
 </body>
 </html>
