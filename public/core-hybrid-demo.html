@@ -64,6 +64,28 @@ function frame(){
  requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
  stars.forEach(s=>{ctx.fillStyle='rgba(45,120,255,'+(s.a*(.65+.35*Math.sin(t+s.x*10))+0.04)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
  const r=Math.min(w,h)*.175;
+ // Subtle spacetime ripples: broken luminous arcs expand and fade around the Core.
+ const ripplePhase=(t*22)%54;
+ ctx.save();ctx.globalCompositeOperation='lighter';
+ [0,1,2].forEach((layer)=>{
+  const rr=r*(1.12+((ripplePhase+layer*18)%54)/r);
+  const alpha=(1-((ripplePhase+layer*18)%54)/54)*.16;
+  ctx.strokeStyle='rgba(65,165,255,'+alpha+')';ctx.lineWidth=.65;
+  ctx.shadowColor='#1685ff';ctx.shadowBlur=3;
+  for(let seg=0;seg<5;seg++){
+   const a0=seg*(Math.PI*2/5)+.18*Math.sin(t*.7+layer+seg);
+   const span=.13+.08*Math.sin(t+seg*2+layer);
+   ctx.beginPath();ctx.arc(cx,cy,rr,a0,a0+span);ctx.stroke();
+  }
+ });
+ // Small refractive shimmer at the Core's edge suggests a gently warped field.
+ const warp=ctx.createRadialGradient(cx,cy,r*.9,cx,cy,r*1.34);
+ warp.addColorStop(0,'rgba(45,155,255,0)');
+ warp.addColorStop(.52,'rgba(45,155,255,'+(.025+.018*Math.sin(t*1.6))+')');
+ warp.addColorStop(.76,'rgba(95,205,255,'+(.045+.025*Math.sin(t*1.6+1))+')');
+ warp.addColorStop(1,'rgba(45,155,255,0)');
+ ctx.fillStyle=warp;ctx.beginPath();ctx.arc(cx,cy,r*1.34,0,Math.PI*2);ctx.fill();
+ ctx.restore();ctx.shadowBlur=0;
  // Long crosshair beams behind the Core, extending across the full viewport.
  const beamGradH=ctx.createLinearGradient(0,cy,w,cy);
  beamGradH.addColorStop(0,'rgba(0,120,255,0)');
