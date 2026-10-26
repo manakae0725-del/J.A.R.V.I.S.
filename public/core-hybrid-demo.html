@@ -16,7 +16,7 @@ canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;canvas.setPo
 canvas.addEventListener('pointermove',e=>{if(drag){rot+=(e.clientX-lastX)*.008;lastX=e.clientX}});
 canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
 let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
-const particles=Array.from({length:820},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:.22+rand()*.48,phase:rand()*Math.PI*2,speed:.15+rand()*.55}));
+const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:.22+rand()*.48,phase:rand()*Math.PI*2,speed:.15+rand()*.55}));
 const stars=Array.from({length:90},()=>({x:rand(),y:rand(),a:.15+rand()*.42,r:.35+rand()*.95}));
 function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
 function drawCore(r){
@@ -86,7 +86,7 @@ function frame(){
  // Particle flow surrounds and lightly overlaps the core silhouette.
  particles.forEach(p=>{
   const a=p.a+t*p.speed*.22+rot*.08;
-  const spread=(2.35+Math.sin(t*1.1+p.phase)*.035)*r;
+  const spread=(2.75+Math.sin(t*1.1+p.phase)*.045)*r;
   const rr=spread*(.06+.94*Math.pow(p.r,1.35));
   const x=cx+Math.cos(a)*rr;
   const y=cy+Math.sin(a)*rr*(.86+p.z*.1);
@@ -99,7 +99,7 @@ function frame(){
  // Core remains a flat graphic at the center; particles and 3D-style orbit rings add depth.
  drawCore(r);
  // Fine particles crossing the foreground give a subtle layered effect.
- particles.filter(p=>p.r>.9).forEach(p=>{const a=p.a-t*p.speed*.16;const rr=r*(.72+Math.sin(t+p.phase)*.05);const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.8;ctx.fillStyle='rgba(135,200,255,.8)';ctx.beginPath();ctx.arc(x,y,p.s*.5,0,Math.PI*2);ctx.fill()});
+ particles.filter(p=>p.r>.9).forEach(p=>{const a=p.a-t*p.speed*.16;const rr=r*(.78+Math.sin(t+p.phase)*.06);const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.8;ctx.fillStyle='rgba(135,200,255,.8)';ctx.beginPath();ctx.arc(x,y,p.s*.5,0,Math.PI*2);ctx.fill()});
 }
 frame();
 </script></body></html>
