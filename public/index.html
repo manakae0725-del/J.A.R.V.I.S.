@@ -950,8 +950,7 @@ function frame(){
 }
 frame();
 </script>
-<script>
-var leftHUD=document.getElementById("leftHUD");
+<script>var leftHUD=document.getElementById("leftHUD");
 var rightHUD=document.getElementById("rightHUD");
 
 const textArea =
@@ -1102,43 +1101,553 @@ function updateHudStatus(
     hudSysLoad.textContent = sysLoad;
     hudActivity.textContent = activity;
 }
-/* Original side-HUD swipe controls */
-(function(){
- let sx=0,sy=0;
- document.addEventListener("touchstart",function(e){
-   const t=e.changedTouches&&e.changedTouches[0];
-   if(t){sx=t.screenX;sy=t.screenY;}
- },{passive:true,capture:true});
- document.addEventListener("touchend",function(e){
-   if(e.target.closest("#leftHUD, #rightHUD")) return;
-   const t=e.changedTouches&&e.changedTouches[0];
-   if(!t)return;
-   const dx=t.screenX-sx,dy=t.screenY-sy;
-   if(Math.abs(dx)<80||Math.abs(dx)<=Math.abs(dy))return;
-   if(dx<0){
-     if(rightHUD.classList.contains("open"))rightHUD.classList.remove("open");
-     else if(leftHUD.classList.contains("open"))leftHUD.classList.remove("open");
-     else rightHUD.classList.add("open");
-   }else{
-     if(leftHUD.classList.contains("open"))leftHUD.classList.remove("open");
-     else if(rightHUD.classList.contains("open"))rightHUD.classList.remove("open");
-     else leftHUD.classList.add("open");
-   }
- },{passive:true});
-})();
+
+const textInput =
+    document.getElementById("textInput");
+
+const sendButton =
+    document.getElementById("sendButton");
+
+sendButton.addEventListener(
+    "click",
+    async function(){
+
+        const text =
+            textInput.value.trim();
+
+        if(!text){
+            return;
+        }
+
+        textInput.value="";
+
+        await sendToGemini(
+            text
+        );
+    }
+);
+
+var touchStartX=0,touchStartY=0;
+document.addEventListener("touchstart",function(e){
+var touches=e.changedTouches;
+if(touches&&touches.length>0){
+touchStartX=touches.item(0).screenX;
+touchStartY=touches.item(0).screenY;
+}
+},{passive:true});
+
+document.addEventListener("touchend",function(e){
+
+    if(
+        e.target.closest("#textArea")
+    ){
+        return;
+    }
+
+    var touches=e.changedTouches;
+
+    if(!touches||touches.length===0)return;
+
+    var touchEndX=touches.item(0).screenX;
+    var touchEndY=touches.item(0).screenY;
+
+    var deltaX=touchEndX-touchStartX;
+    var deltaY=touchEndY-touchStartY;
+
+    var absX=Math.abs(deltaX);
+    var absY=Math.abs(deltaY);
+
+    if(absX<80&&absY<80)return;
+
+    /* 縦スワイプ */
+    if(absY>absX){
+
+if(deltaY<-80){
+    console.log("下→上スワイプ検知");
+    setMode("text");
+    return;
+}
+
+        if(deltaY>80){
+            setMode("voice");
+            return;
+        }
+    }
+
+    /* 横スワイプ */
+    if(absX>absY){
+        if(deltaX<-80){
+            if(rightHUD.classList.contains("open")){
+                rightHUD.classList.remove("open");
+            }
+            else if(leftHUD.classList.contains("open")){
+                leftHUD.classList.remove("open");
+            }
+            else{
+                rightHUD.classList.add("open");
+            }
+        }
+        else if(deltaX>80){
+            if(leftHUD.classList.contains("open")){
+                leftHUD.classList.remove("open");
+            }
+            else if(rightHUD.classList.contains("open")){
+                rightHUD.classList.remove("open");
+            }
+            else{
+                leftHUD.classList.add("open");
+            }
+        }
+    }
+});
 
 
-/* AI response migration: authenticated requests to the existing /api/gemini endpoint. */
-(function(){
- const panel=document.getElementById("jarvisHoloPanel");
- const status=document.getElementById("voiceStatus");
- const response=document.getElementById("voiceResponse");
- const textArea=document.getElementById("textArea");
- const textInput=document.getElementById("textInput");
- const sendButton=document.getElementById("sendButton");
- let previousInteractionId=null;
- let ttsAudioContext=null,ttsSource=null;
- function pcmToWav(base64){
+var audioContext = null;
+var currentSource = null;
+var voiceFilterChain = null;
+var conversationActive=false;
+var recognitionRunning=false;
+var recognition=null;
+var previousInteractionId=null;
+var currentMode="voice";
+
+/* =========================================================
+   LONG-TERM MEMORY SYSTEM (PORTED)
+   ========================================================= */
+
+let memories = [];
+let memoryLoadGeneration = 0;
+let memoryOwnerId = window.jarvisCurrentUserId || null;
+
+window.addEventListener("jarvis-auth-change", (event) => {
+    const nextUserId = event && event.detail && typeof event.detail.userId === "string"
+        ? event.detail.userId
+        : null;
+
+    if (nextUserId === memoryOwnerId) return;
+
+    memoryOwnerId = nextUserId;
+    memoryLoadGeneration++;
+    memories = [];
+    previousInteractionId = null;
+
+    if (nextUserId) {
+        void loadMemories();
+    }
+});
+
+function getErrorMessage(error) {
+    if (typeof error === "string") return error;
+
+    if (error && typeof error === "object") {
+        if (error.message) return error.message;
+
+        try {
+            return JSON.stringify(error);
+        } catch (e) {
+            return "不明なエラー";
+        }
+    }
+
+    return String(error);
+}
+
+async function loadMemories() {
+    const generation = ++memoryLoadGeneration;
+    const requestUserId = window.jarvisCurrentUserId || null;
+
+    if (!requestUserId) {
+        memories = [];
+        return [];
+    }
+
+    try {
+        const accessToken = await window.jarvisGetAccessToken();
+        if (!accessToken || requestUserId !== window.jarvisCurrentUserId) {
+            return [];
+        }
+
+        const response = await fetch(
+            "/api/memory",
+            {
+                method: "GET",
+                headers: { Authorization: "Bearer " + accessToken }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+            throw new Error(
+                getErrorMessage(data.error) ||
+                "Memory GET error"
+            );
+        }
+
+        if (
+            generation !== memoryLoadGeneration ||
+            requestUserId !== window.jarvisCurrentUserId
+        ) {
+            return [];
+        }
+
+        memories =
+            Array.isArray(data.memories)
+                ? data.memories.slice(0, 30)
+                : [];
+
+        return memories;
+
+    } catch (error) {
+        if (
+            generation === memoryLoadGeneration &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            console.error("Memory load error:", error);
+            memories = [];
+        }
+
+        return [];
+    }
+}
+
+function buildMemoryContext() {
+
+    if (!memories.length) {
+        return "現在、登録されている長期記憶はありません。";
+    }
+
+    return memories
+        .map(
+            (memory, index) => {
+                return `${index + 1}. [${memory.category}] ${memory.content}`;
+            }
+        )
+        .join("\n");
+}
+
+function buildGeminiPrompt(text) {
+
+    const memoryContext =
+        buildMemoryContext();
+
+    return `
+あなたは真人様専用のAIアシスタント、J.A.R.V.I.S.です。
+
+以下は真人様について保存されている長期記憶です。
+今回の会話に関連する場合のみ自然に利用してください。
+記憶にないことは推測しないでください。
+
+--- 長期記憶 ---
+${memoryContext}
+--- 長期記憶ここまで ---
+
+今回の真人さ様の発言：
+${text}
+
+以下のルールで判断してください。
+
+1. 真人様の発言への自然な回答を「reply」に入れてください。
+2. 今後の会話でも長期的に役立つ情報なら「memory.shouldSave」をtrueにしてください。
+3. 一時的な発言、雑談、その場限りの情報は保存しないでください。
+4. 「覚えて」「記憶して」など明示的に保存を求められた場合は、保存対象として扱ってください。
+5. 保存する場合は、発言そのものではなく、今後利用しやすい簡潔な事実として「memory.content」にしてください。
+6. カテゴリは以下から選択してください。
+   - personal
+   - preference
+   - work
+   - family
+   - goal
+7. 重要度は1〜5で設定してください。
+8. 保存しない場合は「memory.shouldSave」をfalseにしてください。
+9. 保存しない場合でも「reply」は通常どおり自然に回答してください。
+`;
+}
+
+async function saveMemory(memory, expectedUserId) {
+
+    if (
+        !memory ||
+        !memory.shouldSave ||
+        !expectedUserId ||
+        expectedUserId !== window.jarvisCurrentUserId
+    ) {
+        return false;
+    }
+
+    const content =
+        typeof memory.content === "string"
+            ? memory.content.trim()
+            : "";
+
+    if (!content) {
+        return false;
+    }
+
+    const category =
+        [
+            "personal",
+            "preference",
+            "work",
+            "family",
+            "goal"
+        ].includes(memory.category)
+            ? memory.category
+            : "personal";
+
+    const importance =
+        Number.isInteger(memory.importance)
+            ? Math.min(
+                5,
+                Math.max(
+                    1,
+                    memory.importance
+                )
+            )
+            : 1;
+
+    try {
+        const accessToken = await window.jarvisGetAccessToken();
+
+        // アクセストークン取得中にアカウントが変わっていたら保存しない。
+        if (
+            !accessToken ||
+            expectedUserId !== window.jarvisCurrentUserId
+        ) {
+            return false;
+        }
+
+        const response = await fetch(
+            "/api/memory",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + accessToken
+                },
+                body: JSON.stringify({
+                    category,
+                    content,
+                    importance
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        // 保存リクエストの応答後も、別ユーザーの画面を更新しない。
+        if (expectedUserId !== window.jarvisCurrentUserId) {
+            return false;
+        }
+
+        if (!response.ok || !data.ok) {
+            throw new Error(
+                getErrorMessage(data.error) ||
+                "Memory save error"
+            );
+        }
+
+        await loadMemories();
+        return true;
+
+    } catch (error) {
+        console.error("Memory save error:", error);
+        return false;
+    }
+}
+
+function setMode(mode) {
+
+    if (
+        mode !== "voice" &&
+        mode !== "text"
+    ) {
+        return;
+    }
+
+    currentMode =
+        mode;
+
+    if (mode === "text") {
+
+        textArea.style.display =
+            "block";
+
+        conversationActive =
+            false;
+
+        if (recognitionRunning) {
+
+            try {
+                recognition.stop();
+            } catch (e) {}
+
+        }
+
+        recognitionRunning =
+            false;
+
+
+     } else {
+
+    textArea.style.display =
+        "none";
+
+    conversationActive =
+        true;
+
+    document.getElementById(
+        "response"
+    ).textContent = "";
+
+    document.getElementById(
+        "jarvisHoloPanel"
+    ).classList.add("show");
+
+    startListening();
+}
+}
+
+var lastProcessedWav=null;
+const VOICE_PROCESSING={
+highpassFrequency:55,
+lowpassFrequency:9200,
+lowBodyFrequency:145,
+lowBodyGain:4.5,
+lowMidFrequency:330,
+lowMidGain:3.8,
+mudFrequency:620,
+mudGain:-2.2,
+presenceFrequency:3000,
+presenceGain:-4.8,
+brightnessFrequency:5600,
+brightnessGain:-4.5,
+harshFrequency:7200,
+harshGain:-3.5,
+saturationDrive:2.8,
+compressorThreshold:-24,
+compressorKnee:8,
+compressorRatio:4.5,
+compressorAttack:0.006,
+compressorRelease:0.16,
+densityThreshold:-30,
+densityKnee:5,
+densityRatio:2.8,
+densityAttack:0.012,
+densityRelease:0.20,
+outputGain:0.82
+};
+function createVoiceSaturation(context){
+const shaper=context.createWaveShaper();
+const samples=4096;
+const curve=new Float32Array(samples);
+const drive=VOICE_PROCESSING.saturationDrive;for(let i=0;i<samples;i++){
+const x=(i*2)/(samples-1)-1;
+curve[i]=Math.tanh(x*drive)/Math.tanh(drive);
+}
+shaper.curve=curve;
+shaper.oversample="4x";
+return shaper;
+}
+function createEQ(context,type,frequency,gain,Q){
+const filter=context.createBiquadFilter();
+filter.type=type;
+filter.frequency.value=frequency;
+filter.gain.value=gain;
+filter.Q.value=Q;
+return filter;
+}
+function createVoiceProcessingChain(context,destination){
+if(!destination)destination=context.destination;
+const highpass=context.createBiquadFilter();
+highpass.type="highpass";
+highpass.frequency.value=VOICE_PROCESSING.highpassFrequency;
+highpass.Q.value=0.65;
+const lowBody=createEQ(
+context,
+"lowshelf",
+VOICE_PROCESSING.lowBodyFrequency,
+VOICE_PROCESSING.lowBodyGain,
+0.7
+);
+const lowMid=createEQ(
+context,
+"peaking",
+VOICE_PROCESSING.lowMidFrequency,
+VOICE_PROCESSING.lowMidGain,
+0.9
+);
+const mud=createEQ(context,
+"peaking",
+VOICE_PROCESSING.mudFrequency,
+VOICE_PROCESSING.mudGain,
+1.0
+);
+const presence=createEQ(
+context,
+"peaking",
+VOICE_PROCESSING.presenceFrequency,
+VOICE_PROCESSING.presenceGain,
+0.85
+);
+const brightness=createEQ(
+context,
+"peaking",
+VOICE_PROCESSING.brightnessFrequency,
+VOICE_PROCESSING.brightnessGain,
+0.75
+);
+const harshness=createEQ(
+context,
+"peaking",
+VOICE_PROCESSING.harshFrequency,
+VOICE_PROCESSING.harshGain,
+1.1
+);
+const lowpass=context.createBiquadFilter();
+lowpass.type="lowpass";
+lowpass.frequency.value=VOICE_PROCESSING.lowpassFrequency;
+lowpass.Q.value=0.45;
+const saturation=createVoiceSaturation(context);
+const compressor=context.createDynamicsCompressor();compressor.threshold.value=VOICE_PROCESSING.compressorThreshold;
+compressor.knee.value=VOICE_PROCESSING.compressorKnee;
+compressor.ratio.value=VOICE_PROCESSING.compressorRatio;
+compressor.attack.value=VOICE_PROCESSING.compressorAttack;
+compressor.release.value=VOICE_PROCESSING.compressorRelease;
+const density=context.createDynamicsCompressor();
+density.threshold.value=VOICE_PROCESSING.densityThreshold;
+density.knee.value=VOICE_PROCESSING.densityKnee;
+density.ratio.value=VOICE_PROCESSING.densityRatio;
+density.attack.value=VOICE_PROCESSING.densityAttack;
+density.release.value=VOICE_PROCESSING.densityRelease;
+const finalTone=createEQ(
+context,
+"peaking",
+180,
+1.8,
+0.8
+);
+const outputGain=context.createGain();
+outputGain.gain.value=VOICE_PROCESSING.outputGain;
+highpass.connect(lowBody);
+lowBody.connect(lowMid);
+lowMid.connect(mud);
+mud.connect(presence);
+presence.connect(brightness);
+brightness.connect(harshness);
+harshness.connect(lowpass);
+lowpass.connect(saturation);
+saturation.connect(compressor);
+compressor.connect(density);
+density.connect(finalTone);
+finalTone.connect(outputGain);
+outputGain.connect(destination);
+return{
+input:highpass,
+output:outputGain
+};
+}
+function pcmToWav(base64){
 const binary=atob(base64);
 const pcm=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++){
 pcm[i]=binary.charCodeAt(i);
@@ -1170,6 +1679,160 @@ writeString(36,"data");
 view.setUint32(40,pcm.length,true);
 new Uint8Array(buffer,44).set(pcm);
 return new Blob([buffer],{type:"audio/wav"});
+}
+function audioBufferToWav(audioBuffer){
+const numberOfChannels=audioBuffer.numberOfChannels;
+const sampleRate=audioBuffer.sampleRate;
+const format=1;
+const bitDepth=16;
+const channelData=[];
+for(let channel=0;channel<numberOfChannels;channel++){
+channelData.push(audioBuffer.getChannelData(channel));
+}
+const length=audioBuffer.length*numberOfChannels*(bitDepth/8);const buffer=new ArrayBuffer(44+length);
+const view=new DataView(buffer);
+function writeString(offset,string){
+for(let i=0;i<string.length;i++){
+view.setUint8(offset+i,string.charCodeAt(i));
+}
+}
+let offset=0;
+writeString(offset,"RIFF");
+offset+=4;
+view.setUint32(offset,36+length,true);
+offset+=4;
+writeString(offset,"WAVE");
+offset+=4;
+writeString(offset,"fmt ");
+offset+=4;
+view.setUint32(offset,16,true);
+offset+=4;
+view.setUint16(offset,format,true);
+offset+=2;
+view.setUint16(offset,numberOfChannels,true);
+offset+=2;
+view.setUint32(offset,sampleRate,true);
+offset+=4;
+view.setUint32(
+offset,
+sampleRate*numberOfChannels*bitDepth/8,
+true
+);
+offset+=4;
+view.setUint16(
+offset,
+numberOfChannels*bitDepth/8,
+true
+);
+offset+=2;
+view.setUint16(offset,bitDepth,true);
+offset+=2;
+writeString(offset,"data");
+offset+=4;
+view.setUint32(offset,length,true);offset+=4;
+for(let sample=0;sample<audioBuffer.length;sample++){
+for(let channel=0;channel<numberOfChannels;channel++){
+let sampleValue=channelData[channel][sample];
+sampleValue=Math.max(-1,Math.min(1,sampleValue));
+if(sampleValue<0){
+
+sampleValue*=0x8000;
+
+}
+else{
+
+sampleValue*=0x7fff;
+
+}
+view.setInt16(offset,sampleValue,true);
+offset+=2;
+}
+}
+return new Blob([buffer],{type:"audio/wav"});
+}
+
+const SpeechRecognition =
+window.SpeechRecognition ||
+window.webkitSpeechRecognition;
+
+if (SpeechRecognition) {
+    try {
+        recognition = new SpeechRecognition();
+
+        recognition.lang = "ja-JP";
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+       recognition.onresult = async function(event) {
+    recognitionRunning = false;
+
+    status.textContent = "";
+
+    const text =
+        event.results[0][0].transcript;
+
+            // Do not log recognized speech; it may contain private information.
+
+            if (!conversationActive) return;
+
+            await sendToGemini(text);
+        };
+
+        recognition.onerror = function(event) {
+            recognitionRunning = false;
+
+            console.error(
+                "SpeechRecognition error:",
+                event.error
+            );
+
+            if (
+                conversationActive &&
+                event.error !== "not-allowed" &&
+                event.error !== "service-not-allowed"
+            ) {
+                setTimeout(startListening, 500);
+            }
+        };
+
+        recognition.onend = function() {
+            recognitionRunning = false;
+        };
+
+    } catch(error) {
+        recognition = null;
+
+        console.error(
+            "SpeechRecognition init error:",
+            error
+        );
+    }
+}
+
+function startListening() {
+
+    if (
+        !conversationActive ||
+        recognitionRunning ||
+        !recognition
+    ) return;
+
+  try {
+    status.textContent =
+        "聞いています…";
+
+    updateHudStatus(
+        "ONLINE",
+        "LISTENING",
+        "READY",
+        "ACTIVE"
+    );
+
+    recognitionRunning = true;
+    recognition.start();
+    } catch(error) {
+        recognitionRunning = false;
+    }
 }
 
 async function speakWithGemini(text) {
@@ -1251,9 +1914,9 @@ async function speakWithGemini(text) {
 
         /* AudioContext準備 */
 
-        if (!ttsAudioContext) {
+        if (!audioContext) {
 
-            ttsAudioContext =
+            audioContext =
                 new (
                     window.AudioContext ||
                     window.webkitAudioContext
@@ -1261,10 +1924,10 @@ async function speakWithGemini(text) {
         }
 
         if (
-            ttsAudioContext.state ===
+            audioContext.state ===
             "suspended"
         ) {
-            await ttsAudioContext.resume();
+            await audioContext.resume();
         }
 
         /* WAV → AudioBuffer */
@@ -1273,22 +1936,22 @@ async function speakWithGemini(text) {
             await wav.arrayBuffer();
 
         const originalAudioBuffer =
-            await ttsAudioContext.decodeAudioData(
+            await audioContext.decodeAudioData(
                 arrayBuffer.slice(0)
             );
 
 /* 無線機風の音声フィルター */
-const radioHighpass = ttsAudioContext.createBiquadFilter();
+const radioHighpass = audioContext.createBiquadFilter();
 radioHighpass.type = "highpass";
 radioHighpass.frequency.value = 300;
 radioHighpass.Q.value = 0.7;
 
-const radioLowpass = ttsAudioContext.createBiquadFilter();
+const radioLowpass = audioContext.createBiquadFilter();
 radioLowpass.type = "lowpass";
 radioLowpass.frequency.value = 3400;
 radioLowpass.Q.value = 0.7;
 
-const radioCompressor = ttsAudioContext.createDynamicsCompressor();
+const radioCompressor = audioContext.createDynamicsCompressor();
 radioCompressor.threshold.value = -22;
 radioCompressor.knee.value = 12;
 radioCompressor.ratio.value = 3;
@@ -1301,23 +1964,23 @@ console.log("無線機風フィルターを適用");
 
 /* ⑤ 実際の再生 */
 
-if (ttsSource) {
+if (currentSource) {
 
     try {
-        ttsSource.stop();
+        currentSource.stop();
     } catch (e) {}
 
-    ttsSource =
+    currentSource =
         null;
 }
 
-ttsSource =
-    ttsAudioContext.createBufferSource();
+currentSource =
+    audioContext.createBufferSource();
 
-ttsSource.buffer =
+currentSource.buffer =
     processedAudioBuffer;
 
-ttsSource.connect(ttsAudioContext.destination);
+currentSource.connect(audioContext.destination);
 
 updateHudStatus(
     "ONLINE",
@@ -1329,10 +1992,10 @@ updateHudStatus(
 await new Promise(
     resolve => {
 
-       ttsSource.onended =
+       currentSource.onended =
     function() {
 
-       ttsSource =
+       currentSource =
     null;
 
 status.textContent =
@@ -1347,7 +2010,7 @@ updateHudStatus(
 
 resolve();
     };
-        ttsSource.start();
+        currentSource.start();
     }
 );
 
@@ -1370,209 +2033,178 @@ return true;
     }
 }
 
-const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
- let recognition=null,listening=false,active=false,sx=0,sy=0,requestInFlight=false;
- let memories=[],memoryLoadGeneration=0;
- function getErrorMessage(error){if(typeof error==="string")return error;if(error&&typeof error==="object"){if(error.message)return error.message;try{return JSON.stringify(error)}catch(e){return "不明なエラー"}}return String(error)}
- async function loadMemories(){
-   const generation=++memoryLoadGeneration,requestUserId=window.jarvisCurrentUserId||null;
-   if(!requestUserId){memories=[];return [];}
-   try{
-     const token=await window.jarvisGetAccessToken();
-     if(!token||requestUserId!==window.jarvisCurrentUserId)return [];
-     const result=await fetch("/api/memory",{method:"GET",headers:{Authorization:"Bearer "+token}});
-     const data=await result.json();
-     if(!result.ok||!data.ok)throw new Error(getErrorMessage(data.error)||"Memory GET error");
-     if(generation!==memoryLoadGeneration||requestUserId!==window.jarvisCurrentUserId)return [];
-     memories=Array.isArray(data.memories)?data.memories.slice(0,30):[];
-     return memories;
-   }catch(error){
-     if(generation===memoryLoadGeneration&&requestUserId===window.jarvisCurrentUserId){console.error("Memory load error:",error);memories=[];}
-     return [];
-   }
- }
- function buildMemoryContext(){
-   return memories.length?memories.map((memory,index)=>(index+1)+". ["+memory.category+"] "+memory.content).join("\n"):"現在、登録されている長期記憶はありません。";
- }
- async function saveMemory(memory,expectedUserId){
-   if(!memory||memory.shouldSave!==true||!expectedUserId||expectedUserId!==window.jarvisCurrentUserId)return false;
-   const content=typeof memory.content==="string"?memory.content.trim():"";
-   if(!content)return false;
-   const category=["personal","preference","work","family","goal"].includes(memory.category)?memory.category:"personal";
-   const importance=Number.isInteger(memory.importance)?Math.min(5,Math.max(1,memory.importance)):1;
-   try{
-     const token=await window.jarvisGetAccessToken();
-     if(!token||expectedUserId!==window.jarvisCurrentUserId)return false;
-     const result=await fetch("/api/memory",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({category,content,importance})});
-     const data=await result.json();
-     if(expectedUserId!==window.jarvisCurrentUserId)return false;
-     if(!result.ok||!data.ok)throw new Error(getErrorMessage(data.error)||"Memory save error");
-     await loadMemories();return true;
-   }catch(error){console.error("Memory save error:",error);return false;}
- }
- window.addEventListener("jarvis-auth-changed",()=>{memories=[];previousInteractionId=null;memoryLoadGeneration++;if(window.jarvisCurrentUserId)void loadMemories();});
- if(window.jarvisCurrentUserId)void loadMemories();
- async function sendToGemini(rawText){
-   const text=typeof rawText==="string"?rawText.trim():"";
-   if(!text||requestInFlight)return;
-   if(!window.jarvisCurrentUserId){
-     status.textContent="AUTHENTICATION REQUIRED";
-     updateHudStatus("OFFLINE","STANDBY","LOCKED","AUTH REQUIRED");
-     response.textContent="AI応答を利用するにはGoogleアカウントでサインインしてください。";
-     panel.classList.add("show");
-     return;
-   }
-   requestInFlight=true;
-   sendButton.disabled=true;
-   status.textContent="THINKING · AI応答を生成中";
-   updateHudStatus("ONLINE","STANDBY","PROCESSING","ACTIVE");
-   response.textContent="考えています…";
-   panel.classList.add("show");
-   const controller=new AbortController();
-   const timeout=setTimeout(()=>controller.abort(),240000);
-   try{
-     const requestUserId=window.jarvisCurrentUserId;
-     await loadMemories();
-     if(requestUserId!==window.jarvisCurrentUserId)throw new Error("アカウントが切り替わりました。再度お試しください。");
-     const accessToken=await window.jarvisGetAccessToken();
-     if(!accessToken)throw new Error("セッションを確認できません。再度サインインしてください。");
-     const result=await fetch("/api/gemini",{
-       method:"POST",
-       headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},
-       body:JSON.stringify({text,previousInteractionId,memoryContext:buildMemoryContext()}),
-       signal:controller.signal
-     });
-     let data={};try{data=await result.json()}catch(e){}
-     if(!result.ok)throw new Error(data.error||"Gemini HTTP "+result.status);
-     if(typeof data.text!=="string"||!data.text.trim())throw new Error("AIから回答テキストが返されませんでした。");
-     if(requestUserId!==window.jarvisCurrentUserId)throw new Error("アカウントが切り替わりました。");
-     if(typeof data.interactionId==="string"&&data.interactionId)previousInteractionId=data.interactionId;
-     if(data.memory&&data.memory.shouldSave===true)await saveMemory(data.memory,requestUserId);
-     if(requestUserId!==window.jarvisCurrentUserId)throw new Error("アカウントが切り替わりました。");
-     response.textContent=data.text;
-     if(typeof data.interactionId==="string"&&data.interactionId)previousInteractionId=data.interactionId;
-     status.textContent="AI RESPONSE RECEIVED";
-     updateHudStatus("ONLINE","STANDBY","READY","IDLE");
-     if(active){status.textContent="音声応答を生成中";updateHudStatus("ONLINE","STANDBY","GENERATING","ACTIVE");await speakWithGemini(data.text);if(active){status.textContent="LISTENING · マイク使用中";updateHudStatus("ONLINE","LISTENING","READY","ACTIVE");}}
-   }catch(error){
-     console.error("J.A.R.V.I.S. AI response failed:",error);
-     status.textContent="AI RESPONSE ERROR";
-     updateHudStatus(navigator.onLine?"ONLINE":"OFFLINE","STANDBY","ERROR","RECOVERY");
-     response.textContent=error.name==="AbortError"?"応答がタイムアウトしました。もう一度お試しください。":(error.message||"AI応答に失敗しました。");
-   }finally{
-     clearTimeout(timeout);
-     requestInFlight=false;
-     sendButton.disabled=false;
-   }
- }
- function stopListening(){
-   active=false;
-   updateHudStatus(navigator.onLine?"ONLINE":"OFFLINE","STANDBY","READY","IDLE");
-   if(recognition&&listening){try{recognition.stop()}catch(e){}}
-   listening=false;
- }
- function startVoice(){
-   textArea.classList.remove("is-open");
-   textArea.setAttribute("aria-hidden","true");
-   panel.classList.add("show");
-   active=true;
-   try{
-     if(!ttsAudioContext)ttsAudioContext=new (window.AudioContext||window.webkitAudioContext)();
-     if(ttsAudioContext.state==="suspended")void ttsAudioContext.resume();
-   }catch(audioError){console.error("AudioContext initialization failed:",audioError);}
-   status.textContent="VOICE MODE";
-   updateHudStatus("ONLINE","LISTENING","READY","ACTIVE");
-   if(!Recognition){
-     status.textContent="VOICE INPUT UNAVAILABLE";
-     updateHudStatus(navigator.onLine?"ONLINE":"OFFLINE","UNAVAILABLE","ERROR","RECOVERY");
-     response.textContent="このブラウザは音声認識に対応していません。";
-     return;
-   }
-   if(!recognition){
-     recognition=new Recognition();
-     recognition.lang="ja-JP";
-     recognition.continuous=true;
-     recognition.interimResults=true;
-     recognition.onstart=()=>{listening=true;if(!requestInFlight){status.textContent="LISTENING · マイク使用中";updateHudStatus("ONLINE","LISTENING","READY","ACTIVE");}};
-     recognition.onresult=async(event)=>{
-       let finalText="",interimText="";
-       for(let i=event.resultIndex;i<event.results.length;i++){
-         const phrase=event.results[i][0].transcript;
-         if(event.results[i].isFinal)finalText+=phrase;
-         else interimText+=phrase;
-       }
-       if(finalText.trim()){
-         try{recognition.stop()}catch(e){}
-         listening=false;
-         await sendToGemini(finalText);
-         if(active){try{recognition.start()}catch(e){}}
-       }else if(!requestInFlight){
-         response.textContent=interimText||"聞き取っています…";
-       }
-     };
-     recognition.onerror=(event)=>{
-       listening=false;
-       status.textContent=event.error==="not-allowed"?"MICROPHONE PERMISSION DENIED":"VOICE INPUT ERROR";
-       updateHudStatus(navigator.onLine?"ONLINE":"OFFLINE","MIC ERROR","ERROR","RECOVERY");
-       if(event.error==="not-allowed"||event.error==="service-not-allowed"){
-         response.textContent="ブラウザのマイク使用を許可してください。";
-         active=false;
-       }
-     };
-     recognition.onend=()=>{
-       listening=false;
-       if(active&&!requestInFlight){try{recognition.start()}catch(e){}}
-     };
-   }
-   try{recognition.start()}catch(e){console.error("Speech recognition start failed:",e);status.textContent="VOICE INPUT ERROR";updateHudStatus("ONLINE","STANDBY","READY","RECOVERY");response.textContent="音声入力を開始できませんでした。もう一度スワイプしてください。";}
- }
- function startText(){
-   stopListening();
-   panel.classList.remove("show");
-   textArea.classList.add("is-open");
-   textArea.setAttribute("aria-hidden","false");
-   textInput.focus();
- }
- sendButton.addEventListener("click",async()=>{
-   const text=textInput.value.trim();
-   if(!text)return;
-   textInput.value="";
-   await sendToGemini(text);
- });
- textInput.addEventListener("keydown",event=>{
-   if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendButton.click();}
- });
- let gestureStart=null;
- function isInteractiveTarget(target){
-   if(!target||!target.closest)return false;
-   if(target.closest("#textArea.is-open, #leftHUD.open, #rightHUD.open, button, input, textarea, a"))return true;
-   const auth=target.closest("#authScreen");
-   return !!(auth&&!auth.hidden);
- }
- function beginGesture(x,y,target){
-   if(isInteractiveTarget(target)){gestureStart=null;return;}
-   gestureStart={x,y};
- }
- function finishGesture(x,y,target){
-   if(!gestureStart)return;
-   const dx=x-gestureStart.x,dy=y-gestureStart.y;
-   gestureStart=null;
-   if(isInteractiveTarget(target))return;
-   if(Math.abs(dy)<55||Math.abs(dy)<=Math.abs(dx)*1.15)return;
-   if(dy>0)startVoice();
-   else startText();
- }
- document.addEventListener("touchstart",function(e){
-   const t=e.changedTouches&&e.changedTouches[0];
-   if(t)beginGesture(t.clientX,t.clientY,e.target);
- },{passive:true});
- document.addEventListener("touchend",function(e){
-   const t=e.changedTouches&&e.changedTouches[0];
-   if(t)finishGesture(t.clientX,t.clientY,e.target);
- },{passive:true,capture:true});
- // Touch events are the sole gesture source on mobile. Registering pointer events too
- // causes iOS Safari to dispatch the same swipe twice and can restart speech recognition.
- window.addEventListener("pagehide",stopListening);
-})();;
+async function sendToGemini(text) {
+
+    const requestUserId = window.jarvisCurrentUserId || null;
+    const cleanText =
+        typeof text === "string"
+            ? text.trim()
+            : "";
+
+    if (!cleanText || !requestUserId) {
+        return;
+    }
+
+    await loadMemories();
+
+    // メモリ読み込み中にアカウントが変わった場合、古い会話を開始しない。
+    if (requestUserId !== window.jarvisCurrentUserId) {
+        return;
+    }
+
+    status.textContent = "考えています…";
+
+    updateHudStatus(
+        "ONLINE",
+        "STANDBY",
+        "PROCESSING",
+        "ACTIVE"
+    );
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+        controller.abort();
+    }, 240000);
+
+    try {
+        const accessToken = await window.jarvisGetAccessToken();
+
+        // トークン取得中のアカウント切り替えを検出する。
+        if (
+            !accessToken ||
+            requestUserId !== window.jarvisCurrentUserId
+        ) {
+            return;
+        }
+
+        const response = await fetch(
+            "/api/gemini",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + accessToken
+                },
+                body: JSON.stringify({
+                    text: cleanText,
+                    previousInteractionId: previousInteractionId,
+                    memoryContext: buildMemoryContext()
+                }),
+                signal: controller.signal
+            }
+        );
+
+        const data = await response.json();
+
+        // 応答待ちの間にアカウントが変わっていたら、古い応答を破棄する。
+        if (requestUserId !== window.jarvisCurrentUserId) {
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                data.error ||
+                "Gemini HTTP " + response.status
+            );
+        }
+
+        if (!data.text) {
+            throw new Error("Geminiから回答テキストがありません");
+        }
+
+        // 会話IDは、開始時と同じユーザーの応答である場合のみ更新する。
+        if (
+            data.interactionId &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            previousInteractionId = data.interactionId;
+        }
+
+        if (
+            data.memory &&
+            data.memory.shouldSave === true &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            await saveMemory(data.memory, requestUserId);
+        }
+
+        // 保存処理の待機中にアカウントが変わった場合も、表示・読み上げしない。
+        if (requestUserId !== window.jarvisCurrentUserId) {
+            return;
+        }
+
+        document.getElementById("response").textContent = data.text;
+
+        document
+            .getElementById("jarvisHoloPanel")
+            .classList.add("show");
+
+        status.textContent = "";
+
+        if (
+            currentMode === "voice" &&
+            conversationActive &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            const spoken = await speakWithGemini(
+                data.speechText || data.text
+            );
+
+            if (
+                spoken &&
+                conversationActive &&
+                currentMode === "voice" &&
+                requestUserId === window.jarvisCurrentUserId
+            ) {
+                setTimeout(() => {
+                    if (requestUserId === window.jarvisCurrentUserId) {
+                        startListening();
+                    }
+                }, 300);
+            }
+        } else if (
+            conversationActive &&
+            currentMode === "voice" &&
+            requestUserId === window.jarvisCurrentUserId
+        ) {
+            // 音声合成に失敗しても、会話セッションを終了させず再入力を受け付ける。
+            status.textContent = "音声応答に失敗しました。もう一度お話しください。";
+            updateHudStatus("ONLINE", "LISTENING", "READY", "RECOVERY");
+            setTimeout(() => {
+                if (
+                    conversationActive &&
+                    currentMode === "voice" &&
+                    requestUserId === window.jarvisCurrentUserId
+                ) {
+                    startListening();
+                }
+            }, 1000);
+        }
+    } catch (error) {
+        // 通信・JSON解析などの失敗で処理が中断しても、画面状態と音声会話を復旧する。
+        if (requestUserId === window.jarvisCurrentUserId) {
+            console.error("Gemini conversation failed:", error);
+            document.getElementById("response").textContent =
+                "処理に失敗しました。通信状態を確認して、もう一度お試しください。";
+            document.getElementById("jarvisHoloPanel").classList.add("show");
+            status.textContent = "処理に失敗しました";
+            updateHudStatus("ONLINE", "STANDBY", "ERROR", "RECOVERY");
+
+            if (conversationActive && currentMode === "voice") {
+                setTimeout(() => {
+                    if (
+                        conversationActive &&
+                        currentMode === "voice" &&
+                        requestUserId === window.jarvisCurrentUserId
+                    ) {
+                        startListening();
+                    }
+                }, 1000);
+            }
+        }
+    } finally {
+        clearTimeout(timeout);
+    }
+}
 
 </script></body></html>
