@@ -76,9 +76,10 @@ function frame(){
  for(let i=0;i<Math.floor(w/22);i++){
   const x=i*22+11, long=i%5===0;
   const alpha=.12+(i%7===0?.2:0);
-  ctx.strokeStyle=hudC+alpha+')';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(x,pad*.62);ctx.lineTo(x,pad*.62+(long?8:3));ctx.stroke();
-  if(long&&i%10===0){ctx.fillStyle=hudC+'.32)';ctx.font='7px monospace';ctx.fillText(String(i).padStart(2,'0'),x+3,pad*.62+17);}
+  const major=i%10===0, medium=i%5===0;
+  ctx.strokeStyle=hudC+(major?'.58)':medium?'.34)':alpha+')');ctx.lineWidth=major?2.2:medium?1.5:1;
+  ctx.beginPath();ctx.moveTo(x,pad*.62);ctx.lineTo(x,pad*.62+(major?13:medium?8:3));ctx.stroke();
+  if(major){ctx.fillStyle=hudC+'.48)';ctx.font='7px monospace';ctx.fillText(String(i).padStart(2,'0'),x+3,pad*.62+21);}
  }
  // Side telemetry traces: angular brackets, small bars and circuit-like paths.
  for(let side=0;side<2;side++){
