@@ -1169,7 +1169,7 @@ function updateHudStatus(
  }
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  let recognition=null,listening=false,active=false,sx=0,sy=0,requestInFlight=false;
- let memories=[],memoryLoadGeneration=0,previousInteractionId=null;
+ let memories=[],memoryLoadGeneration=0;
  function getErrorMessage(error){if(typeof error==="string")return error;if(error&&typeof error==="object"){if(error.message)return error.message;try{return JSON.stringify(error)}catch(e){return "不明なエラー"}}return String(error)}
  async function loadMemories(){
    const generation=++memoryLoadGeneration,requestUserId=window.jarvisCurrentUserId||null;
