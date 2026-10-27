@@ -233,7 +233,7 @@ function frame(){
  drawCore(r);
  // Animated holographic projection platform beneath the Core.
  {
-  const py=Math.min(h*.77,cy+r*5.8),rx=Math.min(w*.43,r*4.15),ry=Math.max(10,rx*.22);
+  const py=Math.min(h*.88,cy+r*7.2),rx=Math.min(w*.43,r*4.15),ry=Math.max(10,rx*.22);
   ctx.save();ctx.globalCompositeOperation='lighter';
   // A smaller levitating ring rises above the platform, with a softly pulsing energy column.
   const liftY=py-ry*(1.7+.045*Math.sin(t*1.15));
