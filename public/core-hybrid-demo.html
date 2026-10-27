@@ -147,7 +147,7 @@ function frame(){
   ctx.beginPath();ctx.ellipse(x,y,rr*.55,rr*1.15,-.5,0,Math.PI*2);ctx.stroke();
  }
  ctx.restore();
- const r=Math.min(w,h)*.175;
+ const r=Math.min(w,h)*.16;
  // Soft blue mist drifting around the Core; kept translucent so the silhouette stays readable.
  ctx.save();ctx.globalCompositeOperation='screen';
  for(let i=0;i<9;i++){
