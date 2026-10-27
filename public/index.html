@@ -1,2373 +1,294 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>JARVIS - 3D Meridian Rings Core UI with HUD</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>J.A.R.V.I.S. Core Hybrid Preview</title>
 <style>
-*, *::before, *::after {
-box-sizing: border-box;
-margin: 0;
-padding: 0;
-}
-body, html {
-width: 100%;
-height: 100%;
-background-color: #000103;
-overflow: hidden;
-font-family: 'Courier New', Courier,
-monospace;
-color: #0099ff;
-}
-.jarvis-screen {
-position: relative;
-width: 100vw;
-height: 100vh;
-display: flex;
-justify-content: center;
-align-items: center;
-background: radial-gradient(circle at
-center, #010814 0%, #000205 70%,
-#000000 100%);
-}
-#bgDustCanvas {
-position: absolute;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-pointer-events: none;
-z-index: 1;}
-.hologram-vertical-system {
-position: relative;
-width: 380px;
-height: 620px;
-display: flex;
-flex-direction: column;
-justify-content: space-between;
-align-items: center;
-transform: scale(var(--system-scale, 1));
-transition: transform 0.3s ease;
-z-index: 2;
-filter: drop-shadow(0 0 35px rgba(0,
-119, 255, 0.7));
-}
-.jarvis-datetime {
-position: absolute;
-top: 78px;
-left: 50%;
-transform: translateX(-50%);
-color: #bfeaff;
-font-size: 11px;
-letter-spacing: 2px;
-white-space: nowrap;
-text-shadow:
-0 0 5px rgba(0, 136, 255, 0.9),
-0 0 12px rgba(0, 136, 255, 0.6);
-z-index: 5;
-pointer-events: none;
-}
-@media (min-width: 768px) {
-.hologram-vertical-system {
-width: 440px;
-height: 700px;
-}
-}
-@media (max-width: 767px) {
-.hologram-vertical-system {
---system-scale: 0.9;
-}
-}/* 上部固定リング */
-.hologram-disc-top {
-position: relative;
-width: 260px;
-height: 70px;
-border-radius: 50%;
-transform: rotateX(68deg);
-transform-style: preserve-3d;
-box-shadow: 0 0 22px rgba(0, 136, 255,
-0.5);
-}
-.disc-ring-line {
-position: absolute;
-inset: 0;
-border-radius: 50%;
-border: 1px solid rgba(0, 136, 255, 0.85);
-box-shadow: inset 0 0 10px rgba(0, 136,
-255, 0.5), 0 0 3px rgba(0, 200, 255, 0.3);
-}
-.disc-ring-line:nth-child(1) {
-inset: 0px;
-border-width: 2px;
-border-style: dashed;
-}
-.disc-ring-line:nth-child(2) {
-inset: 12px;
-border-width: 1px;
-}
-.disc-ring-line:nth-child(3) {
-inset: 26px;
-border-width: 3px;
-border-color: #0088ff;
-border-left-color: transparent;
-border-right-color: transparent;
-}
-.disc-ring-line:nth-child(4) {
-inset: 40px;
-border-width: 1px;
-border-style: dotted;
-}
-/* 中央 Core ユニット */.core-unit-center {
-position: relative;
-width: 340px;
-height: 340px;
-display: flex;
-justify-content: center;
-align-items: center;
-perspective: 1000px;
-}
-@media (min-width: 768px) {
-.core-unit-center {
-width: 400px;
-height: 400px;
-}
-}
-.vertical-light-beam {
-position: absolute;
-width: 1.5px;
-height: 140%;
-top: -20%;
-background: linear-gradient(to bottom,
-transparent, rgba(0,136,255,0.9), #ffffff,
-rgba(0,136,255,0.9), transparent);
-box-shadow: 0 0 20px #0088ff, 0 0
-40px #0055ff;
-pointer-events: none;
-z-index: 3;
-}
-.meridian-orbit-ring {
-position: absolute;
-width: 170px;
-height: 235px;
-border: 1.2px solid rgba(0, 136, 255,
-0.9);
-border-radius: 50%;
-box-shadow: 0 0 14px rgba(0, 136, 255,
-0.6), inset 0 0 10px rgba(0, 180, 255,
-0.4), 0 0 4px rgba(0, 220, 255, 0.5);
-pointer-events: none;
-z-index: 4;
-}.meridian-1 {
-transform: rotate3d(1, 0.8, 0, 55deg);
-animation: orbitRotate1 18s linear
-infinite;
-}
-.meridian-2 {
-transform: rotate3d(0.5, -1, 0.5, 70deg);
-animation: orbitRotate2 24s linear
-infinite;
-}
-.meridian-3 {
-transform: rotate3d(-0.8, 0.5, 1, 40deg);
-animation: orbitRotate3 20s linear
-infinite;
-border-color: rgba(0, 200, 255, 0.85);
-border-width: 1px;
-border-style: dashed;
-box-shadow: 0 0 14px rgba(0, 136, 255,
-0.6), inset 0 0 10px rgba(0, 200, 255,
-0.5), 0 0 5px rgba(0, 230, 255, 0.6);
-}
-.core-sphere-nucleus {
-position: absolute;
-width: 115px;
-height: 115px;
-border-radius: 50%;
-background: radial-gradient(circle,
-#ffffff 0%, #0088ff 30%, #0022aa 75%,
-#000411 100%);
-box-shadow: 0 0 38px #0077ff, 0 0 75px
-rgba(0, 85, 255, 0.95), inset 0 0 20px
-#ffffff;
-display: flex;
-justify-content: center;
-align-items: center;
-animation: corePulse 3.5s ease-in-out
-infinite;
-z-index: 5;
-border: 1px solid rgba(0, 200, 255, 0.4);
-}
-@media (min-width: 768px) {.core-sphere-nucleus {
-width: 135px;
-height: 135px;
-}
-}
-.jarvis-text-logo {
-font-size: 1.05rem;
-font-weight: 900;
-letter-spacing: 0.35em;
-color: #ffffff;
-text-shadow: 0 0 10px #0088ff, 0 0
-20px #0066ff, 0 0 35px #0044ff;
-z-index: 6;
-animation: textGlow 4s ease-in-out
-infinite;
-}
-/* 下部固定リング */
-.hologram-disc-bottom {
-position: relative;
-width: 280px;
-height: 75px;
-border-radius: 50%;
-transform: rotateX(68deg);
-transform-style: preserve-3d;
-box-shadow: 0 0 22px rgba(0, 136, 255,
-0.5);
-}
-/* SIDE HUD PANEL */
-.sideHUD {
-position: fixed;
-top: 0;
-width: 310px;
-height: 100%;
-box-sizing: border-box;
-padding: 25px 15px;
-background: rgba(1, 10, 22, 0.94);
-border-color: rgba(0, 153, 255, 0.3);
-z-index: 9000;
-transition: transform 0.25s ease;
-text-align: left;
-overflow-y: auto;}
-#leftHUD {
-left: 0;
-transform: translateX(-100%);
-border-right: 1px solid rgba(0, 153, 255,
-0.35);
-box-shadow: 10px 0 30px
-rgba(0,0,0,0.8);
-}
-#rightHUD {
-right: 0;
-transform: translateX(100%);
-border-left: 1px solid rgba(0, 153, 255,
-0.35);
-box-shadow: -10px 0 30px
-rgba(0,0,0,0.8);
-}
-#leftHUD.open, #rightHUD.open {
-transform: translateX(0);
-}
-/* HUD 内部カード・モジュール */
-.hud-card {
-position: relative;
-background: rgba(0, 25, 50, 0.4);
-border: 1px solid rgba(0, 153, 255, 0.25);
-border-radius: 4px;
-padding: 12px;
-margin-bottom: 15px;
-box-shadow: inset 0 0 10px rgba(0, 136,
-255, 0.1);
-}
-.hud-card-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 10px;
-border-bottom: 1px solid rgba(0, 153,
-255, 0.2);
-padding-bottom: 6px;
-}
-.hud-card-title {color: #bfeaff;
-font-size: 13px;
-font-weight: bold;
-letter-spacing: 2px;
-}
-.hud-dots {
-color: #0099ff;
-letter-spacing: 2px;
-font-size: 12px;
-}
-/* SVG アイコン共通スタイル */
-.hud-icon {
-width: 16px;
-height: 16px;
-stroke: #00d4ff;
-fill: none;
-stroke-width: 1.5;
-stroke-linecap: round;
-stroke-linejoin: round;
-filter: drop-shadow(0 0 4px rgba(0, 180,
-255, 0.8));
-flex-shrink: 0;
-}
-/* 左 HUD 用: 横棒グラフスタイル */
-.status-row {
-display: flex;
-align-items: center;
-justify-content: space-between;
-margin-bottom: 8px;
-font-size: 11px;
-}
-.status-label-group {
-display: flex;
-align-items: center;
-gap: 8px;
-color: #8acfff;
-width: 115px;
-}
-.status-bar-bg {
-flex-grow: 1;
-height: 6px;background: rgba(0, 80, 160, 0.2);
-border-radius: 2px;
-overflow: hidden;
-margin: 0 8px;
-border: 1px solid rgba(0, 153, 255, 0.3);
-}
-.status-bar-fill {
-height: 100%;
-background: linear-gradient(90deg,
-#0077ff, #00d2ff);
-box-shadow: 0 0 6px #0099ff;
-}
-
-.status-value {
-width: 82px;
-text-align: right;
-color: #e0f2ff;
-font-weight: bold;
-font-size: 10px;
-}
-
-/* デバイスステータス用 */
-.device-row {
-display: flex;
-align-items: center;
-justify-content: space-between;
-margin-bottom: 8px;
-font-size: 11px;
-}
-.device-info-left {
-display: flex;
-align-items: center;
-gap: 8px;
-color: #8acfff;
-}
-.device-status-right {
-display: flex;
-align-items: center;
-gap: 5px;
-color: #00ffcc;
-font-weight: bold;
-}
-.status-dot {
-width: 6px;height: 6px;
-background-color: #00ffcc;
-border-radius: 50%;
-box-shadow: 0 0 6px #00ffcc;
-}
-.battery-inline-container {
-display: flex;
-align-items: center;
-gap: 6px;
-}
-.mini-battery-frame {
-width: 24px;
-height: 11px;
-border: 1px solid rgba(0, 153, 255, 0.6);
-border-radius: 2px;
-padding: 1px;
-display: flex;
-align-items: center;
-}
-.mini-battery-inner {
-width: 82%;
-height: 100%;
-background: #00d2ff;
-box-shadow: 0 0 4px #00d2ff;
-}
-/* 右 HUD 用:天気予報スタイル */
-.weather-main-box {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 12px;
-}
-.weather-location {
-font-size: 12px;
-color: #bfeaff;
-margin-bottom: 2px;
-}
-.weather-temp-display {
-font-size: 20px;
-font-weight: bold;
-color: #ffffff;text-shadow: 0 0 8px
-rgba(0,153,255,0.8);
-}
-.weather-condition-text {
-font-size: 11px;
-color: #8acfff;
-display: flex;
-align-items: center;
-gap: 5px;
-}
-.weather-high-low {
-font-size: 11px;
-color: #a0d8ff;
-text-align: right;
-line-height: 1.3;
-}
-.hourly-forecast-grid {
-display: flex;
-justify-content: space-between;
-border-top: 1px dashed rgba(0, 153,
-255, 0.2);
-padding-top: 8px;
-text-align: center;
-}
-.hourly-col {
-font-size: 9px;
-color: #7ab8ff;
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 4px;
-}
-/* 通知・ログリストスタイル */
-.notif-item {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 8px;
-font-size: 11px;
-}
-.notif-left {display: flex;
-align-items: center;
-gap: 8px;
-color: #a0d8ff;
-}
-.notif-time {
-font-size: 10px;
-color: #61a6ff;
-}
-
-/* =========================================================
-   J.A.R.V.I.S. ホログラム情報パネル
-   ========================================================= */
-
-.jarvis-holo-panel {
-    position: absolute;
-    top: 62%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(100% - 40px);
-    max-width: 380px;
-    min-height: 140px;
-
-    background: rgba(1, 12, 25, 0.82);
-    border: 1px solid rgba(0, 153, 255, 0.45);
-
-    box-shadow:
-        0 0 25px rgba(0, 119, 255, 0.35),
-        inset 0 0 15px rgba(0, 153, 255, 0.15);
-
-    backdrop-filter: blur(4px);
-
-    z-index: 20;
-    padding: 12px 15px;
-    box-sizing: border-box;
-       pointer-events: none;
-
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.25s ease, visibility 0.25s ease;
-}
-
-.jarvis-holo-panel.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-    clip-path: polygon(
-        0 10px,
-        10px 0,
-        calc(100% - 10px) 0,
-        100% 10px,
-        100% calc(100% - 10px),
-        calc(100% - 10px) 100%,
-        10px 100%,
-        0 calc(100% - 10px)
-    );
-}
-
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    border-bottom:
-        1px solid rgba(0, 153, 255, 0.25);
-
-    padding-bottom: 6px;
-    margin-bottom: 8px;
-}
-
-.panel-title-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.panel-indicator-dot {
-    width: 6px;
-    height: 6px;
-
-    background-color: #00d2ff;
-    border-radius: 50%;
-
-    box-shadow: 0 0 6px #00d2ff;
-
-    animation: pulseDot 2s infinite;
-}
-
-.panel-title {
-    color: #bfeaff;
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 2px;
-}
-
-.panel-hud-dots {
-    color: #0099ff;
-    font-size: 11px;
-    letter-spacing: 1px;
-}
-
-.jarvis-holo-panel #status {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    transform: none !important;
-
-    width: 100% !important;
-
-    text-align: left !important;
-
-    color: #8acfff !important;
-    font-size: 11px;
-    letter-spacing: 1.5px;
-
-    margin-bottom: 6px;
-
-    text-shadow:
-        0 0 6px rgba(0, 136, 255, 0.7);
-}
-
-.jarvis-holo-panel #response {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    transform: none !important;
-
-    width: 100% !important;
-    padding: 0 !important;
-
-    color: #ffffff;
-    font-size: 13px;
-    line-height: 1.5;
-
-    word-break: break-word;
-
-    text-shadow:
-        0 0 8px rgba(0, 153, 255, 0.4);
-}
-
-@keyframes pulseDot {
-    0%, 100% {
-        opacity: 0.4;
-        transform: scale(0.9);
-    }
-
-    50% {
-        opacity: 1;
-        transform: scale(1.1);
-    }
-}
-
-@media (max-width: 480px) {
-
-    .jarvis-holo-panel {
-        top: 62%;
-        width: calc(100% - 24px);
-        padding: 10px 12px;
-    }
-
-    .jarvis-holo-panel #response {
-        font-size: 12px;
-    }
-}
-
-@keyframes orbitRotate1 {
-0% { transform: rotate3d(1, 0.8, 0,
-55deg) rotateZ(0deg); }
-100% { transform: rotate3d(1, 0.8, 0,
-55deg) rotateZ(360deg); }
-}
-@keyframes orbitRotate2 {
-0% { transform: rotate3d(0.5, -1, 0.5,
-70deg) rotateZ(0deg); }
-100% { transform: rotate3d(0.5, -1, 0.5,
-70deg) rotateZ(-360deg); }
-}
-@keyframes orbitRotate3 {
-0% { transform: rotate3d(-0.8, 0.5, 1,
-40deg) rotateZ(0deg); }
-100% { transform: rotate3d(-0.8, 0.5, 1,
-40deg) rotateZ(360deg); }
-}
-@keyframes corePulse {
-0%, 100% {transform: scale(0.96);
-box-shadow: 0 0 32px #0077ff, 0 0 65px
-rgba(0, 85, 255, 0.8), inset 0 0 18px
-#ffffff;
-}
-50% {
-transform: scale(1.04);
-box-shadow: 0 0 48px #0088ff, 0 0
-95px rgba(0, 102, 255, 1), inset 0 0 30px
-#ffffff;
-}
-}
-@keyframes textGlow {
-0%, 100% {
-text-shadow: 0 0 10px
-#0088ff, 0 0 20px #0066ff;
-opacity: 0.9;
-}
-50% {
-text-shadow: 0 0 15px #0088ff, 0
-0 28px #ffffff, 0 0 40px #0044ff;
-opacity: 1;
-}
-}
-
-#textArea {
-    display: none;
-    position: absolute;
-    top: 75%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(100% - 50px);
-    max-width: 600px;
-    z-index: 9999;
-    pointer-events: auto;
-}
-
-#textInput {
-    width: 100%;
-    box-sizing: border-box;
-    min-height: 100px;
-    padding: 15px;
-    border-radius: 12px;
-    border: 1px solid #444;
-    background: #111;
-    color: white;
-    font-size: 16px;
-    resize: vertical;
-    pointer-events: auto;
-    touch-action: manipulation;
-}
-
-#sendButton {
-    display: block;
-    margin: 12px auto 0;
-    width: 120px;
-    height: 45px;
-    border-radius: 22px;
-    border: 1px solid #555;
-    background: #222;
-    color: white;
-    font-size: 15px;
-}
-
-
-#authScreen{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at center,rgba(0,53,104,.28),transparent 55%),#02050a;color:#bfeaff;font-family:'Courier New',Courier,monospace}
-#authScreen[hidden]{display:none!important}.auth-card{width:min(100%,420px);padding:36px 28px 28px;text-align:center;border:1px solid rgba(0,153,255,.55);background:linear-gradient(145deg,rgba(4,20,37,.96),rgba(0,4,11,.98));box-shadow:0 0 28px rgba(0,119,255,.18),inset 0 0 24px rgba(0,100,255,.06)}
-.auth-kicker{font-size:10px;letter-spacing:4px;color:#4aaeff}.auth-title{margin-top:18px;font-size:clamp(25px,7vw,34px);letter-spacing:5px;text-shadow:0 0 18px rgba(0,136,255,.7)}.auth-rule{width:64px;height:1px;margin:20px auto;background:#168fff;box-shadow:0 0 10px #168fff}.auth-copy{color:#9abbd4;font-size:12px;line-height:1.9;letter-spacing:.6px}
-#googleLoginButton{width:100%;min-height:50px;margin-top:28px;padding:12px 16px;border:1px solid #168fff;border-radius:2px;background:rgba(0,89,170,.16);color:#e4f5ff;font:inherit;font-size:13px;letter-spacing:1px;cursor:pointer}
-#googleLoginButton:disabled{opacity:.55;cursor:wait}#authMessage{min-height:20px;margin-top:14px;color:#ff9b9b;font-size:11px;line-height:1.6}.auth-foot{margin-top:22px;color:#42627d;font-size:9px;letter-spacing:2px}
-#jarvisSignOut{position:fixed;right:14px;top:14px;z-index:99999;padding:7px 10px;border:1px solid rgba(0,153,255,.45);background:rgba(0,5,14,.82);color:#8bcfff;font:10px 'Courier New',monospace;letter-spacing:1px;cursor:pointer}#jarvisSignOut[hidden]{display:none!important}
-@media(max-width:480px){.auth-card{padding:30px 22px 24px}.auth-title{letter-spacing:3px}}
-
-</style>
-</head>
-<body>
-<div id="authScreen"><div class="auth-card"><div class="auth-kicker">SECURE ACCESS / AUTHENTICATION</div><div class="auth-title">J.A.R.V.I.S.</div><div class="auth-rule"></div><p class="auth-copy">本人確認が必要です。<br>Googleアカウントでサインインしてください。</p><button id="googleLoginButton" type="button">SIGN IN WITH GOOGLE</button><p id="authMessage" role="status" aria-live="polite"></p><div class="auth-foot">AUTHORIZED ACCESS ONLY</div></div></div>
-<button id="jarvisSignOut" type="button" hidden>サインアウト</button>
-
-<div class="jarvis-screen">
-<canvas id="bgDustCanvas"></canvas>
-
-<!-- J.A.R.V.I.S. ホログラム情報パネル -->
-<div class="jarvis-holo-panel" id="jarvisHoloPanel">
-
-    <div class="panel-header">
-
-        <div class="panel-title-group">
-            <span class="panel-indicator-dot"></span>
-            <span class="panel-title">
-                J.A.R.V.I.S. SYSTEM
-            </span>
-        </div>
-
-        <div class="panel-hud-dots">
-            ...
-        </div>
-
-    </div>
-
-    <div class="panel-status-area" id="status"></div>
-
-    <div class="panel-response-area" id="response"></div>
-
-    <div
-        class="panel-extension-area"
-        id="panelExtension"
-        style="display:none;"
-    ></div>
-
-</div>
-
-<div id="textArea">
-
-    <textarea
-        id="textInput"
-        placeholder="J.A.R.V.I.S.に話しかける内容を入力"
-    ></textarea>
-
-    <br>
-
-    <button id="sendButton">
-        送信
-    </button>
-
-</div>
-
-<div class="hologram-vertical-system" id="verticalSystem">
-<div class="jarvis-datetime" id="jarvisDateTime"></div>
-<div class="hologram-disc-top">
-<div class="disc-ring-line"></div>
-<div class="disc-ring-line"></div>
-<div class="disc-ring-line"></div>
-<div class="disc-ring-line"></div>
-</div>
-<div class="core-unit-center">
-<div class="vertical-light-beam"></div>
-<div class="meridian-orbit-ring meridian-1"></div><div class="meridian-orbit-ring meridian-2"></div>
-<div class="meridian-orbit-ring meridian-3"></div>
-<div class="core-sphere-nucleus">
-<div class="jarvis-text-logo">JARVIS</div>
-</div>
-</div>
-<div class="hologram-disc-bottom">
-<div class="disc-ring-line"></div>
-<div class="disc-ring-line"></div>
-<div class="disc-ring-line"></div>
-<div class="disc-ring-line"></div>
-</div>
-</div>
-</div>
-<div id="leftHUD" class="sideHUD">
-<div class="hud-card">
-<div class="hud-card-header">
-<span class="hud-card-title">SYSTEM STATUS</span>
-<span class="hud-dots">...</span>
-</div>
-<div class="status-row">
-<div class="status-label-group">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<circle cx="12" cy="12" r="9"/>
-<path d="M3.6 9h16.8M3.6 15h16.8M12 3a15.3 15.3 0 0 1 4 18M12 3a15.3 15.3 0 0 0-4 18"/>
-</svg>
-NETWORK
-</div>
-<div class="status-bar-bg">
-<div class="status-bar-fill" style="width:98%;"></div>
-</div>
-
-<div class="status-value" id="hudNetwork">STANDBY</div>
-
-</div>
-<div class="status-row">
-<div class="status-label-group">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M12 20v-6M6 20V10M18 20V4"/>
-</svg>
-SIGNAL
-</div>
-<div class="status-bar-bg"><div class="status-bar-fill" style="width:86%;"></div>
-</div>
-
-<div class="status-value" id="hudSignal">STANDBY</div>
-
-</div>
-<div class="status-row">
-<div class="status-label-group">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<rect x="4" y="4" width="16" height="16" rx="2"/>
-<path d="M9 9h6v6H9zM9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>
-</svg>
-SYS LOAD
-</div>
-<div class="status-bar-bg">
-<div class="status-bar-fill" style="width:42%;"></div>
-</div>
-
-<div class="status-value" id="hudSysLoad">READY</div>
-
-</div>
-<div class="status-row">
-<div class="status-label-group">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-</svg>
-ACTIVITY
-</div>
-<div class="status-bar-bg">
-<div class="status-bar-fill" style="width:24%;"></div>
-</div>
-
-<div class="status-value" id="hudActivity">IDLE</div>
-
-</div>
-</div>
-<div class="hud-card">
-<div class="hud-card-header">
-<span class="hud-card-title">DEVICE STATUS</span>
-<span class="hud-dots">...</span>
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<rect x="5" y="2" width="14" height="20" rx="2"/>
-<path d="M12 18h.01"/>
-</svg>DEVICE
-</div>
-
-<div class="device-status-right">
-<span class="status-dot"></span>
-<span id="hudDevice">ONLINE</span>
-</div>
-
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95
-0M12 20h.01"/>
-</svg>
-Wi-Fi
-</div>
-
-<div class="device-status-right">
-<span class="status-dot"></span>
-<span id="hudWifi">CONNECTED</span>
-</div>
-
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="m6.5 6.5 11 11L12 23V1l5.5 5.5-11 11"/>
-</svg>
-Bluetooth
-</div>
-<div class="device-status-right">
-<span class="status-dot"></span>
-ON
-</div>
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<rect x="2" y="7" width="18" height="10" rx="2"/>
-<path d="M22 11v2"/>
-</svg>
-BATTERY
-</div>
-
-<div class="battery-inline-container">
-<span
-    id="hudBattery"
-    style="font-size:11px;color:#e0f2ff;font-weight:bold;"
->
---%
-</span>
-
-<div class="mini-battery-frame">
-    <div
-        class="mini-battery-inner"
-        id="hudBatteryFill"
-    ></div>
-</div>
-</div>
-
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-</svg>
-POWER
-</div>
-
-<div class="device-status-right">
-<span class="status-dot"></span>
-<span id="hudPower">CHARGING</span>
-</div>
-
-</div>
-</div>
-</div>
-</div>
-<div id="rightHUD" class="sideHUD">
-<div class="hud-card">
-<div class="hud-card-header">
-<span class="hud-card-title">WEATHER</span>
-<span class="hud-dots">...</span>
-</div>
-<div class="weather-main-box">
-<div>
-<div class="weather-location" id="weatherLocation">東京</div>
-<div class="weather-temp-display" id="weatherTemp">13°C</div>
-<div class="weather-condition-text">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-くもり
-</div>
-</div>
-<div class="weather-high-low">
-<div>H: 15°C</div>
-<div>L: 8°C</div>
-</div></div>
-<div class="hourly-forecast-grid">
-<div class="hourly-col">
-<span>10:00</span>
-<span>13°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>13:00</span>
-<span>14°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>16:00</span>
-<span>15°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<circle cx="12" cy="12" r="5"/>
-<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22
-19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>19:00</span>
-<span>12°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0-10z"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>22:00</span>
-<span>11°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-</svg>
-</div>
-</div>
-</div><div class="hud-card">
-<div class="hud-card-header">
-<span class="hud-card-title">NOTIFICATION</span>
-<span class="hud-dots">...</span>
-</div>
-<div class="notif-item">
-<div class="notif-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<rect x="3" y="4" width="18" height="18" rx="2"/>
-<path d="M16 2v4M8 2v4M3 10h18"/>
-</svg>
-スケジュールの確認
-</div>
-<div class="notif-time">10:32</div>
-</div>
-<div class="notif-item">
-<div class="notif-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-天気情報を取得しました
-</div>
-<div class="notif-time">10:28</div>
-</div>
-<div class="notif-item">
-<div class="notif-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<rect x="2" y="4" width="20" height="16" rx="2"/>
-<path d="m22 7-10 7L2 7"/>
-</svg>
-新着メール:3件
-</div>
-<div class="notif-time">10:15</div>
-</div>
-<div class="notif-item">
-<div class="notif-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-<path d="m9 11 3 3L22 4"/>
-</svg>
-タスクの処理が完了しました</div>
-<div class="notif-time">09:54</div>
-</div>
-</div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}canvas{display:block;width:100%;height:100%}
+.hint{position:fixed;bottom:18px;left:0;right:0;text-align:center;font:10px Arial,sans-serif;letter-spacing:.22em;color:rgba(140,200,255,.4);pointer-events:none}
+</style></head><body><canvas id="c"></canvas><div class="hint">CORE IMAGE + PARTICLE FIELD + HOLOGRAPHIC RINGS</div>
 <script>
-(function(){
- const screen=document.getElementById("authScreen"),button=document.getElementById("googleLoginButton"),message=document.getElementById("authMessage"),signOut=document.getElementById("jarvisSignOut");
- let client=null,resolveReady;
- window.jarvisAuthReady=new Promise(resolve=>{resolveReady=resolve;});
- window.jarvisGetAccessToken=async function(){await window.jarvisAuthReady;if(!client)return null;const result=await client.auth.getSession();return result.data.session?result.data.session.access_token:null;};
- function show(session){const signedIn=Boolean(session);screen.hidden=signedIn;document.querySelector(".jarvis-screen").style.visibility=signedIn?"visible":"hidden";signOut.hidden=!signedIn;if(signedIn)message.textContent="";window.jarvisCurrentUserId=signedIn&&session.user&&typeof session.user.id==="string"?session.user.id:null;window.dispatchEvent(new CustomEvent("jarvis-auth-change",{detail:{userId:window.jarvisCurrentUserId}}));}
- async function init(){try{
-  if(!window.supabase||!window.supabase.createClient)throw new Error("認証ライブラリを読み込めません。再読み込みしてください。");
-  const response=await fetch("/api/auth-config",{cache:"no-store"}),config=await response.json();
-  if(!response.ok||!config.url||!config.anonKey)throw new Error("認証設定を取得できません。Supabaseの環境変数を確認してください。");
-  client=window.supabase.createClient(config.url,config.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  window.jarvisSupabase=client;
-  const result=await client.auth.getSession();if(result.error)throw result.error;
-  show(result.data.session);client.auth.onAuthStateChange((_event,session)=>show(session));resolveReady();
- }catch(error){message.textContent=error?.message||"認証の初期化に失敗しました。";button.disabled=true;resolveReady();}}
- button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;message.textContent="Google認証へ接続しています…";try{const result=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(result.error)throw result.error;}catch(error){message.textContent=error?.message||"サインインを開始できませんでした。";button.disabled=false;}});
- signOut.addEventListener("click",async()=>{if(!client)return;signOut.disabled=true;const result=await client.auth.signOut();if(result.error)message.textContent="サインアウトに失敗しました。";signOut.disabled=false;});
- init();
-})();
-</script>
+const canvas=document.querySelector('#c'),ctx=canvas.getContext('2d');
+let w,h,dpr,cx,cy,scale,t=0,drag=false,lastX=0,rot=0;
+function resize(){dpr=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);cx=w/2;cy=h*.20;scale=Math.min(w,h)/700}
+addEventListener('resize',resize);resize();
+canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{if(drag){rot+=(e.clientX-lastX)*.008;lastX=e.clientX}});
+canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
+let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
+const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:(rand()<.72?.25+rand()*.27:rand()<.88?.52+rand()*.32:.88+rand()*.48),phase:rand()*Math.PI*2,speed:.15+rand()*.55,brightness:.35+rand()*.65,blur:rand()}));
+const stars=Array.from({length:90},()=>({x:rand(),y:rand(),a:.15+rand()*.42,r:.35+rand()*.95}));
+// Segmented precision HUD ticks: isolated marks, never a continuous circular outline.
+ const hudTicks=Array.from({length:64},(_,i)=>({a:(i/64)*Math.PI*2+(rand()-.5)*.018,len:i%8===0?7+rand()*3:i%4===0?4+rand()*2:2+rand()*2,offset:rand()*5,alpha:.18+rand()*.42}));
+function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+function drawCore(r){
+ // Layered translucent gradients create a glass-like, holographic Core.
+ const g=ctx.createRadialGradient(cx,cy,r*.08,cx,cy,r*1.08);
+ g.addColorStop(0,'rgba(45,150,255,.28)');
+ g.addColorStop(.18,'rgba(25,125,255,.36)');
+ g.addColorStop(.38,'rgba(0,105,245,.42)');
+ g.addColorStop(.68,'rgba(0,48,170,.38)');
+ g.addColorStop(.88,'rgba(0,28,115,.3)');
+ g.addColorStop(1,'rgba(0,100,230,.18)');
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+ const rim=ctx.createRadialGradient(cx,cy,r*.68,cx,cy,r);
+ rim.addColorStop(0,'rgba(70,210,255,0)');
+ rim.addColorStop(.72,'rgba(70,210,255,.02)');
+ rim.addColorStop(1,'rgba(80,165,255,.07)');
+ ctx.fillStyle=rim;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+ ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.clip();
+ // A fine, original-style dotted Voronoi boundary texture, not a 3D replacement.
+ for(let x=cx-r;x<=cx+r;x+=5){for(let y=cy-r;y<=cy+r;y+=5){if(Math.hypot(x-cx,y-cy)>=r)continue;let d1=1e9,d2=1e9;for(const p of corePts){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){d2=d1;d1=d}else if(d<d2)d2=d}if(Math.abs(d1-d2)<1.2){ctx.fillStyle='rgba(55,165,255,.24)';ctx.fillRect(x,y,1,1)}}}
+ corePts.forEach(p=>{ctx.fillStyle='rgba(120,195,255,.62)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
+ ctx.restore();
 
-<script>
-var canvas=document.getElementById("bgDustCanvas");
-var ctx=canvas.getContext("2d");
-var particles=[];
-function resizeCanvas(){
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
+ // Strong center light with a broad radial falloff reaching the Core's outer edge.
+ const glowR=r*1.02;
+ const blueGlow=ctx.createRadialGradient(cx,cy,0,cx,cy,glowR);
+ blueGlow.addColorStop(0,'rgba(185,235,255,.95)');
+ blueGlow.addColorStop(.12,'rgba(45,155,255,.72)');
+ blueGlow.addColorStop(.34,'rgba(0,105,255,.38)');
+ blueGlow.addColorStop(.62,'rgba(0,75,235,.2)');
+ blueGlow.addColorStop(.84,'rgba(0,55,200,.1)');
+ blueGlow.addColorStop(1,'rgba(0,45,170,0)');
+ ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor='#1685ff';ctx.shadowBlur=36;
+ ctx.fillStyle=blueGlow;ctx.beginPath();ctx.arc(cx,cy,glowR,0,Math.PI*2);ctx.fill();ctx.restore();
+
+ // Removed the misplaced highlight.
+ ctx.save();ctx.font='700 '+(r*.23)+'px "Eurostile", "Bank Gothic", "Arial", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.letterSpacing=(r*.045)+'px';ctx.shadowColor='#00baff';ctx.shadowBlur=8;ctx.fillStyle='#fff';ctx.fillText('J.A.R.V.I.S.',cx,cy);ctx.restore();
 }
-window.addEventListener("resize",resizeCanvas);
-resizeCanvas();
-function Particle(){
-this.x=Math.random()*canvas.width;
-this.y=Math.random()*canvas.height;
-this.size=Math.random()*1.5+0.5;
-this.speedY=Math.random()*-0.3-0.1;
-this.opacity=Math.random()*0.5+0.2;
+let corePts=[];
+for(let i=0;i<21;i++){const a=rand()*Math.PI*2,rr=Math.sqrt(rand())*176;corePts.push({x:500+rr*Math.cos(a),y:500+rr*Math.sin(a)})}
+function frame(){
+ requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
+ stars.forEach(s=>{ctx.fillStyle='rgba(45,120,255,'+(s.a*(.65+.35*Math.sin(t+s.x*10))+0.04)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
+ // Peripheral cyber-HUD: restrained data traces and segmented markers on the black field, separate from the Core.
+ ctx.save();ctx.globalCompositeOperation='screen';
+ const hudC='rgba(28,190,255,';
+ const pad=Math.max(18,Math.min(w,h)*.035);
+ // Fine framing corners.
+ ctx.strokeStyle=hudC+'.3)';ctx.lineWidth=1;
+ const cl=Math.min(w,h)*.045;
+ [[pad,pad,1,1],[w-pad,pad,-1,1],[pad,h-pad,1,-1],[w-pad,h-pad,-1,-1]].forEach(([x,y,sx,sy])=>{
+  ctx.beginPath();ctx.moveTo(x+sx*cl,y);ctx.lineTo(x,y);ctx.lineTo(x,y+sy*cl);ctx.stroke();
+ });
+ // Top and bottom segmented telemetry scales.
+ for(let i=0;i<Math.floor(w/22);i++){
+  const x=i*22+11, long=i%5===0;
+  const alpha=.12+(i%7===0?.2:0);
+  const major=i%10===0, medium=i%5===0;
+  ctx.strokeStyle=hudC+(major?'.58)':medium?'.34)':alpha+')');ctx.lineWidth=major?2.2:medium?1.5:1;
+  ctx.beginPath();ctx.moveTo(x,pad*.62);ctx.lineTo(x,pad*.62+(major?13:medium?8:3));ctx.stroke();
+  if(major){ctx.fillStyle=hudC+'.48)';ctx.font='7px monospace';ctx.fillText(String(i).padStart(2,'0'),x+3,pad*.62+21);}
+ }
+ // Side telemetry traces: angular brackets, small bars and circuit-like paths.
+ for(let side=0;side<2;side++){
+  const sx=side===0?pad:w-pad, dir=side===0?1:-1;
+  for(let j=0;j<5;j++){
+   const yy=h*(.22+j*.125);
+   const bw=Math.min(w*.07,24+(j%3)*12);
+   ctx.strokeStyle=hudC+(.12+(j%2)*.08)+')';ctx.lineWidth=1;
+   ctx.beginPath();ctx.moveTo(sx,yy);ctx.lineTo(sx+dir*bw,yy);ctx.lineTo(sx+dir*bw,yy+8+(j%2)*5);ctx.lineTo(sx+dir*bw*.62,yy+8+(j%2)*5);ctx.stroke();
+   for(let k=0;k<3+(j%3);k++){
+    const bx=sx+dir*(5+k*5), by=yy+17;
+    ctx.fillStyle=hudC+(.14+(k===j%4?.2:0))+')';ctx.fillRect(bx,by,2,2);
+   }
+  }
+ }
+ // Faint circuit routes and occasional nodes around, but not over, the Core.
+ for(let i=0;i<8;i++){
+  const side=i%2===0?1:-1;
+  const yy=h*(.16+Math.floor(i/2)*.19)+(i%3)*9;
+  const startX=cx+side*(w*.24+(i%3)*w*.035);
+  const endX=cx+side*(w*.43);
+  const bendY=yy+(i%2===0?1:-1)*Math.min(h*.055,34);
+  ctx.strokeStyle=hudC+(.1+(i%3)*.035)+')';ctx.lineWidth=.8;
+  ctx.beginPath();ctx.moveTo(startX,yy);ctx.lineTo(startX+side*18,yy);ctx.lineTo(startX+side*18,bendY);ctx.lineTo(endX,bendY);ctx.stroke();
+  ctx.fillStyle=hudC+'.42)';ctx.beginPath();ctx.arc(startX,yy,1.7,0,Math.PI*2);ctx.fill();
+ }
+ // A few compact telemetry bars at the far edges.
+ for(let side=0;side<2;side++){
+  const x=side===0?pad+4:w-pad-4;
+  for(let j=0;j<12;j++){
+   const yy=h*.79+j*4;
+   const len=5+((j*7)%4)*3;
+   ctx.fillStyle=hudC+(.12+(j%4===0?.18:0))+')';
+   ctx.fillRect(side===0?x:x-len,yy,len,1);
+  }
+ }
+ ctx.restore();
+ // Barely visible technical illustrations on the black field, outside the Core's internal texture.
+ ctx.save();ctx.globalCompositeOperation='screen';ctx.lineWidth=.8;
+ const da=.075;ctx.strokeStyle='rgba(55,190,255,'+da+')';ctx.fillStyle='rgba(55,190,255,'+(da*.7)+')';
+ // Left wireframe scan.
+ {const x=w*.13,y=h*.43,rr=Math.min(w,h)*.105;
+  ctx.beginPath();ctx.arc(x,y,rr,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(x,y,rr*.42,rr,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(x,y,rr,rr*.34,-.25,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(x,y,rr*.72,rr,.55,0,Math.PI*2);ctx.stroke();
+  for(let k=0;k<5;k++){const yy=y-rr*.72+k*rr*.36;ctx.beginPath();ctx.moveTo(x-rr*.92,yy);ctx.lineTo(x+rr*.92,yy);ctx.stroke()}
+  ctx.beginPath();ctx.moveTo(x-rr*1.18,y);ctx.lineTo(x+rr*1.18,y);ctx.moveTo(x,y-rr*1.18);ctx.lineTo(x,y+rr*1.18);ctx.stroke();
+ }
+ // Upper-right mechanical cross-section.
+ {const x=w*.84,y=h*.28,rr=Math.min(w,h)*.085;
+  [1,.76,.48,.2].forEach(q=>{ctx.beginPath();ctx.arc(x,y,rr*q,0,Math.PI*2);ctx.stroke()});
+  for(let k=0;k<16;k++){const a=k*Math.PI/8+t*.015;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*rr*.8,y+Math.sin(a)*rr*.8);ctx.lineTo(x+Math.cos(a)*rr*1.08,y+Math.sin(a)*rr*1.08);ctx.stroke()}
+  ctx.beginPath();ctx.moveTo(x-rr*.55,y-rr*.22);ctx.lineTo(x-rr*.18,y-rr*.22);ctx.lineTo(x,y-rr*.52);ctx.lineTo(x+rr*.34,y-rr*.52);ctx.moveTo(x-rr*.48,y+rr*.32);ctx.lineTo(x-rr*.12,y+rr*.32);ctx.lineTo(x+rr*.1,y+rr*.08);ctx.lineTo(x+rr*.5,y+rr*.08);ctx.stroke();
+ }
+ // Lower-right diagnostic waveform.
+ {const x=w*.79,y=h*.77,ww=Math.min(w*.18,190),hh=Math.min(h*.11,72);
+  for(let k=0;k<=4;k++){const yy=y-hh/2+k*hh/4;ctx.beginPath();ctx.moveTo(x-ww/2,yy);ctx.lineTo(x+ww/2,yy);ctx.stroke()}
+  for(let k=0;k<=8;k++){const xx=x-ww/2+k*ww/8;ctx.beginPath();ctx.moveTo(xx,y-hh/2);ctx.lineTo(xx,y+hh/2);ctx.stroke()}
+  ctx.beginPath();for(let j=0;j<=90;j++){const u=j/90,xx=x-ww/2+u*ww,yy=y+Math.sin(u*18+t*.35)*Math.sin(u*Math.PI)*hh*.34+Math.sin(u*43-t*.2)*hh*.06;if(j===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy)}ctx.stroke();
+ }
+ // Lower-left orbital node diagram.
+ {const x=w*.16,y=h*.77,rr=Math.min(w,h)*.06,nodes=[[-.8,-.15],[-.3,-.72],[.35,-.45],[.78,.05],[.25,.62],[-.42,.48]];
+  ctx.beginPath();nodes.forEach((p,i)=>{const nx=x+p[0]*rr*1.3,ny=y+p[1]*rr*1.3;if(i===0)ctx.moveTo(nx,ny);else ctx.lineTo(nx,ny)});ctx.closePath();ctx.stroke();
+  nodes.forEach(p=>{const nx=x+p[0]*rr*1.3,ny=y+p[1]*rr*1.3;ctx.beginPath();ctx.arc(nx,ny,2.2,0,Math.PI*2);ctx.stroke()});
+  ctx.beginPath();ctx.ellipse(x,y,rr*.55,rr*1.15,-.5,0,Math.PI*2);ctx.stroke();
+ }
+ ctx.restore();
+ const r=Math.min(w,h)*.145;
+ // Soft blue mist drifting around the Core; kept translucent so the silhouette stays readable.
+ ctx.save();ctx.globalCompositeOperation='screen';
+ for(let i=0;i<9;i++){
+  const a=t*(.045+(i%3)*.012)+i*2.399;
+  const orbitR=r*(1.03+(i%4)*.16);
+  const mx=cx+Math.cos(a)*orbitR;
+  const my=cy+Math.sin(a)*orbitR*.72;
+  const mr=r*(.24+(i%3)*.09);
+  const mist=ctx.createRadialGradient(mx,my,0,mx,my,mr);
+  const mistAlpha=.018+.012*(.5+.5*Math.sin(t*.55+i*1.8));
+  mist.addColorStop(0,'rgba(70,155,255,'+mistAlpha+')');
+  mist.addColorStop(.55,'rgba(45,120,255,'+(mistAlpha*.45)+')');
+  mist.addColorStop(1,'rgba(35,100,255,0)');
+  ctx.fillStyle=mist;ctx.beginPath();ctx.ellipse(mx,my,mr*1.35,mr*.72,a*.2,0,Math.PI*2);ctx.fill();
+ }
+ ctx.restore();
+ // Stronger spacetime lensing: broad refractive haze and gently warped light bands, without ripple arcs.
+ const warpPulse=.5+.5*Math.sin(t*.72);
+ ctx.save();ctx.globalCompositeOperation='lighter';
+ const band=ctx.createRadialGradient(cx,cy,r*.9,cx,cy,r*1.9);
+ band.addColorStop(0,'rgba(35,135,255,0)');
+ band.addColorStop(.3,'rgba(35,135,255,0)');
+ band.addColorStop(.43,'rgba(55,155,255,'+(.065+.025*warpPulse)+')');
+ band.addColorStop(.55,'rgba(95,205,255,'+(.11+.035*warpPulse)+')');
+ band.addColorStop(.66,'rgba(45,135,255,'+(.07+.025*warpPulse)+')');
+ band.addColorStop(.82,'rgba(35,115,255,.028)');
+ band.addColorStop(1,'rgba(35,115,255,0)');
+ ctx.fillStyle=band;ctx.beginPath();ctx.arc(cx,cy,r*1.9,0,Math.PI*2);ctx.fill();
+ // Curved refraction bands bend around the Core, like light passing through a distorted lens.
+ for(let i=0;i<7;i++){
+  const yy=cy-r*1.05+i*r*.35+Math.sin(t*.42+i*1.7)*4;
+  const span=r*(1.28+.22*Math.sin(t*.5+i));
+  const fade=ctx.createLinearGradient(cx-span,yy,cx+span,yy);
+  fade.addColorStop(0,'rgba(70,175,255,0)');
+  fade.addColorStop(.25,'rgba(70,175,255,'+(.035+.016*warpPulse)+')');
+  fade.addColorStop(.5,'rgba(135,220,255,'+(.06+.02*warpPulse)+')');
+  fade.addColorStop(.75,'rgba(70,175,255,'+(.035+.016*warpPulse)+')');
+  fade.addColorStop(1,'rgba(70,175,255,0)');
+  ctx.strokeStyle=fade;ctx.lineWidth=1.25;
+  ctx.beginPath();
+  ctx.moveTo(cx-span,yy);
+  ctx.bezierCurveTo(cx-span*.45,yy+Math.sin(t*.7+i)*r*.13,cx+span*.35,yy-Math.cos(t*.6+i)*r*.16,cx+span,yy);
+  ctx.stroke();
+ }
+ ctx.restore();ctx.shadowBlur=0;
+ // Long crosshair beams behind the Core, extending across the full viewport.
+ const beamGradH=ctx.createLinearGradient(0,cy,w,cy);
+ beamGradH.addColorStop(0,'rgba(0,120,255,0)');
+ beamGradH.addColorStop(.18,'rgba(30,105,255,.3)');
+ beamGradH.addColorStop(.42,'rgba(85,175,255,.68)');
+ beamGradH.addColorStop(.5,'rgba(175,215,255,.92)');
+ beamGradH.addColorStop(.58,'rgba(120,225,255,.58)');
+ beamGradH.addColorStop(.82,'rgba(30,160,255,.18)');
+ beamGradH.addColorStop(1,'rgba(0,120,255,0)');
+ ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor='#008cff';ctx.shadowBlur=9;
+ line(0,cy,w,cy,beamGradH,.8);
+ const beamGradV=ctx.createLinearGradient(cx,0,cx,h);
+ beamGradV.addColorStop(0,'rgba(0,120,255,0)');
+ beamGradV.addColorStop(.18,'rgba(30,160,255,.18)');
+ beamGradV.addColorStop(.42,'rgba(120,225,255,.58)');
+ beamGradV.addColorStop(.5,'rgba(225,250,255,.9)');
+ beamGradV.addColorStop(.58,'rgba(120,225,255,.58)');
+ beamGradV.addColorStop(.82,'rgba(30,160,255,.18)');
+ beamGradV.addColorStop(1,'rgba(0,120,255,0)');
+ line(cx,0,cx,h,beamGradV,.8);
+ ctx.restore();
+ // Particle flow surrounds and lightly overlaps the core silhouette.
+ particles.forEach(p=>{
+  const a=p.a+t*p.speed*.22+rot*.08;
+  const spread=(2.75+Math.sin(t*1.1+p.phase)*.045)*r;
+  const rr=spread*(.06+.94*Math.pow(p.r,1.35));
+  const x=cx+Math.cos(a)*rr;
+  const y=cy+Math.sin(a)*rr*(.86+p.z*.1);
+  const twinkle=(.28+.72*(.5+.5*Math.sin(t*(1.2+p.speed)+p.phase)))*p.brightness;
+  const outerFade=.72+.28*p.r;
+  ctx.fillStyle='rgba(105,190,255,'+(twinkle*outerFade)+')';
+  ctx.shadowColor='#1685ff';ctx.shadowBlur=2+p.blur*7+(p.s>.7?3:0);
+  ctx.beginPath();ctx.arc(x,y,p.s,0,Math.PI*2);ctx.fill();
+ });
+ ctx.shadowBlur=0;
+ // Core remains a flat graphic at the center; particles and 3D-style orbit rings add depth.
+ drawCore(r);
+ // Animated holographic projection platform beneath the Core.
+ {
+  const py=Math.min(h*.88,cy+r*7.2),rx=Math.min(w*.43,r*4.15),ry=Math.max(10,rx*.22);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  // A smaller levitating ring rises above the platform, with a softly pulsing energy column.
+  const liftY=py-ry*(1.7+.045*Math.sin(t*1.15));
+  const liftRx=rx*.36,liftRy=ry*.19;
+  const column=ctx.createLinearGradient(cx,liftY,cx,py);
+  column.addColorStop(0,'rgba(55,175,255,0)');
+  column.addColorStop(.45,'rgba(40,155,255,.08)');
+  column.addColorStop(1,'rgba(80,205,255,.2)');
+  ctx.fillStyle=column;ctx.beginPath();ctx.moveTo(cx-liftRx*.12,liftY);ctx.lineTo(cx-liftRx*.2,py);ctx.lineTo(cx+liftRx*.2,py);ctx.lineTo(cx+liftRx*.12,liftY);ctx.closePath();ctx.fill();
+  for(let j=0;j<3;j++){
+   const pulse=.72+.28*Math.sin(t*1.6-j*.9);
+   ctx.beginPath();ctx.ellipse(cx,liftY,liftRx*(1-j*.13),liftRy*(1-j*.13),0,0,Math.PI*2);
+   ctx.strokeStyle='rgba(80,190,255,'+((j===0?.48:.2)*pulse)+')';
+   ctx.lineWidth=j===0?1.6:.9;ctx.shadowColor='#169dff';ctx.shadowBlur=j===0?13:5;ctx.stroke();
+  }
+  // Small gaps and brighter calibration segments make the hovering ring feel holographic.
+  for(let j=0;j<24;j++){
+   const a=j*Math.PI*2/24+t*.025;
+   const a2=a+.045;
+   ctx.beginPath();ctx.ellipse(cx,liftY,liftRx*1.05,liftRy*1.05,0,a,a2);
+   ctx.strokeStyle=j%3===0?'rgba(145,225,255,.78)':'rgba(45,150,255,.3)';
+   ctx.lineWidth=j%3===0?1.4:.7;ctx.stroke();
+  }
+  // Inner concentric levitation ring, smaller and slightly brighter at its front edge.
+  const innerRx=liftRx*.56,innerRy=liftRy*.58;
+  ctx.beginPath();ctx.ellipse(cx,liftY,innerRx,innerRy,0,0,Math.PI*2);
+  ctx.strokeStyle='rgba(55,165,255,'+(.34+.12*Math.sin(t*1.9+1))+')';
+  ctx.lineWidth=1;ctx.shadowColor='#28aaff';ctx.shadowBlur=7;ctx.stroke();
+  ctx.beginPath();ctx.ellipse(cx,liftY,innerRx*.78,innerRy*.78,0,Math.PI*.08,Math.PI*.92);
+  ctx.strokeStyle='rgba(165,230,255,.72)';ctx.lineWidth=1.1;ctx.stroke();
+  const liftGlow=ctx.createRadialGradient(cx,liftY,0,cx,liftY,liftRx*.6);
+  liftGlow.addColorStop(0,'rgba(120,220,255,.34)');liftGlow.addColorStop(1,'rgba(20,125,255,0)');
+  ctx.fillStyle=liftGlow;ctx.beginPath();ctx.ellipse(cx,liftY,liftRx*.6,liftRy*2.1,0,0,Math.PI*2);ctx.fill();
+  const glow=ctx.createRadialGradient(cx,py,0,cx,py,rx*1.05);
+  glow.addColorStop(0,'rgba(0,135,255,.17)');glow.addColorStop(.4,'rgba(0,105,255,.07)');glow.addColorStop(1,'rgba(0,80,255,0)');
+  ctx.fillStyle=glow;ctx.beginPath();ctx.ellipse(cx,py,rx*1.05,ry*1.6,0,0,Math.PI*2);ctx.fill();
+  for(let i=0;i<8;i++){
+   const q=1-i*.095,pulse=.72+.28*Math.sin(t*1.35-i*.72);
+   ctx.beginPath();ctx.ellipse(cx,py+Math.sin(t*.7+i*.65)*1.6,rx*q,ry*q,0,0,Math.PI*2);
+   ctx.strokeStyle='rgba(45,155,255,'+((i===0?.28:.12+i*.012)*pulse)+')';ctx.lineWidth=i===0?1.6:(i%3===0?1.15:.7);
+   ctx.shadowColor='#168bff';ctx.shadowBlur=i===0?10:4;ctx.stroke();
+  }
+  ctx.shadowBlur=5;ctx.lineWidth=1;
+  for(let i=0;i<64;i++){
+   const a=i*Math.PI*2/64+t*.012,inner=rx*(i%4===0?.88:.925),outer=rx*(i%4===0?1:.965);
+   ctx.strokeStyle=i%4===0?'rgba(95,195,255,.65)':'rgba(40,135,255,.28)';
+   ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*inner,py+Math.sin(a)*inner*ry/rx);ctx.lineTo(cx+Math.cos(a)*outer,py+Math.sin(a)*outer*ry/rx);ctx.stroke();
+  }
+  const emitter=ctx.createRadialGradient(cx,py,0,cx,py,rx*.19);
+  emitter.addColorStop(0,'rgba(210,245,255,.95)');emitter.addColorStop(.16,'rgba(55,175,255,.78)');emitter.addColorStop(.48,'rgba(0,105,255,.22)');emitter.addColorStop(1,'rgba(0,100,255,0)');
+  ctx.fillStyle=emitter;ctx.beginPath();ctx.ellipse(cx,py,rx*.19,ry*.42,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();ctx.shadowBlur=0;
+ }
+ // Fine particles crossing the foreground give a subtle layered effect.
+ particles.filter(p=>p.r>.9).forEach(p=>{const a=p.a-t*p.speed*.16;const rr=r*(.78+Math.sin(t+p.phase)*.06);const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.8;ctx.fillStyle='rgba(135,200,255,.8)';ctx.beginPath();ctx.arc(x,y,p.s*.5,0,Math.PI*2);ctx.fill()});
 }
-Particle.prototype.update=function(){
-this.y+=this.speedY;
-if(this.y<0){
-this.y=canvas.height;
-this.x=Math.random()*canvas.width;
-}
-};
-Particle.prototype.draw=function(){
-ctx.fillStyle="rgba(0, 153, 255, "+this.opacity+")";
-ctx.beginPath();
-ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
-ctx.fill();
-};
-for(var i=0;i<30;i++){
-particles.push(new Particle());
-}
-function animate(){
-ctx.clearRect(0,0,canvas.width,canvas.height);
-for(var j=0;j<particles.length;j++){particles[j].update();
-particles[j].draw();
-}
-requestAnimationFrame(animate);
-}
-animate();
-var leftHUD=document.getElementById("leftHUD");
-var rightHUD=document.getElementById("rightHUD");
-
-const textArea =
-    document.getElementById("textArea");
-
-const status =
-    document.getElementById("status");
-
-const hudNetwork =
-    document.getElementById("hudNetwork");
-
-const hudSignal =
-    document.getElementById("hudSignal");
-
-const hudSysLoad =
-    document.getElementById("hudSysLoad");
-
-const hudActivity =
-    document.getElementById("hudActivity");
-
-const hudDevice =
-    document.getElementById("hudDevice");
-
-const hudWifi =
-    document.getElementById("hudWifi");
-
-const hudBattery =
-    document.getElementById("hudBattery");
-
-const hudBatteryFill =
-    document.getElementById("hudBatteryFill");
-
-const hudPower =
-    document.getElementById("hudPower");
-
-function updateDeviceHud() {
-
-    /* DEVICE */
-
-    const userAgent =
-        navigator.userAgent.toLowerCase();
-
-    if (
-        /iphone|ipad|ipod/.test(userAgent)
-    ) {
-        hudDevice.textContent =
-            "iPhone";
-    } else {
-        hudDevice.textContent =
-            "PC";
-    }
-
-
-    /* Wi-Fi / Network */
-
-    hudWifi.textContent =
-        navigator.onLine
-            ? "CONNECTED"
-            : "DISCONNECTED";
-}
-
-window.addEventListener(
-    "online",
-    updateDeviceHud
-);
-
-window.addEventListener(
-    "offline",
-    updateDeviceHud
-);
-
-async function initBatteryHud() {
-
-    if (
-        !navigator.getBattery
-    ) {
-        hudBattery.textContent =
-            "--%";
-
-        hudPower.textContent =
-            "UNKNOWN";
-
-        return;
-    }
-
-    try {
-
-        const battery =
-            await navigator.getBattery();
-
-        function updateBattery() {
-
-            const level =
-                Math.round(
-                    battery.level * 100
-                );
-
-            hudBattery.textContent =
-                level + "%";
-
-            hudBatteryFill.style.width =
-                level + "%";
-
-            hudPower.textContent =
-                battery.charging
-                    ? "CHARGING"
-                    : "DISCHARGING";
-        }
-
-        updateBattery();
-
-        battery.addEventListener(
-            "levelchange",
-            updateBattery
-        );
-
-        battery.addEventListener(
-            "chargingchange",
-            updateBattery
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Battery API error:",
-            error
-        );
-
-        hudBattery.textContent =
-            "--%";
-
-        hudPower.textContent =
-            "UNKNOWN";
-    }
-}
-
-updateDeviceHud();
-initBatteryHud();
-
-function updateHudStatus(
-    network,
-    signal,
-    sysLoad,
-    activity
-) {
-    hudNetwork.textContent = network;
-    hudSignal.textContent = signal;
-    hudSysLoad.textContent = sysLoad;
-    hudActivity.textContent = activity;
-}
-
-const textInput =
-    document.getElementById("textInput");
-
-const sendButton =
-    document.getElementById("sendButton");
-
-sendButton.addEventListener(
-    "click",
-    async function(){
-
-        const text =
-            textInput.value.trim();
-
-        if(!text){
-            return;
-        }
-
-        textInput.value="";
-
-        await sendToGemini(
-            text
-        );
-    }
-);
-
-var touchStartX=0,touchStartY=0;
-document.addEventListener("touchstart",function(e){
-var touches=e.changedTouches;
-if(touches&&touches.length>0){
-touchStartX=touches.item(0).screenX;
-touchStartY=touches.item(0).screenY;
-}
-},{passive:true});
-
-document.addEventListener("touchend",function(e){
-
-    if(
-        e.target.closest("#textArea")
-    ){
-        return;
-    }
-
-    var touches=e.changedTouches;
-
-    if(!touches||touches.length===0)return;
-
-    var touchEndX=touches.item(0).screenX;
-    var touchEndY=touches.item(0).screenY;
-
-    var deltaX=touchEndX-touchStartX;
-    var deltaY=touchEndY-touchStartY;
-
-    var absX=Math.abs(deltaX);
-    var absY=Math.abs(deltaY);
-
-    if(absX<80&&absY<80)return;
-
-    /* 縦スワイプ */
-    if(absY>absX){
-
-if(deltaY<-80){
-    console.log("下→上スワイプ検知");
-    setMode("text");
-    return;
-}
-
-        if(deltaY>80){
-            setMode("voice");
-            return;
-        }
-    }
-
-    /* 横スワイプ */
-    if(absX>absY){
-        if(deltaX<-80){
-            if(rightHUD.classList.contains("open")){
-                rightHUD.classList.remove("open");
-            }
-            else if(leftHUD.classList.contains("open")){
-                leftHUD.classList.remove("open");
-            }
-            else{
-                rightHUD.classList.add("open");
-            }
-        }
-        else if(deltaX>80){
-            if(leftHUD.classList.contains("open")){
-                leftHUD.classList.remove("open");
-            }
-            else if(rightHUD.classList.contains("open")){
-                rightHUD.classList.remove("open");
-            }
-            else{
-                leftHUD.classList.add("open");
-            }
-        }
-    }
-});
-
-function updateDateTime(){
-var now=new Date();
-var year=now.getFullYear();
-var month=String(now.getMonth()+1).padStart(2,"0");
-var day=String(now.getDate()).padStart(2,"0");
-var hours=String(now.getHours()).padStart(2,"0");
-var minutes=String(now.getMinutes()).padStart(2,"0");
-document.getElementById("jarvisDateTime").textContent=
-year+"."+month+"."+day+" "+hours+":"+minutes;
-}
-updateDateTime();
-setInterval(updateDateTime,1000);
-var audioContext = null;
-var currentSource = null;
-var voiceFilterChain = null;
-var conversationActive=false;
-var recognitionRunning=false;
-var recognition=null;
-var previousInteractionId=null;
-var currentMode="voice";
-
-/* =========================================================
-   LONG-TERM MEMORY SYSTEM (PORTED)
-   ========================================================= */
-
-let memories = [];
-let memoryLoadGeneration = 0;
-let memoryOwnerId = window.jarvisCurrentUserId || null;
-
-window.addEventListener("jarvis-auth-change", (event) => {
-    const nextUserId = event && event.detail && typeof event.detail.userId === "string"
-        ? event.detail.userId
-        : null;
-
-    if (nextUserId === memoryOwnerId) return;
-
-    memoryOwnerId = nextUserId;
-    memoryLoadGeneration++;
-    memories = [];
-    previousInteractionId = null;
-
-    if (nextUserId) {
-        void loadMemories();
-    }
-});
-
-function getErrorMessage(error) {
-    if (typeof error === "string") return error;
-
-    if (error && typeof error === "object") {
-        if (error.message) return error.message;
-
-        try {
-            return JSON.stringify(error);
-        } catch (e) {
-            return "不明なエラー";
-        }
-    }
-
-    return String(error);
-}
-
-async function loadMemories() {
-    const generation = ++memoryLoadGeneration;
-    const requestUserId = window.jarvisCurrentUserId || null;
-
-    if (!requestUserId) {
-        memories = [];
-        return [];
-    }
-
-    try {
-        const accessToken = await window.jarvisGetAccessToken();
-        if (!accessToken || requestUserId !== window.jarvisCurrentUserId) {
-            return [];
-        }
-
-        const response = await fetch(
-            "/api/memory",
-            {
-                method: "GET",
-                headers: { Authorization: "Bearer " + accessToken }
-            }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            throw new Error(
-                getErrorMessage(data.error) ||
-                "Memory GET error"
-            );
-        }
-
-        if (
-            generation !== memoryLoadGeneration ||
-            requestUserId !== window.jarvisCurrentUserId
-        ) {
-            return [];
-        }
-
-        memories =
-            Array.isArray(data.memories)
-                ? data.memories.slice(0, 30)
-                : [];
-
-        return memories;
-
-    } catch (error) {
-        if (
-            generation === memoryLoadGeneration &&
-            requestUserId === window.jarvisCurrentUserId
-        ) {
-            console.error("Memory load error:", error);
-            memories = [];
-        }
-
-        return [];
-    }
-}
-
-function buildMemoryContext() {
-
-    if (!memories.length) {
-        return "現在、登録されている長期記憶はありません。";
-    }
-
-    return memories
-        .map(
-            (memory, index) => {
-                return `${index + 1}. [${memory.category}] ${memory.content}`;
-            }
-        )
-        .join("\n");
-}
-
-function buildGeminiPrompt(text) {
-
-    const memoryContext =
-        buildMemoryContext();
-
-    return `
-あなたは真人様専用のAIアシスタント、J.A.R.V.I.S.です。
-
-以下は真人様について保存されている長期記憶です。
-今回の会話に関連する場合のみ自然に利用してください。
-記憶にないことは推測しないでください。
-
---- 長期記憶 ---
-${memoryContext}
---- 長期記憶ここまで ---
-
-今回の真人さ様の発言：
-${text}
-
-以下のルールで判断してください。
-
-1. 真人様の発言への自然な回答を「reply」に入れてください。
-2. 今後の会話でも長期的に役立つ情報なら「memory.shouldSave」をtrueにしてください。
-3. 一時的な発言、雑談、その場限りの情報は保存しないでください。
-4. 「覚えて」「記憶して」など明示的に保存を求められた場合は、保存対象として扱ってください。
-5. 保存する場合は、発言そのものではなく、今後利用しやすい簡潔な事実として「memory.content」にしてください。
-6. カテゴリは以下から選択してください。
-   - personal
-   - preference
-   - work
-   - family
-   - goal
-7. 重要度は1〜5で設定してください。
-8. 保存しない場合は「memory.shouldSave」をfalseにしてください。
-9. 保存しない場合でも「reply」は通常どおり自然に回答してください。
-`;
-}
-
-async function saveMemory(memory, expectedUserId) {
-
-    if (
-        !memory ||
-        !memory.shouldSave ||
-        !expectedUserId ||
-        expectedUserId !== window.jarvisCurrentUserId
-    ) {
-        return false;
-    }
-
-    const content =
-        typeof memory.content === "string"
-            ? memory.content.trim()
-            : "";
-
-    if (!content) {
-        return false;
-    }
-
-    const category =
-        [
-            "personal",
-            "preference",
-            "work",
-            "family",
-            "goal"
-        ].includes(memory.category)
-            ? memory.category
-            : "personal";
-
-    const importance =
-        Number.isInteger(memory.importance)
-            ? Math.min(
-                5,
-                Math.max(
-                    1,
-                    memory.importance
-                )
-            )
-            : 1;
-
-    try {
-        const accessToken = await window.jarvisGetAccessToken();
-
-        // アクセストークン取得中にアカウントが変わっていたら保存しない。
-        if (
-            !accessToken ||
-            expectedUserId !== window.jarvisCurrentUserId
-        ) {
-            return false;
-        }
-
-        const response = await fetch(
-            "/api/memory",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + accessToken
-                },
-                body: JSON.stringify({
-                    category,
-                    content,
-                    importance
-                })
-            }
-        );
-
-        const data = await response.json();
-
-        // 保存リクエストの応答後も、別ユーザーの画面を更新しない。
-        if (expectedUserId !== window.jarvisCurrentUserId) {
-            return false;
-        }
-
-        if (!response.ok || !data.ok) {
-            throw new Error(
-                getErrorMessage(data.error) ||
-                "Memory save error"
-            );
-        }
-
-        await loadMemories();
-        return true;
-
-    } catch (error) {
-        console.error("Memory save error:", error);
-        return false;
-    }
-}
-
-function setMode(mode) {
-
-    if (
-        mode !== "voice" &&
-        mode !== "text"
-    ) {
-        return;
-    }
-
-    currentMode =
-        mode;
-
-    if (mode === "text") {
-
-        textArea.style.display =
-            "block";
-
-        conversationActive =
-            false;
-
-        if (recognitionRunning) {
-
-            try {
-                recognition.stop();
-            } catch (e) {}
-
-        }
-
-        recognitionRunning =
-            false;
-
-
-     } else {
-
-    textArea.style.display =
-        "none";
-
-    conversationActive =
-        true;
-
-    document.getElementById(
-        "response"
-    ).textContent = "";
-
-    document.getElementById(
-        "jarvisHoloPanel"
-    ).classList.add("show");
-
-    startListening();
-}
-}
-
-var lastProcessedWav=null;
-const VOICE_PROCESSING={
-highpassFrequency:55,
-lowpassFrequency:9200,
-lowBodyFrequency:145,
-lowBodyGain:4.5,
-lowMidFrequency:330,
-lowMidGain:3.8,
-mudFrequency:620,
-mudGain:-2.2,
-presenceFrequency:3000,
-presenceGain:-4.8,
-brightnessFrequency:5600,
-brightnessGain:-4.5,
-harshFrequency:7200,
-harshGain:-3.5,
-saturationDrive:2.8,
-compressorThreshold:-24,
-compressorKnee:8,
-compressorRatio:4.5,
-compressorAttack:0.006,
-compressorRelease:0.16,
-densityThreshold:-30,
-densityKnee:5,
-densityRatio:2.8,
-densityAttack:0.012,
-densityRelease:0.20,
-outputGain:0.82
-};
-function createVoiceSaturation(context){
-const shaper=context.createWaveShaper();
-const samples=4096;
-const curve=new Float32Array(samples);
-const drive=VOICE_PROCESSING.saturationDrive;for(let i=0;i<samples;i++){
-const x=(i*2)/(samples-1)-1;
-curve[i]=Math.tanh(x*drive)/Math.tanh(drive);
-}
-shaper.curve=curve;
-shaper.oversample="4x";
-return shaper;
-}
-function createEQ(context,type,frequency,gain,Q){
-const filter=context.createBiquadFilter();
-filter.type=type;
-filter.frequency.value=frequency;
-filter.gain.value=gain;
-filter.Q.value=Q;
-return filter;
-}
-function createVoiceProcessingChain(context,destination){
-if(!destination)destination=context.destination;
-const highpass=context.createBiquadFilter();
-highpass.type="highpass";
-highpass.frequency.value=VOICE_PROCESSING.highpassFrequency;
-highpass.Q.value=0.65;
-const lowBody=createEQ(
-context,
-"lowshelf",
-VOICE_PROCESSING.lowBodyFrequency,
-VOICE_PROCESSING.lowBodyGain,
-0.7
-);
-const lowMid=createEQ(
-context,
-"peaking",
-VOICE_PROCESSING.lowMidFrequency,
-VOICE_PROCESSING.lowMidGain,
-0.9
-);
-const mud=createEQ(context,
-"peaking",
-VOICE_PROCESSING.mudFrequency,
-VOICE_PROCESSING.mudGain,
-1.0
-);
-const presence=createEQ(
-context,
-"peaking",
-VOICE_PROCESSING.presenceFrequency,
-VOICE_PROCESSING.presenceGain,
-0.85
-);
-const brightness=createEQ(
-context,
-"peaking",
-VOICE_PROCESSING.brightnessFrequency,
-VOICE_PROCESSING.brightnessGain,
-0.75
-);
-const harshness=createEQ(
-context,
-"peaking",
-VOICE_PROCESSING.harshFrequency,
-VOICE_PROCESSING.harshGain,
-1.1
-);
-const lowpass=context.createBiquadFilter();
-lowpass.type="lowpass";
-lowpass.frequency.value=VOICE_PROCESSING.lowpassFrequency;
-lowpass.Q.value=0.45;
-const saturation=createVoiceSaturation(context);
-const compressor=context.createDynamicsCompressor();compressor.threshold.value=VOICE_PROCESSING.compressorThreshold;
-compressor.knee.value=VOICE_PROCESSING.compressorKnee;
-compressor.ratio.value=VOICE_PROCESSING.compressorRatio;
-compressor.attack.value=VOICE_PROCESSING.compressorAttack;
-compressor.release.value=VOICE_PROCESSING.compressorRelease;
-const density=context.createDynamicsCompressor();
-density.threshold.value=VOICE_PROCESSING.densityThreshold;
-density.knee.value=VOICE_PROCESSING.densityKnee;
-density.ratio.value=VOICE_PROCESSING.densityRatio;
-density.attack.value=VOICE_PROCESSING.densityAttack;
-density.release.value=VOICE_PROCESSING.densityRelease;
-const finalTone=createEQ(
-context,
-"peaking",
-180,
-1.8,
-0.8
-);
-const outputGain=context.createGain();
-outputGain.gain.value=VOICE_PROCESSING.outputGain;
-highpass.connect(lowBody);
-lowBody.connect(lowMid);
-lowMid.connect(mud);
-mud.connect(presence);
-presence.connect(brightness);
-brightness.connect(harshness);
-harshness.connect(lowpass);
-lowpass.connect(saturation);
-saturation.connect(compressor);
-compressor.connect(density);
-density.connect(finalTone);
-finalTone.connect(outputGain);
-outputGain.connect(destination);
-return{
-input:highpass,
-output:outputGain
-};
-}
-function pcmToWav(base64){
-const binary=atob(base64);
-const pcm=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++){
-pcm[i]=binary.charCodeAt(i);
-}
-const sampleRate=24000;
-const channels=1;
-const bitsPerSample=16;
-const byteRate=sampleRate*channels*bitsPerSample/8;
-const blockAlign=channels*bitsPerSample/8;
-const buffer=new ArrayBuffer(44+pcm.length);
-const view=new DataView(buffer);
-function writeString(offset,string){
-for(let i=0;i<string.length;i++){
-view.setUint8(offset+i,string.charCodeAt(i));
-}
-}
-writeString(0,"RIFF");
-view.setUint32(4,36+pcm.length,true);
-writeString(8,"WAVE");
-writeString(12,"fmt ");
-view.setUint32(16,16,true);
-view.setUint16(20,1,true);
-view.setUint16(22,channels,true);
-view.setUint32(24,sampleRate,true);
-view.setUint32(28,byteRate,true);
-view.setUint16(32,blockAlign,true);
-view.setUint16(34,bitsPerSample,true);
-writeString(36,"data");
-view.setUint32(40,pcm.length,true);
-new Uint8Array(buffer,44).set(pcm);
-return new Blob([buffer],{type:"audio/wav"});
-}
-function audioBufferToWav(audioBuffer){
-const numberOfChannels=audioBuffer.numberOfChannels;
-const sampleRate=audioBuffer.sampleRate;
-const format=1;
-const bitDepth=16;
-const channelData=[];
-for(let channel=0;channel<numberOfChannels;channel++){
-channelData.push(audioBuffer.getChannelData(channel));
-}
-const length=audioBuffer.length*numberOfChannels*(bitDepth/8);const buffer=new ArrayBuffer(44+length);
-const view=new DataView(buffer);
-function writeString(offset,string){
-for(let i=0;i<string.length;i++){
-view.setUint8(offset+i,string.charCodeAt(i));
-}
-}
-let offset=0;
-writeString(offset,"RIFF");
-offset+=4;
-view.setUint32(offset,36+length,true);
-offset+=4;
-writeString(offset,"WAVE");
-offset+=4;
-writeString(offset,"fmt ");
-offset+=4;
-view.setUint32(offset,16,true);
-offset+=4;
-view.setUint16(offset,format,true);
-offset+=2;
-view.setUint16(offset,numberOfChannels,true);
-offset+=2;
-view.setUint32(offset,sampleRate,true);
-offset+=4;
-view.setUint32(
-offset,
-sampleRate*numberOfChannels*bitDepth/8,
-true
-);
-offset+=4;
-view.setUint16(
-offset,
-numberOfChannels*bitDepth/8,
-true
-);
-offset+=2;
-view.setUint16(offset,bitDepth,true);
-offset+=2;
-writeString(offset,"data");
-offset+=4;
-view.setUint32(offset,length,true);offset+=4;
-for(let sample=0;sample<audioBuffer.length;sample++){
-for(let channel=0;channel<numberOfChannels;channel++){
-let sampleValue=channelData[channel][sample];
-sampleValue=Math.max(-1,Math.min(1,sampleValue));
-if(sampleValue<0){
-
-sampleValue*=0x8000;
-
-}
-else{
-
-sampleValue*=0x7fff;
-
-}
-view.setInt16(offset,sampleValue,true);
-offset+=2;
-}
-}
-return new Blob([buffer],{type:"audio/wav"});
-}
-
-const SpeechRecognition =
-window.SpeechRecognition ||
-window.webkitSpeechRecognition;
-
-if (SpeechRecognition) {
-    try {
-        recognition = new SpeechRecognition();
-
-        recognition.lang = "ja-JP";
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-       recognition.onresult = async function(event) {
-    recognitionRunning = false;
-
-    status.textContent = "";
-
-    const text =
-        event.results[0][0].transcript;
-
-            // Do not log recognized speech; it may contain private information.
-
-            if (!conversationActive) return;
-
-            await sendToGemini(text);
-        };
-
-        recognition.onerror = function(event) {
-            recognitionRunning = false;
-
-            console.error(
-                "SpeechRecognition error:",
-                event.error
-            );
-
-            if (
-                conversationActive &&
-                event.error !== "not-allowed" &&
-                event.error !== "service-not-allowed"
-            ) {
-                setTimeout(startListening, 500);
-            }
-        };
-
-        recognition.onend = function() {
-            recognitionRunning = false;
-        };
-
-    } catch(error) {
-        recognition = null;
-
-        console.error(
-            "SpeechRecognition init error:",
-            error
-        );
-    }
-}
-
-function startListening() {
-
-    if (
-        !conversationActive ||
-        recognitionRunning ||
-        !recognition
-    ) return;
-
-  try {
-    status.textContent =
-        "聞いています…";
-
-    updateHudStatus(
-        "ONLINE",
-        "LISTENING",
-        "READY",
-        "ACTIVE"
-    );
-
-    recognitionRunning = true;
-    recognition.start();
-    } catch(error) {
-        recognitionRunning = false;
-    }
-}
-
-async function speakWithGemini(text) {
-
-
-    const controller =
-        new AbortController();
-
-    const timeout =
-        setTimeout(
-            () => {
-                controller.abort();
-            },
-            240000
-        );
-
-   try {
-
-    updateHudStatus(
-        "ONLINE",
-        "STANDBY",
-        "GENERATING",
-        "ACTIVE"
-    );
-
-    const accessToken = await window.jarvisGetAccessToken();
-    if (!accessToken) throw new Error("サインインが必要です.");
-
-    const response =
-            await fetch(
-                "/api/tts",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-                        Authorization: "Bearer " + accessToken
-                    },
-
-                    body: JSON.stringify({
-                        text: text
-                    }),
-
-                    signal:
-                        controller.signal
-                }
-            );
-
-        clearTimeout(timeout);
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-
-            throw new Error(
-                getErrorMessage(
-                    data.error
-                ) ||
-                "TTS HTTP " +
-                response.status
-            );
-        }
-
-        if (!data.audio) {
-
-            throw new Error(
-                "音声データがありません"
-            );
-        }
-
-        /* PCM → WAV */
-
-        const wav =
-            pcmToWav(
-                data.audio
-            );
-
-        /* AudioContext準備 */
-
-        if (!audioContext) {
-
-            audioContext =
-                new (
-                    window.AudioContext ||
-                    window.webkitAudioContext
-                )();
-        }
-
-        if (
-            audioContext.state ===
-            "suspended"
-        ) {
-            await audioContext.resume();
-        }
-
-        /* WAV → AudioBuffer */
-
-        const arrayBuffer =
-            await wav.arrayBuffer();
-
-        const originalAudioBuffer =
-            await audioContext.decodeAudioData(
-                arrayBuffer.slice(0)
-            );
-
-/* 無線機風の音声フィルター */
-const radioHighpass = audioContext.createBiquadFilter();
-radioHighpass.type = "highpass";
-radioHighpass.frequency.value = 300;
-radioHighpass.Q.value = 0.7;
-
-const radioLowpass = audioContext.createBiquadFilter();
-radioLowpass.type = "lowpass";
-radioLowpass.frequency.value = 3400;
-radioLowpass.Q.value = 0.7;
-
-const radioCompressor = audioContext.createDynamicsCompressor();
-radioCompressor.threshold.value = -22;
-radioCompressor.knee.value = 12;
-radioCompressor.ratio.value = 3;
-radioCompressor.attack.value = 0.005;
-radioCompressor.release.value = 0.15;
-
-const processedAudioBuffer = originalAudioBuffer;
-
-console.log("無線機風フィルターを適用");
-
-/* ⑤ 実際の再生 */
-
-if (currentSource) {
-
-    try {
-        currentSource.stop();
-    } catch (e) {}
-
-    currentSource =
-        null;
-}
-
-currentSource =
-    audioContext.createBufferSource();
-
-currentSource.buffer =
-    processedAudioBuffer;
-
-currentSource.connect(audioContext.destination);
-
-updateHudStatus(
-    "ONLINE",
-    "STANDBY",
-    "READY",
-    "PLAYING"
-);
-
-await new Promise(
-    resolve => {
-
-       currentSource.onended =
-    function() {
-
-       currentSource =
-    null;
-
-status.textContent =
-    "";
-
-updateHudStatus(
-    "ONLINE",
-    "STANDBY",
-    "READY",
-    "IDLE"
-);
-
-resolve();
-    };
-        currentSource.start();
-    }
-);
-
-console.log(
-    "音声再生完了"
-);
-
-return true;
-
-    } catch (error) {
-
-        clearTimeout(timeout);
-
-        console.error(
-            "TTS / WAV processing error:",
-            error
-        );
-
-        return false;
-    }
-}
-
-async function sendToGemini(text) {
-
-    const requestUserId = window.jarvisCurrentUserId || null;
-    const cleanText =
-        typeof text === "string"
-            ? text.trim()
-            : "";
-
-    if (!cleanText || !requestUserId) {
-        return;
-    }
-
-    await loadMemories();
-
-    // メモリ読み込み中にアカウントが変わった場合、古い会話を開始しない。
-    if (requestUserId !== window.jarvisCurrentUserId) {
-        return;
-    }
-
-    status.textContent = "考えています…";
-
-    updateHudStatus(
-        "ONLINE",
-        "STANDBY",
-        "PROCESSING",
-        "ACTIVE"
-    );
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => {
-        controller.abort();
-    }, 240000);
-
-    try {
-        const accessToken = await window.jarvisGetAccessToken();
-
-        // トークン取得中のアカウント切り替えを検出する。
-        if (
-            !accessToken ||
-            requestUserId !== window.jarvisCurrentUserId
-        ) {
-            return;
-        }
-
-        const response = await fetch(
-            "/api/gemini",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + accessToken
-                },
-                body: JSON.stringify({
-                    text: cleanText,
-                    previousInteractionId: previousInteractionId,
-                    memoryContext: buildMemoryContext()
-                }),
-                signal: controller.signal
-            }
-        );
-
-        const data = await response.json();
-
-        // 応答待ちの間にアカウントが変わっていたら、古い応答を破棄する。
-        if (requestUserId !== window.jarvisCurrentUserId) {
-            return;
-        }
-
-        if (!response.ok) {
-            throw new Error(
-                data.error ||
-                "Gemini HTTP " + response.status
-            );
-        }
-
-        if (!data.text) {
-            throw new Error("Geminiから回答テキストがありません");
-        }
-
-        // 会話IDは、開始時と同じユーザーの応答である場合のみ更新する。
-        if (
-            data.interactionId &&
-            requestUserId === window.jarvisCurrentUserId
-        ) {
-            previousInteractionId = data.interactionId;
-        }
-
-        if (
-            data.memory &&
-            data.memory.shouldSave === true &&
-            requestUserId === window.jarvisCurrentUserId
-        ) {
-            await saveMemory(data.memory, requestUserId);
-        }
-
-        // 保存処理の待機中にアカウントが変わった場合も、表示・読み上げしない。
-        if (requestUserId !== window.jarvisCurrentUserId) {
-            return;
-        }
-
-        document.getElementById("response").textContent = data.text;
-
-        document
-            .getElementById("jarvisHoloPanel")
-            .classList.add("show");
-
-        status.textContent = "";
-
-        if (
-            currentMode === "voice" &&
-            conversationActive &&
-            requestUserId === window.jarvisCurrentUserId
-        ) {
-            const spoken = await speakWithGemini(
-                data.speechText || data.text
-            );
-
-            if (
-                spoken &&
-                conversationActive &&
-                currentMode === "voice" &&
-                requestUserId === window.jarvisCurrentUserId
-            ) {
-                setTimeout(() => {
-                    if (requestUserId === window.jarvisCurrentUserId) {
-                        startListening();
-                    }
-                }, 300);
-            }
-        } else if (
-            conversationActive &&
-            currentMode === "voice" &&
-            requestUserId === window.jarvisCurrentUserId
-        ) {
-            // 音声合成に失敗しても、会話セッションを終了させず再入力を受け付ける。
-            status.textContent = "音声応答に失敗しました。もう一度お話しください。";
-            updateHudStatus("ONLINE", "LISTENING", "READY", "RECOVERY");
-            setTimeout(() => {
-                if (
-                    conversationActive &&
-                    currentMode === "voice" &&
-                    requestUserId === window.jarvisCurrentUserId
-                ) {
-                    startListening();
-                }
-            }, 1000);
-        }
-    } catch (error) {
-        // 通信・JSON解析などの失敗で処理が中断しても、画面状態と音声会話を復旧する。
-        if (requestUserId === window.jarvisCurrentUserId) {
-            console.error("Gemini conversation failed:", error);
-            document.getElementById("response").textContent =
-                "処理に失敗しました。通信状態を確認して、もう一度お試しください。";
-            document.getElementById("jarvisHoloPanel").classList.add("show");
-            status.textContent = "処理に失敗しました";
-            updateHudStatus("ONLINE", "STANDBY", "ERROR", "RECOVERY");
-
-            if (conversationActive && currentMode === "voice") {
-                setTimeout(() => {
-                    if (
-                        conversationActive &&
-                        currentMode === "voice" &&
-                        requestUserId === window.jarvisCurrentUserId
-                    ) {
-                        startListening();
-                    }
-                }, 1000);
-            }
-        }
-    } finally {
-        clearTimeout(timeout);
-    }
-}
-
-</script>
-</body>
-</html>
+frame();
+</script></body></html>
