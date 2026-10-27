@@ -1275,7 +1275,7 @@ function updateHudStatus(
    active=true;
    try{
      if(!ttsAudioContext)ttsAudioContext=new (window.AudioContext||window.webkitAudioContext)();
-     if(ttsAudioContext.state==="suspended")await ttsAudioContext.resume();
+     if(ttsAudioContext.state==="suspended")void ttsAudioContext.resume();
    }catch(audioError){console.error("AudioContext initialization failed:",audioError);}
    status.textContent="VOICE MODE";
    updateHudStatus("ONLINE","LISTENING","READY","ACTIVE");
