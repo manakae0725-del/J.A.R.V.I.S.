@@ -257,6 +257,13 @@ function frame(){
    ctx.strokeStyle=j%3===0?'rgba(145,225,255,.78)':'rgba(45,150,255,.3)';
    ctx.lineWidth=j%3===0?1.4:.7;ctx.stroke();
   }
+  // Inner concentric levitation ring, smaller and slightly brighter at its front edge.
+  const innerRx=liftRx*.56,innerRy=liftRy*.58;
+  ctx.beginPath();ctx.ellipse(cx,liftY,innerRx,innerRy,0,0,Math.PI*2);
+  ctx.strokeStyle='rgba(55,165,255,'+(.34+.12*Math.sin(t*1.9+1))+')';
+  ctx.lineWidth=1;ctx.shadowColor='#28aaff';ctx.shadowBlur=7;ctx.stroke();
+  ctx.beginPath();ctx.ellipse(cx,liftY,innerRx*.78,innerRy*.78,0,Math.PI*.08,Math.PI*.92);
+  ctx.strokeStyle='rgba(165,230,255,.72)';ctx.lineWidth=1.1;ctx.stroke();
   const liftGlow=ctx.createRadialGradient(cx,liftY,0,cx,liftY,liftRx*.6);
   liftGlow.addColorStop(0,'rgba(120,220,255,.34)');liftGlow.addColorStop(1,'rgba(20,125,255,0)');
   ctx.fillStyle=liftGlow;ctx.beginPath();ctx.ellipse(cx,liftY,liftRx*.6,liftRy*2.1,0,0,Math.PI*2);ctx.fill();
