@@ -1134,13 +1134,14 @@ function updateHudStatus(
  const textArea=document.getElementById("textArea");
  const textInput=document.getElementById("textInput");
  const sendButton=document.getElementById("sendButton");
+ let previousInteractionId=null;
  let ttsAudioContext=null,ttsSource=null;
  async function speakWithGemini(text){
    const accessToken=await window.jarvisGetAccessToken();
    if(!accessToken)throw new Error("音声合成にはサインインが必要です。");
    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),35000);
    try{
-     const result=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({text}),signal:controller.signal});
+     const result=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({text,previousInteractionId}),signal:controller.signal});
      let data={};try{data=await result.json()}catch(e){}
      if(!result.ok)throw new Error(data.error||"音声合成 HTTP "+result.status);
      if(typeof data.audio!=="string"||!data.audio)throw new Error("音声データがありません。");
@@ -1195,6 +1196,7 @@ function updateHudStatus(
      if(!result.ok)throw new Error(data.error||"Gemini HTTP "+result.status);
      if(typeof data.text!=="string"||!data.text.trim())throw new Error("AIから回答テキストが返されませんでした。");
      response.textContent=data.text;
+     if(typeof data.interactionId==="string"&&data.interactionId)previousInteractionId=data.interactionId;
      status.textContent="AI RESPONSE RECEIVED"; if(active){status.textContent="音声応答を生成中";await speakWithGemini(data.text);if(active)status.textContent="LISTENING · マイク使用中";}
    }catch(error){
      console.error("J.A.R.V.I.S. AI response failed:",error);
