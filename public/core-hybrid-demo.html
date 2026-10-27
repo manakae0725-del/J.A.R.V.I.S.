@@ -116,6 +116,37 @@ function frame(){
   }
  }
  ctx.restore();
+ // Barely visible technical illustrations on the black field, outside the Core's internal texture.
+ ctx.save();ctx.globalCompositeOperation='screen';ctx.lineWidth=.8;
+ const da=.075;ctx.strokeStyle='rgba(55,190,255,'+da+')';ctx.fillStyle='rgba(55,190,255,'+(da*.7)+')';
+ // Left wireframe scan.
+ {const x=w*.13,y=h*.43,rr=Math.min(w,h)*.105;
+  ctx.beginPath();ctx.arc(x,y,rr,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(x,y,rr*.42,rr,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(x,y,rr,rr*.34,-.25,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(x,y,rr*.72,rr,.55,0,Math.PI*2);ctx.stroke();
+  for(let k=0;k<5;k++){const yy=y-rr*.72+k*rr*.36;ctx.beginPath();ctx.moveTo(x-rr*.92,yy);ctx.lineTo(x+rr*.92,yy);ctx.stroke()}
+  ctx.beginPath();ctx.moveTo(x-rr*1.18,y);ctx.lineTo(x+rr*1.18,y);ctx.moveTo(x,y-rr*1.18);ctx.lineTo(x,y+rr*1.18);ctx.stroke();
+ }
+ // Upper-right mechanical cross-section.
+ {const x=w*.84,y=h*.28,rr=Math.min(w,h)*.085;
+  [1,.76,.48,.2].forEach(q=>{ctx.beginPath();ctx.arc(x,y,rr*q,0,Math.PI*2);ctx.stroke()});
+  for(let k=0;k<16;k++){const a=k*Math.PI/8+t*.015;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*rr*.8,y+Math.sin(a)*rr*.8);ctx.lineTo(x+Math.cos(a)*rr*1.08,y+Math.sin(a)*rr*1.08);ctx.stroke()}
+  ctx.beginPath();ctx.moveTo(x-rr*.55,y-rr*.22);ctx.lineTo(x-rr*.18,y-rr*.22);ctx.lineTo(x,y-rr*.52);ctx.lineTo(x+rr*.34,y-rr*.52);ctx.moveTo(x-rr*.48,y+rr*.32);ctx.lineTo(x-rr*.12,y+rr*.32);ctx.lineTo(x+rr*.1,y+rr*.08);ctx.lineTo(x+rr*.5,y+rr*.08);ctx.stroke();
+ }
+ // Lower-right diagnostic waveform.
+ {const x=w*.79,y=h*.77,ww=Math.min(w*.18,190),hh=Math.min(h*.11,72);
+  for(let k=0;k<=4;k++){const yy=y-hh/2+k*hh/4;ctx.beginPath();ctx.moveTo(x-ww/2,yy);ctx.lineTo(x+ww/2,yy);ctx.stroke()}
+  for(let k=0;k<=8;k++){const xx=x-ww/2+k*ww/8;ctx.beginPath();ctx.moveTo(xx,y-hh/2);ctx.lineTo(xx,y+hh/2);ctx.stroke()}
+  ctx.beginPath();for(let j=0;j<=90;j++){const u=j/90,xx=x-ww/2+u*ww,yy=y+Math.sin(u*18+t*.35)*Math.sin(u*Math.PI)*hh*.34+Math.sin(u*43-t*.2)*hh*.06;if(j===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy)}ctx.stroke();
+ }
+ // Lower-left orbital node diagram.
+ {const x=w*.16,y=h*.77,rr=Math.min(w,h)*.06,nodes=[[-.8,-.15],[-.3,-.72],[.35,-.45],[.78,.05],[.25,.62],[-.42,.48]];
+  ctx.beginPath();nodes.forEach((p,i)=>{const nx=x+p[0]*rr*1.3,ny=y+p[1]*rr*1.3;if(i===0)ctx.moveTo(nx,ny);else ctx.lineTo(nx,ny)});ctx.closePath();ctx.stroke();
+  nodes.forEach(p=>{const nx=x+p[0]*rr*1.3,ny=y+p[1]*rr*1.3;ctx.beginPath();ctx.arc(nx,ny,2.2,0,Math.PI*2);ctx.stroke()});
+  ctx.beginPath();ctx.ellipse(x,y,rr*.55,rr*1.15,-.5,0,Math.PI*2);ctx.stroke();
+ }
+ ctx.restore();
  const r=Math.min(w,h)*.175;
  // Soft blue mist drifting around the Core; kept translucent so the silhouette stays readable.
  ctx.save();ctx.globalCompositeOperation='screen';
