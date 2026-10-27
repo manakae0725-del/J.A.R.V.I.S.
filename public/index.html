@@ -957,7 +957,7 @@ const textArea =
     document.getElementById("textArea");
 
 const status =
-    document.getElementById("status");
+    document.getElementById("voiceStatus");
 
 const hudNetwork =
     document.getElementById("hudNetwork");
@@ -2133,7 +2133,7 @@ async function sendToGemini(text) {
             return;
         }
 
-        document.getElementById("response").textContent = data.text;
+        document.getElementById("voiceResponse").textContent = data.text;
 
         document
             .getElementById("jarvisHoloPanel")
@@ -2184,7 +2184,7 @@ async function sendToGemini(text) {
         // 通信・JSON解析などの失敗で処理が中断しても、画面状態と音声会話を復旧する。
         if (requestUserId === window.jarvisCurrentUserId) {
             console.error("Gemini conversation failed:", error);
-            document.getElementById("response").textContent =
+            document.getElementById("voiceResponse").textContent =
                 "処理に失敗しました。通信状態を確認して、もう一度お試しください。";
             document.getElementById("jarvisHoloPanel").classList.add("show");
             status.textContent = "処理に失敗しました";
