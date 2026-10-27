@@ -1165,7 +1165,7 @@ function updateHudStatus(
      if(!result.ok)throw new Error(data.error||"Gemini HTTP "+result.status);
      if(typeof data.text!=="string"||!data.text.trim())throw new Error("AIから回答テキストが返されませんでした。");
      response.textContent=data.text;
-     status.textContent="AI RESPONSE RECEIVED";
+     status.textContent="AI RESPONSE RECEIVED"; if(active && window.speechSynthesis){ const u=new SpeechSynthesisUtterance(data.text); u.lang="ja-JP"; u.onstart=()=>{status.textContent="音声応答中";}; u.onend=()=>{if(active)status.textContent="LISTENING · マイク使用中";}; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }
    }catch(error){
      console.error("J.A.R.V.I.S. AI response failed:",error);
      status.textContent="AI RESPONSE ERROR";
