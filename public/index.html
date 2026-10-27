@@ -1157,7 +1157,7 @@ function updateHudStatus(
      view.setUint16(34,16,true);write(36,"data");view.setUint32(40,pcm.length,true);
      new Uint8Array(wavBuffer,44).set(pcm);
      if(!ttsAudioContext)throw new Error("音声再生の準備ができていません。音声モードをもう一度開始してください。");
-     if(ttsAudioContext.state==="suspended")await ttsAudioContext.resume();
+     if(ttsAudioContext.state==="suspended")void ttsAudioContext.resume();
      const audioBuffer=await ttsAudioContext.decodeAudioData(wavBuffer.slice(0));
      if(ttsSource){try{ttsSource.stop()}catch(e){}ttsSource=null;}
      await new Promise((resolve,reject)=>{
@@ -1268,7 +1268,7 @@ function updateHudStatus(
    if(recognition&&listening){try{recognition.stop()}catch(e){}}
    listening=false;
  }
- async function startVoice(){
+ function startVoice(){
    textArea.classList.remove("is-open");
    textArea.setAttribute("aria-hidden","true");
    panel.classList.add("show");
@@ -1321,7 +1321,7 @@ function updateHudStatus(
        if(active&&!requestInFlight){try{recognition.start()}catch(e){}}
      };
    }
-   try{recognition.start()}catch(e){status.textContent="VOICE INPUT READY";updateHudStatus("ONLINE","STANDBY","READY","RECOVERY");response.textContent="音声入力を開始できませんでした。もう一度スワイプしてください。";}
+   try{recognition.start()}catch(e){console.error("Speech recognition start failed:",e);status.textContent="VOICE INPUT ERROR";updateHudStatus("ONLINE","STANDBY","READY","RECOVERY");response.textContent="音声入力を開始できませんでした。もう一度スワイプしてください。";}
  }
  function startText(){
    stopListening();
