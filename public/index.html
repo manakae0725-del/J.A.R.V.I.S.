@@ -1167,6 +1167,46 @@ function updateHudStatus(
  }
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  let recognition=null,listening=false,active=false,sx=0,sy=0,requestInFlight=false;
+ let memories=[],memoryLoadGeneration=0,previousInteractionId=null;
+ function getErrorMessage(error){if(typeof error==="string")return error;if(error&&typeof error==="object"){if(error.message)return error.message;try{return JSON.stringify(error)}catch(e){return "不明なエラー"}}return String(error)}
+ async function loadMemories(){
+   const generation=++memoryLoadGeneration,requestUserId=window.jarvisCurrentUserId||null;
+   if(!requestUserId){memories=[];return [];}
+   try{
+     const token=await window.jarvisGetAccessToken();
+     if(!token||requestUserId!==window.jarvisCurrentUserId)return [];
+     const result=await fetch("/api/memory",{method:"GET",headers:{Authorization:"Bearer "+token}});
+     const data=await result.json();
+     if(!result.ok||!data.ok)throw new Error(getErrorMessage(data.error)||"Memory GET error");
+     if(generation!==memoryLoadGeneration||requestUserId!==window.jarvisCurrentUserId)return [];
+     memories=Array.isArray(data.memories)?data.memories.slice(0,30):[];
+     return memories;
+   }catch(error){
+     if(generation===memoryLoadGeneration&&requestUserId===window.jarvisCurrentUserId){console.error("Memory load error:",error);memories=[];}
+     return [];
+   }
+ }
+ function buildMemoryContext(){
+   return memories.length?memories.map((memory,index)=>(index+1)+". ["+memory.category+"] "+memory.content).join("\n"):"現在、登録されている長期記憶はありません。";
+ }
+ async function saveMemory(memory,expectedUserId){
+   if(!memory||memory.shouldSave!==true||!expectedUserId||expectedUserId!==window.jarvisCurrentUserId)return false;
+   const content=typeof memory.content==="string"?memory.content.trim():"";
+   if(!content)return false;
+   const category=["personal","preference","work","family","goal"].includes(memory.category)?memory.category:"personal";
+   const importance=Number.isInteger(memory.importance)?Math.min(5,Math.max(1,memory.importance)):1;
+   try{
+     const token=await window.jarvisGetAccessToken();
+     if(!token||expectedUserId!==window.jarvisCurrentUserId)return false;
+     const result=await fetch("/api/memory",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({category,content,importance})});
+     const data=await result.json();
+     if(expectedUserId!==window.jarvisCurrentUserId)return false;
+     if(!result.ok||!data.ok)throw new Error(getErrorMessage(data.error)||"Memory save error");
+     await loadMemories();return true;
+   }catch(error){console.error("Memory save error:",error);return false;}
+ }
+ window.addEventListener("jarvis-auth-changed",()=>{memories=[];previousInteractionId=null;memoryLoadGeneration++;if(window.jarvisCurrentUserId)void loadMemories();});
+ if(window.jarvisCurrentUserId)void loadMemories();
  async function sendToGemini(rawText){
    const text=typeof rawText==="string"?rawText.trim():"";
    if(!text||requestInFlight)return;
@@ -1184,17 +1224,21 @@ function updateHudStatus(
    const controller=new AbortController();
    const timeout=setTimeout(()=>controller.abort(),240000);
    try{
-     const accessToken=await window.jarvisGetAccessToken();
+     const requestUserId=window.jarvisCurrentUserId;\n     await loadMemories();\n     if(requestUserId!==window.jarvisCurrentUserId)throw new Error("アカウントが切り替わりました。再度お試しください。");\n     const accessToken=await window.jarvisGetAccessToken();
      if(!accessToken)throw new Error("セッションを確認できません。再度サインインしてください。");
      const result=await fetch("/api/gemini",{
        method:"POST",
        headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},
-       body:JSON.stringify({text}),
+       body:JSON.stringify({text,previousInteractionId,memoryContext:buildMemoryContext()}),
        signal:controller.signal
      });
      let data={};try{data=await result.json()}catch(e){}
      if(!result.ok)throw new Error(data.error||"Gemini HTTP "+result.status);
      if(typeof data.text!=="string"||!data.text.trim())throw new Error("AIから回答テキストが返されませんでした。");
+     if(requestUserId!==window.jarvisCurrentUserId)throw new Error("アカウントが切り替わりました。");
+     if(typeof data.interactionId==="string"&&data.interactionId)previousInteractionId=data.interactionId;
+     if(data.memory&&data.memory.shouldSave===true)await saveMemory(data.memory,requestUserId);
+     if(requestUserId!==window.jarvisCurrentUserId)throw new Error("アカウントが切り替わりました。");
      response.textContent=data.text;
      if(typeof data.interactionId==="string"&&data.interactionId)previousInteractionId=data.interactionId;
      status.textContent="AI RESPONSE RECEIVED"; if(active){status.textContent="音声応答を生成中";await speakWithGemini(data.text);if(active)status.textContent="LISTENING · マイク使用中";}
