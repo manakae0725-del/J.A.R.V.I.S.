@@ -1360,12 +1360,8 @@ function updateHudStatus(
    const t=e.changedTouches&&e.changedTouches[0];
    if(t)finishGesture(t.clientX,t.clientY,e.target);
  },{passive:true});
- document.addEventListener("pointerdown",function(e){
-   if(e.pointerType==="touch")beginGesture(e.clientX,e.clientY,e.target);
- },{passive:true});
- document.addEventListener("pointerup",function(e){
-   if(e.pointerType==="touch")finishGesture(e.clientX,e.clientY,e.target);
- },{passive:true});
+ // Touch events are the sole gesture source on mobile. Registering pointer events too
+ // causes iOS Safari to dispatch the same swipe twice and can restart speech recognition.
  window.addEventListener("pagehide",stopListening);
 })();;
 
