@@ -304,7 +304,7 @@ color: #61a6ff;
 #textArea.is-open{z-index:9500}
 
 </style></head><body>
-<div id="authScreen"><div class="auth-card"><div class="auth-kicker">SECURE ACCESS / AUTHENTICATION</div><div class="auth-title">J.A.R.V.I.S.</div><div class="auth-rule"></div><p class="auth-copy">本人確認が必要です。<br>Googleアカウントでサインインしてください。</p><button id="googleLoginButton" type="button">SIGN IN WITH GOOGLE</button><p id="authMessage" role="status" aria-live="polite"></p><div class="auth-foot">AUTHORIZED ACCESS ONLY</div></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button>
+<div id="authScreen"><div class="auth-card"><div class="auth-kicker">SECURE ACCESS / AUTHENTICATION</div><div class="auth-title">J.A.R.V.I.S.</div><div class="auth-rule"></div><p class="auth-copy">IDENTITY VERIFICATION REQUIRED.<br>PLEASE SIGN IN WITH YOUR GOOGLE ACCOUNT.</p><button id="googleLoginButton" type="button">SIGN IN WITH GOOGLE</button><p id="authMessage" role="status" aria-live="polite"></p><div class="auth-foot">AUTHORIZED ACCESS ONLY</div></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 
 <div class="jarvis-holo-panel" id="jarvisHoloPanel" aria-live="polite">
@@ -604,8 +604,8 @@ POWER
   const result=await client.auth.getSession();if(result.error)throw result.error;
   show(result.data.session);client.auth.onAuthStateChange((_event,session)=>show(session));resolveReady();
  }catch(error){message.textContent=error?.message||"認証の初期化に失敗しました。";button.disabled=true;resolveReady();}}
- button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;message.textContent="Google認証へ接続しています…";try{const result=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(result.error)throw result.error;}catch(error){message.textContent=error?.message||"サインインを開始できませんでした。";button.disabled=false;}});
- signOut.addEventListener("click",async()=>{if(!client)return;signOut.disabled=true;const result=await client.auth.signOut();if(result.error)message.textContent="サインアウトに失敗しました。";signOut.disabled=false;});
+ button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;message.textContent="CONNECTING TO GOOGLE AUTHENTICATION...";try{const result=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(result.error)throw result.error;}catch(error){message.textContent=error?.message||"UNABLE TO START SIGN-IN.";button.disabled=false;}});
+ signOut.addEventListener("click",async()=>{if(!client)return;signOut.disabled=true;const result=await client.auth.signOut();if(result.error)message.textContent="SIGN-OUT FAILED.";signOut.disabled=false;});
  init();
 })();
 </script>
@@ -1860,7 +1860,7 @@ async function speakWithGemini(text) {
     );
 
     const accessToken = await window.jarvisGetAccessToken();
-    if (!accessToken) throw new Error("サインインが必要です.");
+    if (!accessToken) throw new Error("SIGN-IN REQUIRED.");
 
     const response =
             await fetch(
