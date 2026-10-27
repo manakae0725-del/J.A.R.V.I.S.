@@ -291,7 +291,19 @@ color: #61a6ff;
 .voice-response{color:#fff;font:13px/1.5 monospace;overflow-wrap:anywhere;text-shadow:0 0 8px rgba(0,153,255,.3)}
 @keyframes voicePulse{0%,100%{opacity:.4;transform:scale(.9)}50%{opacity:1;transform:scale(1.1)}}
 @media(max-width:480px){.jarvis-holo-panel{top:67%;width:calc(100% - 24px);padding:10px 12px}}
-</style></head><body><canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div><div class="hint">CORE IMAGE + PARTICLE FIELD + HOLOGRAPHIC RINGS</div>
+
+#authScreen{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at center,rgba(0,53,104,.28),transparent 55%),#02050a;color:#bfeaff;font-family:'Courier New',Courier,monospace}
+#authScreen[hidden]{display:none!important}.auth-card{width:min(100%,420px);padding:36px 28px 28px;text-align:center;border:1px solid rgba(0,153,255,.55);background:linear-gradient(145deg,rgba(4,20,37,.96),rgba(0,4,11,.98));box-shadow:0 0 28px rgba(0,119,255,.18),inset 0 0 24px rgba(0,100,255,.06)}
+.auth-kicker{font-size:10px;letter-spacing:4px;color:#4aaeff}.auth-title{margin-top:18px;font-size:clamp(25px,7vw,34px);letter-spacing:5px;text-shadow:0 0 18px rgba(0,136,255,.7)}.auth-rule{width:64px;height:1px;margin:20px auto;background:#168fff;box-shadow:0 0 10px #168fff}.auth-copy{color:#9abbd4;font-size:12px;line-height:1.9;letter-spacing:.6px}
+#googleLoginButton{width:100%;min-height:50px;margin-top:28px;padding:12px 16px;border:1px solid #168fff;border-radius:2px;background:rgba(0,89,170,.16);color:#e4f5ff;font:inherit;font-size:13px;letter-spacing:1px;cursor:pointer}
+#googleLoginButton:disabled{opacity:.55;cursor:wait}#authMessage{min-height:20px;margin-top:14px;color:#ff9b9b;font-size:11px;line-height:1.6}.auth-foot{margin-top:22px;color:#42627d;font-size:9px;letter-spacing:2px}
+#jarvisSignOut{position:fixed;right:14px;top:14px;z-index:99999;padding:7px 10px;border:1px solid rgba(0,153,255,.45);background:rgba(0,5,14,.82);color:#8bcfff;font:10px 'Courier New',monospace;letter-spacing:1px;cursor:pointer}#jarvisSignOut[hidden]{display:none!important}
+@media(max-width:480px){.auth-card{padding:30px 22px 24px}.auth-title{letter-spacing:3px}}
+#textArea.is-open{z-index:9500}
+
+</style></head><body>
+<div id="authScreen"><div class="auth-card"><div class="auth-kicker">SECURE ACCESS / AUTHENTICATION</div><div class="auth-title">J.A.R.V.I.S.</div><div class="auth-rule"></div><p class="auth-copy">本人確認が必要です。<br>Googleアカウントでサインインしてください。</p><button id="googleLoginButton" type="button">SIGN IN WITH GOOGLE</button><p id="authMessage" role="status" aria-live="polite"></p><div class="auth-foot">AUTHORIZED ACCESS ONLY</div></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button>
+<canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div><div class="hint">CORE IMAGE + PARTICLE FIELD + HOLOGRAPHIC RINGS</div>
 
 <div class="jarvis-holo-panel" id="jarvisHoloPanel" aria-live="polite">
  <div class="panel-header">
@@ -1091,14 +1103,56 @@ function updateHudStatus(
 })();
 
 
-/* Voice mode migration: upward swipe = text, downward swipe = voice. */
+/* AI response migration: authenticated requests to the existing /api/gemini endpoint. */
 (function(){
  const panel=document.getElementById("jarvisHoloPanel");
  const status=document.getElementById("voiceStatus");
  const response=document.getElementById("voiceResponse");
  const textArea=document.getElementById("textArea");
+ const textInput=document.getElementById("textInput");
+ const sendButton=document.getElementById("sendButton");
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
- let recognition=null, listening=false, active=false, sx=0,sy=0;
+ let recognition=null,listening=false,active=false,sx=0,sy=0,requestInFlight=false;
+ async function sendToGemini(rawText){
+   const text=typeof rawText==="string"?rawText.trim():"";
+   if(!text||requestInFlight)return;
+   if(!window.jarvisCurrentUserId){
+     status.textContent="AUTHENTICATION REQUIRED";
+     response.textContent="AI応答を利用するにはGoogleアカウントでサインインしてください。";
+     panel.classList.add("show");
+     return;
+   }
+   requestInFlight=true;
+   sendButton.disabled=true;
+   status.textContent="THINKING · AI応答を生成中";
+   response.textContent="考えています…";
+   panel.classList.add("show");
+   const controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),240000);
+   try{
+     const accessToken=await window.jarvisGetAccessToken();
+     if(!accessToken)throw new Error("セッションを確認できません。再度サインインしてください。");
+     const result=await fetch("/api/gemini",{
+       method:"POST",
+       headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},
+       body:JSON.stringify({text}),
+       signal:controller.signal
+     });
+     let data={};try{data=await result.json()}catch(e){}
+     if(!result.ok)throw new Error(data.error||"Gemini HTTP "+result.status);
+     if(typeof data.text!=="string"||!data.text.trim())throw new Error("AIから回答テキストが返されませんでした。");
+     response.textContent=data.text;
+     status.textContent="AI RESPONSE RECEIVED";
+   }catch(error){
+     console.error("J.A.R.V.I.S. AI response failed:",error);
+     status.textContent="AI RESPONSE ERROR";
+     response.textContent=error.name==="AbortError"?"応答がタイムアウトしました。もう一度お試しください。":(error.message||"AI応答に失敗しました。");
+   }finally{
+     clearTimeout(timeout);
+     requestInFlight=false;
+     sendButton.disabled=false;
+   }
+ }
  function stopListening(){
    active=false;
    if(recognition&&listening){try{recognition.stop()}catch(e){}}
@@ -1110,7 +1164,6 @@ function updateHudStatus(
    panel.classList.add("show");
    active=true;
    status.textContent="VOICE MODE";
-   response.textContent="";
    if(!Recognition){
      status.textContent="VOICE INPUT UNAVAILABLE";
      response.textContent="このブラウザは音声認識に対応していません。";
@@ -1121,16 +1174,22 @@ function updateHudStatus(
      recognition.lang="ja-JP";
      recognition.continuous=true;
      recognition.interimResults=true;
-     recognition.onstart=()=>{listening=true;status.textContent="LISTENING · マイク使用中";};
-     recognition.onresult=(event)=>{
+     recognition.onstart=()=>{listening=true;if(!requestInFlight)status.textContent="LISTENING · マイク使用中";};
+     recognition.onresult=async(event)=>{
        let finalText="",interimText="";
        for(let i=event.resultIndex;i<event.results.length;i++){
          const phrase=event.results[i][0].transcript;
          if(event.results[i].isFinal)finalText+=phrase;
          else interimText+=phrase;
        }
-       response.textContent=finalText||interimText||"聞き取っています…";
-       if(finalText)status.textContent="VOICE INPUT RECEIVED";
+       if(finalText.trim()){
+         try{recognition.stop()}catch(e){}
+         listening=false;
+         await sendToGemini(finalText);
+         if(active){try{recognition.start()}catch(e){}}
+       }else if(!requestInFlight){
+         response.textContent=interimText||"聞き取っています…";
+       }
      };
      recognition.onerror=(event)=>{
        listening=false;
@@ -1142,34 +1201,39 @@ function updateHudStatus(
      };
      recognition.onend=()=>{
        listening=false;
-       if(active){
-         try{recognition.start()}catch(e){}
-       }
+       if(active&&!requestInFlight){try{recognition.start()}catch(e){}}
      };
    }
-   try{recognition.start()}catch(e){
-     status.textContent="VOICE INPUT READY";
-     response.textContent="音声入力を開始できませんでした。もう一度スワイプしてください。";
-   }
+   try{recognition.start()}catch(e){status.textContent="VOICE INPUT READY";response.textContent="音声入力を開始できませんでした。もう一度スワイプしてください。";}
  }
  function startText(){
    stopListening();
    panel.classList.remove("show");
    textArea.classList.add("is-open");
    textArea.setAttribute("aria-hidden","false");
+   textInput.focus();
  }
+ sendButton.addEventListener("click",async()=>{
+   const text=textInput.value.trim();
+   if(!text)return;
+   textInput.value="";
+   await sendToGemini(text);
+ });
+ textInput.addEventListener("keydown",event=>{
+   if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendButton.click();}
+ });
  document.addEventListener("touchstart",function(e){
    const t=e.changedTouches&&e.changedTouches[0];if(t){sx=t.screenX;sy=t.screenY;}
  },{passive:true});
  document.addEventListener("touchend",function(e){
    const t=e.changedTouches&&e.changedTouches[0];if(!t)return;
-   if(e.target.closest("#textArea, #leftHUD, #rightHUD"))return;
+   if(e.target.closest("#textArea, #leftHUD, #rightHUD, #authScreen"))return;
    const dx=t.screenX-sx,dy=t.screenY-sy;
    if(Math.abs(dy)<80||Math.abs(dy)<=Math.abs(dx))return;
    if(dy>0)startVoice();
    else startText();
  },{passive:true});
  window.addEventListener("pagehide",stopListening);
-})();
+})();;
 
 </script></body></html>
