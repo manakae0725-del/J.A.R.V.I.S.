@@ -1999,7 +1999,7 @@ await new Promise(
        currentSource =
     null;
 
-status.textContent = "RESPONDING...";
+status.textContent = "";
 
 updateHudStatus(
     "ONLINE",
@@ -2146,6 +2146,7 @@ async function sendToGemini(text) {
             conversationActive &&
             requestUserId === window.jarvisCurrentUserId
         ) {
+            status.textContent = "RESPONDING...";
             const spoken = await speakWithGemini(
                 data.speechText || data.text
             );
