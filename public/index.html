@@ -1157,13 +1157,27 @@ function updateHudStatus(
      view.setUint16(34,16,true);write(36,"data");view.setUint32(40,pcm.length,true);
      new Uint8Array(wavBuffer,44).set(pcm);
      if(!ttsAudioContext)throw new Error("音声再生の準備ができていません。音声モードをもう一度開始してください。");
-     if(ttsAudioContext.state==="suspended")void ttsAudioContext.resume();
+     console.info("[JARVIS TTS] WAV ready",{bytes:pcm.length,state:ttsAudioContext.state});
+     if(ttsAudioContext.state!=="running"){
+       try{await ttsAudioContext.resume();}catch(error){console.error("[JARVIS TTS] AudioContext resume failed",{name:error?.name,message:error?.message,state:ttsAudioContext.state});}
+     }
+     if(ttsAudioContext.state!=="running")throw new Error("音声出力を開始できません。もう一度スワイプして音声モードを開始してください。");
+     console.info("[JARVIS TTS] Decoding audio",{state:ttsAudioContext.state});
      const audioBuffer=await ttsAudioContext.decodeAudioData(wavBuffer.slice(0));
+     console.info("[JARVIS TTS] Decode complete",{duration:audioBuffer.duration,sampleRate:audioBuffer.sampleRate,state:ttsAudioContext.state});
      if(ttsSource){try{ttsSource.stop()}catch(e){}ttsSource=null;}
      await new Promise((resolve,reject)=>{
        const source=ttsAudioContext.createBufferSource();ttsSource=source;source.buffer=audioBuffer;source.connect(ttsAudioContext.destination);
-       source.onended=()=>{if(ttsSource===source)ttsSource=null;resolve();};
-       try{source.start();}catch(error){ttsSource=null;reject(error);}
+       let settled=false;
+       const timeout=setTimeout(()=>{
+         if(settled)return;settled=true;
+         if(ttsSource===source)ttsSource=null;
+         try{source.stop()}catch(e){}
+         reject(new Error("音声再生が完了しませんでした（AudioContext: "+ttsAudioContext.state+"）。もう一度スワイプしてお試しください。"));
+       },Math.ceil(audioBuffer.duration*1000)+3000);
+       source.onended=()=>{console.info("[JARVIS TTS] Playback ended",{state:ttsAudioContext.state});if(settled)return;settled=true;clearTimeout(timeout);if(ttsSource===source)ttsSource=null;resolve();};
+       try{console.info("[JARVIS TTS] Starting playback",{state:ttsAudioContext.state});source.start();}
+       catch(error){clearTimeout(timeout);settled=true;if(ttsSource===source)ttsSource=null;console.error("[JARVIS TTS] Playback start failed",{name:error?.name,message:error?.message,state:ttsAudioContext.state});reject(error);}
      });
    }finally{clearTimeout(timeout);}
  }
