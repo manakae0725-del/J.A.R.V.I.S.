@@ -1268,14 +1268,14 @@ function updateHudStatus(
    if(recognition&&listening){try{recognition.stop()}catch(e){}}
    listening=false;
  }
- function startVoice(){
+ async function startVoice(){
    textArea.classList.remove("is-open");
    textArea.setAttribute("aria-hidden","true");
    panel.classList.add("show");
    active=true;
    try{
      if(!ttsAudioContext)ttsAudioContext=new (window.AudioContext||window.webkitAudioContext)();
-     if(ttsAudioContext.state==="suspended")void ttsAudioContext.resume();
+     if(ttsAudioContext.state==="suspended")await ttsAudioContext.resume();
    }catch(audioError){console.error("AudioContext initialization failed:",audioError);}
    status.textContent="VOICE MODE";
    updateHudStatus("ONLINE","LISTENING","READY","ACTIVE");
