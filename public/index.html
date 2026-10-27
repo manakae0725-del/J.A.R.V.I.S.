@@ -949,6 +949,8 @@ function frame(){
  particles.filter(p=>p.r>.9).forEach(p=>{const a=p.a-t*p.speed*.16;const rr=r*(.78+Math.sin(t+p.phase)*.06);const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.8;ctx.fillStyle='rgba(135,200,255,.8)';ctx.beginPath();ctx.arc(x,y,p.s*.5,0,Math.PI*2);ctx.fill()});
 }
 frame();
+</script>
+<script>
 var leftHUD=document.getElementById("leftHUD");
 var rightHUD=document.getElementById("rightHUD");
 
