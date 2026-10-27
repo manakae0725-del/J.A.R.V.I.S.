@@ -2428,141 +2428,96 @@ async function sendToGemini(text) {
 
 </script>
 
+<style>
+/* Integrated particle Core: existing HUD, panels, auth and voice controls remain intact. */
+.core-unit-center { isolation:isolate; }
+#jarvisCore3dCanvas.jarvis-core-3d {
+  position:absolute; inset:0; width:100%; height:100%; z-index:5;
+  pointer-events:auto; touch-action:pan-y;
+}
+.core-unit-center .vertical-light-beam,
+.core-unit-center .meridian-orbit-ring,
+.core-unit-center .core-sphere-nucleus { display:none !important; }
+</style>
 <script>
-/* Isolated Core visual experiment: the existing app and its controls remain untouched. */
-(function () {
-    const canvas = document.getElementById("jarvisCore3dCanvas");
-    const core = canvas && canvas.closest(".core-unit-center");
-    if (!canvas || !core) return;
-
-    function startCore(THREE) {
-        if (!THREE || canvas.dataset.started === "true") return;
-        canvas.dataset.started = "true";
-
-        let renderer;
-        try {
-            renderer = new THREE.WebGLRenderer({
-                canvas: canvas,
-                alpha: true,
-                antialias: true,
-                powerPreference: "low-power"
-            });
-        } catch (error) {
-            console.warn("Core WebGL unavailable; keeping CSS Core fallback.", error);
-            return;
-        }
-
-        renderer.setClearColor(0x000000, 0);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
-        camera.position.z = 465;
-
-        scene.add(new THREE.AmbientLight(0x4caeff, 1.15));
-        const keyLight = new THREE.PointLight(0x37baff, 2.1, 700);
-        keyLight.position.set(-95, 115, 190);
-        scene.add(keyLight);
-        const rimLight = new THREE.PointLight(0x004cff, 1.7, 700);
-        rimLight.position.set(100, -90, -100);
-        scene.add(rimLight);
-
-        const orb = new THREE.Group();
-        scene.add(orb);
-
-        const sphereGeometry = new THREE.SphereGeometry(73, 40, 32);
-        const sphere = new THREE.Mesh(
-            sphereGeometry,
-            new THREE.MeshPhongMaterial({
-                color: 0x0755bd,
-                emissive: 0x003bff,
-                emissiveIntensity: 0.72,
-                specular: 0x9deaff,
-                shininess: 90,
-                transparent: true,
-                opacity: 0.48
-            })
-        );
-        orb.add(sphere);
-
-        const wire = new THREE.Mesh(
-            new THREE.SphereGeometry(74, 30, 20),
-            new THREE.MeshBasicMaterial({
-                color: 0x39caff,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.32,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
-            })
-        );
-        orb.add(wire);
-
-        const ringSpecs = [
-            { radius: 91, tube: 0.72, color: 0x19aaff, opacity: 0.78, x: 1.12, y: 0.25, z: 0.18 },
-            { radius: 111, tube: 0.58, color: 0x0877ff, opacity: 0.72, x: 0.42, y: 1.03, z: 0.7 },
-            { radius: 130, tube: 0.48, color: 0x55dfff, opacity: 0.62, x: 1.32, y: 0.52, z: 1.05 },
-            { radius: 143, tube: 0.38, color: 0x0066ff, opacity: 0.48, x: 0.1, y: 0.85, z: 0.3 }
-        ];
-        const rings = ringSpecs.map(function (spec) {
-            const mesh = new THREE.Mesh(
-                new THREE.TorusGeometry(spec.radius, spec.tube, 8, 180),
-                new THREE.MeshBasicMaterial({
-                    color: spec.color,
-                    transparent: true,
-                    opacity: spec.opacity,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false
-                })
-            );
-            mesh.rotation.set(spec.x, spec.y, spec.z);
-            orb.add(mesh);
-            return mesh;
-        });
-
-        function resize() {
-            const width = Math.max(1, core.clientWidth);
-            const height = Math.max(1, core.clientHeight);
-            renderer.setSize(width, height, false);
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-        }
-        resize();
-        window.addEventListener("resize", resize, { passive: true });
-
-        core.classList.add("is-webgl");
-
-        let frame = 0;
-        function animate() {
-            frame = requestAnimationFrame(animate);
-            if (document.hidden) return;
-            orb.rotation.y += 0.0018;
-            orb.rotation.x = Math.sin(performance.now() * 0.00022) * 0.055;
-            rings[0].rotation.z += 0.0012;
-            rings[1].rotation.y -= 0.0010;
-            rings[2].rotation.x += 0.0008;
-            rings[3].rotation.z -= 0.0007;
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        document.addEventListener("visibilitychange", function () {
-            if (!document.hidden && !frame) animate();
-        });
+/* J.A.R.V.I.S. particle Core integrated into the existing app */
+(function(){
+  const canvas=document.getElementById("jarvisCore3dCanvas");
+  const core=canvas&&canvas.closest(".core-unit-center");
+  if(!canvas||!core)return;
+  const ctx=canvas.getContext("2d",{alpha:true});
+  if(!ctx)return;
+  let w=1,h=1,dpr=1,t=0,rotation=0,drag=false,lastX=0,raf=0;
+  const randSeed={v:12345};
+  function rand(){randSeed.v=(randSeed.v*9301+49297)%233280;return randSeed.v/233280;}
+  const particles=Array.from({length:420},()=>({a:rand()*Math.PI*2,r:Math.sqrt(rand()),z:rand()*2-1,s:.35+rand()*1.1,p:rand()*Math.PI*2,b:.25+rand()*.65}));
+  const points=Array.from({length:44},()=>{const a=rand()*Math.PI*2,r=Math.sqrt(rand())*.94;return{x:Math.cos(a)*r,y:Math.sin(a)*r};});
+  function resize(){
+    const rect=core.getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,1.5);
+    w=Math.max(1,rect.width);h=Math.max(1,rect.height);
+    canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function draw(){
+    raf=requestAnimationFrame(draw);if(document.hidden)return;
+    t+=.016;ctx.clearRect(0,0,w,h);
+    const cx=w/2,cy=h/2,r=Math.min(w,h)*.285;
+    // Deep blue glass volume and soft refractive halo.
+    let g=ctx.createRadialGradient(cx-r*.12,cy-r*.18,r*.02,cx,cy,r*1.35);
+    g.addColorStop(0,"rgba(170,232,255,.94)");g.addColorStop(.10,"rgba(42,151,255,.8)");
+    g.addColorStop(.28,"rgba(0,105,255,.48)");g.addColorStop(.55,"rgba(0,62,210,.25)");
+    g.addColorStop(.78,"rgba(0,42,150,.12)");g.addColorStop(1,"rgba(0,50,180,0)");
+    ctx.save();ctx.globalCompositeOperation="lighter";ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r*1.35,0,Math.PI*2);ctx.fill();ctx.restore();
+    ctx.save();ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.clip();
+    const sphere=ctx.createRadialGradient(cx-r*.2,cy-r*.25,r*.03,cx,cy,r);
+    sphere.addColorStop(0,"rgba(115,210,255,.56)");sphere.addColorStop(.3,"rgba(0,95,240,.28)");
+    sphere.addColorStop(.72,"rgba(0,35,130,.28)");sphere.addColorStop(1,"rgba(0,12,55,.2)");
+    ctx.fillStyle=sphere;ctx.fillRect(cx-r,cy-r,r*2,r*2);
+    // Fine particle lattice, animated with a subtle rotational drift.
+    for(let i=0;i<points.length;i++){
+      const p=points[i],a=Math.atan2(p.y,p.x)+rotation*.12,rr=Math.hypot(p.x,p.y)*r;
+      p._x=cx+Math.cos(a)*rr;p._y=cy+Math.sin(a)*rr;
     }
-
-    if (window.THREE) {
-        startCore(window.THREE);
-    } else {
-        const loader = document.createElement("script");
-        loader.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
-        loader.async = true;
-        loader.onload = function () { startCore(window.THREE); };
-        loader.onerror = function () {
-            console.warn("Three.js failed to load; keeping CSS Core fallback.");
-        };
-        document.head.appendChild(loader);
+    ctx.strokeStyle="rgba(65,175,255,.13)";ctx.lineWidth=.7;
+    for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++){
+      const a=points[i],b=points[j],d=Math.hypot(a._x-b._x,a._y-b._y);
+      if(d<r*.42){ctx.globalAlpha=(1-d/(r*.42))*.48;ctx.beginPath();ctx.moveTo(a._x,a._y);ctx.lineTo(b._x,b._y);ctx.stroke();}
     }
+    ctx.globalAlpha=1;
+    for(const p of particles){
+      const a=p.a+rotation*.08+Math.sin(t*.22+p.p)*.025,rr=p.r*r;
+      const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;
+      ctx.fillStyle="rgba(115,205,255,"+(p.b*(.45+.55*Math.sin(t*p.s+p.p))*.72)+")";
+      ctx.beginPath();ctx.arc(x,y,.45+p.s*.45,0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
+    // Sparse segmented HUD marks around the Core, not a continuous ring.
+    ctx.save();ctx.strokeStyle="rgba(55,185,255,.4)";ctx.lineWidth=1;
+    for(let i=0;i<64;i++){
+      const a=i*Math.PI*2/64+rotation*.018,major=i%8===0,medium=i%4===0;
+      const ri=r*(1.08+(i%3)*.018),ro=ri+(major?9:medium?5:2.5);
+      ctx.globalAlpha=major?.8:medium?.45:.23;ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(a)*ri,cy+Math.sin(a)*ri);
+      ctx.lineTo(cx+Math.cos(a)*ro,cy+Math.sin(a)*ro);ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    // Refractive curved bands and faint lensing arcs.
+    for(let i=0;i<3;i++){
+      ctx.strokeStyle="rgba(90,190,255,"+(.10-i*.022)+")";ctx.lineWidth=1+i*.4;
+      ctx.beginPath();ctx.ellipse(cx,cy,r*(.72+i*.16),r*(.34+i*.08),-.24+rotation*.02+i*.16,Math.PI*.12,Math.PI*1.78);ctx.stroke();
+    }
+    ctx.restore();
+    // Core label remains readable over the particle volume.
+    ctx.save();ctx.font="700 "+Math.max(12,r*.19)+"px Eurostile, 'Bank Gothic', Arial, sans-serif";
+    ctx.textAlign="center";ctx.textBaseline="middle";ctx.letterSpacing=Math.max(1,r*.035)+"px";
+    ctx.shadowColor="#00baff";ctx.shadowBlur=8;ctx.fillStyle="#fff";ctx.fillText("J.A.R.V.I.S.",cx,cy);ctx.restore();
+  }
+  canvas.addEventListener("pointerdown",e=>{drag=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener("pointermove",e=>{if(drag){rotation+=(e.clientX-lastX)*.008;lastX=e.clientX;}});
+  const stopDrag=()=>{drag=false;};canvas.addEventListener("pointerup",stopDrag);canvas.addEventListener("pointercancel",stopDrag);
+  window.addEventListener("resize",resize,{passive:true});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!raf)draw();});
+  resize();draw();
 })();
 </script>
 
