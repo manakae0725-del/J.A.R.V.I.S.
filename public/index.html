@@ -1226,7 +1226,10 @@ function updateHudStatus(
    const controller=new AbortController();
    const timeout=setTimeout(()=>controller.abort(),240000);
    try{
-     const requestUserId=window.jarvisCurrentUserId;\n     await loadMemories();\n     if(requestUserId!==window.jarvisCurrentUserId)throw new Error("アカウントが切り替わりました。再度お試しください。");\n     const accessToken=await window.jarvisGetAccessToken();
+     const requestUserId=window.jarvisCurrentUserId;
+     await loadMemories();
+     if(requestUserId!==window.jarvisCurrentUserId)throw new Error("アカウントが切り替わりました。再度お試しください。");
+     const accessToken=await window.jarvisGetAccessToken();
      if(!accessToken)throw new Error("セッションを確認できません。再度サインインしてください。");
      const result=await fetch("/api/gemini",{
        method:"POST",
