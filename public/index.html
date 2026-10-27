@@ -763,6 +763,7 @@ animation:none;
 <button id="jarvisSignOut" type="button" hidden>サインアウト</button>
 
 <div class="jarvis-screen">
+<canvas id="jarvisCore3dCanvas" class="jarvis-core-3d" aria-hidden="true"></canvas>
 <canvas id="bgDustCanvas"></canvas>
 
 <!-- J.A.R.V.I.S. ホログラム情報パネル -->
@@ -819,7 +820,7 @@ animation:none;
 <div class="disc-ring-line"></div>
 </div>
 <div class="core-unit-center">
-<canvas id="jarvisCore3dCanvas" class="jarvis-core-3d" aria-hidden="true"></canvas>
+
 <div class="vertical-light-beam"></div>
 <div class="meridian-orbit-ring meridian-1"></div><div class="meridian-orbit-ring meridian-2"></div>
 <div class="meridian-orbit-ring meridian-3"></div>
@@ -2429,10 +2430,10 @@ async function sendToGemini(text) {
 </script>
 
 <style>
-/* Demo Core renderer mounted as a transparent visual layer; existing app UI remains above it. */
+/* Host placement only: keep the supplied demo renderer unchanged. */
 #jarvisCore3dCanvas.jarvis-core-3d {
   position:fixed; inset:0; width:100vw; height:100vh; z-index:2;
-  pointer-events:none; touch-action:pan-y;
+  display:block; pointer-events:none; touch-action:pan-y;
 }
 .core-unit-center .vertical-light-beam,
 .core-unit-center .meridian-orbit-ring,
@@ -2440,11 +2441,10 @@ async function sendToGemini(text) {
 .hologram-vertical-system { z-index:3; }
 </style>
 <script>
-/* Core renderer transplanted from public/core-hybrid-demo.html with host integration adjustments only. */
 
-const canvas=document.getElementById('jarvisCore3dCanvas'),ctx=canvas.getContext('2d');
+const canvas=document.querySelector('#jarvisCore3dCanvas'),ctx=canvas.getContext('2d');
 let w,h,dpr,cx,cy,scale,t=0,drag=false,lastX=0,rot=0;
-function resize(){dpr=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);cx=w/2;cy=h*.50;scale=Math.min(w,h)/700}
+function resize(){dpr=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);cx=w/2;cy=h*.20;scale=Math.min(w,h)/700}
 addEventListener('resize',resize);resize();
 canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId)});
 canvas.addEventListener('pointermove',e=>{if(drag){rot+=(e.clientX-lastX)*.008;lastX=e.clientX}});
@@ -2494,7 +2494,7 @@ function drawCore(r){
 let corePts=[];
 for(let i=0;i<21;i++){const a=rand()*Math.PI*2,rr=Math.sqrt(rand())*176;corePts.push({x:500+rr*Math.cos(a),y:500+rr*Math.sin(a)})}
 function frame(){
- requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);
+ requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
  stars.forEach(s=>{ctx.fillStyle='rgba(45,120,255,'+(s.a*(.65+.35*Math.sin(t+s.x*10))+0.04)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
  // Peripheral cyber-HUD: restrained data traces and segmented markers on the black field, separate from the Core.
  ctx.save();ctx.globalCompositeOperation='screen';
