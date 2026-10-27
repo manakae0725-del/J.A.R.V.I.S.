@@ -1212,6 +1212,7 @@ function updateHudStatus(
    if(!text||requestInFlight)return;
    if(!window.jarvisCurrentUserId){
      status.textContent="AUTHENTICATION REQUIRED";
+     updateHudStatus("OFFLINE","STANDBY","LOCKED","AUTH REQUIRED");
      response.textContent="AI応答を利用するにはGoogleアカウントでサインインしてください。";
      panel.classList.add("show");
      return;
@@ -1219,6 +1220,7 @@ function updateHudStatus(
    requestInFlight=true;
    sendButton.disabled=true;
    status.textContent="THINKING · AI応答を生成中";
+   updateHudStatus("ONLINE","STANDBY","PROCESSING","ACTIVE");
    response.textContent="考えています…";
    panel.classList.add("show");
    const controller=new AbortController();
@@ -1241,10 +1243,13 @@ function updateHudStatus(
      if(requestUserId!==window.jarvisCurrentUserId)throw new Error("アカウントが切り替わりました。");
      response.textContent=data.text;
      if(typeof data.interactionId==="string"&&data.interactionId)previousInteractionId=data.interactionId;
-     status.textContent="AI RESPONSE RECEIVED"; if(active){status.textContent="音声応答を生成中";await speakWithGemini(data.text);if(active)status.textContent="LISTENING · マイク使用中";}
+     status.textContent="AI RESPONSE RECEIVED";
+     updateHudStatus("ONLINE","STANDBY","READY","IDLE");
+     if(active){status.textContent="音声応答を生成中";updateHudStatus("ONLINE","STANDBY","GENERATING","ACTIVE");await speakWithGemini(data.text);if(active){status.textContent="LISTENING · マイク使用中";updateHudStatus("ONLINE","LISTENING","READY","ACTIVE");}}
    }catch(error){
      console.error("J.A.R.V.I.S. AI response failed:",error);
      status.textContent="AI RESPONSE ERROR";
+     updateHudStatus(navigator.onLine?"ONLINE":"OFFLINE","STANDBY","ERROR","RECOVERY");
      response.textContent=error.name==="AbortError"?"応答がタイムアウトしました。もう一度お試しください。":(error.message||"AI応答に失敗しました。");
    }finally{
      clearTimeout(timeout);
@@ -1254,6 +1259,7 @@ function updateHudStatus(
  }
  function stopListening(){
    active=false;
+   updateHudStatus(navigator.onLine?"ONLINE":"OFFLINE","STANDBY","READY","IDLE");
    if(recognition&&listening){try{recognition.stop()}catch(e){}}
    listening=false;
  }
@@ -1263,8 +1269,10 @@ function updateHudStatus(
    panel.classList.add("show");
    active=true;
    status.textContent="VOICE MODE";
+   updateHudStatus("ONLINE","LISTENING","READY","ACTIVE");
    if(!Recognition){
      status.textContent="VOICE INPUT UNAVAILABLE";
+     updateHudStatus(navigator.onLine?"ONLINE":"OFFLINE","UNAVAILABLE","ERROR","RECOVERY");
      response.textContent="このブラウザは音声認識に対応していません。";
      return;
    }
@@ -1273,7 +1281,7 @@ function updateHudStatus(
      recognition.lang="ja-JP";
      recognition.continuous=true;
      recognition.interimResults=true;
-     recognition.onstart=()=>{listening=true;if(!requestInFlight)status.textContent="LISTENING · マイク使用中";};
+     recognition.onstart=()=>{listening=true;if(!requestInFlight){status.textContent="LISTENING · マイク使用中";updateHudStatus("ONLINE","LISTENING","READY","ACTIVE");}};
      recognition.onresult=async(event)=>{
        let finalText="",interimText="";
        for(let i=event.resultIndex;i<event.results.length;i++){
@@ -1293,6 +1301,7 @@ function updateHudStatus(
      recognition.onerror=(event)=>{
        listening=false;
        status.textContent=event.error==="not-allowed"?"MICROPHONE PERMISSION DENIED":"VOICE INPUT ERROR";
+       updateHudStatus(navigator.onLine?"ONLINE":"OFFLINE","MIC ERROR","ERROR","RECOVERY");
        if(event.error==="not-allowed"||event.error==="service-not-allowed"){
          response.textContent="ブラウザのマイク使用を許可してください。";
          active=false;
@@ -1303,7 +1312,7 @@ function updateHudStatus(
        if(active&&!requestInFlight){try{recognition.start()}catch(e){}}
      };
    }
-   try{recognition.start()}catch(e){status.textContent="VOICE INPUT READY";response.textContent="音声入力を開始できませんでした。もう一度スワイプしてください。";}
+   try{recognition.start()}catch(e){status.textContent="VOICE INPUT READY";updateHudStatus("ONLINE","STANDBY","READY","RECOVERY");response.textContent="音声入力を開始できませんでした。もう一度スワイプしてください。";}
  }
  function startText(){
    stopListening();
