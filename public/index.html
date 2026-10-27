@@ -232,7 +232,68 @@ font-size: 10px;
 color: #61a6ff;
 }
 
+#textArea {
+    display: none;
+    position: absolute;
+    top: 75%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 50px);
+    max-width: 600px;
+    z-index: 9999;
+    pointer-events: auto;
+}
+
+#textInput {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 100px;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #444;
+    background: #111;
+    color: white;
+    font-size: 16px;
+    resize: vertical;
+    pointer-events: auto;
+    touch-action: manipulation;
+}
+
+#sendButton {
+    display: block;
+    margin: 12px auto 0;
+    width: 120px;
+    height: 45px;
+    border-radius: 22px;
+    border: 1px solid #555;
+    background: #222;
+    color: white;
+    font-size: 15px;
+}
+
+
+
+/* Preview text mode: keep the original text UI hidden until an upward swipe. */
+#textArea{z-index:9500;display:none;}
+#textArea.is-open{display:block;}
+#textInput{background:rgba(2,12,28,.94);border-color:rgba(0,153,255,.65);color:#e8f7ff;box-shadow:0 0 18px rgba(0,119,255,.16);}
+#sendButton{border-color:rgba(0,153,255,.65);background:rgba(0,60,120,.45);color:#d8f3ff;cursor:pointer;}
+@media(max-width:480px){#textArea{width:calc(100% - 36px);}}
 </style></head><body><canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div><div class="hint">CORE IMAGE + PARTICLE FIELD + HOLOGRAPHIC RINGS</div>
+<div id="textArea">
+
+    <textarea
+        id="textInput"
+        placeholder="J.A.R.V.I.S.に話しかける内容を入力"
+    ></textarea>
+
+    <br>
+
+    <button id="sendButton">
+        送信
+    </button>
+
+</div>
 <div id="leftHUD" class="sideHUD">
 <div class="hud-card">
 <div class="hud-card-header">
@@ -1006,5 +1067,31 @@ function updateHudStatus(
      else leftHUD.classList.add("open");
    }
  },{passive:true});
+})();
+
+/* Original vertical-swipe gesture for text mode. */
+(function(){
+ const textArea=document.getElementById("textArea");
+ let startX=0,startY=0;
+ document.addEventListener("touchstart",function(e){
+   const touch=e.changedTouches&&e.changedTouches[0];
+   if(!touch)return;
+   startX=touch.screenX;startY=touch.screenY;
+ },{passive:true});
+ document.addEventListener("touchend",function(e){
+   const touch=e.changedTouches&&e.changedTouches[0];
+   if(!touch)return;
+   if(e.target.closest("#textArea, #leftHUD, #rightHUD"))return;
+   const dx=touch.screenX-startX,dy=touch.screenY-startY;
+   if(Math.abs(dy)<80||Math.abs(dy)<=Math.abs(dx))return;
+   if(dy<0){
+     textArea.classList.add("is-open");
+     textArea.setAttribute("aria-hidden","false");
+   }else{
+     textArea.classList.remove("is-open");
+     textArea.setAttribute("aria-hidden","true");
+   }
+ },{passive:true});
+ textArea.setAttribute("aria-hidden","true");
 })();
 </script></body></html>
