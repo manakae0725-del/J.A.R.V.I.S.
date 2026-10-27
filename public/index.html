@@ -1156,7 +1156,7 @@ function updateHudStatus(
      view.setUint32(24,24000,true);view.setUint32(28,48000,true);view.setUint16(32,2,true);
      view.setUint16(34,16,true);write(36,"data");view.setUint32(40,pcm.length,true);
      new Uint8Array(wavBuffer,44).set(pcm);
-     if(!ttsAudioContext)ttsAudioContext=new (window.AudioContext||window.webkitAudioContext)();
+     if(!ttsAudioContext)throw new Error("音声再生の準備ができていません。音声モードをもう一度開始してください。");
      if(ttsAudioContext.state==="suspended")await ttsAudioContext.resume();
      const audioBuffer=await ttsAudioContext.decodeAudioData(wavBuffer.slice(0));
      if(ttsSource){try{ttsSource.stop()}catch(e){}ttsSource=null;}
@@ -1273,6 +1273,10 @@ function updateHudStatus(
    textArea.setAttribute("aria-hidden","true");
    panel.classList.add("show");
    active=true;
+   try{
+     if(!ttsAudioContext)ttsAudioContext=new (window.AudioContext||window.webkitAudioContext)();
+     if(ttsAudioContext.state==="suspended")void ttsAudioContext.resume();
+   }catch(audioError){console.error("AudioContext initialization failed:",audioError);}
    status.textContent="VOICE MODE";
    updateHudStatus("ONLINE","LISTENING","READY","ACTIVE");
    if(!Recognition){
