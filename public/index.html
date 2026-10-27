@@ -1138,60 +1138,239 @@ function updateHudStatus(
  const sendButton=document.getElementById("sendButton");
  let previousInteractionId=null;
  let ttsAudioContext=null,ttsSource=null;
- async function speakWithGemini(text){
-   const accessToken=await window.jarvisGetAccessToken();
-   if(!accessToken)throw new Error("音声合成にはサインインが必要です。");
-   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),35000);
-   try{
-     const result=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({text,previousInteractionId}),signal:controller.signal});
-     let data={};try{data=await result.json()}catch(e){}
-     if(!result.ok)throw new Error(data.error||"音声合成 HTTP "+result.status);
-     if(typeof data.audio!=="string"||!data.audio)throw new Error("音声データがありません。");
-     const binary=atob(data.audio),pcm=new Uint8Array(binary.length);
-     for(let i=0;i<binary.length;i++)pcm[i]=binary.charCodeAt(i);
-     const wavBuffer=new ArrayBuffer(44+pcm.length),view=new DataView(wavBuffer);
-     const write=(offset,value)=>{for(let i=0;i<value.length;i++)view.setUint8(offset+i,value.charCodeAt(i));};
-     write(0,"RIFF");view.setUint32(4,36+pcm.length,true);write(8,"WAVE");write(12,"fmt ");
-     view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
-     view.setUint32(24,24000,true);view.setUint32(28,48000,true);view.setUint16(32,2,true);
-     view.setUint16(34,16,true);write(36,"data");view.setUint32(40,pcm.length,true);
-     new Uint8Array(wavBuffer,44).set(pcm);
-     if(!ttsAudioContext)throw new Error("音声再生の準備ができていません。音声モードをもう一度開始してください。");
-     const setTtsStage=stage=>{status.textContent="音声診断: "+stage;console.info("[JARVIS TTS] "+stage,{state:ttsAudioContext?.state,bytes:pcm.length});};
-     setTtsStage("AudioContext再開確認");
-     if(ttsAudioContext.state!=="running"){
-       try{
-         await Promise.race([
-           ttsAudioContext.resume(),
-           new Promise((_,reject)=>setTimeout(()=>reject(new Error("AudioContext resume timeout")),4000))
-         ]);
-       }catch(error){console.error("[JARVIS TTS] AudioContext resume failed",{name:error?.name,message:error?.message,state:ttsAudioContext.state});}
-     }
-     if(ttsAudioContext.state!=="running")throw new Error("音声出力を開始できません（AudioContext: "+ttsAudioContext.state+"）。もう一度スワイプしてください。");
-     setTtsStage("音声データをデコード中");
-     const audioBuffer=await Promise.race([
-       ttsAudioContext.decodeAudioData(wavBuffer.slice(0)),
-       new Promise((_,reject)=>setTimeout(()=>reject(new Error("音声デコードがタイムアウトしました")),8000))
-     ]);
-     setTtsStage("音声再生を開始");
-     console.info("[JARVIS TTS] Decode complete",{duration:audioBuffer.duration,sampleRate:audioBuffer.sampleRate,state:ttsAudioContext.state});
-     if(ttsSource){try{ttsSource.stop()}catch(e){}ttsSource=null;}
-     await new Promise((resolve,reject)=>{
-       const source=ttsAudioContext.createBufferSource();ttsSource=source;source.buffer=audioBuffer;source.connect(ttsAudioContext.destination);
-       let settled=false;
-       const timeout=setTimeout(()=>{
-         if(settled)return;settled=true;
-         if(ttsSource===source)ttsSource=null;
-         try{source.stop()}catch(e){}
-         reject(new Error("音声再生が完了しませんでした（AudioContext: "+ttsAudioContext.state+"）。もう一度スワイプしてお試しください。"));
-       },Math.ceil(audioBuffer.duration*1000)+3000);
-       source.onended=()=>{console.info("[JARVIS TTS] Playback ended",{state:ttsAudioContext.state});if(settled)return;settled=true;clearTimeout(timeout);if(ttsSource===source)ttsSource=null;resolve();};
-       try{console.info("[JARVIS TTS] Starting playback",{state:ttsAudioContext.state});source.start();}
-       catch(error){clearTimeout(timeout);settled=true;if(ttsSource===source)ttsSource=null;console.error("[JARVIS TTS] Playback start failed",{name:error?.name,message:error?.message,state:ttsAudioContext.state});reject(error);}
-     });
-   }finally{clearTimeout(timeout);}
- }
- const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ function pcmToWav(base64){
+const binary=atob(base64);
+const pcm=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++){
+pcm[i]=binary.charCodeAt(i);
+}
+const sampleRate=24000;
+const channels=1;
+const bitsPerSample=16;
+const byteRate=sampleRate*channels*bitsPerSample/8;
+const blockAlign=channels*bitsPerSample/8;
+const buffer=new ArrayBuffer(44+pcm.length);
+const view=new DataView(buffer);
+function writeString(offset,string){
+for(let i=0;i<string.length;i++){
+view.setUint8(offset+i,string.charCodeAt(i));
+}
+}
+writeString(0,"RIFF");
+view.setUint32(4,36+pcm.length,true);
+writeString(8,"WAVE");
+writeString(12,"fmt ");
+view.setUint32(16,16,true);
+view.setUint16(20,1,true);
+view.setUint16(22,channels,true);
+view.setUint32(24,sampleRate,true);
+view.setUint32(28,byteRate,true);
+view.setUint16(32,blockAlign,true);
+view.setUint16(34,bitsPerSample,true);
+writeString(36,"data");
+view.setUint32(40,pcm.length,true);
+new Uint8Array(buffer,44).set(pcm);
+return new Blob([buffer],{type:"audio/wav"});
+}
+
+async function speakWithGemini(text) {
+
+
+    const controller =
+        new AbortController();
+
+    const timeout =
+        setTimeout(
+            () => {
+                controller.abort();
+            },
+            240000
+        );
+
+   try {
+
+    updateHudStatus(
+        "ONLINE",
+        "STANDBY",
+        "GENERATING",
+        "ACTIVE"
+    );
+
+    const accessToken = await window.jarvisGetAccessToken();
+    if (!accessToken) throw new Error("サインインが必要です.");
+
+    const response =
+            await fetch(
+                "/api/tts",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                        Authorization: "Bearer " + accessToken
+                    },
+
+                    body: JSON.stringify({
+                        text: text
+                    }),
+
+                    signal:
+                        controller.signal
+                }
+            );
+
+        clearTimeout(timeout);
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                getErrorMessage(
+                    data.error
+                ) ||
+                "TTS HTTP " +
+                response.status
+            );
+        }
+
+        if (!data.audio) {
+
+            throw new Error(
+                "音声データがありません"
+            );
+        }
+
+        /* PCM → WAV */
+
+        const wav =
+            pcmToWav(
+                data.audio
+            );
+
+        /* AudioContext準備 */
+
+        if (!ttsAudioContext) {
+
+            ttsAudioContext =
+                new (
+                    window.AudioContext ||
+                    window.webkitAudioContext
+                )();
+        }
+
+        if (
+            ttsAudioContext.state ===
+            "suspended"
+        ) {
+            await ttsAudioContext.resume();
+        }
+
+        /* WAV → AudioBuffer */
+
+        const arrayBuffer =
+            await wav.arrayBuffer();
+
+        const originalAudioBuffer =
+            await ttsAudioContext.decodeAudioData(
+                arrayBuffer.slice(0)
+            );
+
+/* 無線機風の音声フィルター */
+const radioHighpass = ttsAudioContext.createBiquadFilter();
+radioHighpass.type = "highpass";
+radioHighpass.frequency.value = 300;
+radioHighpass.Q.value = 0.7;
+
+const radioLowpass = ttsAudioContext.createBiquadFilter();
+radioLowpass.type = "lowpass";
+radioLowpass.frequency.value = 3400;
+radioLowpass.Q.value = 0.7;
+
+const radioCompressor = ttsAudioContext.createDynamicsCompressor();
+radioCompressor.threshold.value = -22;
+radioCompressor.knee.value = 12;
+radioCompressor.ratio.value = 3;
+radioCompressor.attack.value = 0.005;
+radioCompressor.release.value = 0.15;
+
+const processedAudioBuffer = originalAudioBuffer;
+
+console.log("無線機風フィルターを適用");
+
+/* ⑤ 実際の再生 */
+
+if (ttsSource) {
+
+    try {
+        ttsSource.stop();
+    } catch (e) {}
+
+    ttsSource =
+        null;
+}
+
+ttsSource =
+    ttsAudioContext.createBufferSource();
+
+ttsSource.buffer =
+    processedAudioBuffer;
+
+ttsSource.connect(ttsAudioContext.destination);
+
+updateHudStatus(
+    "ONLINE",
+    "STANDBY",
+    "READY",
+    "PLAYING"
+);
+
+await new Promise(
+    resolve => {
+
+       ttsSource.onended =
+    function() {
+
+       ttsSource =
+    null;
+
+status.textContent =
+    "";
+
+updateHudStatus(
+    "ONLINE",
+    "STANDBY",
+    "READY",
+    "IDLE"
+);
+
+resolve();
+    };
+        ttsSource.start();
+    }
+);
+
+console.log(
+    "音声再生完了"
+);
+
+return true;
+
+    } catch (error) {
+
+        clearTimeout(timeout);
+
+        console.error(
+            "TTS / WAV processing error:",
+            error
+        );
+
+        return false;
+    }
+}
+
+const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  let recognition=null,listening=false,active=false,sx=0,sy=0,requestInFlight=false;
  let memories=[],memoryLoadGeneration=0;
  function getErrorMessage(error){if(typeof error==="string")return error;if(error&&typeof error==="object"){if(error.message)return error.message;try{return JSON.stringify(error)}catch(e){return "不明なエラー"}}return String(error)}
