@@ -237,7 +237,7 @@ function frame(){
   ctx.save();ctx.globalCompositeOperation='lighter';
   // A smaller levitating ring rises above the platform, with a softly pulsing energy column.
   const liftY=py-ry*(1.7+.045*Math.sin(t*1.15));
-  const liftRx=rx*.52,liftRy=ry*.27;
+  const liftRx=rx*.36,liftRy=ry*.19;
   const column=ctx.createLinearGradient(cx,liftY,cx,py);
   column.addColorStop(0,'rgba(55,175,255,0)');
   column.addColorStop(.45,'rgba(40,155,255,.08)');
