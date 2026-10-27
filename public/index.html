@@ -585,6 +585,29 @@ POWER
 </div>
 </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+ const screen=document.getElementById("authScreen"),button=document.getElementById("googleLoginButton"),message=document.getElementById("authMessage"),signOut=document.getElementById("jarvisSignOut");
+ let client=null,resolveReady;
+ window.jarvisAuthReady=new Promise(resolve=>{resolveReady=resolve;});
+ window.jarvisGetAccessToken=async function(){await window.jarvisAuthReady;if(!client)return null;const result=await client.auth.getSession();return result.data.session?result.data.session.access_token:null;};
+ function show(session){const signedIn=Boolean(session);screen.hidden=signedIn;signOut.hidden=!signedIn;window.jarvisCurrentUserId=signedIn&&session.user&&typeof session.user.id==="string"?session.user.id:null;}
+ async function init(){try{
+  if(!window.supabase||!window.supabase.createClient)throw new Error("認証ライブラリを読み込めません。再読み込みしてください。");
+  const response=await fetch("/api/auth-config",{cache:"no-store"}),config=await response.json();
+  if(!response.ok||!config.url||!config.anonKey)throw new Error("認証設定を取得できません。Supabaseの環境変数を確認してください。");
+  client=window.supabase.createClient(config.url,config.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  window.jarvisSupabase=client;
+  const result=await client.auth.getSession();if(result.error)throw result.error;
+  show(result.data.session);client.auth.onAuthStateChange((_event,session)=>show(session));resolveReady();
+ }catch(error){message.textContent=error?.message||"認証の初期化に失敗しました。";button.disabled=true;resolveReady();}}
+ button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;message.textContent="Google認証へ接続しています…";try{const result=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(result.error)throw result.error;}catch(error){message.textContent=error?.message||"サインインを開始できませんでした。";button.disabled=false;}});
+ signOut.addEventListener("click",async()=>{if(!client)return;signOut.disabled=true;const result=await client.auth.signOut();if(result.error)message.textContent="サインアウトに失敗しました。";signOut.disabled=false;});
+ init();
+})();
+</script>
+
 <script>const datetime=document.querySelector("#datetime");function updateDateTime(){const n=new Date();const p=v=>String(v).padStart(2,"0");datetime.textContent=`${n.getFullYear()}.${p(n.getMonth()+1)}.${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`}updateDateTime();setInterval(updateDateTime,1000);</script>
 <script>
 const canvas=document.querySelector('#c'),ctx=canvas.getContext('2d');
