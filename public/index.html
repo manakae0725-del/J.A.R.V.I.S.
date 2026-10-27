@@ -279,7 +279,28 @@ color: #61a6ff;
 #textInput{background:rgba(2,12,28,.94);border-color:rgba(0,153,255,.65);color:#e8f7ff;box-shadow:0 0 18px rgba(0,119,255,.16);}
 #sendButton{border-color:rgba(0,153,255,.65);background:rgba(0,60,120,.45);color:#d8f3ff;cursor:pointer;}
 @media(max-width:480px){#textArea{width:calc(100% - 36px);}}
+
+.jarvis-holo-panel{position:fixed;left:50%;top:67%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 40px));padding:12px 15px;z-index:30;pointer-events:none;background:rgba(1,12,25,.82);border:1px solid rgba(0,153,255,.45);box-shadow:0 0 25px rgba(0,119,255,.25),inset 0 0 15px rgba(0,153,255,.12);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))}
+.jarvis-holo-panel.show{opacity:1;visibility:visible}
+.panel-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,153,255,.25);padding-bottom:6px;margin-bottom:8px}
+.panel-title-group{display:flex;align-items:center;gap:6px}
+.panel-indicator-dot{width:6px;height:6px;background:#00d2ff;border-radius:50%;box-shadow:0 0 6px #00d2ff;animation:voicePulse 2s infinite}
+.panel-title{color:#bfeaff;font-size:11px;font-weight:bold;letter-spacing:2px}
+.panel-hud-dots{color:#0099ff;font-size:10px;letter-spacing:2px}
+.voice-status{color:#8acfff;font:11px monospace;letter-spacing:1.5px;margin-bottom:7px;text-shadow:0 0 6px rgba(0,136,255,.5)}
+.voice-response{color:#fff;font:13px/1.5 monospace;overflow-wrap:anywhere;text-shadow:0 0 8px rgba(0,153,255,.3)}
+@keyframes voicePulse{0%,100%{opacity:.4;transform:scale(.9)}50%{opacity:1;transform:scale(1.1)}}
+@media(max-width:480px){.jarvis-holo-panel{top:67%;width:calc(100% - 24px);padding:10px 12px}}
 </style></head><body><canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div><div class="hint">CORE IMAGE + PARTICLE FIELD + HOLOGRAPHIC RINGS</div>
+
+<div class="jarvis-holo-panel" id="jarvisHoloPanel" aria-live="polite">
+ <div class="panel-header">
+  <div class="panel-title-group"><span class="panel-indicator-dot"></span><span class="panel-title">J.A.R.V.I.S. SYSTEM</span></div>
+  <div class="panel-hud-dots">● ● ●</div>
+ </div>
+ <div id="voiceStatus" class="voice-status">VOICE MODE STANDBY</div>
+ <div id="voiceResponse" class="voice-response">上から下へスワイプして音声モードを開始します</div>
+</div>
 <div id="textArea">
 
     <textarea
@@ -1069,29 +1090,86 @@ function updateHudStatus(
  },{passive:true});
 })();
 
-/* Original vertical-swipe gesture for text mode. */
+
+/* Voice mode migration: upward swipe = text, downward swipe = voice. */
 (function(){
+ const panel=document.getElementById("jarvisHoloPanel");
+ const status=document.getElementById("voiceStatus");
+ const response=document.getElementById("voiceResponse");
  const textArea=document.getElementById("textArea");
- let startX=0,startY=0;
+ const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ let recognition=null, listening=false, active=false, sx=0,sy=0;
+ function stopListening(){
+   active=false;
+   if(recognition&&listening){try{recognition.stop()}catch(e){}}
+   listening=false;
+ }
+ function startVoice(){
+   textArea.classList.remove("is-open");
+   textArea.setAttribute("aria-hidden","true");
+   panel.classList.add("show");
+   active=true;
+   status.textContent="VOICE MODE";
+   response.textContent="";
+   if(!Recognition){
+     status.textContent="VOICE INPUT UNAVAILABLE";
+     response.textContent="このブラウザは音声認識に対応していません。";
+     return;
+   }
+   if(!recognition){
+     recognition=new Recognition();
+     recognition.lang="ja-JP";
+     recognition.continuous=true;
+     recognition.interimResults=true;
+     recognition.onstart=()=>{listening=true;status.textContent="LISTENING · マイク使用中";};
+     recognition.onresult=(event)=>{
+       let finalText="",interimText="";
+       for(let i=event.resultIndex;i<event.results.length;i++){
+         const phrase=event.results[i][0].transcript;
+         if(event.results[i].isFinal)finalText+=phrase;
+         else interimText+=phrase;
+       }
+       response.textContent=finalText||interimText||"聞き取っています…";
+       if(finalText)status.textContent="VOICE INPUT RECEIVED";
+     };
+     recognition.onerror=(event)=>{
+       listening=false;
+       status.textContent=event.error==="not-allowed"?"MICROPHONE PERMISSION DENIED":"VOICE INPUT ERROR";
+       if(event.error==="not-allowed"||event.error==="service-not-allowed"){
+         response.textContent="ブラウザのマイク使用を許可してください。";
+         active=false;
+       }
+     };
+     recognition.onend=()=>{
+       listening=false;
+       if(active){
+         try{recognition.start()}catch(e){}
+       }
+     };
+   }
+   try{recognition.start()}catch(e){
+     status.textContent="VOICE INPUT READY";
+     response.textContent="音声入力を開始できませんでした。もう一度スワイプしてください。";
+   }
+ }
+ function startText(){
+   stopListening();
+   panel.classList.remove("show");
+   textArea.classList.add("is-open");
+   textArea.setAttribute("aria-hidden","false");
+ }
  document.addEventListener("touchstart",function(e){
-   const touch=e.changedTouches&&e.changedTouches[0];
-   if(!touch)return;
-   startX=touch.screenX;startY=touch.screenY;
+   const t=e.changedTouches&&e.changedTouches[0];if(t){sx=t.screenX;sy=t.screenY;}
  },{passive:true});
  document.addEventListener("touchend",function(e){
-   const touch=e.changedTouches&&e.changedTouches[0];
-   if(!touch)return;
+   const t=e.changedTouches&&e.changedTouches[0];if(!t)return;
    if(e.target.closest("#textArea, #leftHUD, #rightHUD"))return;
-   const dx=touch.screenX-startX,dy=touch.screenY-startY;
+   const dx=t.screenX-sx,dy=t.screenY-sy;
    if(Math.abs(dy)<80||Math.abs(dy)<=Math.abs(dx))return;
-   if(dy<0){
-     textArea.classList.add("is-open");
-     textArea.setAttribute("aria-hidden","false");
-   }else{
-     textArea.classList.remove("is-open");
-     textArea.setAttribute("aria-hidden","true");
-   }
+   if(dy>0)startVoice();
+   else startText();
  },{passive:true});
- textArea.setAttribute("aria-hidden","true");
+ window.addEventListener("pagehide",stopListening);
 })();
+
 </script></body></html>
