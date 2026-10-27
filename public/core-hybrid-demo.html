@@ -10,7 +10,7 @@
 <script>
 const canvas=document.querySelector('#c'),ctx=canvas.getContext('2d');
 let w,h,dpr,cx,cy,scale,t=0,drag=false,lastX=0,rot=0;
-function resize(){dpr=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);cx=w/2;cy=h*.30;scale=Math.min(w,h)/700}
+function resize(){dpr=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);cx=w/2;cy=h*.27;scale=Math.min(w,h)/700}
 addEventListener('resize',resize);resize();
 canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId)});
 canvas.addEventListener('pointermove',e=>{if(drag){rot+=(e.clientX-lastX)*.008;lastX=e.clientX}});
