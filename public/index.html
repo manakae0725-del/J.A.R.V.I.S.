@@ -289,7 +289,7 @@ color: #61a6ff;
 .panel-indicator-dot{width:6px;height:6px;background:#00d2ff;border-radius:50%;box-shadow:0 0 6px #00d2ff;animation:voicePulse 2s infinite}
 .panel-title{color:#bfeaff;font-size:11px;font-weight:bold;letter-spacing:2px}
 .panel-hud-dots{color:#0099ff;font-size:10px;letter-spacing:2px}
-.voice-status{color:#8acfff;font:11px monospace;letter-spacing:1.5px;margin-bottom:7px;text-shadow:0 0 6px rgba(0,136,255,.5)}
+.voice-status{color:rgba(154,207,255,.4);font:14px monospace;letter-spacing:3px;margin-bottom:7px;text-shadow:0 0 8px rgba(0,153,255,.95),0 0 18px rgba(0,119,255,.8),0 0 28px rgba(0,80,255,.55)}
 .voice-response{color:#fff;font:13px/1.5 monospace;overflow-wrap:anywhere;text-shadow:0 0 8px rgba(0,153,255,.3)}
 @keyframes voicePulse{0%,100%{opacity:.4;transform:scale(.9)}50%{opacity:1;transform:scale(1.1)}}
 @media(max-width:480px){.jarvis-holo-panel{top:67%;width:calc(100% - 24px);padding:10px 12px}}
@@ -1768,7 +1768,7 @@ if (SpeechRecognition) {
        recognition.onresult = async function(event) {
     recognitionRunning = false;
 
-    status.textContent = "";
+    status.textContent = "ANALYZING...";
 
     const text =
         event.results[0][0].transcript;
@@ -1820,8 +1820,7 @@ function startListening() {
     ) return;
 
   try {
-    status.textContent =
-        "聞いています…";
+    status.textContent = "LISTENING...";
 
     updateHudStatus(
         "ONLINE",
@@ -2000,8 +1999,7 @@ await new Promise(
        currentSource =
     null;
 
-status.textContent =
-    "";
+status.textContent = "RESPONDING...";
 
 updateHudStatus(
     "ONLINE",
@@ -2054,7 +2052,7 @@ async function sendToGemini(text) {
         return;
     }
 
-    status.textContent = "考えています…";
+    status.textContent = "PROCESSING...";
 
     updateHudStatus(
         "ONLINE",
