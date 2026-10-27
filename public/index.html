@@ -282,7 +282,7 @@ color: #61a6ff;
 #sendButton{border-color:rgba(0,153,255,.65);background:rgba(0,60,120,.45);color:#d8f3ff;cursor:pointer;}
 @media(max-width:480px){#textArea{width:calc(100% - 36px);}}
 
-.jarvis-holo-panel{position:fixed;left:50%;top:43%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 40px));padding:12px 15px;z-index:30;pointer-events:none;background:rgba(1,12,25,.82);border:1px solid rgba(0,153,255,.45);box-shadow:0 0 25px rgba(0,119,255,.25),inset 0 0 15px rgba(0,153,255,.12);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))}
+.jarvis-holo-panel{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 40px));padding:12px 15px;z-index:30;pointer-events:none;background:rgba(1,12,25,.82);border:1px solid rgba(0,153,255,.45);box-shadow:0 0 25px rgba(0,119,255,.25),inset 0 0 15px rgba(0,153,255,.12);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))}
 .jarvis-holo-panel.show{opacity:1;visibility:visible}
 .panel-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,153,255,.25);padding-bottom:6px;margin-bottom:8px}
 .panel-title-group{display:flex;align-items:center;gap:6px}
@@ -292,7 +292,7 @@ color: #61a6ff;
 .voice-status{color:rgba(154,207,255,.4);font:14px monospace;letter-spacing:3px;margin-bottom:7px;text-shadow:0 0 8px rgba(0,153,255,.95),0 0 18px rgba(0,119,255,.8),0 0 28px rgba(0,80,255,.55)}
 .voice-response{color:#fff;font:13px/1.5 monospace;overflow-wrap:anywhere;text-shadow:0 0 8px rgba(0,153,255,.3)}
 @keyframes voicePulse{0%,100%{opacity:.4;transform:scale(.9)}50%{opacity:1;transform:scale(1.1)}}
-@media(max-width:480px){.jarvis-holo-panel{top:43%;width:calc(100% - 24px);padding:10px 12px}}
+@media(max-width:480px){.jarvis-holo-panel{top:40%;width:calc(100% - 24px);padding:10px 12px}}
 
 #authScreen{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 50% 42%,rgba(0,53,104,.2),transparent 58%),linear-gradient(180deg,rgba(1,7,18,.58),rgba(1,7,18,.72));backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);color:#bfeaff;font-family:"Courier New",Courier,monospace}
 #authScreen[hidden]{display:none!important}.auth-card{position:relative;width:min(100%,420px);padding:36px 28px 28px;text-align:center;border:1px solid rgba(0,153,255,.62);background:linear-gradient(145deg,rgba(2,18,38,.82),rgba(0,7,20,.88));box-shadow:0 0 32px rgba(0,119,255,.2),inset 0 0 24px rgba(0,100,255,.08);clip-path:polygon(0 12px,12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px))}.auth-card:before{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,190,255,.9),transparent);pointer-events:none}
