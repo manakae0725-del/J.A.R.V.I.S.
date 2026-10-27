@@ -115,6 +115,65 @@ function frame(){
    ctx.fillRect(side===0?x:x-len,yy,len,1);
   }
  }
+
+ // Asymmetric precision HUD: circular scanner on the left, telemetry panels on the right.
+ // This section is deliberately separate from drawCore().
+ ctx.save();ctx.globalCompositeOperation='screen';
+ const hudBlue='rgba(35,175,255,';
+ const hudDim='rgba(35,175,255,.19)';
+ // Left: layered scanner rings, calibrated arcs, and radial ticks.
+ {
+  const x=w*.105,y=h*.315,rr=Math.min(w*.078,h*.052);
+  ctx.lineWidth=.75;ctx.strokeStyle=hudDim;
+  [1,.82,.58,.3].forEach((q,i)=>{ctx.beginPath();ctx.arc(x,y,rr*q,0,Math.PI*2);ctx.stroke()});
+  for(let i=0;i<48;i++){
+   const a=i*Math.PI*2/48;
+   const major=i%6===0,inner=rr*(major?.78:.9),outer=rr*(major?1.12:1.03);
+   ctx.strokeStyle=hudBlue+(major?'.62':'.24')+')';ctx.lineWidth=major?1.1:.65;
+   ctx.beginPath();ctx.moveTo(x+Math.cos(a)*inner,y+Math.sin(a)*inner);ctx.lineTo(x+Math.cos(a)*outer,y+Math.sin(a)*outer);ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(40,190,255,.5)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(x,y,rr*.88,-1.12,.22);ctx.stroke();
+  ctx.beginPath();ctx.arc(x,y,rr*.67,.55,2.1);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x-rr*1.25,y);ctx.lineTo(x-rr*.18,y);ctx.moveTo(x,y-rr*1.25);ctx.lineTo(x,y-rr*.18);ctx.stroke();
+  ctx.fillStyle='rgba(95,215,255,.72)';ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();
+  // Small scan readout tucked to the left edge.
+  ctx.font=Math.max(5,Math.min(7,w*.016))+'px monospace';ctx.fillStyle='rgba(65,180,255,.55)';
+  ctx.fillText('SCAN / 01',Math.max(8,x-rr*1.1),y+rr*1.48);
+ }
+ // Right: compact waveform and diagnostic readouts, deliberately unlike the left scanner.
+ {
+  const x=w*.79,y=h*.315,ww=Math.min(w*.17,78),hh=Math.min(h*.09,66);
+  ctx.strokeStyle='rgba(35,175,255,.25)';ctx.lineWidth=.65;
+  for(let i=0;i<=4;i++){const yy=y-hh/2+i*hh/4;ctx.beginPath();ctx.moveTo(x-ww/2,yy);ctx.lineTo(x+ww/2,yy);ctx.stroke()}
+  for(let i=0;i<=6;i++){const xx=x-ww/2+i*ww/6;ctx.beginPath();ctx.moveTo(xx,y-hh/2);ctx.lineTo(xx,y+hh/2);ctx.stroke()}
+  ctx.beginPath();
+  for(let i=0;i<=56;i++){
+   const u=i/56,xx=x-ww/2+u*ww;
+   const wave=Math.sin(u*18+t*.55)*.25+Math.sin(u*39-t*.3)*.12+Math.sin(u*7+t*.2)*.13;
+   const yy=y-wave*hh;
+   if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
+  }
+  ctx.strokeStyle='rgba(45,190,255,.68)';ctx.lineWidth=.85;ctx.stroke();
+  // Calibration header and a small stacked telemetry meter.
+  ctx.fillStyle='rgba(55,180,255,.55)';ctx.font=Math.max(5,Math.min(7,w*.016))+'px monospace';
+  ctx.fillText('SYS / 02',x-ww/2,y-hh/2-5);
+  const by=y+hh/2+8,bw=ww/7;
+  for(let i=0;i<7;i++){
+   const bh=2+(i%3)*1.5;
+   ctx.fillStyle=hudBlue+([0,3,6].includes(i)?'.52':'.24')+')';
+   ctx.fillRect(x-ww/2+i*(bw+2),by,bw,bh);
+  }
+ }
+ // Thin data rails and nodes add precision without increasing the glow.
+ for(let side=0;side<2;side++){
+  const x=side===0?w*.035:w*.965,dir=side===0?1:-1;
+  const y=h*.39,len=w*.045;
+  ctx.strokeStyle='rgba(35,175,255,.3)';ctx.lineWidth=.7;
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+dir*len,y);ctx.lineTo(x+dir*len,y+h*.055);ctx.lineTo(x+dir*len*.58,y+h*.055);ctx.stroke();
+  ctx.fillStyle='rgba(70,200,255,.65)';ctx.beginPath();ctx.arc(x,y,1.4,0,Math.PI*2);ctx.fill();
+ }
+ ctx.restore();
  ctx.restore();
  // Barely visible technical illustrations on the black field, outside the Core's internal texture.
  ctx.save();ctx.globalCompositeOperation='screen';ctx.lineWidth=.8;
