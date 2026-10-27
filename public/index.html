@@ -1134,6 +1134,36 @@ function updateHudStatus(
  const textArea=document.getElementById("textArea");
  const textInput=document.getElementById("textInput");
  const sendButton=document.getElementById("sendButton");
+ let ttsAudioContext=null,ttsSource=null;
+ async function speakWithGemini(text){
+   const accessToken=await window.jarvisGetAccessToken();
+   if(!accessToken)throw new Error("音声合成にはサインインが必要です。");
+   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),35000);
+   try{
+     const result=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},body:JSON.stringify({text}),signal:controller.signal});
+     let data={};try{data=await result.json()}catch(e){}
+     if(!result.ok)throw new Error(data.error||"音声合成 HTTP "+result.status);
+     if(typeof data.audio!=="string"||!data.audio)throw new Error("音声データがありません。");
+     const binary=atob(data.audio),pcm=new Uint8Array(binary.length);
+     for(let i=0;i<binary.length;i++)pcm[i]=binary.charCodeAt(i);
+     const wavBuffer=new ArrayBuffer(44+pcm.length),view=new DataView(wavBuffer);
+     const write=(offset,value)=>{for(let i=0;i<value.length;i++)view.setUint8(offset+i,value.charCodeAt(i));};
+     write(0,"RIFF");view.setUint32(4,36+pcm.length,true);write(8,"WAVE");write(12,"fmt ");
+     view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
+     view.setUint32(24,24000,true);view.setUint32(28,48000,true);view.setUint16(32,2,true);
+     view.setUint16(34,16,true);write(36,"data");view.setUint32(40,pcm.length,true);
+     new Uint8Array(wavBuffer,44).set(pcm);
+     if(!ttsAudioContext)ttsAudioContext=new (window.AudioContext||window.webkitAudioContext)();
+     if(ttsAudioContext.state==="suspended")await ttsAudioContext.resume();
+     const audioBuffer=await ttsAudioContext.decodeAudioData(wavBuffer.slice(0));
+     if(ttsSource){try{ttsSource.stop()}catch(e){}ttsSource=null;}
+     await new Promise((resolve,reject)=>{
+       const source=ttsAudioContext.createBufferSource();ttsSource=source;source.buffer=audioBuffer;source.connect(ttsAudioContext.destination);
+       source.onended=()=>{if(ttsSource===source)ttsSource=null;resolve();};
+       try{source.start();}catch(error){ttsSource=null;reject(error);}
+     });
+   }finally{clearTimeout(timeout);}
+ }
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  let recognition=null,listening=false,active=false,sx=0,sy=0,requestInFlight=false;
  async function sendToGemini(rawText){
@@ -1165,7 +1195,7 @@ function updateHudStatus(
      if(!result.ok)throw new Error(data.error||"Gemini HTTP "+result.status);
      if(typeof data.text!=="string"||!data.text.trim())throw new Error("AIから回答テキストが返されませんでした。");
      response.textContent=data.text;
-     status.textContent="AI RESPONSE RECEIVED"; if(active && window.speechSynthesis){ const u=new SpeechSynthesisUtterance(data.text); u.lang="ja-JP"; u.onstart=()=>{status.textContent="音声応答中";}; u.onend=()=>{if(active)status.textContent="LISTENING · マイク使用中";}; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }
+     status.textContent="AI RESPONSE RECEIVED"; if(active){status.textContent="音声応答を生成中";await speakWithGemini(data.text);if(active)status.textContent="LISTENING · マイク使用中";}
    }catch(error){
      console.error("J.A.R.V.I.S. AI response failed:",error);
      status.textContent="AI RESPONSE ERROR";
