@@ -292,6 +292,18 @@ color: #61a6ff;
 .voice-status{color:rgba(154,207,255,.4);font:14px monospace;letter-spacing:3px;margin-bottom:7px;text-shadow:0 0 8px rgba(0,153,255,.95),0 0 18px rgba(0,119,255,.8),0 0 28px rgba(0,80,255,.55)}
 .voice-response{color:#fff;font:13px/1.5 monospace;overflow-wrap:anywhere;text-shadow:0 0 8px rgba(0,153,255,.3)}
 @keyframes voicePulse{0%,100%{opacity:.4;transform:scale(.9)}50%{opacity:1;transform:scale(1.1)}}
+.jarvis-visualization{margin-top:10px;color:#d8f3ff;font:11px/1.4 monospace;pointer-events:none}
+.jarvis-visualization[hidden]{display:none!important}
+.jarvis-visualization .viz-title{margin:0 0 6px;color:#8acfff;letter-spacing:1px;font-size:10px}
+.jarvis-visualization svg{display:block;width:100%;height:auto;max-height:210px;overflow:visible}
+.jarvis-visualization .viz-label{fill:#bfeaff;font:10px monospace}
+.jarvis-visualization .viz-grid{stroke:rgba(0,153,255,.2);stroke-width:1}
+.jarvis-visualization .viz-bar{fill:rgba(0,190,255,.72);stroke:#00d2ff;stroke-width:1}
+.jarvis-visualization .viz-line{fill:none;stroke:#00d2ff;stroke-width:2}
+.jarvis-visualization .viz-point{fill:#d8f3ff;stroke:#00d2ff;stroke-width:1.5}
+.jarvis-visualization .viz-node{fill:rgba(0,60,120,.5);stroke:rgba(0,190,255,.8);stroke-width:1}
+.jarvis-visualization .viz-arrow{stroke:#00d2ff;stroke-width:1.5;fill:none}
+
 @media(max-width:480px){.jarvis-holo-panel{top:30%;width:calc(100% - 24px);padding:10px 12px}}
 
 #authScreen{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 50% 42%,rgba(0,53,104,.2),transparent 58%),linear-gradient(180deg,rgba(1,7,18,.58),rgba(1,7,18,.72));backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);color:#bfeaff;font-family:"Courier New",Courier,monospace}
@@ -314,6 +326,7 @@ color: #61a6ff;
  </div>
  <div id="voiceStatus" class="voice-status">VOICE MODE STANDBY</div>
  <div id="voiceResponse" class="voice-response">上から下へスワイプして音声モードを開始します</div>
+ <div id="jarvisVisualization" class="jarvis-visualization" hidden aria-label="回答の図表"></div>
 </div>
 <div id="textArea">
 
@@ -2033,6 +2046,71 @@ return true;
     }
 }
 
+function renderJarvisVisualization(viz) {
+    const container = document.getElementById("jarvisVisualization");
+    if (!container) return;
+    container.replaceChildren();
+    if (!viz || !["bar", "line", "diagram"].includes(viz.type)) {
+        container.hidden = true;
+        return;
+    }
+    const title = document.createElement("div");
+    title.className = "viz-title";
+    title.textContent = typeof viz.title === "string" ? viz.title : "";
+    container.appendChild(title);
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 320 150");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", title.textContent || "回答の図表");
+    const el = (tag, attrs, text) => {
+        const node = document.createElementNS(ns, tag);
+        Object.entries(attrs || {}).forEach(([key, value]) => node.setAttribute(key, String(value)));
+        if (text !== undefined) node.textContent = String(text);
+        return node;
+    };
+    const labels = Array.isArray(viz.labels) ? viz.labels.slice(0, 6).map(v => String(v).slice(0, 18)) : [];
+    const values = Array.isArray(viz.values) ? viz.values.slice(0, 6).map(Number) : [];
+    if (viz.type === "diagram") {
+        const steps = Array.isArray(viz.steps) ? viz.steps.slice(0, 4).map(v => String(v).slice(0, 28)) : [];
+        if (steps.length < 2) { container.hidden = true; return; }
+        const gap = 6, left = 8, totalW = 304, boxW = (totalW - gap * (steps.length - 1)) / steps.length;
+        steps.forEach((step, i) => {
+            const x = left + i * (boxW + gap);
+            svg.appendChild(el("rect", {x, y: 42, width: boxW, height: 48, rx: 3, class: "viz-node"}));
+            svg.appendChild(el("text", {x: x + boxW / 2, y: 62, "text-anchor": "middle", class: "viz-label"}, step.slice(0, 13)));
+            if (i < steps.length - 1) {
+                svg.appendChild(el("path", {d: `M ${x + boxW} 66 h ${gap - 2} m -4 -3 l 4 3 -4 3`, class: "viz-arrow"}));
+            }
+        });
+    } else {
+        if (labels.length < 2 || values.length !== labels.length || values.some(v => !Number.isFinite(v))) {
+            container.hidden = true;
+            return;
+        }
+        const min = Math.min(0, ...values), max = Math.max(...values);
+        const range = max - min || 1, x0 = 30, y0 = 118, plotW = 280, plotH = 90;
+        [0, 0.5, 1].forEach(t => svg.appendChild(el("line", {x1:x0, y1:y0-plotH*t, x2:310, y2:y0-plotH*t, class:"viz-grid"})));
+        const points = values.map((v, i) => ({x:x0 + (plotW/(values.length-1))*i, y:y0 - ((v-min)/range)*plotH}));
+        if (viz.type === "bar") {
+            const barW = Math.min(28, plotW / values.length * 0.58);
+            points.forEach((p, i) => {
+                svg.appendChild(el("rect", {x:p.x-barW/2, y:p.y, width:barW, height:Math.max(1,y0-p.y), rx:2, class:"viz-bar"}));
+                svg.appendChild(el("text", {x:p.x, y:136, "text-anchor":"middle", class:"viz-label"}, labels[i].slice(0,7)));
+                svg.appendChild(el("text", {x:p.x, y:Math.max(12,p.y-5), "text-anchor":"middle", class:"viz-label"}, String(values[i])));
+            });
+        } else {
+            svg.appendChild(el("polyline", {points:points.map(p=>p.x+","+p.y).join(" "), class:"viz-line"}));
+            points.forEach((p, i) => {
+                svg.appendChild(el("circle", {cx:p.x, cy:p.y, r:3, class:"viz-point"}));
+                svg.appendChild(el("text", {x:p.x, y:136, "text-anchor":"middle", class:"viz-label"}, labels[i].slice(0,7)));
+            });
+        }
+    }
+    container.appendChild(svg);
+    container.hidden = false;
+}
+
 async function sendToGemini(text) {
 
     const requestUserId = window.jarvisCurrentUserId || null;
@@ -2134,6 +2212,7 @@ async function sendToGemini(text) {
         }
 
         document.getElementById("voiceResponse").textContent = data.text;
+        renderJarvisVisualization(data.visualization);
 
         document
             .getElementById("jarvisHoloPanel")
@@ -2187,6 +2266,7 @@ async function sendToGemini(text) {
             console.error("Gemini conversation failed:", error);
             document.getElementById("voiceResponse").textContent =
                 "処理に失敗しました。通信状態を確認して、もう一度お試しください。";
+            renderJarvisVisualization(null);
             document.getElementById("jarvisHoloPanel").classList.add("show");
             status.textContent = "処理に失敗しました";
             updateHudStatus("ONLINE", "STANDBY", "ERROR", "RECOVERY");
