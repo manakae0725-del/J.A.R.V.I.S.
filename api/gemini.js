@@ -276,9 +276,9 @@ module.exports = async function handler(req, res) {
           return calendarDirect(res, "「" + spreadsheet.name + "」の「" + tab + "」シートは空です。", "指定したシートにデータはありません。");
         }
         const formattedRows = rows.map(row => row.map(cell => String(cell ?? "").slice(0, 200)).join(" | "));
-        const resultText = "Google Sheets読み取り結果： " + spreadsheet.name + " / " + tab + "\\n" +
-          formattedRows.join("\\n") +
-          (rows.length === 20 ? "\\n（先頭20行を表示。必要なら範囲を指定してください）" : "");
+        const resultText = "Google Sheets読み取り結果： " + spreadsheet.name + " / " + tab + "\n" +
+          formattedRows.join("\n") +
+          (rows.length === 20 ? "\n（先頭20行を表示。必要なら範囲を指定してください）" : "");
         return calendarDirect(res, resultText, "スプレッドシートの内容を取得しました。");
       } catch (error) {
         console.error("Google Sheets natural-language read failed", {
