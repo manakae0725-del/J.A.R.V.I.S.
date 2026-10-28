@@ -268,10 +268,10 @@ module.exports = async function handler(req, res) {
       userText.includes("docs.google.com/spreadsheets/d/");
     if (spreadsheetRegistrationIntent) {
       try {
-        const salesLine = userText.split(/\\r?\\n/).find(line => line.includes("売上管理"));
-        const retailLine = userText.split(/\\r?\\n/).find(line => line.includes("店販管理"));
-        const salesUrl = salesLine?.match(/https?:\\S+/)?.[0];
-        const retailUrl = retailLine?.match(/https?:\\S+/)?.[0];
+        const salesLine = userText.split(/\r?\n/).find(line => line.includes("売上管理"));
+        const retailLine = userText.split(/\r?\n/).find(line => line.includes("店販管理"));
+        const salesUrl = salesLine?.match(/https?:\S+/)?.[0];
+        const retailUrl = retailLine?.match(/https?:\S+/)?.[0];
         const salesId = spreadsheetIdFromUrl(salesUrl);
         const retailId = spreadsheetIdFromUrl(retailUrl);
         if (!salesId || !retailId) {
@@ -285,7 +285,7 @@ module.exports = async function handler(req, res) {
           }
         };
         await saveSpreadsheetRegistry(user.id, registry);
-        return calendarDirect(res, "スプレッドシートを登録しました。\\n売上管理: ID登録済み\\n店販管理: ID登録済み\\n今後はファイル名検索に頼らず、登録したIDで対象を識別します。", "売上管理と店販管理のIDを記憶しました。");
+        return calendarDirect(res, "スプレッドシートを登録しました。\n売上管理: ID登録済み\n店販管理: ID登録済み\n今後はファイル名検索に頼らず、登録したIDで対象を識別します。", "売上管理と店販管理のIDを記憶しました。");
       } catch (error) {
         console.error("Spreadsheet registry save failed", { name: error?.name || "Error" });
         return calendarDirect(res, "スプレッドシートIDを保存できませんでした。Supabaseの記憶機能の状態を確認してください。", "スプレッドシートIDを保存できませんでした。");
