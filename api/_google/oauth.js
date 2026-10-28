@@ -60,6 +60,29 @@ async function exchangeCode(code) {
   return data;
 }
 
+async function refreshAccessToken(refreshToken) {
+  const { clientId, clientSecret } = getGoogleConfig();
+  const body = new URLSearchParams({
+    refresh_token: refreshToken,
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: "refresh_token"
+  });
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || typeof data.access_token !== "string") {
+    const error = new Error("Google access token refresh failed");
+    error.status = response.status;
+    error.code = typeof data.error === "string" ? data.error : "refresh_failed";
+    throw error;
+  }
+  return data;
+}
+
 async function fetchGoogleIdentity(accessToken) {
   const response = await fetch(GOOGLE_USERINFO_URL, {
     headers: { Authorization: `Bearer ${accessToken}` }
