@@ -89,7 +89,8 @@ module.exports = async function handler(req, res) {
     }
     const valueInputOption = input.valueInputOption === "USER_ENTERED" ? "USER_ENTERED" : "RAW";
     const method = input.action === "append" ? "append" : "update";
-    const params = new URLSearchParams({ valueInputOption, insertDataOption: "INSERT_ROWS" });
+    const params = new URLSearchParams({ valueInputOption });
+    if (input.action === "append") params.set("insertDataOption", "INSERT_ROWS");
     const url = input.action === "append" ? `${valuesUrl}:append?${params}` : `${valuesUrl}?${params}`;
     const result = await googleApiRequest(user.id, connectionId, url, {
       method: input.action === "append" ? "POST" : "PUT",
