@@ -678,7 +678,13 @@ POWER
  let client=null,resolveReady;
  window.jarvisAuthReady=new Promise(resolve=>{resolveReady=resolve;});
  window.jarvisGetAccessToken=async function(){await window.jarvisAuthReady;if(!client)return null;const result=await client.auth.getSession();return result.data.session?result.data.session.access_token:null;};
- function show(session,animate=false){const signedIn=Boolean(session);signOut.hidden=!signedIn;window.jarvisCurrentUserId=signedIn&&session.user&&typeof session.user.id==="string"?session.user.id:null;if(signedIn){screen.classList.remove("is-authenticating");screen.classList.add("is-exiting");setTimeout(()=>{screen.hidden=true;screen.classList.remove("is-exiting");},850);}else{screen.hidden=false;screen.classList.remove("is-exiting","is-authenticating");button.disabled=false;}window.dispatchEvent(new CustomEvent("jarvis-auth-change",{detail:{userId:window.jarvisCurrentUserId}}));}
+ let currentSession=null,hasResolvedInitialSession=false;
+ function revealHome(){screen.classList.remove("is-authenticating");screen.classList.add("is-exiting");setTimeout(()=>{screen.hidden=true;screen.classList.remove("is-exiting");},850);}
+ function show(session,eventName=""){currentSession=session||null;const signedIn=Boolean(session);signOut.hidden=!signedIn;window.jarvisCurrentUserId=signedIn&&session.user&&typeof session.user.id==="string"?session.user.id:null;
+  if(!signedIn){screen.hidden=false;screen.classList.remove("is-exiting","is-authenticating");button.disabled=false;}
+  else if(eventName==="SIGNED_IN"||eventName==="PASSWORD_RECOVERY"){revealHome();}
+  window.dispatchEvent(new CustomEvent("jarvis-auth-change",{detail:{userId:window.jarvisCurrentUserId}}));
+ }
  async function init(){try{
   if(!window.supabase||!window.supabase.createClient)throw new Error("認証ライブラリを読み込めません。再読み込みしてください。");
   const response=await fetch("/api/auth-config",{cache:"no-store"}),config=await response.json();
@@ -686,9 +692,12 @@ POWER
   client=window.supabase.createClient(config.url,config.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   window.jarvisSupabase=client;
   const result=await client.auth.getSession();if(result.error)throw result.error;
-  show(result.data.session,true);client.auth.onAuthStateChange((_event,session)=>show(session,true));resolveReady();
+  currentSession=result.data.session||null;
+  show(currentSession,"INITIAL_SESSION");
+  client.auth.onAuthStateChange((event,session)=>{if(event==="INITIAL_SESSION"&&hasResolvedInitialSession)return;show(session,event);});
+  hasResolvedInitialSession=true;resolveReady();
  }catch(error){message.textContent=error?.message||"認証の初期化に失敗しました。";button.disabled=true;resolveReady();}}
- button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;screen.classList.add("is-authenticating");message.textContent="AUTHENTICATING...";try{const result=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(result.error)throw result.error;}catch(error){message.textContent=error?.message||"UNABLE TO START SIGN-IN.";button.disabled=false;screen.classList.remove("is-authenticating");}});
+ button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;screen.classList.add("is-authenticating");message.textContent="AUTHENTICATING...";try{const sessionResult=await client.auth.getSession();if(sessionResult.error)throw sessionResult.error;if(sessionResult.data.session){currentSession=sessionResult.data.session;show(currentSession,"CORE_TAP");revealHome();return;}const result=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(result.error)throw result.error;}catch(error){message.textContent=error?.message||"UNABLE TO START SIGN-IN.";button.disabled=false;screen.classList.remove("is-authenticating");}});
  signOut.addEventListener("click",async()=>{if(!client)return;signOut.disabled=true;const result=await client.auth.signOut();if(result.error)message.textContent="SIGN-OUT FAILED.";signOut.disabled=false;});
  init();
 })();
