@@ -300,6 +300,7 @@ color: #61a6ff;
 .jarvis-visualization[hidden]{display:none!important}
 .jarvis-visualization .viz-title{margin:0 0 6px;color:#8acfff;letter-spacing:1px;font-size:10px}
 .jarvis-visualization svg{display:block;width:100%;height:auto;max-height:210px;overflow:visible}.jarvis-visualization svg.viz-diagram-svg{max-height:none}.jarvis-visualization .viz-step-text{fill:#e8f7ff;font:11px monospace}
+.jarvis-visualization .viz-gauge-value{fill:#e8f7ff;font:24px monospace;font-weight:bold}.jarvis-visualization .viz-blueprint-grid{stroke:rgba(35,199,255,.13);stroke-width:.5}
 .jarvis-visualization .viz-label{fill:#bfeaff;font:10px monospace}
 .jarvis-visualization .viz-grid{stroke:rgba(0,153,255,.2);stroke-width:1}
 .jarvis-visualization .viz-bar{fill:rgba(0,190,255,.72);stroke:#00d2ff;stroke-width:1}
@@ -2078,7 +2079,8 @@ function renderJarvisVisualization(viz) {
     const container = document.getElementById("jarvisVisualization");
     if (!container) return;
     container.replaceChildren();
-    if (!viz || !["bar", "line", "diagram"].includes(viz.type)) {
+    const supported = ["bar", "line", "diagram", "pie", "donut", "flowchart", "structure", "blueprint", "gauge", "matrix"];
+    if (!viz || !supported.includes(viz.type)) {
         container.hidden = true;
         return;
     }
@@ -2088,7 +2090,7 @@ function renderJarvisVisualization(viz) {
     container.appendChild(title);
     const ns = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg");
-    svg.setAttribute("viewBox", "0 0 320 150");
+    svg.setAttribute("viewBox", "0 0 320 180");
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label", title.textContent || "回答の図表");
     const el = (tag, attrs, text) => {
@@ -2099,47 +2101,117 @@ function renderJarvisVisualization(viz) {
     };
     const labels = Array.isArray(viz.labels) ? viz.labels.slice(0, 6).map(v => String(v).slice(0, 18)) : [];
     const values = Array.isArray(viz.values) ? viz.values.slice(0, 6).map(Number) : [];
-    if (viz.type === "diagram") {
-        const steps = Array.isArray(viz.steps) ? viz.steps.slice(0, 4).map(v => String(v).slice(0, 28)) : [];
+    const steps = Array.isArray(viz.steps) ? viz.steps.slice(0, 6).map(v => String(v).slice(0, 40)) : [];
+    const colors = ["#23c7ff", "#168ee8", "#62e5ff", "#3269d8", "#38b6a7", "#7a8cff"];
+    const addText = (x, y, text, cls = "viz-label", anchor = "middle") =>
+        svg.appendChild(el("text", {x, y, "text-anchor": anchor, class: cls}, text));
+
+    if (viz.type === "diagram" || viz.type === "flowchart") {
         if (steps.length < 2) { container.hidden = true; return; }
         const cardH = 48, stepGap = 20, top = 8;
         svg.setAttribute("viewBox", "0 0 320 " + (top * 2 + steps.length * cardH + (steps.length - 1) * stepGap));
         svg.classList.add("viz-diagram-svg");
         steps.forEach((step, i) => {
             const y = top + i * (cardH + stepGap);
-            svg.appendChild(el("rect", {x: 10, y: y, width: 300, height: cardH, rx: 4, class: "viz-node"}));
+            svg.appendChild(el("rect", {x: 10, y, width: 300, height: cardH, rx: 4, class: "viz-node"}));
             const textNode = el("text", {x: 160, y: y + (step.length > 18 ? 19 : 28), "text-anchor": "middle", class: "viz-step-text"});
-            const cleanStep = step.trim();
-            const lines = [];
-            for (let start = 0; start < cleanStep.length; start += 20) lines.push(cleanStep.slice(start, start + 20));
-            lines.slice(0, 2).forEach((line, lineIndex) => textNode.appendChild(el("tspan", {x: 160, dy: lineIndex === 0 ? 0 : 15}, line)));
+            for (let start = 0, lineIndex = 0; start < step.length && lineIndex < 2; start += 20, lineIndex++) {
+                textNode.appendChild(el("tspan", {x: 160, dy: lineIndex === 0 ? 0 : 15}, step.slice(start, start + 20)));
+            }
             svg.appendChild(textNode);
             if (i < steps.length - 1) {
                 const arrowY = y + cardH + 3;
                 svg.appendChild(el("path", {d: "M 160 " + arrowY + " v 12 m -4 -4 l 4 4 4 -4", class: "viz-arrow"}));
             }
         });
-    } else {
-        if (labels.length < 2 || values.length !== labels.length || values.some(v => !Number.isFinite(v))) {
-            container.hidden = true;
-            return;
+    } else if (viz.type === "pie" || viz.type === "donut") {
+        if (labels.length < 2 || values.length !== labels.length || values.some(v => !Number.isFinite(v) || v < 0) || values.reduce((a,b)=>a+b,0) <= 0) { container.hidden = true; return; }
+        const total = values.reduce((a,b)=>a+b,0), cx = 82, cy = 88, radius = 55;
+        let angle = -Math.PI / 2;
+        values.forEach((value, i) => {
+            const next = angle + value / total * Math.PI * 2;
+            const x1 = cx + radius * Math.cos(angle), y1 = cy + radius * Math.sin(angle);
+            const x2 = cx + radius * Math.cos(next), y2 = cy + radius * Math.sin(next);
+            const large = next - angle > Math.PI ? 1 : 0;
+            const path = "M " + cx + " " + cy + " L " + x1 + " " + y1 + " A " + radius + " " + radius + " 0 " + large + " 1 " + x2 + " " + y2 + " Z";
+            svg.appendChild(el("path", {d: path, fill: colors[i % colors.length], stroke: "#06172c", "stroke-width": 1}));
+            angle = next;
+            const ly = 38 + i * 23;
+            svg.appendChild(el("rect", {x: 158, y: ly - 9, width: 8, height: 8, rx: 1, fill: colors[i % colors.length]}));
+            addText(172, ly, labels[i].slice(0, 17), "viz-label", "start");
+            addText(306, ly, Math.round(value / total * 100) + "%", "viz-label", "end");
+        });
+        if (viz.type === "donut") {
+            svg.appendChild(el("circle", {cx, cy, r: 29, fill: "#06172c"}));
+            addText(cx, cy - 1, "合計", "viz-label");
+            addText(cx, cy + 13, String(total), "viz-label");
         }
+    } else if (viz.type === "gauge") {
+        const value = values.length ? values[0] : NaN;
+        if (!Number.isFinite(value) || value < 0 || value > 100) { container.hidden = true; return; }
+        const circumference = 2 * Math.PI * 49;
+        svg.appendChild(el("circle", {cx:160, cy:88, r:49, fill:"none", stroke:"rgba(35,199,255,.16)", "stroke-width":10}));
+        svg.appendChild(el("circle", {cx:160, cy:88, r:49, fill:"none", stroke:"#23c7ff", "stroke-width":10, "stroke-linecap":"round", "stroke-dasharray":(circumference*value/100)+" "+circumference, transform:"rotate(-90 160 88)"}));
+        addText(160, 91, Math.round(value) + "%", "viz-gauge-value");
+        addText(160, 112, labels[0] || "達成率", "viz-label");
+    } else if (viz.type === "structure") {
+        if (labels.length < 3) { container.hidden = true; return; }
+        svg.setAttribute("viewBox", "0 0 320 180");
+        svg.appendChild(el("rect", {x:95,y:10,width:130,height:38,rx:5,class:"viz-node"}));
+        addText(160, 33, (viz.title || "中心要素").slice(0,18), "viz-label");
+        const count = Math.min(labels.length, 5), left = 8, gap = 5, w = (304 - gap * (count - 1)) / count;
+        svg.appendChild(el("path", {d:"M 160 48 V 65 H 160", class:"viz-arrow"}));
+        svg.appendChild(el("line", {x1:left+w/2,y1:65,x2:left+(count-1)*(w+gap)+w/2,y2:65,class:"viz-arrow"}));
+        for (let i=0;i<count;i++) {
+            const x=left+i*(w+gap);
+            svg.appendChild(el("line",{x1:x+w/2,y1:65,x2:x+w/2,y2:79,class:"viz-arrow"}));
+            svg.appendChild(el("rect",{x,y:79,width:w,height:52,rx:3,class:"viz-node"}));
+            const txt=el("text",{x:x+w/2,y:100,"text-anchor":"middle",class:"viz-step-text"});
+            const s=labels[i];
+            txt.appendChild(el("tspan",{x:x+w/2,dy:0},s.slice(0,9)));
+            if(s.length>9)txt.appendChild(el("tspan",{x:x+w/2,dy:13},s.slice(9,18)));
+            svg.appendChild(txt);
+        }
+    } else if (viz.type === "blueprint") {
+        if (labels.length < 3) { container.hidden = true; return; }
+        svg.classList.add("viz-blueprint-svg");
+        for(let x=0;x<=320;x+=16)svg.appendChild(el("line",{x1:x,y1:0,x2:x,y2:180,class:"viz-blueprint-grid"}));
+        for(let y=0;y<=180;y+=16)svg.appendChild(el("line",{x1:0,y1:y,x2:320,y2:y,class:"viz-blueprint-grid"}));
+        const count=labels.length, cols=count<=4?2:3, rows=Math.ceil(count/cols), cellW=280/cols, cellH=140/rows;
+        labels.forEach((label,i)=>{
+            const col=i%cols,row=Math.floor(i/cols),x=20+col*cellW,y=20+row*cellH;
+            svg.appendChild(el("rect",{x,y,width:cellW-8,height:cellH-8,fill:"rgba(0,90,160,.18)",stroke:"#23c7ff","stroke-width":1.2}));
+            addText(x+(cellW-8)/2,y+(cellH-8)/2+4,label.slice(0,14),"viz-step-text");
+        });
+        svg.appendChild(el("rect",{x:5,y:5,width:310,height:170,fill:"none",stroke:"rgba(35,199,255,.65)","stroke-width":1}));
+    } else if (viz.type === "matrix") {
+        if (labels.length < 2 || values.length !== labels.length || values.some(v => !Number.isFinite(v))) { container.hidden = true; return; }
+        const max = Math.max(1, ...values.map(v=>Math.abs(v)));
+        labels.forEach((label,i)=>{
+            const y=25+i*25, barW=150*Math.abs(values[i])/max;
+            addText(8,y+4,label.slice(0,13),"viz-label","start");
+            svg.appendChild(el("rect",{x:112,y:y-8,width:150,height:12,rx:2,fill:"rgba(35,199,255,.12)"}));
+            svg.appendChild(el("rect",{x:112,y:y-8,width:barW,height:12,rx:2,fill:colors[i%colors.length]}));
+            addText(310,y+4,String(values[i]),"viz-label","end");
+        });
+    } else {
+        if (labels.length < 2 || values.length !== labels.length || values.some(v => !Number.isFinite(v))) { container.hidden = true; return; }
         const min = Math.min(0, ...values), max = Math.max(...values);
-        const range = max - min || 1, x0 = 30, y0 = 118, plotW = 280, plotH = 90;
+        const range = max - min || 1, x0 = 30, y0 = 142, plotW = 280, plotH = 110;
         [0, 0.5, 1].forEach(t => svg.appendChild(el("line", {x1:x0, y1:y0-plotH*t, x2:310, y2:y0-plotH*t, class:"viz-grid"})));
         const points = values.map((v, i) => ({x:x0 + (plotW/(values.length-1))*i, y:y0 - ((v-min)/range)*plotH}));
         if (viz.type === "bar") {
             const barW = Math.min(28, plotW / values.length * 0.58);
             points.forEach((p, i) => {
                 svg.appendChild(el("rect", {x:p.x-barW/2, y:p.y, width:barW, height:Math.max(1,y0-p.y), rx:2, class:"viz-bar"}));
-                svg.appendChild(el("text", {x:p.x, y:136, "text-anchor":"middle", class:"viz-label"}, labels[i].slice(0,7)));
-                svg.appendChild(el("text", {x:p.x, y:Math.max(12,p.y-5), "text-anchor":"middle", class:"viz-label"}, String(values[i])));
+                addText(p.x, 164, labels[i].slice(0,7));
+                addText(p.x, Math.max(12,p.y-5), String(values[i]));
             });
         } else {
             svg.appendChild(el("polyline", {points:points.map(p=>p.x+","+p.y).join(" "), class:"viz-line"}));
             points.forEach((p, i) => {
                 svg.appendChild(el("circle", {cx:p.x, cy:p.y, r:3, class:"viz-point"}));
-                svg.appendChild(el("text", {x:p.x, y:136, "text-anchor":"middle", class:"viz-label"}, labels[i].slice(0,7)));
+                addText(p.x, 164, labels[i].slice(0,7));
             });
         }
     }
