@@ -183,8 +183,10 @@ module.exports = async function handler(req, res) {
         .replace(/明後日|あさって|明日|あした|今日|本日/g," ")
         .replace(/\d{1,2}時(?:\d{1,2}分)?(?:から|〜|～|-)\s*\d{1,2}時(?:\d{1,2}分)?/g," ")
         .replace(/\d{1,2}時(?:\d{1,2}分)?/g," ")
-        .replace(/(?:予定|スケジュール|カレンダー)(?:を|に)?|(?:入れて|追加して|登録して|作って|作成して|変更して|ずらして|削除して|消して|教えて|お願いします)/g," ")
-        .replace(/[「」『』"“”、。,.！!？?]/g," ").trim();
+        .replace(/(?:予定|スケジュール|カレンダー)(?:を|に|の)?|(?:入れて|追加して|登録して|作って|作成して|変更して|ずらして|削除して|消して|教えて|お願いします)/g," ")
+        .replace(/[「」『』"“”、。,.！!？?]/g," ")
+        .replace(/^[\sにのをはがでとへからまで]+|[\sにのをはがでとへからまで]+$/g," ")
+        .replace(/\s+/g," ").trim();
       return candidate.length>0 && candidate.length<=200 ? candidate : null;
     })();
     const creating=/(?:予定|スケジュール|カレンダー).*(?:入れて|追加|登録|作って|作成)|(?:入れて|追加して|登録して).*(?:予定|スケジュール|カレンダー)/.test(userText);
@@ -199,7 +201,10 @@ module.exports = async function handler(req, res) {
           const d=calendarDate(userText),t=d&&calendarTime(userText,d);
           if(!title||!d||!t)return calendarDirect(res,"予定名を「」で囲み、今日・明日・明後日または年月日と、開始・終了時刻を指定してください。例：明日「買い物」を10時から11時で予定に入れて。","予定名、日付、開始・終了時刻を指定してください。");
           const token=signCalendarAction({userId:user.id,action:"create",event:{summary:title,...t}});
-          return calendarDirect(res,"次の内容で登録します：『"+title+"』、"+d.toISOString().slice(0,10)+"、"+userText.match(/\d{1,2}時[^。]*?(?:から|〜|～|-)[^。]*?\d{1,2}時/)?.[0]+"。実行してよろしいですか？「はい」または「キャンセル」とお答えください。","予定を登録します。よろしいですか？",{pendingCalendarAction:token});
+          const startLocal=new Date(Date.parse(t.start.dateTime)+9*3600000);
+          const endLocal=new Date(Date.parse(t.end.dateTime)+9*3600000);
+          const fmt=x=>String(x.getUTCHours()).padStart(2,"0")+":"+String(x.getUTCMinutes()).padStart(2,"0");
+          return calendarDirect(res,"次の内容で登録します：『"+title+"』、"+d.toISOString().slice(0,10)+"、"+fmt(startLocal)+"〜"+fmt(endLocal)+"。実行してよろしいですか？「はい」または「キャンセル」とお答えください。","予定を登録します。"+title+"、"+fmt(startLocal)+"から"+fmt(endLocal)+"です。よろしいですか？",{pendingCalendarAction:token});
         }
         if(!title)return calendarDirect(res,"対象の予定名を「」で指定してください。","対象の予定名を「」で指定してください。");
         const now=new Date(),params=new URLSearchParams({timeMin:now.toISOString(),timeMax:new Date(now.getTime()+180*86400000).toISOString(),singleEvents:"true",orderBy:"startTime",maxResults:"100",q:title});
