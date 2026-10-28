@@ -152,12 +152,39 @@ module.exports = async function handler(req, res) {
 
     // Conversational calendar mutations require a signed, short-lived confirmation token.
     const actionToken=req.body?.pendingCalendarAction;
-    const pendingAction=verifyCalendarAction(actionToken,user.id);
-    const confirm=/^(はい|実行|実行して|登録|変更|削除|確定|お願いします|yes|ok)[。！! ]*$/i.test(userText.trim());
-    const cancel=/^(いいえ|キャンセル|やめて|中止)[。！! ]*$/i.test(userText.trim());
-    if(actionToken&&(confirm||cancel)){
-      if(!pendingAction)return calendarDirect(res,"確認情報が無効か期限切れです。もう一度依頼してください。","確認情報が無効か期限切れです。",{pendingCalendarAction:null});
-      if(cancel)return calendarDirect(res,"操作をキャンセルしました。カレンダーは変更していません。","操作をキャンセルしました。",{pendingCalendarAction:null});
+    let pendingAction=verifyCalendarAction(actionToken,user.id);
+    const confirm=/^(はい|はいお願いします|それで|それでお願い|それでお願いします|お願いします|実行|実行して|登録|登録して|変更|変更して|確定|ok|okay|yes|いいよ|大丈夫)[。！!、, ]*$/i.test(userText.trim());
+    const cancel=/^(いいえ|いいえ大丈夫|キャンセル|キャンセルして|やめて|やめます|中止|取り消して|取り消し|実行しないで|登録しないで)[。！!、, ]*$/i.test(userText.trim());
+    if(actionToken && !pendingAction){
+      return calendarDirect(res,"確認情報が無効か期限切れです。もう一度依頼してください。","確認情報が無効か期限切れです。",{pendingCalendarAction:null});
+    }
+    if(actionToken && cancel){
+      return calendarDirect(res,"操作をキャンセルしました。カレンダーは変更していません。","操作をキャンセルしました。",{pendingCalendarAction:null});
+    }
+    if(actionToken && !confirm && !cancel){
+      const hasCorrection=/(?:やっぱり|やはり|いや|違う|変更|ずらして|にして|からに|時に)/.test(userText);
+      const pendingEvent=pendingAction?.action==="create" ? pendingAction.event : pendingAction?.action==="update" ? pendingAction.patch : null;
+      const baseStart=pendingEvent?.start?.dateTime;
+      if(hasCorrection && pendingEvent && baseStart){
+        const dateLocal=new Date(Date.parse(baseStart)+9*3600000);
+        const date=new Date(Date.UTC(dateLocal.getUTCFullYear(),dateLocal.getUTCMonth(),dateLocal.getUTCDate()));
+        const correctedTime=calendarTime(userText,date);
+        if(correctedTime){
+          if(pendingAction.action==="create") pendingAction.event={...pendingAction.event,...correctedTime};
+          else pendingAction.patch={...pendingAction.patch,...correctedTime};
+          const revised=signCalendarAction(pendingAction);
+          const start=new Date(Date.parse(correctedTime.start.dateTime)+9*3600000);
+          const end=new Date(Date.parse(correctedTime.end.dateTime)+9*3600000);
+          const fmt=x=>String(x.getUTCHours()).padStart(2,"0")+":"+String(x.getUTCMinutes()).padStart(2,"0");
+          return calendarDirect(res,"時刻を"+fmt(start)+"〜"+fmt(end)+"に変更しました。ほかの内容はそのままです。この内容で実行してよろしいですか？「はい」または「キャンセル」とお答えください。","時刻を"+fmt(start)+"から"+fmt(end)+"に変更しました。この内容でよろしいですか？",{pendingCalendarAction:revised});
+        }
+      }
+      if(/ちょっと待って|待って|保留|あとで/.test(userText)){
+        return calendarDirect(res,"承知しました。操作は実行せず保留します。「はい」で実行、「キャンセル」で中止できます。","操作は実行せず保留します。",{pendingCalendarAction:actionToken});
+      }
+      return calendarDirect(res,"まだ実行していません。内容を変える場合は「やっぱり12時からにして」、実行する場合は「それでお願いします」、中止する場合は「やめて」とお伝えください。","まだ実行していません。内容の変更、実行、中止をお伝えください。",{pendingCalendarAction:actionToken});
+    }
+    if(actionToken && confirm){
       try{
         const cs=await listConnectionsForUser(user.id),c=Array.isArray(cs)?cs.find(x=>x?.status==="connected"):null;
         if(!c?.id)return calendarDirect(res,"Googleカレンダーが未接続です。","Googleカレンダーが未接続です。",{pendingCalendarAction:null});
@@ -174,9 +201,10 @@ module.exports = async function handler(req, res) {
           await googleApiRequest(user.id,c.id,base+"/"+encodeURIComponent(pendingAction.eventId),{method:"DELETE"});
           return calendarDirect(res,"「"+pendingAction.title+"」の予定を削除しました。","予定を削除しました。",{pendingCalendarAction:null});
         }
+        return calendarDirect(res,"確認対象を判定できません。もう一度依頼してください。","確認対象を判定できません。",{pendingCalendarAction:null});
       }catch(e){console.error("Calendar action failed",{name:e?.name||"Error",status:e?.status});return calendarDirect(res,"Googleカレンダーの操作に失敗しました。カレンダーを確認してください。","Googleカレンダーの操作に失敗しました。",{pendingCalendarAction:null})}
     }
-    if(actionToken)return calendarDirect(res,"保留中の操作があります。「はい」で実行、「キャンセル」で中止できます。","保留中の操作があります。",{pendingCalendarAction:actionToken});
+    
     const title=calendarQuotedTitle(userText) || (() => {
       let candidate=userText
         .replace(/20\d{2}年\d{1,2}月\d{1,2}日/g," ")
