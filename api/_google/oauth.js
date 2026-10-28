@@ -15,8 +15,36 @@ function getGoogleConfig() {
   return { clientId, clientSecret, redirectUri };
 }
 
-function createState() {
-  return crypto.randomBytes(32).toString("hex");
+function normalizeReturnOrigin(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch (_) {
+    throw new Error("Google OAuth return origin is invalid");
+  }
+  if (url.protocol !== "https:" || url.origin !== value || url.username || url.password) {
+    throw new Error("Google OAuth return origin is invalid");
+  }
+  const hostname = url.hostname.toLowerCase();
+  const isProduction = hostname === "j-a-r-v-i-s-gold.vercel.app";
+  const isProjectPreview = /^j-a-r-v-i-[a-z0-9-]+-manato2\.vercel\.app$/.test(hostname);
+  if (!isProduction && !isProjectPreview) {
+    throw new Error("Google OAuth return origin is not an allowed J.A.R.V.I.S. domain");
+  }
+  return url.origin;
+}
+
+function createState(returnOrigin) {
+  const origin = normalizeReturnOrigin(returnOrigin);
+  const encodedOrigin = Buffer.from(origin, "utf8").toString("base64url");
+  return crypto.randomBytes(32).toString("hex") + "." + encodedOrigin;
+}
+
+function returnOriginFromState(state) {
+  const match = /^([0-9a-f]{64})\.([A-Za-z0-9_-]+)$/.exec(state);
+  if (!match) throw new Error("Google OAuth state is invalid");
+  const origin = Buffer.from(match[2], "base64url").toString("utf8");
+  return normalizeReturnOrigin(origin);
 }
 
 function hashState(state) {
@@ -114,6 +142,7 @@ async function revokeGoogleToken(token) {
 module.exports = {
   getGoogleConfig,
   createState,
+  returnOriginFromState,
   hashState,
   createAuthorizationUrl,
   exchangeCode,
