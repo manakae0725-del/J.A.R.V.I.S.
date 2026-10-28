@@ -30,7 +30,11 @@ module.exports = async function handler(req, res) {
   if (!(await enforceRateLimit(res, user, "google-oauth-day", 30, 86400))) return;
 
   try {
-    const state = createState();
+    const requestOrigin = req.headers.origin;
+    if (typeof requestOrigin !== "string") {
+      return res.status(400).json({ error: "Request origin is required" });
+    }
+    const state = createState(requestOrigin);
     const scopes = CALENDAR_SCOPES;
     await createOAuthState({
       stateHash: hashState(state),
