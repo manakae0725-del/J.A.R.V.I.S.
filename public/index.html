@@ -407,7 +407,10 @@ body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity 
     <button id="gtaskCreate" type="button">テストタスク追加</button>
     <button id="gtaskComplete" type="button">テストタスク完了</button>
     <button id="gtaskDelete" type="button">テストタスク削除</button>
+    <button id="gdriveRead" type="button">Driveファイル一覧</button>
+    <button id="gsheetsRead" type="button">Sheets読み取り</button>
   </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><input id="gsheetsId" type="text" placeholder="スプレッドシートID" aria-label="スプレッドシートID" style="min-width:180px;max-width:100%;padding:8px;background:#06182a;color:#e7f7ff;border:1px solid #258bc4"><input id="gsheetsRange" type="text" value="A1:Z20" aria-label="読み取り範囲" style="width:100px;padding:8px;background:#06182a;color:#e7f7ff;border:1px solid #258bc4"></div>
   <pre id="gcalResult" style="white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0">ログイン後に操作してください。</pre>
 </div>
 <style>
@@ -2656,6 +2659,28 @@ async function sendToGemini(text) {
      say({ok:data.ok,deleted:data.deleted});
    }catch(e){say(e.message);}
  });
+ document.getElementById("gdriveRead").addEventListener("click",async()=>{
+   try{
+     if(!connectionId) await loadStatus();
+     if(!connectionId) throw new Error("接続IDがありません。先にGoogle接続を行ってください。");
+     const q=new URLSearchParams({connectionId,pageSize:"25"});
+     const data=await request("/api/google/drive?"+q.toString());
+     say({ok:data.ok,count:(data.files||[]).length,files:(data.files||[]).map(f=>({id:f.id,name:f.name,mimeType:f.mimeType,modifiedTime:f.modifiedTime,webViewLink:f.webViewLink}))});
+   }catch(e){say(e.message);}
+ });
+ document.getElementById("gsheetsRead").addEventListener("click",async()=>{
+   try{
+     if(!connectionId) await loadStatus();
+     if(!connectionId) throw new Error("接続IDがありません。先にGoogle接続を行ってください。");
+     const spreadsheetId=document.getElementById("gsheetsId").value.trim();
+     const range=document.getElementById("gsheetsRange").value.trim()||"A1:Z20";
+     if(!spreadsheetId) throw new Error("スプレッドシートIDを入力してください。");
+     const q=new URLSearchParams({connectionId,spreadsheetId,range});
+     const data=await request("/api/google/sheets?"+q.toString());
+     say({ok:data.ok,spreadsheetId:data.spreadsheetId,range:data.range,values:data.values});
+   }catch(e){say(e.message);}
+ });
+
  window.addEventListener("jarvis-auth-change",event=>{
    const signedIn=Boolean(event.detail?.userId);
    toggle.hidden=!signedIn;
