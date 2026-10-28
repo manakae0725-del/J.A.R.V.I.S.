@@ -1,6 +1,7 @@
 const { consumeOAuthState, saveConnection } = require("../_google/tokenStore");
 const {
   hashState,
+  returnOriginFromState,
   exchangeCode,
   fetchGoogleIdentity
 } = require("../_google/oauth");
@@ -19,8 +20,8 @@ function appBaseUrl() {
   return new URL(redirectUri).origin;
 }
 
-function finish(res, result) {
-  const url = new URL("/", appBaseUrl());
+function finish(res, result, returnOrigin) {
+  const url = new URL("/", returnOrigin || appBaseUrl());
   url.searchParams.set("google_connection", result);
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
@@ -38,7 +39,10 @@ module.exports = async function handler(req, res) {
   }
 
   const state = typeof req.query?.state === "string" ? req.query.state : "";
-  if (!/^[0-9a-f]{64}$/.test(state)) {
+  let returnOrigin;
+  try {
+    returnOrigin = returnOriginFromState(state);
+  } catch (_) {
     return res.status(400).json({ error: "Invalid OAuth state" });
   }
 
@@ -58,7 +62,7 @@ module.exports = async function handler(req, res) {
 
   if (typeof req.query?.error === "string") {
     try {
-      return finish(res, "cancelled");
+      return finish(res, "cancelled", returnOrigin);
     } catch (_) {
       return res.status(500).json({ error: "Google connection result unavailable" });
     }
@@ -83,14 +87,14 @@ module.exports = async function handler(req, res) {
       scopes: grantedScopes
     });
 
-    return finish(res, "connected");
+    return finish(res, "connected", returnOrigin);
   } catch (error) {
     console.error("Google OAuth callback failed", {
       name: error?.name || "Error",
       status: Number.isInteger(error?.status) ? error.status : undefined
     });
     try {
-      return finish(res, "error");
+      return finish(res, "error", returnOrigin);
     } catch (_) {
       return res.status(503).json({ error: "Google connection unavailable" });
     }
