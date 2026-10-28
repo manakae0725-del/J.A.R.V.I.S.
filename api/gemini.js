@@ -57,6 +57,42 @@ const { enforceRateLimit } = require("./_rateLimit");
 const { listConnectionsForUser } = require("./_google/tokenStore");
 const { googleApiRequest } = require("./_google/client");
 
+const crypto = require("crypto");
+function signCalendarAction(payload) {
+  const body=Buffer.from(JSON.stringify({...payload,exp:Date.now()+600000}),"utf8").toString("base64url");
+  const sig=crypto.createHmac("sha256",process.env.GEMINI_API_KEY||"").update(body).digest("base64url");
+  return body+"."+sig;
+}
+function verifyCalendarAction(token,userId) {
+  if(typeof token!=="string"||token.length>4096)return null;
+  const [body,sig,...rest]=token.split("."); if(!body||!sig||rest.length)return null;
+  const expected=crypto.createHmac("sha256",process.env.GEMINI_API_KEY||"").update(body).digest();
+  let actual; try{actual=Buffer.from(sig,"base64url")}catch(_){return null}
+  if(actual.length!==expected.length||!crypto.timingSafeEqual(actual,expected))return null;
+  try{const p=JSON.parse(Buffer.from(body,"base64url").toString("utf8"));return p.userId===userId&&p.exp>Date.now()?p:null}catch(_){return null}
+}
+function calendarDate(text) {
+  const m=text.match(/(20\\d{2})[年/-](\\d{1,2})[月/-](\\d{1,2})日?/);
+  if(m)return new Date(Date.UTC(+m[1],+m[2]-1,+m[3]));
+  const now=new Date(Date.now()+9*3600000),d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));
+  if(/明後日|あさって/.test(text))d.setUTCDate(d.getUTCDate()+2);
+  else if(/明日|あした/.test(text))d.setUTCDate(d.getUTCDate()+1);
+  else if(!/今日|本日/.test(text))return null;
+  return d;
+}
+function calendarTime(text,date) {
+  const m=text.match(/(\\d{1,2})時(?:(\\d{1,2})分)?(?:から|〜|～|-)\\s*(\\d{1,2})時(?:(\\d{1,2})分)?/);
+  if(!m)return null;
+  const sh=+m[1],sm=+(m[2]||0),eh=+m[3],em=+(m[4]||0);
+  if(sh>23||eh>23||sm>59||em>59)return null;
+  const iso=(h,min)=>new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate(),h-9,min)).toISOString();
+  let start=iso(sh,sm),end=iso(eh,em);if(Date.parse(end)<=Date.parse(start))end=new Date(Date.parse(end)+86400000).toISOString();
+  return {start:{dateTime:start,timeZone:"Asia/Tokyo"},end:{dateTime:end,timeZone:"Asia/Tokyo"}};
+}
+function calendarQuotedTitle(text){return text.match(/[「『"“](.{1,200}?)[」』"”]/)?.[1]?.trim()||null}
+function calendarDirect(res,text,speechText,extra={}){return res.status(200).json({text,speechText,visualization:{type:"none",title:"",labels:[],values:[],steps:[]},interactionId:null,memory:{shouldSave:false,category:"personal",content:"",importance:1},sources:[],...extra})}
+
+
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -110,6 +146,62 @@ module.exports = async function handler(req, res) {
     const userText = userMarker?.[1]
       ? userMarker[1].trim()
       : rawText;
+
+
+    // Conversational calendar mutations require a signed, short-lived confirmation token.
+    const actionToken=req.body?.pendingCalendarAction;
+    const pendingAction=verifyCalendarAction(actionToken,user.id);
+    const confirm=/^(はい|実行|実行して|登録|変更|削除|確定|お願いします|yes|ok)[。！! ]*$/i.test(userText.trim());
+    const cancel=/^(いいえ|キャンセル|やめて|中止)[。！! ]*$/i.test(userText.trim());
+    if(actionToken&&(confirm||cancel)){
+      if(!pendingAction)return calendarDirect(res,"確認情報が無効か期限切れです。もう一度依頼してください。","確認情報が無効か期限切れです。",{pendingCalendarAction:null});
+      if(cancel)return calendarDirect(res,"操作をキャンセルしました。カレンダーは変更していません。","操作をキャンセルしました。",{pendingCalendarAction:null});
+      try{
+        const cs=await listConnectionsForUser(user.id),c=Array.isArray(cs)?cs.find(x=>x?.status==="connected"):null;
+        if(!c?.id)return calendarDirect(res,"Googleカレンダーが未接続です。","Googleカレンダーが未接続です。",{pendingCalendarAction:null});
+        const base="https://www.googleapis.com/calendar/v3/calendars/primary/events";
+        if(pendingAction.action==="create"){
+          const e=await googleApiRequest(user.id,c.id,base,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(pendingAction.event)});
+          return calendarDirect(res,"「"+e.summary+"」をGoogleカレンダーに登録しました。","予定を登録しました。",{pendingCalendarAction:null});
+        }
+        if(pendingAction.action==="update"){
+          await googleApiRequest(user.id,c.id,base+"/"+encodeURIComponent(pendingAction.eventId),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(pendingAction.patch)});
+          return calendarDirect(res,"「"+pendingAction.title+"」の予定を変更しました。","予定を変更しました。",{pendingCalendarAction:null});
+        }
+        if(pendingAction.action==="delete"){
+          await googleApiRequest(user.id,c.id,base+"/"+encodeURIComponent(pendingAction.eventId),{method:"DELETE"});
+          return calendarDirect(res,"「"+pendingAction.title+"」の予定を削除しました。","予定を削除しました。",{pendingCalendarAction:null});
+        }
+      }catch(e){console.error("Calendar action failed",{name:e?.name||"Error",status:e?.status});return calendarDirect(res,"Googleカレンダーの操作に失敗しました。カレンダーを確認してください。","Googleカレンダーの操作に失敗しました。",{pendingCalendarAction:null})}
+    }
+    if(actionToken)return calendarDirect(res,"保留中の操作があります。「はい」で実行、「キャンセル」で中止できます。","保留中の操作があります。",{pendingCalendarAction:actionToken});
+    const title=calendarQuotedTitle(userText);
+    const creating=/予定を入れて|予定を追加|予定を登録|カレンダーに入れて|予定を作って/.test(userText);
+    const updating=/予定を変更|時間を変更|変更して|時間をずらして/.test(userText);
+    const deleting=/予定を削除|削除して|消して/.test(userText);
+    if(creating||updating||deleting){
+      try{
+        const cs=await listConnectionsForUser(user.id),c=Array.isArray(cs)?cs.find(x=>x?.status==="connected"):null;
+        if(!c?.id)return calendarDirect(res,"Googleカレンダーが未接続です。先に接続してください。","Googleカレンダーが未接続です。");
+        const base="https://www.googleapis.com/calendar/v3/calendars/primary/events";
+        if(creating){
+          const d=calendarDate(userText),t=d&&calendarTime(userText,d);
+          if(!title||!d||!t)return calendarDirect(res,"予定名を「」で囲み、今日・明日・明後日または年月日と、開始・終了時刻を指定してください。例：明日「買い物」を10時から11時で予定に入れて。","予定名、日付、開始・終了時刻を指定してください。");
+          const token=signCalendarAction({userId:user.id,action:"create",event:{summary:title,...t}});
+          return calendarDirect(res,"次の内容で登録します：『"+title+"』、"+d.toISOString().slice(0,10)+"、"+userText.match(/\\d{1,2}時[^。]*?(?:から|〜|～|-)[^。]*?\\d{1,2}時/)?.[0]+"。実行してよろしいですか？「はい」または「キャンセル」とお答えください。","予定を登録します。よろしいですか？",{pendingCalendarAction:token});
+        }
+        if(!title)return calendarDirect(res,"対象の予定名を「」で指定してください。","対象の予定名を「」で指定してください。");
+        const now=new Date(),params=new URLSearchParams({timeMin:now.toISOString(),timeMax:new Date(now.getTime()+180*86400000).toISOString(),singleEvents:"true",orderBy:"startTime",maxResults:"100",q:title});
+        const result=await googleApiRequest(user.id,c.id,base+"?"+params.toString()),matches=(result.items||[]).filter(e=>e.summary===title);
+        if(matches.length!==1)return calendarDirect(res,matches.length?"同じ名前の予定が複数あります。日付を指定してください。":"該当する予定が見つかりませんでした。","対象の予定を特定できませんでした。");
+        const e=matches[0];
+        if(deleting){const token=signCalendarAction({userId:user.id,action:"delete",eventId:e.id,title:e.summary});return calendarDirect(res,"「"+e.summary+"」を削除します。日時："+(e.start?.dateTime||e.start?.date||"不明")+"。よろしいですか？「はい」または「キャンセル」とお答えください。","予定を削除します。よろしいですか？",{pendingCalendarAction:token})}
+        const d=calendarDate(userText),t=d&&calendarTime(userText,d);
+        if(!t)return calendarDirect(res,"変更後の日付と開始・終了時刻を指定してください。例：「"+title+"」を明日10時から11時に変更して。","変更後の日付と開始・終了時刻を指定してください。");
+        const token=signCalendarAction({userId:user.id,action:"update",eventId:e.id,title:e.summary,patch:t});
+        return calendarDirect(res,"「"+e.summary+"」を"+d.toISOString().slice(0,10)+"の指定時刻に変更します。よろしいですか？「はい」または「キャンセル」とお答えください。","予定を変更します。よろしいですか？",{pendingCalendarAction:token});
+      }catch(e){console.error("Calendar proposal failed",{name:e?.name||"Error",status:e?.status});return calendarDirect(res,"Googleカレンダーの予定を確認できませんでした。","Googleカレンダーの予定を確認できませんでした。")}
+    }
 
     // ユーザーの発言内容はログに出力しない。
 
