@@ -58,6 +58,60 @@ const { listConnectionsForUser } = require("./_google/tokenStore");
 const { googleApiRequest } = require("./_google/client");
 
 const crypto = require("crypto");
+
+const SPREADSHEET_REGISTRY_CATEGORY = "jarvis_spreadsheet_registry";
+
+async function readSpreadsheetRegistry(userId) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+  const params = new URLSearchParams({
+    select: "content",
+    user_id: "eq." + userId,
+    category: "eq." + SPREADSHEET_REGISTRY_CATEGORY,
+    is_active: "eq.true",
+    order: "updated_at.desc",
+    limit: "1"
+  });
+  const response = await fetch(supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/memories?" + params, {
+    headers: { apikey: supabaseKey, Authorization: "Bearer " + supabaseKey }
+  });
+  if (!response.ok) throw new Error("Spreadsheet registry read failed");
+  const rows = await response.json();
+  if (!Array.isArray(rows) || !rows[0] || typeof rows[0].content !== "string") return null;
+  try {
+    const parsed = JSON.parse(rows[0].content);
+    return parsed && parsed.version === 1 && parsed.spreadsheets && typeof parsed.spreadsheets === "object" ? parsed : null;
+  } catch (_) { return null; }
+}
+
+async function saveSpreadsheetRegistry(userId, registry) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !supabaseKey) throw new Error("Spreadsheet registry storage unavailable");
+  const response = await fetch(supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/rpc/save_memory_atomic", {
+    method: "POST",
+    headers: {
+      apikey: supabaseKey,
+      Authorization: "Bearer " + supabaseKey,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      p_user_id: userId,
+      p_category: SPREADSHEET_REGISTRY_CATEGORY,
+      p_content: JSON.stringify(registry),
+      p_importance: 5
+    })
+  });
+  if (!response.ok) throw new Error("Spreadsheet registry save failed");
+}
+
+function spreadsheetIdFromUrl(value) {
+  if (typeof value !== "string") return null;
+  const match = value.match(/https?:\\/\\/docs\\.google\\.com\\/spreadsheets\\/d\\/([a-zA-Z0-9_-]{10,200})/);
+  return match ? match[1] : null;
+}
+
 function signCalendarAction(payload) {
   const body=Buffer.from(JSON.stringify({...payload,exp:Date.now()+600000}),"utf8").toString("base64url");
   const sig=crypto.createHmac("sha256",process.env.GEMINI_API_KEY||"").update(body).digest("base64url");
@@ -204,10 +258,39 @@ module.exports = async function handler(req, res) {
       : rawText;
 
 
-    // Spreadsheet agent v2: full read-only formula audit and repair-plan proposal.
+    // Spreadsheet registry is user-scoped and stored in Supabase memories, never in source code.
+    const spreadsheetRegistrationIntent =
+      /(?:登録|覚えて|記憶して|登録して|設定して)/.test(userText) &&
+      /(?:売上管理|店販管理)/.test(userText) &&
+      /docs\\.google\\.com\\/spreadsheets\\/d\\//.test(userText);
+    if (spreadsheetRegistrationIntent) {
+      try {
+        const salesUrl = userText.match(/売上管理[^\\n]{0,100}(https?:\\/\\/docs\\.google\\.com\\/spreadsheets\\/d\\/[a-zA-Z0-9_-]+)/);
+        const retailUrl = userText.match(/店販管理[^\\n]{0,100}(https?:\\/\\/docs\\.google\\.com\\/spreadsheets\\/d\\/[a-zA-Z0-9_-]+)/);
+        const salesId = spreadsheetIdFromUrl(salesUrl?.[1]);
+        const retailId = spreadsheetIdFromUrl(retailUrl?.[1]);
+        if (!salesId || !retailId) {
+          return calendarDirect(res, "売上管理と店販管理のURLをそれぞれの名称の後ろに付けて送ってください。まだ登録は行っていません。", "登録する2つのURLを確認してください。");
+        }
+        const registry = {
+          version: 1,
+          spreadsheets: {
+            sales: { name: "売上管理", id: salesId },
+            retail: { name: "店販管理", id: retailId }
+          }
+        };
+        await saveSpreadsheetRegistry(user.id, registry);
+        return calendarDirect(res, "スプレッドシートを登録しました。\n売上管理: ID登録済み\n店販管理: ID登録済み\n今後はファイル名検索に頼らず、登録したIDで対象を識別します。", "売上管理と店販管理のIDを記憶しました。");
+      } catch (error) {
+        console.error("Spreadsheet registry save failed", { name: error?.name || "Error" });
+        return calendarDirect(res, "スプレッドシートIDを保存できませんでした。Supabaseの記憶機能の状態を確認してください。", "スプレッドシートIDを保存できませんでした。");
+      }
+    }
+
+    // Spreadsheet agent v3: supports explicit plan creation and registered stable IDs.
     const sheetAgentIntent =
       /(?:スプレッドシート|シート|売上管理|店販管理)/.test(userText) &&
-      /(?:完成させて|直して|修正して|作って|構造を調べて|調査して|数式を確認|未完成|自分で作って|整えて|詳しく)/.test(userText) &&
+      /(?:完成させて|直して|修正して|修正計画|計画を作成|作成して|作って|構造を調べて|調査して|数式を確認|未完成|自分で作って|整えて|詳しく)/.test(userText) &&
       !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して|実行して)/.test(userText);
     if (sheetAgentIntent) {
       try {
@@ -219,16 +302,30 @@ module.exports = async function handler(req, res) {
         if (!spreadsheetName) {
           return calendarDirect(res, "調査するファイル名を指定してください。「売上管理を詳しく調査して」と依頼できます。", "調査するスプレッドシート名を指定してください。");
         }
-        const q = new URLSearchParams({
-          q: "name = '" + spreadsheetName.replace(/'/g, "\\'") + "' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
-          pageSize: "10", orderBy: "modifiedTime desc",
-          fields: "files(id,name,mimeType,modifiedTime)"
-        });
-        const found = await googleApiRequest(user.id, connection.id, "https://www.googleapis.com/drive/v3/files?" + q);
-        const files = Array.isArray(found?.files) ? found.files : [];
-        if (files.length !== 1) return calendarDirect(res, files.length ? "同じ名前のファイルが複数あります。ファイル名を特定してください。" : "「" + spreadsheetName + "」が見つかりませんでした。Google Drive上のファイル名を確認してください。", "対象ファイルを特定できませんでした。");
-
-        const file = files[0];
+        const registry = await readSpreadsheetRegistry(user.id);
+        const registered = spreadsheetName === "売上管理"
+          ? registry?.spreadsheets?.sales
+          : registry?.spreadsheets?.retail;
+        let file = null;
+        if (registered?.id && /^[a-zA-Z0-9_-]{10,200}$/.test(registered.id)) {
+          const candidate = await googleApiRequest(user.id, connection.id,
+            "https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(registered.id) + "?" +
+            new URLSearchParams({ fields: "id,name,mimeType,modifiedTime" }));
+          if (candidate?.mimeType !== "application/vnd.google-apps.spreadsheet") {
+            return calendarDirect(res, "登録済みIDのファイルがGoogleスプレッドシートではありません。登録情報を確認してください。", "登録済みファイルを確認できませんでした。");
+          }
+          file = candidate;
+        } else {
+          const q = new URLSearchParams({
+            q: "name = '" + spreadsheetName.replace(/'/g, "\\'") + "' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
+            pageSize: "10", orderBy: "modifiedTime desc",
+            fields: "files(id,name,mimeType,modifiedTime)"
+          });
+          const found = await googleApiRequest(user.id, connection.id, "https://www.googleapis.com/drive/v3/files?" + q);
+          const files = Array.isArray(found?.files) ? found.files : [];
+          if (files.length !== 1) return calendarDirect(res, files.length ? "同じ名前のファイルが複数あります。ファイル名を特定してください。" : "「" + spreadsheetName + "」が見つかりませんでした。ID登録後は改名しても識別できます。", "対象ファイルを特定できませんでした。");
+          file = files[0];
+        }
         const metadata = await googleApiRequest(user.id, connection.id,
           "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(file.id) + "?" +
           new URLSearchParams({fields:"properties(title),sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)))"}));
