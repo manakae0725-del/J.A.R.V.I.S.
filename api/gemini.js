@@ -1215,7 +1215,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
       !result.speechText ||
       !result.memory ||
       !result.visualization ||
-      !["none", "bar", "line", "diagram"].includes(result.visualization.type) ||
+      !["none", "bar", "line", "diagram", "pie", "donut", "flowchart", "structure", "blueprint", "gauge", "matrix"].includes(result.visualization.type) ||
       typeof result.memory.shouldSave !==
         "boolean"
     ) {
