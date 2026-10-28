@@ -144,7 +144,7 @@ async function getConnectionForUser(userId, connectionId) {
   const params = new URLSearchParams({
     id: `eq.${connectionId}`,
     user_id: `eq.${userId}`,
-    select: "id,access_token_ciphertext,refresh_token_ciphertext,status"
+    select: "id,access_token_ciphertext,refresh_token_ciphertext,token_expires_at,status"
   });
   const rows = await supabaseRequest(`${CONNECTIONS_TABLE}?${params}`);
   return Array.isArray(rows) ? rows[0] || null : null;
@@ -158,6 +158,60 @@ async function deleteConnectionForUser(userId, connectionId) {
   await supabaseRequest(`${CONNECTIONS_TABLE}?${params}`, {
     method: "DELETE",
     headers: { Prefer: "return=minimal" }
+  });
+}
+
+async function updateConnectionTokens(userId, connectionId, tokenResponse) {
+  const patch = {
+    access_token_ciphertext: encryptToken(tokenResponse.access_token),
+    token_expires_at: Number.isFinite(Number(tokenResponse.expires_in))
+      ? new Date(Date.now() + Number(tokenResponse.expires_in) * 1000).toISOString()
+      : null,
+    status: "connected",
+    last_error_code: null,
+    updated_at: new Date().toISOString()
+  };
+  if (tokenResponse.refresh_token) {
+    patch.refresh_token_ciphertext = encryptToken(tokenResponse.refresh_token);
+  }
+  const params = new URLSearchParams({
+    id: `eq.${connectionId}`,
+    user_id: `eq.${userId}`
+  });
+  const rows = await supabaseRequest(`${CONNECTIONS_TABLE}?${params}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(patch)
+  });
+  return Array.isArray(rows) && rows.length === 1;
+}
+
+async function markConnectionStatus(userId, connectionId, status, errorCode = null) {
+  const params = new URLSearchParams({
+    id: `eq.${connectionId}`,
+    user_id: `eq.${userId}`
+  });
+  const rows = await supabaseRequest(`${CONNECTIONS_TABLE}?${params}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({
+      status,
+      last_error_code: errorCode,
+      updated_at: new Date().toISOString()
+    })
+  });
+  return Array.isArray(rows) && rows.length === 1;
+}
+
+async function updateConnectionLastUsed(userId, connectionId) {
+  const params = new URLSearchParams({
+    id: `eq.${connectionId}`,
+    user_id: `eq.${userId}`
+  });
+  await supabaseRequest(`${CONNECTIONS_TABLE}?${params}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ last_used_at: new Date().toISOString() })
   });
 }
 
