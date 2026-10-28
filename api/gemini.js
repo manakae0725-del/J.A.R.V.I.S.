@@ -94,6 +94,60 @@ function calendarTime(text,date) {
 function calendarQuotedTitle(text){return text.match(/[「『"“](.{1,200}?)[」』"”]/)?.[1]?.trim()||null}
 function calendarDirect(res,text,speechText,extra={}){return res.status(200).json({text,speechText,visualization:{type:"none",title:"",labels:[],values:[],steps:[]},interactionId:null,memory:{shouldSave:false,category:"personal",content:"",importance:1},sources:[],...extra})}
 
+async function classifyCalendarIntent(apiKey, reply, pendingAction) {
+  const action = pendingAction?.action || "unknown";
+  const input = [
+    "Classify the user's reply to a pending Google Calendar operation.",
+    "Return exactly one category: approve, reject, modify, defer, question, unclear.",
+    "approve: clearly authorizes the currently displayed operation.",
+    "reject: refuses or cancels the operation.",
+    "modify: requests changing any detail; never treat this as approval.",
+    "defer: asks to wait or postpone.",
+    "question: asks a question or seeks clarification.",
+    "unclear: ambiguous, unrelated, or insufficient intent.",
+    "Only classify intent. Do not execute anything. If not clearly approval, never return approve.",
+    "Pending operation type: " + action,
+    "User reply: " + String(reply || "").slice(0, 2000)
+  ].join("\n");
+  try {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1/interactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({
+        model: "gemini-3.6-flash",
+        input,
+        response_format: {
+          type: "text",
+          mime_type: "application/json",
+          schema: {
+            type: "object",
+            properties: { category: { type: "string", enum: ["approve", "reject", "modify", "defer", "question", "unclear"] } },
+            required: ["category"]
+          }
+        }
+      }),
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!response.ok) return "unclear";
+    const data = await response.json();
+    let output = data.output_text;
+    if (!output && Array.isArray(data.steps)) {
+      for (let i = data.steps.length - 1; i >= 0; i--) {
+        const step = data.steps[i];
+        if (step?.type === "model_output" && Array.isArray(step.content)) {
+          const item = step.content.find(x => x?.type === "text" && x?.text);
+          if (item) { output = item.text; break; }
+        }
+      }
+    }
+    const parsed = JSON.parse(output || "{}");
+    return ["approve", "reject", "modify", "defer", "question", "unclear"].includes(parsed.category)
+      ? parsed.category : "unclear";
+  } catch (_) {
+    return "unclear";
+  }
+}
+
 
 
 module.exports = async function handler(req, res) {
@@ -150,22 +204,21 @@ module.exports = async function handler(req, res) {
       : rawText;
 
 
-    // Conversational calendar mutations require a signed, short-lived confirmation token.
+    // Calendar confirmation uses intent categories, not a fixed list of phrases.
     const actionToken=req.body?.pendingCalendarAction;
     let pendingAction=verifyCalendarAction(actionToken,user.id);
-    const confirm=/^(はい|はいお願いします|それで|それでお願い|それでお願いします|お願いします|実行|実行して|登録|登録して|変更|変更して|確定|ok|okay|yes|いいよ|大丈夫)[。！!、, ]*$/i.test(userText.trim());
-    const cancel=/^(いいえ|いいえ大丈夫|キャンセル|キャンセルして|やめて|やめます|中止|取り消して|取り消し|実行しないで|登録しないで)[。！!、, ]*$/i.test(userText.trim());
     if(actionToken && !pendingAction){
       return calendarDirect(res,"確認情報が無効か期限切れです。もう一度依頼してください。","確認情報が無効か期限切れです。",{pendingCalendarAction:null});
     }
-    if(actionToken && cancel){
+    let intent="unclear";
+    if(actionToken) intent=await classifyCalendarIntent(geminiKey,userText,pendingAction);
+    if(actionToken && intent==="reject"){
       return calendarDirect(res,"操作をキャンセルしました。カレンダーは変更していません。","操作をキャンセルしました。",{pendingCalendarAction:null});
     }
-    if(actionToken && !confirm && !cancel){
-      const hasCorrection=/(?:やっぱり|やはり|いや|違う|変更|ずらして|にして|からに|時に)/.test(userText);
+    if(actionToken && intent==="modify"){
       const pendingEvent=pendingAction?.action==="create" ? pendingAction.event : pendingAction?.action==="update" ? pendingAction.patch : null;
       const baseStart=pendingEvent?.start?.dateTime;
-      if(hasCorrection && pendingEvent && baseStart){
+      if(pendingEvent && baseStart){
         const dateLocal=new Date(Date.parse(baseStart)+9*3600000);
         const date=new Date(Date.UTC(dateLocal.getUTCFullYear(),dateLocal.getUTCMonth(),dateLocal.getUTCDate()));
         const correctedTime=calendarTime(userText,date);
@@ -176,15 +229,18 @@ module.exports = async function handler(req, res) {
           const start=new Date(Date.parse(correctedTime.start.dateTime)+9*3600000);
           const end=new Date(Date.parse(correctedTime.end.dateTime)+9*3600000);
           const fmt=x=>String(x.getUTCHours()).padStart(2,"0")+":"+String(x.getUTCMinutes()).padStart(2,"0");
-          return calendarDirect(res,"時刻を"+fmt(start)+"〜"+fmt(end)+"に変更しました。ほかの内容はそのままです。この内容で実行してよろしいですか？「はい」または「キャンセル」とお答えください。","時刻を"+fmt(start)+"から"+fmt(end)+"に変更しました。この内容でよろしいですか？",{pendingCalendarAction:revised});
+          return calendarDirect(res,"時刻を"+fmt(start)+"〜"+fmt(end)+"に変更しました。ほかの内容はそのままです。この内容で実行してよろしいですか？","時刻を"+fmt(start)+"から"+fmt(end)+"に変更しました。この内容でよろしいですか？",{pendingCalendarAction:revised});
         }
       }
-      if(/ちょっと待って|待って|保留|あとで/.test(userText)){
-        return calendarDirect(res,"承知しました。操作は実行せず保留します。「はい」で実行、「キャンセル」で中止できます。","操作は実行せず保留します。",{pendingCalendarAction:actionToken});
-      }
-      return calendarDirect(res,"まだ実行していません。内容を変える場合は「やっぱり12時からにして」、実行する場合は「それでお願いします」、中止する場合は「やめて」とお伝えください。","まだ実行していません。内容の変更、実行、中止をお伝えください。",{pendingCalendarAction:actionToken});
+      return calendarDirect(res,"変更したい内容を確認させてください。日時や予定名など、変更点をお伝えください。","変更したい内容をお伝えください。",{pendingCalendarAction:actionToken});
     }
-    if(actionToken && confirm){
+    if(actionToken && intent==="defer"){
+      return calendarDirect(res,"承知しました。操作は実行せず保留します。","操作は実行せず保留します。",{pendingCalendarAction:actionToken});
+    }
+    if(actionToken && (intent==="question" || intent==="unclear")){
+      return calendarDirect(res,"まだ実行していません。実行するか、中止するか、内容を変更するかをお伝えください。","まだ実行していません。ご希望をお伝えください。",{pendingCalendarAction:actionToken});
+    }
+    if(actionToken && intent==="approve"){
       try{
         const cs=await listConnectionsForUser(user.id),c=Array.isArray(cs)?cs.find(x=>x?.status==="connected"):null;
         if(!c?.id)return calendarDirect(res,"Googleカレンダーが未接続です。","Googleカレンダーが未接続です。",{pendingCalendarAction:null});
