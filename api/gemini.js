@@ -1424,6 +1424,20 @@ RESPONSE LENGTH
 - 回答後に不要な定型文を追加しない
 
 ==============================
+PROACTIVE SUGGESTION
+==============================
+
+回答とは別に、次に役立つ提案を「suggestion」に入れてください。
+
+- 提案が具体的に役立ち、今回の依頼や取得したデータに直接つながる場合のみ、短い一文で提案してください。
+- 例：今月の売上を集計した場合、前年同月との比較データが利用可能なら「前年同月との比較も表示しますか？」と提案できます。
+- 実際に利用できるデータや機能が確認できない場合、利用可能だと決めつけず、空文字列にしてください。
+- すでにユーザーが求めた内容を繰り返す提案、無関係な提案、定型的な「他に何かありますか」は禁止です。
+- 安全性や正確性に関わる重要な確認が必要な場合は、単なる追加提案ではなくreply内で先に確認してください。
+- suggestionには提案文だけを入れ、replyの回答本文を繰り返さないでください。
+- suggestionが空でない場合も、replyとspeechTextは回答本文のみとし、suggestionは別枠として扱ってください。
+
+==============================
 SPEECH TEXT
 ==============================
 
@@ -1620,6 +1634,10 @@ visualization は画面表示専用です。reply と speechText は通常どお
               type: "string",
             },
 
+            suggestion: {
+              type: "string",
+            },
+
             visualization: {
               type: "object",
               properties: {
@@ -1673,6 +1691,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
           required: [
             "reply",
             "speechText",
+            "suggestion",
             "memory",
             "visualization",
           ],
@@ -1893,6 +1912,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
     return res.status(200).json({
       text: result.reply,
       speechText: result.speechText,
+      suggestion: typeof result.suggestion === "string" ? result.suggestion.trim().slice(0, 240) : "",
       visualization: result.visualization,
       interactionId,
 
