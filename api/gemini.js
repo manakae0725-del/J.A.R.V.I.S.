@@ -73,7 +73,7 @@ async function readSpreadsheetRegistry(userId) {
     order: "updated_at.desc",
     limit: "1"
   });
-  const response = await fetch(supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/memories?" + params, {
+  const response = await fetch(supabaseUrl.replace(/\/+$/, "") + "/rest/v1/memories?" + params, {
     headers: { apikey: supabaseKey, Authorization: "Bearer " + supabaseKey }
   });
   if (!response.ok) throw new Error("Spreadsheet registry read failed");
@@ -89,7 +89,7 @@ async function saveSpreadsheetRegistry(userId, registry) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !supabaseKey) throw new Error("Spreadsheet registry storage unavailable");
-  const response = await fetch(supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/rpc/save_memory_atomic", {
+  const response = await fetch(supabaseUrl.replace(/\/+$/, "") + "/rest/v1/rpc/save_memory_atomic", {
     method: "POST",
     headers: {
       apikey: supabaseKey,
@@ -108,8 +108,11 @@ async function saveSpreadsheetRegistry(userId, registry) {
 
 function spreadsheetIdFromUrl(value) {
   if (typeof value !== "string") return null;
-  const match = value.match(/https?:\\/\\/docs\\.google\\.com\\/spreadsheets\\/d\\/([a-zA-Z0-9_-]{10,200})/);
-  return match ? match[1] : null;
+  const marker = "/spreadsheets/d/";
+  const index = value.indexOf(marker);
+  if (index < 0) return null;
+  const id = value.slice(index + marker.length).split(/[/?#\\s]/, 1)[0];
+  return /^[a-zA-Z0-9_-]{10,200}$/.test(id) ? id : null;
 }
 
 function signCalendarAction(payload) {
@@ -260,15 +263,17 @@ module.exports = async function handler(req, res) {
 
     // Spreadsheet registry is user-scoped and stored in Supabase memories, never in source code.
     const spreadsheetRegistrationIntent =
-      /(?:登録|覚えて|記憶して|登録して|設定して)/.test(userText) &&
+      /(?:登録|覚えて|記憶して|設定して)/.test(userText) &&
       /(?:売上管理|店販管理)/.test(userText) &&
-      /docs\\.google\\.com\\/spreadsheets\\/d\\//.test(userText);
+      userText.includes("docs.google.com/spreadsheets/d/");
     if (spreadsheetRegistrationIntent) {
       try {
-        const salesUrl = userText.match(/売上管理[^\\n]{0,100}(https?:\\/\\/docs\\.google\\.com\\/spreadsheets\\/d\\/[a-zA-Z0-9_-]+)/);
-        const retailUrl = userText.match(/店販管理[^\\n]{0,100}(https?:\\/\\/docs\\.google\\.com\\/spreadsheets\\/d\\/[a-zA-Z0-9_-]+)/);
-        const salesId = spreadsheetIdFromUrl(salesUrl?.[1]);
-        const retailId = spreadsheetIdFromUrl(retailUrl?.[1]);
+        const salesLine = userText.split(/\\r?\\n/).find(line => line.includes("売上管理"));
+        const retailLine = userText.split(/\\r?\\n/).find(line => line.includes("店販管理"));
+        const salesUrl = salesLine?.match(/https?:\\S+/)?.[0];
+        const retailUrl = retailLine?.match(/https?:\\S+/)?.[0];
+        const salesId = spreadsheetIdFromUrl(salesUrl);
+        const retailId = spreadsheetIdFromUrl(retailUrl);
         if (!salesId || !retailId) {
           return calendarDirect(res, "売上管理と店販管理のURLをそれぞれの名称の後ろに付けて送ってください。まだ登録は行っていません。", "登録する2つのURLを確認してください。");
         }
@@ -280,7 +285,7 @@ module.exports = async function handler(req, res) {
           }
         };
         await saveSpreadsheetRegistry(user.id, registry);
-        return calendarDirect(res, "スプレッドシートを登録しました。\n売上管理: ID登録済み\n店販管理: ID登録済み\n今後はファイル名検索に頼らず、登録したIDで対象を識別します。", "売上管理と店販管理のIDを記憶しました。");
+        return calendarDirect(res, "スプレッドシートを登録しました。\\n売上管理: ID登録済み\\n店販管理: ID登録済み\\n今後はファイル名検索に頼らず、登録したIDで対象を識別します。", "売上管理と店販管理のIDを記憶しました。");
       } catch (error) {
         console.error("Spreadsheet registry save failed", { name: error?.name || "Error" });
         return calendarDirect(res, "スプレッドシートIDを保存できませんでした。Supabaseの記憶機能の状態を確認してください。", "スプレッドシートIDを保存できませんでした。");
