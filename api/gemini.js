@@ -224,7 +224,8 @@ module.exports = async function handler(req, res) {
  const {
   text,
   previousInteractionId,
-  memoryContext
+  memoryContext,
+  pendingSuggestion
 } = req.body;
 
     if (!text) {
@@ -259,6 +260,18 @@ module.exports = async function handler(req, res) {
     const userText = userMarker?.[1]
       ? userMarker[1].trim()
       : rawText;
+
+    // A short acknowledgement may refer to the immediately preceding UI suggestion.
+    // Only pass that context to Gemini when the current message is an unambiguous,
+    // short affirmative; never treat it as authorization for unrelated write actions.
+    const suggestionAcknowledgement =
+      typeof pendingSuggestion === "string" &&
+      pendingSuggestion.trim().length > 0 &&
+      userText.length <= 48 &&
+      /^(はい|はい、|うん|うん、|ぜひ|ぜひ、|お願いします|お願い|よろしく|よろしくお願いします|それもお願い|それもお願いします|それでお願い|それでお願いします|それをお願い|それをお願いします|いいよ|いいですね|そうして|進めて|実行して|ok|okay|yes|sure|please)[。！!、,.\\s]*$/i.test(userText) &&
+      !/(いいえ|やめ|不要|しない|違う|待って|あとで|保留|キャンセル)/i.test(userText)
+      ? pendingSuggestion.trim().slice(0, 240)
+      : "";
 
 
     // Spreadsheet registry is user-scoped and stored in Supabase memories, never in source code.
@@ -1608,6 +1621,25 @@ bar / line / pie / donut / matrix では labels と values を2〜6個にして�
 blueprint は寸法精度を保証する設計図ではなく、説明用の概念配置図として使ってください。
 visualization は画面表示専用です。reply と speechText は通常どおり自然な文章にし、図表の説明を読み上げ用文章へ詰め込まないでください。
 `;
+
+    if (suggestionAcknowledgement) {
+      geminiInput += `
+
+==============================
+PREVIOUS SUGGESTION ACCEPTANCE
+==============================
+
+直前のJ.A.R.V.I.S.からの提案：
+「${suggestionAcknowledgement}」
+
+今回のユーザー発言は、この提案に対する短い肯定応答です。
+- 直前の提案に対応する内容を実行・回答してください。今回の発言を単独の雑談として扱わないでください。
+- 読み取り・集計・表示など、既存の機能で安全に実行できる処理は進めてください。
+- カレンダーへの追加・変更・削除、外部への送信、その他の状態変更を伴う処理は、この肯定だけで実行せず、既存の明示的な確認フローを維持してください。
+- 提案の対象や必要な情報が不明な場合は、推測で実行せず、短く確認してください。
+- 利用できない機能やデータは、利用できると装わないでください。
+`;
+    }
 
     // ==========================================
     // Gemini Request
