@@ -633,9 +633,11 @@ POWER
 const canvas=document.querySelector('#c'),ctx=canvas.getContext('2d');
 let w,h,dpr,cx,cy,scale,t=0;
 window.jarvisCoreState = "standby";
+window.jarvisParticleTransition = { startedAt: 0, targetState: "standby" };
 window.setJarvisCoreState = function(state) {
  const allowed = ["standby","listening","thinking","responding","voice-generating"];
- if (allowed.includes(state)) window.jarvisCoreState = state;
+ if (!allowed.includes(state) || state === window.jarvisParticleTransition.targetState) return;
+ window.jarvisParticleTransition = { startedAt: performance.now(), targetState: state };
 };
 function resize(){dpr=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);cx=w/2;cy=h*.20;scale=Math.min(w,h)/700}
 addEventListener('resize',resize);resize();
@@ -899,8 +901,18 @@ function frame(){
  line(cx,0,cx,h,beamGradV,.8);
  ctx.restore();
  // Particle flow surrounds and lightly overlaps the core silhouette.
+ const transition = window.jarvisParticleTransition;
+ const transitionElapsed = transition && transition.startedAt ? performance.now() - transition.startedAt : 1000;
+ const transitionFade = transitionElapsed < 180
+  ? Math.max(0, 1 - transitionElapsed / 180)
+  : transitionElapsed < 520
+   ? Math.min(1, (transitionElapsed - 180) / 340)
+   : 1;
+ if (transition && transition.startedAt && transitionElapsed >= 180) {
+  window.jarvisCoreState = transition.targetState;
+ }
+ const state=window.jarvisCoreState||"standby";
  particles.forEach(p=>{
-  const state=window.jarvisCoreState||"standby";
   const speedFactor=state==="thinking"?2.25:state==="listening"?1.25:state==="responding"?1.65:state==="voice-generating"?2.05:1;
   const a=p.a+t*p.speed*.22*speedFactor;
   const baseSpread=(2.75+Math.sin(t*1.1+p.phase)*.045)*r;
@@ -914,7 +926,7 @@ function frame(){
   const outerFade=.72+.28*p.r;
   const alphaBoost=state==="standby"?.72:state==="listening"?.9:state==="thinking"?1.2:state==="responding"?1.25:1.4;
   const particleSize=p.s*(state==="thinking"&&p.r>.7?1.18:state==="voice-generating"&&p.r>.65?1.25:1);
-  ctx.fillStyle='rgba(105,190,255,'+Math.min(.98,twinkle*outerFade*alphaBoost)+')';
+  ctx.fillStyle='rgba(105,190,255,'+(Math.min(.98,twinkle*outerFade*alphaBoost)*transitionFade)+')';
   ctx.shadowColor='#1685ff';ctx.shadowBlur=2+p.blur*7+(state==="voice-generating"?5:state==="thinking"?3:0)+(p.s>.7?3:0);
   ctx.beginPath();ctx.arc(x,y,particleSize,0,Math.PI*2);ctx.fill();
  });
@@ -979,7 +991,7 @@ function frame(){
   ctx.restore();ctx.shadowBlur=0;
  }
  // Fine particles crossing the foreground give a subtle layered effect.
- particles.filter(p=>p.r>.9).forEach(p=>{const a=p.a-t*p.speed*.16;const rr=r*(.78+Math.sin(t+p.phase)*.06);const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.8;ctx.fillStyle='rgba(135,200,255,.8)';ctx.beginPath();ctx.arc(x,y,p.s*.5,0,Math.PI*2);ctx.fill()});
+ particles.filter(p=>p.r>.9).forEach(p=>{const a=p.a-t*p.speed*.16;const rr=r*(.78+Math.sin(t+p.phase)*.06);const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.8;ctx.fillStyle='rgba(135,200,255,'+(.8*transitionFade)+')';ctx.beginPath();ctx.arc(x,y,p.s*.5,0,Math.PI*2);ctx.fill()});
 }
 frame();
 </script>
