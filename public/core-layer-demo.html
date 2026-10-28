@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>J.A.R.V.I.S. Core — Layer Test</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#02040a;overflow:hidden}
+.stage{position:relative;width:min(100vw,100vh);height:min(100vw,100vh);margin:auto;top:50%;transform:translateY(-50%);isolation:isolate}
+.core-image{position:absolute;inset:25% 25%;width:50%;height:50%;object-fit:contain;border-radius:50%;z-index:2;filter:drop-shadow(0 0 12px #9cefff) drop-shadow(0 0 28px #078dff)}
+.cross{position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(90deg,transparent 49.9%,#138cff 50%,#7feaff 50.08%,#138cff 50.16%,transparent 50.3%),linear-gradient(0deg,transparent 49.9%,#138cff 50%,#7feaff 50.08%,#138cff 50.16%,transparent 50.3%);opacity:.65}
+.logo{position:absolute;z-index:4;left:0;right:0;top:49%;text-align:center;color:#eafaff;font:500 clamp(18px,4vw,38px) Georgia,serif;letter-spacing:.32em;text-shadow:0 0 12px #fff,0 0 25px #00aaff}
+.ring{position:absolute;left:50%;top:50%;border:1px solid #25baff; border-radius:50%;box-shadow:0 0 6px #078cff,inset 0 0 5px #078cff;z-index:1;transform-style:preserve-3d}
+.r1{width:65%;height:28%;margin:-14% 0 0 -32.5%;transform:rotate(-28deg)}
+.r2{width:72%;height:38%;margin:-19% 0 0 -36%;transform:rotate(32deg)}
+.r3{width:57%;height:57%;margin:-28.5% 0 0 -28.5%;border-color:#1c8dff88}
+.r4{width:80%;height:80%;margin:-40% 0 0 -40%;border-style:dashed;border-color:#087cff66}
+.dots{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none}
+@media(min-aspect-ratio:1/1){.stage{width:min(100vw,100vh);height:min(100vw,100vh)}}
+</style></head><body>
+<div class="stage" id="stage">
+<div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div>
+<img class="core-image" src="/091F54FE-CED0-4F72-B7B1-309239FCCF7D.png" alt="JARVIS Core"><div class="cross"></div><div class="logo">J A R V I S</div>
+<canvas class="dots" id="dots"></canvas>
+</div>
+<script>
+const c=document.getElementById('dots'),ctx=c.getContext('2d');let w,h,pts=[];
+function resize(){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;w=r.width;h=r.height;c.width=w*d;c.height=h*d;ctx.setTransform(d,0,0,d,0,0);pts=Array.from({length:95},()=>({a:Math.random()*Math.PI*2,r:.22+Math.random()*.25,s:.5+Math.random()*1.4,v:(Math.random()-.5)*.004,tw:Math.random()*6.28}))}
+function draw(){ctx.clearRect(0,0,w,h);const t=performance.now()*.001;for(const p of pts){p.a+=p.v;const x=w*(.5+Math.cos(p.a)*p.r),y=h*(.5+Math.sin(p.a)*p.r*.8);const alpha=.25+.7*(.5+.5*Math.sin(t*2+p.tw));ctx.beginPath();ctx.fillStyle='rgba(40,177,255,'+alpha+')';ctx.shadowColor='#008cff';ctx.shadowBlur=8;ctx.arc(x,y,p.s,0,Math.PI*2);ctx.fill()}ctx.shadowBlur=0;requestAnimationFrame(draw)}
+addEventListener('resize',resize);resize();draw();
+</script></body></html>
