@@ -369,17 +369,25 @@ color: #61a6ff;
 
 @media(max-width:480px){.jarvis-holo-panel{top:30%;width:calc(100% - 24px);padding:10px 12px}}
 
-#authScreen{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 50% 42%,rgba(0,53,104,.2),transparent 58%),linear-gradient(180deg,rgba(1,7,18,.58),rgba(1,7,18,.72));backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);color:#bfeaff;font-family:"Courier New",Courier,monospace}
-#authScreen[hidden]{display:none!important}.auth-card{position:relative;width:min(100%,420px);padding:36px 28px 28px;text-align:center;border:1px solid rgba(0,153,255,.62);background:linear-gradient(145deg,rgba(2,18,38,.82),rgba(0,7,20,.88));box-shadow:0 0 32px rgba(0,119,255,.2),inset 0 0 24px rgba(0,100,255,.08);clip-path:polygon(0 12px,12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px))}.auth-card:before{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,190,255,.9),transparent);pointer-events:none}
-.auth-kicker{font-size:10px;letter-spacing:4px;color:#5caeff;text-shadow:0 0 10px rgba(0,136,255,.45)}.auth-title{margin-top:18px;font-size:clamp(25px,7vw,34px);letter-spacing:5px;text-shadow:0 0 10px rgba(0,136,255,.75),0 0 24px rgba(0,119,255,.35)}.auth-rule{width:64px;height:1px;margin:20px auto;background:#168fff;box-shadow:0 0 10px #168fff,0 0 22px rgba(0,119,255,.6)}.auth-copy{color:#a5c5df;font-size:12px;line-height:1.9;letter-spacing:.6px}
-#googleLoginButton{width:100%;min-height:50px;margin-top:28px;padding:12px 16px;border:1px solid rgba(0,153,255,.9);border-radius:2px;background:linear-gradient(110deg,rgba(0,74,145,.22),rgba(0,24,52,.5));color:#e4f5ff;font:inherit;font-size:13px;letter-spacing:2px;cursor:pointer;box-shadow:inset 0 0 18px rgba(0,119,255,.08),0 0 14px rgba(0,119,255,.12);transition:background .2s ease,box-shadow .2s ease}
-#googleLoginButton:disabled{opacity:.55;cursor:wait}#googleLoginButton:not(:disabled):active{background:rgba(0,119,255,.28);box-shadow:inset 0 0 20px rgba(0,153,255,.2),0 0 20px rgba(0,119,255,.24)}#authMessage{min-height:20px;margin-top:14px;color:#ff9b9b;font-size:11px;line-height:1.6}.auth-foot{margin-top:22px;color:rgba(92,145,190,.58);font-size:9px;letter-spacing:3px}
+#authScreen{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(1,7,18,.72);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);color:#d8efff;font-family:"Courier New",Courier,monospace}
+#authScreen[hidden]{display:none!important}
+.auth-card{position:relative;width:min(100%,340px);padding:28px 22px 20px;text-align:center;border:1px solid rgba(70,170,230,.32);background:rgba(2,13,29,.88);box-shadow:0 0 24px rgba(0,100,190,.08);border-radius:3px}
+.auth-card:before{content:"";position:absolute;left:22px;right:22px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,190,255,.65),transparent);pointer-events:none}
+.auth-kicker{display:none}
+.auth-title{margin-top:0;font-size:clamp(25px,7vw,31px);letter-spacing:4px;color:#e0f5ff;text-shadow:0 0 12px rgba(0,136,255,.35)}
+.auth-rule{width:34px;height:1px;margin:15px auto;background:rgba(0,174,255,.65)}
+.auth-copy{color:rgba(170,205,230,.78);font-size:11px;line-height:1.7;letter-spacing:.3px}
+#googleLoginButton{width:100%;min-height:44px;margin-top:20px;padding:10px 14px;border:1px solid rgba(0,174,255,.56);border-radius:2px;background:rgba(0,80,145,.18);color:#e4f5ff;font:inherit;font-size:12px;letter-spacing:1.5px;cursor:pointer;box-shadow:none;transition:background .2s ease,border-color .2s ease}
+#googleLoginButton:disabled{opacity:.55;cursor:wait}
+#googleLoginButton:not(:disabled):active{background:rgba(0,119,255,.24);border-color:rgba(0,210,255,.85)}
+#authMessage{min-height:16px;margin-top:10px;color:#ff9b9b;font-size:11px;line-height:1.5}
+.auth-foot{margin-top:12px;color:rgba(92,145,190,.48);font-size:8px;letter-spacing:2px}
 #jarvisSignOut{display:none!important}#jarvisSignOut[hidden]{display:none!important}
 @media(max-width:480px){.auth-card{padding:30px 22px 24px}.auth-title{letter-spacing:3px}}
 #textArea.is-open{z-index:9500}
 
 </style></head><body>
-<div id="authScreen"><div class="auth-card"><div class="auth-kicker">SECURE ACCESS / AUTHENTICATION</div><div class="auth-title">J.A.R.V.I.S.</div><div class="auth-rule"></div><p class="auth-copy">IDENTITY VERIFICATION REQUIRED.<br>PLEASE SIGN IN WITH YOUR GOOGLE ACCOUNT.</p><button id="googleLoginButton" type="button">SIGN IN WITH GOOGLE</button><p id="authMessage" role="status" aria-live="polite"></p><div class="auth-foot">AUTHORIZED ACCESS ONLY</div></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button>
+<div id="authScreen"><div class="auth-card"><div class="auth-kicker">SECURE ACCESS / AUTHENTICATION</div><div class="auth-title">J.A.R.V.I.S.</div><div class="auth-rule"></div><p class="auth-copy">SIGN IN TO CONTINUE.</p><button id="googleLoginButton" type="button">CONTINUE WITH GOOGLE</button><p id="authMessage" role="status" aria-live="polite"></p><div class="auth-foot">AUTHORIZED ACCESS ONLY</div></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 
 <div class="jarvis-holo-panel" id="jarvisHoloPanel" aria-live="polite">
