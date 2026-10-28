@@ -54,6 +54,9 @@ async function logApiUsage({
 
 const { requireAuth } = require("./_auth");
 const { enforceRateLimit } = require("./_rateLimit");
+const { listConnectionsForUser } = require("./_google/tokenStore");
+const { googleApiRequest } = require("./_google/client");
+
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -699,10 +702,80 @@ Content: ${result.content || ""}
     );
 
     // ==========================================
+    // Google Calendar conversational read
+    // ==========================================
+
+    let calendarContext = "";
+    const isCalendarQuestion = /予定|カレンダー|スケジュール/.test(userText) &&
+      /(教えて|確認|何が|何件|ある|入って|予定は|見せて|一覧|空いて|いつ|今日|明日|あさって|今週|来週|今月|来月|月曜日|火曜日|水曜日|木曜日|金曜日|土曜日|日曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜)/.test(userText);
+
+    if (isCalendarQuestion) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections)
+          ? connections.find(item => item?.status === "connected")
+          : null;
+
+        if (!connection?.id) {
+          calendarContext = "Google Calendar連携は未接続です。ユーザーに接続が必要と伝えてください。";
+        } else {
+          const japanNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+          const today = japanNow.toISOString().slice(0, 10);
+          const dayOffset = userText.includes("あさって") || userText.includes("明後日") ? 2
+            : userText.includes("明日") || userText.includes("あした") ? 1 : 0;
+          const toLocalDate = (date) => date.toISOString().slice(0, 10);
+          let startDate = new Date(Date.parse(today + "T00:00:00Z") + dayOffset * 86400000);
+          let endDate = new Date(startDate.getTime() + 86400000);
+          let rangeLabel = dayOffset === 2 ? "明後日" : dayOffset === 1 ? "明日" : "今日";
+
+          if (userText.includes("今週") || userText.includes("来週")) {
+            const mondayOffset = (japanNow.getUTCDay() + 6) % 7;
+            startDate = new Date(Date.parse(today + "T00:00:00Z") + (userText.includes("来週") ? 7 - mondayOffset : -mondayOffset) * 86400000);
+            endDate = new Date(startDate.getTime() + 7 * 86400000);
+            rangeLabel = userText.includes("来週") ? "来週" : "今週";
+          } else if (userText.includes("今月") || userText.includes("来月")) {
+            const year = japanNow.getUTCFullYear();
+            const month = japanNow.getUTCMonth() + (userText.includes("来月") ? 1 : 0);
+            startDate = new Date(Date.UTC(year, month, 1));
+            endDate = new Date(Date.UTC(year, month + 1, 1));
+            rangeLabel = userText.includes("来月") ? "来月" : "今月";
+          }
+
+          const timeMin = new Date(Date.parse(toLocalDate(startDate) + "T00:00:00+09:00")).toISOString();
+          const timeMax = new Date(Date.parse(toLocalDate(endDate) + "T00:00:00+09:00")).toISOString();
+          const result = await googleApiRequest(
+            user.id,
+            connection.id,
+            "https://www.googleapis.com/calendar/v3/calendars/primary/events?" +
+              new URLSearchParams({ timeMin, timeMax, singleEvents: "true", orderBy: "startTime", maxResults: "100" }).toString()
+          );
+          const events = Array.isArray(result?.items) ? result.items : [];
+          const summarized = events.slice(0, 100).map(event => ({
+            title: typeof event.summary === "string" ? event.summary : "(タイトルなし)",
+            start: event.start?.dateTime || event.start?.date || "",
+            end: event.end?.dateTime || event.end?.date || "",
+            allDay: Boolean(event.start?.date && !event.start?.dateTime)
+          }));
+          calendarContext = "Google Calendarから取得した実データです。期間: " + rangeLabel +
+            " (" + toLocalDate(startDate) + "〜" + toLocalDate(new Date(endDate.getTime() - 86400000)) +
+            ")。予定件数: " + events.length + "。予定一覧: " + JSON.stringify(summarized);
+        }
+      } catch (error) {
+        console.error("Google Calendar conversational read failed", {
+          name: error?.name || "Error",
+          code: typeof error?.code === "string" ? error.code : undefined
+        });
+        calendarContext = "Google Calendarから予定を取得できませんでした。取得に失敗したことをユーザーに伝え、予定を推測しないでください。";
+      }
+    }
+
+    // ==========================================
     // Gemini Input
     // ==========================================
 
     let geminiInput = `
+${calendarContext ? `\n==============================\nGOOGLE CALENDAR RESULTS\n==============================\n${calendarContext}\n\n予定の質問には上記の実データを使い、Asia/Tokyoの日本時間に直して簡潔に答えてください。予定を捏造しないでください。\n` : ""}
+
 あなたはJ.A.R.V.I.S.です。
 
 ユーザー専属の高度なAIアシスタントとして会話してください。
