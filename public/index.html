@@ -295,7 +295,7 @@ color: #61a6ff;
 .jarvis-visualization{margin-top:10px;color:#d8f3ff;font:11px/1.4 monospace;pointer-events:none}
 .jarvis-visualization[hidden]{display:none!important}
 .jarvis-visualization .viz-title{margin:0 0 6px;color:#8acfff;letter-spacing:1px;font-size:10px}
-.jarvis-visualization svg{display:block;width:100%;height:auto;max-height:210px;overflow:visible}
+.jarvis-visualization svg{display:block;width:100%;height:auto;max-height:210px;overflow:visible}.jarvis-visualization svg.viz-diagram-svg{max-height:none}.jarvis-visualization .viz-step-text{fill:#e8f7ff;font:11px monospace}
 .jarvis-visualization .viz-label{fill:#bfeaff;font:10px monospace}
 .jarvis-visualization .viz-grid{stroke:rgba(0,153,255,.2);stroke-width:1}
 .jarvis-visualization .viz-bar{fill:rgba(0,190,255,.72);stroke:#00d2ff;stroke-width:1}
@@ -2074,13 +2074,21 @@ function renderJarvisVisualization(viz) {
     if (viz.type === "diagram") {
         const steps = Array.isArray(viz.steps) ? viz.steps.slice(0, 4).map(v => String(v).slice(0, 28)) : [];
         if (steps.length < 2) { container.hidden = true; return; }
-        const gap = 6, left = 8, totalW = 304, boxW = (totalW - gap * (steps.length - 1)) / steps.length;
+        const cardH = 48, stepGap = 20, top = 8;
+        svg.setAttribute("viewBox", "0 0 320 " + (top * 2 + steps.length * cardH + (steps.length - 1) * stepGap));
+        svg.classList.add("viz-diagram-svg");
         steps.forEach((step, i) => {
-            const x = left + i * (boxW + gap);
-            svg.appendChild(el("rect", {x, y: 42, width: boxW, height: 48, rx: 3, class: "viz-node"}));
-            svg.appendChild(el("text", {x: x + boxW / 2, y: 62, "text-anchor": "middle", class: "viz-label"}, step.slice(0, 13)));
+            const y = top + i * (cardH + stepGap);
+            svg.appendChild(el("rect", {x: 10, y: y, width: 300, height: cardH, rx: 4, class: "viz-node"}));
+            const textNode = el("text", {x: 160, y: y + (step.length > 18 ? 19 : 28), "text-anchor": "middle", class: "viz-step-text"});
+            const cleanStep = step.trim();
+            const lines = [];
+            for (let start = 0; start < cleanStep.length; start += 20) lines.push(cleanStep.slice(start, start + 20));
+            lines.slice(0, 2).forEach((line, lineIndex) => textNode.appendChild(el("tspan", {x: 160, dy: lineIndex === 0 ? 0 : 15}, line)));
+            svg.appendChild(textNode);
             if (i < steps.length - 1) {
-                svg.appendChild(el("path", {d: `M ${x + boxW} 66 h ${gap - 2} m -4 -3 l 4 3 -4 3`, class: "viz-arrow"}));
+                const arrowY = y + cardH + 3;
+                svg.appendChild(el("path", {d: "M 160 " + arrowY + " v 12 m -4 -4 l 4 4 4 -4", class: "viz-arrow"}));
             }
         });
     } else {
