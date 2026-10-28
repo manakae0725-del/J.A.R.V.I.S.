@@ -10,7 +10,7 @@ function getSupabaseConfig() {
     throw new Error("Google connection storage is unavailable");
   }
   return {
-    baseUrl: `${SUPABASE_URL.replace(/\\/+$/, "")}/rest/v1`,
+    baseUrl: `${SUPABASE_URL.replace(/\/+$/, "")}/rest/v1`,
     key: SUPABASE_SECRET_KEY
   };
 }
