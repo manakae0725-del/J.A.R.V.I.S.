@@ -27,7 +27,7 @@ function normalizeReturnOrigin(value) {
   }
   const hostname = url.hostname.toLowerCase();
   const isProduction = hostname === "j-a-r-v-i-s-gold.vercel.app";
-  const isProjectPreview = /^j-a-r-v-i-[a-z0-9-]+-manato2\\.vercel\\.app$/.test(hostname);
+  const isProjectPreview = /^j-a-r-v-i-[a-z0-9-]+-manato2\.vercel\.app$/.test(hostname);
   if (!isProduction && !isProjectPreview) {
     throw new Error("Google OAuth return origin is not an allowed J.A.R.V.I.S. domain");
   }
@@ -41,7 +41,7 @@ function createState(returnOrigin) {
 }
 
 function returnOriginFromState(state) {
-  const match = /^([0-9a-f]{64})\\.([A-Za-z0-9_-]+)$/.exec(state);
+  const match = /^([0-9a-f]{64})\.([A-Za-z0-9_-]+)$/.exec(state);
   if (!match) throw new Error("Google OAuth state is invalid");
   const origin = Buffer.from(match[2], "base64url").toString("utf8");
   return normalizeReturnOrigin(origin);
