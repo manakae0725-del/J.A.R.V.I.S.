@@ -403,6 +403,10 @@ body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity 
     <button id="gcalStatus" type="button">接続状態</button>
     <button id="gcalRead" type="button">今後30日の予定取得</button>
     <button id="gcalCreate" type="button">テスト予定を追加</button>
+    <button id="gtaskRead" type="button">タスク一覧取得</button>
+    <button id="gtaskCreate" type="button">テストタスク追加</button>
+    <button id="gtaskComplete" type="button">テストタスク完了</button>
+    <button id="gtaskDelete" type="button">テストタスク削除</button>
   </div>
   <pre id="gcalResult" style="white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0">ログイン後に操作してください。</pre>
 </div>
@@ -2557,6 +2561,8 @@ async function sendToGemini(text) {
  const toggle=document.getElementById("googleCalendarToggle");
  const output=document.getElementById("gcalResult");
  let connectionId=null;
+ let testTaskId=null;
+ const taskListId="@default";
  function setPanelOpen(open){
    panel.style.display=open?"block":"none";
    toggle.textContent=open?"Googleテストを閉じる":"Googleテストを開く";
@@ -2607,6 +2613,47 @@ async function sendToGemini(text) {
      const start=new Date(Date.now()+10*60000),end=new Date(start.getTime()+15*60000);
      const data=await request("/api/google/calendar",{method:"POST",body:JSON.stringify({action:"create",connectionId,summary:"J.A.R.V.I.S. 接続テスト",description:"J.A.R.V.I.S. Google Calendar integration test. Delete after verification.",start:{dateTime:start.toISOString()},end:{dateTime:end.toISOString()}})});
      say({ok:data.ok,event:{id:data.event?.id,summary:data.event?.summary,start:data.event?.start,end:data.event?.end}});
+   }catch(e){say(e.message);}
+ });
+ document.getElementById("gtaskRead").addEventListener("click",async()=>{
+   try{
+     if(!connectionId) await loadStatus();
+     if(!connectionId) throw new Error("接続IDがありません。先にGoogle接続を行ってください。");
+     const q=new URLSearchParams({connectionId,taskListId});
+     const data=await request("/api/google/tasks?"+q.toString());
+     say({ok:data.ok,taskListId:data.taskListId,count:(data.tasks||[]).length,tasks:(data.tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,due:t.due,notes:t.notes}))});
+   }catch(e){say(e.message);}
+ });
+ document.getElementById("gtaskCreate").addEventListener("click",async()=>{
+   try{
+     if(!connectionId) await loadStatus();
+     if(!connectionId) throw new Error("接続IDがありません。先にGoogle接続を行ってください。");
+     if(!confirm("Google Tasksに期限付きの「J.A.R.V.I.S. 接続テスト」タスクを追加します。よろしいですか？")) return;
+     const due=new Date();due.setDate(due.getDate()+1);
+     const dueDate=due.toISOString().slice(0,10);
+     const data=await request("/api/google/tasks",{method:"POST",body:JSON.stringify({action:"create",connectionId,taskListId,title:"J.A.R.V.I.S. 接続テスト",notes:"接続確認後に削除してください。",due:dueDate})});
+     testTaskId=data.task?.id||null;
+     say({ok:data.ok,task:{id:testTaskId,title:data.task?.title,status:data.task?.status,due:data.task?.due},note:"テストタスクIDをこの画面で保持しました。完了または削除で後片付けできます。"});
+   }catch(e){say(e.message);}
+ });
+ document.getElementById("gtaskComplete").addEventListener("click",async()=>{
+   try{
+     if(!connectionId) await loadStatus();
+     if(!connectionId) throw new Error("接続IDがありません。先にGoogle接続を行ってください。");
+     if(!testTaskId) throw new Error("この画面で作成したテストタスクがありません。先にテストタスク追加を実行してください。");
+     const data=await request("/api/google/tasks",{method:"POST",body:JSON.stringify({action:"complete",connectionId,taskListId,taskId:testTaskId})});
+     say({ok:data.ok,task:{id:data.task?.id,title:data.task?.title,status:data.task?.status,completed:data.task?.completed}});
+   }catch(e){say(e.message);}
+ });
+ document.getElementById("gtaskDelete").addEventListener("click",async()=>{
+   try{
+     if(!connectionId) await loadStatus();
+     if(!connectionId) throw new Error("接続IDがありません。先にGoogle接続を行ってください。");
+     if(!testTaskId) throw new Error("この画面で作成したテストタスクがありません。先にテストタスク追加を実行してください。");
+     if(!confirm("この画面で作成したテストタスクを削除します。よろしいですか？")) return;
+     const data=await request("/api/google/tasks",{method:"POST",body:JSON.stringify({action:"delete",connectionId,taskListId,taskId:testTaskId,confirmDelete:true})});
+     testTaskId=null;
+     say({ok:data.ok,deleted:data.deleted});
    }catch(e){say(e.message);}
  });
  window.addEventListener("jarvis-auth-change",event=>{
