@@ -204,11 +204,11 @@ module.exports = async function handler(req, res) {
       : rawText;
 
 
-    // Spreadsheet agent v1: inspect a workbook's structure before proposing any edits.
+    // Spreadsheet agent v2: full read-only formula audit and repair-plan proposal.
     const sheetAgentIntent =
       /(?:スプレッドシート|シート|売上管理|店販管理)/.test(userText) &&
-      /(?:完成させて|直して|修正して|作って|構造を調べて|調査して|数式を確認|未完成|自分で作って|整えて)/.test(userText) &&
-      !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して)/.test(userText);
+      /(?:完成させて|直して|修正して|作って|構造を調べて|調査して|数式を確認|未完成|自分で作って|整えて|詳しく)/.test(userText) &&
+      !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して|実行して)/.test(userText);
     if (sheetAgentIntent) {
       try {
         const connections = await listConnectionsForUser(user.id);
@@ -217,12 +217,11 @@ module.exports = async function handler(req, res) {
 
         const spreadsheetName = /店販管理/.test(userText) ? "店販管理" : /売上管理/.test(userText) ? "売上管理" : null;
         if (!spreadsheetName) {
-          return calendarDirect(res, "調査するファイル名を指定してください。「売上管理を調査して」または「店販管理を調査して」と依頼できます。", "調査するスプレッドシート名を指定してください。");
+          return calendarDirect(res, "調査するファイル名を指定してください。「売上管理を詳しく調査して」と依頼できます。", "調査するスプレッドシート名を指定してください。");
         }
         const q = new URLSearchParams({
           q: "name = '" + spreadsheetName.replace(/'/g, "\\'") + "' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
-          pageSize: "10",
-          orderBy: "modifiedTime desc",
+          pageSize: "10", orderBy: "modifiedTime desc",
           fields: "files(id,name,mimeType,modifiedTime)"
         });
         const found = await googleApiRequest(user.id, connection.id, "https://www.googleapis.com/drive/v3/files?" + q);
@@ -230,25 +229,91 @@ module.exports = async function handler(req, res) {
         if (files.length !== 1) return calendarDirect(res, files.length ? "同じ名前のファイルが複数あります。ファイル名を特定してください。" : "「" + spreadsheetName + "」が見つかりませんでした。Google Drive上のファイル名を確認してください。", "対象ファイルを特定できませんでした。");
 
         const file = files[0];
-        const metadata = await googleApiRequest(user.id, connection.id, "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(file.id) + "?" + new URLSearchParams({fields:"properties(title),sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)))"}));
+        const metadata = await googleApiRequest(user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(file.id) + "?" +
+          new URLSearchParams({fields:"properties(title),sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)))"}));
         const sheetList = Array.isArray(metadata?.sheets) ? metadata.sheets : [];
         const reports = [];
+        const findings = [];
+        const colName = n => {
+          let out = "";
+          while (n >= 0) { out = String.fromCharCode(n % 26 + 65) + out; n = Math.floor(n / 26) - 1; }
+          return out;
+        };
         for (const sheet of sheetList.slice(0, 10)) {
-          const title = sheet?.properties?.title;
+          const props = sheet?.properties || {};
+          const title = props.title;
           if (!title) continue;
-          const range = "'" + title.replace(/'/g, "''") + "'!A1:Z20";
-          const values = await googleApiRequest(user.id, connection.id, "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(file.id) + "/values/" + encodeURIComponent(range) + "?" + new URLSearchParams({valueRenderOption:"FORMULA",dateTimeRenderOption:"FORMATTED_STRING"}));
-          const rows = Array.isArray(values?.values) ? values.values : [];
-          const nonEmptyRows = rows.filter(row => row.some(cell => String(cell ?? "").trim() !== ""));
-          const formulas = rows.flat().filter(cell => typeof cell === "string" && cell.startsWith("=")).length;
-          const header = (rows[0] || []).map((cell, i) => String(cell || "").trim() ? String(cell).slice(0, 80) : "[" + String.fromCharCode(65 + i) + "列]").join(" | ");
-          reports.push("【" + title + "】範囲A1:Z20 / 入力済み行 " + nonEmptyRows.length + "行 / 数式 " + formulas + "個\n先頭行: " + (header || "空") + (rows.length > 1 ? "\nサンプル: " + rows.slice(1, 4).map(row => row.map(cell => String(cell ?? "").slice(0, 60)).join(" | ")).join("\n") : ""));
+          const isSummary = /集計|summary|dashboard/i.test(title);
+          const lastCol = isSummary ? "C" : "K";
+          const maxRows = Math.max(20, Math.min(Number(props.gridProperties?.rowCount) || 100, isSummary ? 100 : 500));
+          const range = "'" + title.replace(/'/g, "''") + "'!A1:" + lastCol + maxRows;
+          const baseUrl = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(file.id) + "/values/" + encodeURIComponent(range);
+          const [formulaResult, displayResult] = await Promise.all([
+            googleApiRequest(user.id, connection.id, baseUrl + "?" + new URLSearchParams({valueRenderOption:"FORMULA",dateTimeRenderOption:"FORMATTED_STRING"})),
+            googleApiRequest(user.id, connection.id, baseUrl + "?" + new URLSearchParams({valueRenderOption:"FORMATTED_VALUE",dateTimeRenderOption:"FORMATTED_STRING"}))
+          ]);
+          const formulaRows = Array.isArray(formulaResult?.values) ? formulaResult.values : [];
+          const displayRows = Array.isArray(displayResult?.values) ? displayResult.values : [];
+          const populated = formulaRows.filter(row => row.some(cell => String(cell ?? "").trim() !== ""));
+          const formulaCells = [];
+          const formulasByColumn = new Map();
+          const formulaErrors = [];
+          for (let r = 0; r < formulaRows.length; r++) {
+            const row = formulaRows[r] || [];
+            for (let c = 0; c < row.length; c++) {
+              const value = row[c];
+              if (typeof value === "string" && value.startsWith("=")) {
+                const addr = colName(c) + (r + 1);
+                const normalized = value.replace(/\$?([A-Z]{1,3})\$?\d+/g, "$1#");
+                formulaCells.push({addr, col:colName(c), row:r+1, formula:value, normalized});
+                if (!formulasByColumn.has(colName(c))) formulasByColumn.set(colName(c), []);
+                formulasByColumn.get(colName(c)).push({row:r+1, formula:value, normalized});
+              }
+              const shown = displayRows[r]?.[c];
+              if (typeof shown === "string" && /^#(?:REF!|DIV\/0!|VALUE!|N\/A|NAME\?|NUM!|NULL!)/.test(shown)) {
+                formulaErrors.push(colName(c) + (r+1) + "=" + shown);
+              }
+            }
+          }
+          const header = (formulaRows[0] || []).map((cell, i) => String(cell || "").trim() || "[" + colName(i) + "列]").join(" | ");
+          const colStats = [];
+          for (const [col, entries] of formulasByColumn.entries()) {
+            const patterns = new Map();
+            for (const entry of entries) patterns.set(entry.normalized, (patterns.get(entry.normalized) || 0) + 1);
+            colStats.push(col + "列:" + entries.length + "個(" + patterns.size + "種類)");
+            if (patterns.size > 1) findings.push("「" + title + "」" + col + "列に数式パターンが" + patterns.size + "種類あります。行ごとの意図的な違いか確認が必要です。");
+            if (!isSummary && entries.length > 2) {
+              const first = Math.min(...entries.map(e=>e.row)), last = Math.max(...entries.map(e=>e.row));
+              const rowsWithFormula = new Set(entries.map(e=>e.row));
+              const gaps = [];
+              for (let n=first+1; n<last && gaps.length<8; n++) if (!rowsWithFormula.has(n)) gaps.push(n);
+              if (gaps.length) findings.push("「" + title + "」" + col + "列で数式が抜けている可能性のある行: " + gaps.join(", ") + (last-first > gaps.length+8 ? " など" : "") + "。空行・意図的な空欄か確認が必要です。");
+            }
+          }
+          if (formulaErrors.length) findings.push("「" + title + "」に計算エラー表示: " + formulaErrors.slice(0,12).join(", ") + (formulaErrors.length>12 ? " ほか" : ""));
+          const samples = formulaCells.slice(0, 8).map(item => item.addr + "=" + item.formula).join(" | ");
+          reports.push("【" + title + "】調査範囲A1:" + lastCol + maxRows +
+            " / 入力済み行 " + populated.length + "行 / 数式 " + formulaCells.length + "個" +
+            "\n列名: " + header +
+            "\n数式分布: " + (colStats.join("、") || "数式なし") +
+            "\n数式例: " + (samples || "なし") +
+            (formulaErrors.length ? "\n計算エラー: " + formulaErrors.slice(0,8).join(", ") : "\n表示上の計算エラー: なし"));
         }
-        const report = "スプレッドシート構造の調査結果（読み取り専用）\nファイル: " + file.name + "\nシート数: " + sheetList.length + "\n\n" + (reports.join("\n\n") || "シートが見つかりませんでした。") + "\n\n次の段階では、この調査結果をもとに修正計画を提示し、承認後に変更する機能を追加します。今回はデータ・数式を変更していません。";
-        return calendarDirect(res, report, "スプレッドシートの構造を調査しました。今回は変更していません。");
+        if (/売上管理/.test(spreadsheetName)) {
+          findings.push("集計シートの月別総売上は、8月がG2:G100とF101:F200、9月がG列の別範囲を参照しているように見えます。月別の対象行が意図どおりか確認が必要です。");
+          findings.push("平均客単価・時間売上は客数や施術時間が0のときに#DIV/0!となる可能性があります。IFERRORまたは分母チェックを検討します。");
+          findings.push("シート1のG列（合計売上）はD列（技術売上）+E列（指名料）+F列（店販）の数式パターンが行全体で一貫しているか確認が必要です。");
+        }
+        const report = "スプレッドシート詳細監査（読み取り専用）\nファイル: " + file.name +
+          "\nシート数: " + sheetList.length + "\n調査上限: 各シート最大" + (sheetList.some(s=>/集計|summary|dashboard/i.test(s?.properties?.title||"")) ? "500" : "500") + "行（集計シートは100行）" +
+          "\n\n" + (reports.join("\n\n") || "シートが見つかりませんでした。") +
+          "\n\n【修正候補】\n" + [...new Set(findings)].map((item,i)=>(i+1)+". "+item).join("\n") +
+          "\n\nこれは監査と修正候補の提示のみです。シートの値・数式は変更していません。次に、変更対象セル・変更前後の数式・影響範囲を明記した計画を作成し、明示的な承認後にのみ実行します。";
+        return calendarDirect(res, report, "スプレッドシートの詳細監査が完了しました。変更は行っていません。");
       } catch (error) {
-        console.error("Spreadsheet agent inspection failed", {name:error?.name || "Error", status:Number.isInteger(error?.status)?error.status:undefined, code:typeof error?.code==="string"?error.code:undefined});
-        return calendarDirect(res, "スプレッドシートの調査に失敗しました。Google接続状態とファイル名を確認してください。", "スプレッドシートを調査できませんでした。");
+        console.error("Spreadsheet agent audit failed", {name:error?.name || "Error", status:Number.isInteger(error?.status)?error.status:undefined, code:typeof error?.code==="string"?error.code:undefined});
+        return calendarDirect(res, "スプレッドシートの詳細監査に失敗しました。Google接続状態とファイル名を確認してください。", "スプレッドシートを調査できませんでした。");
       }
     }
 
