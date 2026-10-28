@@ -283,6 +283,10 @@ color: #61a6ff;
 @media(max-width:480px){#textArea{width:calc(100% - 36px);}}
 
 .jarvis-holo-panel{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 40px));padding:12px 15px;z-index:30;pointer-events:none;background:rgba(1,12,25,.82);border:1px solid rgba(0,153,255,.45);box-shadow:0 0 25px rgba(0,119,255,.25),inset 0 0 15px rgba(0,153,255,.12);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))}
+.jarvis-holo-panel.show{animation:jarvisPanelOpen .42s cubic-bezier(.2,.75,.25,1) both}
+@keyframes jarvisPanelOpen{0%{opacity:0;transform:translate(-50%,-50%) scaleY(.82);clip-path:polygon(50% 0,50% 0,50% 0,50% 0,50% 100%,50% 100%,50% 100%,50% 100%)}65%{opacity:1;clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))}100%{opacity:1;transform:translate(-50%,-50%) scaleY(1);clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))}}
+.voice-response{white-space:pre-wrap}
+@media(prefers-reduced-motion:reduce){.jarvis-holo-panel.show{animation:none}.voice-response{animation:none}}
 .jarvis-holo-panel.show{opacity:1;visibility:visible}
 .panel-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,153,255,.25);padding-bottom:6px;margin-bottom:8px}
 .panel-title-group{display:flex;align-items:center;gap:6px}
@@ -2046,6 +2050,29 @@ return true;
     }
 }
 
+let jarvisAnimationToken = 0;
+function animateJarvisResponse(text) {
+    const container = document.getElementById("voiceResponse");
+    const token = ++jarvisAnimationToken;
+    const content = typeof text === "string" ? text : String(text || "");
+    container.textContent = "";
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        container.textContent = content;
+        return Promise.resolve(token);
+    }
+    const chunks = content.match(/[\\s\\S]{1,5}/gu) || [];
+    let index = 0;
+    return new Promise(resolve => {
+        function revealNext() {
+            if (token !== jarvisAnimationToken) { resolve(null); return; }
+            if (index >= chunks.length) { resolve(token); return; }
+            container.textContent += chunks[index++];
+            window.setTimeout(revealNext, 16);
+        }
+        revealNext();
+    });
+}
+
 function renderJarvisVisualization(viz) {
     const container = document.getElementById("jarvisVisualization");
     if (!container) return;
@@ -2219,12 +2246,16 @@ async function sendToGemini(text) {
             return;
         }
 
-        document.getElementById("voiceResponse").textContent = data.text;
-        renderJarvisVisualization(data.visualization);
-
-        document
-            .getElementById("jarvisHoloPanel")
-            .classList.add("show");
+        const responseAnimation = animateJarvisResponse(data.text);
+        const holoPanel = document.getElementById("jarvisHoloPanel");
+        holoPanel.classList.remove("show");
+        void holoPanel.offsetWidth;
+        holoPanel.classList.add("show");
+        responseAnimation.then(token => {
+            if (token !== null && requestUserId === window.jarvisCurrentUserId) {
+                renderJarvisVisualization(data.visualization);
+            }
+        });
 
         status.textContent = "";
 
