@@ -92,7 +92,7 @@ module.exports = async function handler(req, res) {
     const params = new URLSearchParams({ valueInputOption, insertDataOption: "INSERT_ROWS" });
     const url = input.action === "append" ? `${valuesUrl}:append?${params}` : `${valuesUrl}?${params}`;
     const result = await googleApiRequest(user.id, connectionId, url, {
-      method: "PUT",
+      method: input.action === "append" ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ majorDimension: "ROWS", values })
     });
