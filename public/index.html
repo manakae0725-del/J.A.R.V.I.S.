@@ -901,50 +901,25 @@ function frame(){
  // Particle flow surrounds and lightly overlaps the core silhouette.
  particles.forEach(p=>{
   const state=window.jarvisCoreState||"standby";
-  const speedFactor=state==="thinking"?2.1:state==="listening"?1.35:state==="responding"?1.7:state==="voice-generating"?2.35:1;
+  const speedFactor=state==="thinking"?2.25:state==="listening"?1.25:state==="responding"?1.65:state==="voice-generating"?2.05:1;
   const a=p.a+t*p.speed*.22*speedFactor;
-  const spread=(2.75+Math.sin(t*1.1+p.phase)*.045)*r;
-  const rr=spread*(.06+.94*Math.pow(p.r,1.35));
+  const baseSpread=(2.75+Math.sin(t*1.1+p.phase)*.045)*r;
+  const drift=state==="thinking" ? Math.sin(t*1.3+p.phase)*.12 : state==="listening" ? Math.sin(t*.8+p.phase)*.035 : 0;
+  const convergence=state==="thinking" ? .10*Math.sin(t*1.6+p.phase) : state==="responding" ? .07*Math.sin(t*1.2+p.phase) : state==="voice-generating" ? .12*Math.sin(t*3.8+p.phase) : 0;
+  const rr=baseSpread*(.06+.94*Math.pow(p.r,1.35))*(1+drift+convergence);
   const x=cx+Math.cos(a)*rr;
   const y=cy+Math.sin(a)*rr*(.86+p.z*.1);
-  const twinkle=(.28+.72*(.5+.5*Math.sin(t*(1.2+p.speed)+p.phase)))*p.brightness;
+  const pulseSpeed=state==="voice-generating"?4.5:state==="responding"?2.2:state==="listening"?2.0:state==="thinking"?3.1:1.2;
+  const twinkle=(.28+.72*(.5+.5*Math.sin(t*(pulseSpeed+p.speed)+p.phase)))*p.brightness;
   const outerFade=.72+.28*p.r;
-  ctx.fillStyle='rgba(105,190,255,'+(twinkle*outerFade)+')';
-  ctx.shadowColor='#1685ff';ctx.shadowBlur=2+p.blur*7+(p.s>.7?3:0);
-  ctx.beginPath();ctx.arc(x,y,p.s,0,Math.PI*2);ctx.fill();
+  const alphaBoost=state==="standby"?.72:state==="listening"?.9:state==="thinking"?1.2:state==="responding"?1.25:1.4;
+  const particleSize=p.s*(state==="thinking"&&p.r>.7?1.18:state==="voice-generating"&&p.r>.65?1.25:1);
+  ctx.fillStyle='rgba(105,190,255,'+Math.min(.98,twinkle*outerFade*alphaBoost)+')';
+  ctx.shadowColor='#1685ff';ctx.shadowBlur=2+p.blur*7+(state==="voice-generating"?5:state==="thinking"?3:0)+(p.s>.7?3:0);
+  ctx.beginPath();ctx.arc(x,y,particleSize,0,Math.PI*2);ctx.fill();
  });
  ctx.shadowBlur=0;
- // State-specific rings make Core activity visible without moving the existing layout.
- {
-  const state=window.jarvisCoreState||"standby";
-  const pulse=.5+.5*Math.sin(t*(state==="listening"?2.5:state==="thinking"?3.2:state==="responding"?2.2:state==="voice-generating"?4.2:.75));
-  const ringBase=r*(state==="standby"?1.14:state==="listening"?1.19:state==="thinking"?1.24:state==="responding"?1.28:1.22);
-  ctx.save();ctx.globalCompositeOperation="lighter";
-  const ringCount=state==="standby"?1:state==="listening"?3:state==="thinking"?4:state==="responding"?3:5;
-  for(let i=0;i<ringCount;i++){
-   let q=0;
-   if(state==="responding"||state==="voice-generating"||state==="listening") q=(t*(state==="voice-generating"?.42:state==="responding"?.25:.17)+i/ringCount)%1;
-   const rr=ringBase+(state==="standby"?0:q*r*.5)+(state==="thinking"?i*r*.045:state==="listening"?i*r*.035:0);
-   const alpha=state==="standby"?.08+.04*pulse:state==="thinking"?.12+.13*pulse:state==="responding"?.16*(1-q):state==="voice-generating"?.2*(1-q):.11+.1*pulse;
-   ctx.beginPath();
-   if(state==="thinking"){
-    const a=t*(.48+i*.055);
-    ctx.ellipse(cx,cy,rr,rr*.78,a,Math.PI*.12,Math.PI*1.72);
-   }else ctx.ellipse(cx,cy,rr,rr*(state==="listening"?.83:.78),state==="voice-generating"?Math.sin(t*2+i)*.08:0,0,Math.PI*2);
-   ctx.strokeStyle="rgba(80,195,255,"+Math.max(.025,alpha)+")";ctx.lineWidth=state==="standby"?.8:state==="thinking"?1.25:1;
-   ctx.shadowColor="#168bff";ctx.shadowBlur=state==="standby"?4:state==="voice-generating"?14:9;ctx.stroke();
-  }
-  if(state==="listening"||state==="voice-generating"){
-   for(let i=0;i<24;i++){
-    const a=i*Math.PI*2/24+t*(state==="voice-generating"?.18:.045);
-    const wave=state==="voice-generating"?.72+.28*Math.sin(t*5+i*1.4):1;
-    const inner=r*1.04,outer=r*(1.09+wave*.07);
-    ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*inner,cy+Math.sin(a)*inner*.8);ctx.lineTo(cx+Math.cos(a)*outer,cy+Math.sin(a)*outer*.8);
-    ctx.strokeStyle="rgba(100,220,255,"+(i%3===0?.62:.22)+")";ctx.lineWidth=i%3===0?1.3:.7;ctx.stroke();
-   }
-  }
-  ctx.restore();ctx.shadowBlur=0;
- }
+ // Core activity is expressed through particle motion rather than extra rings.
  // Core remains a flat graphic at the center; particles and 3D-style orbit rings add depth.
  drawCore(r);
  // Animated holographic projection platform beneath the Core.
