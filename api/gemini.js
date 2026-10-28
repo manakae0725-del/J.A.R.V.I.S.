@@ -81,10 +81,12 @@ function calendarDate(text) {
   return d;
 }
 function calendarTime(text,date) {
-  const m=text.match(/(\d{1,2})時(?:(\d{1,2})分)?(?:から|〜|～|-)\\s*(\d{1,2})時(?:(\d{1,2})分)?/);
-  if(!m)return null;
-  const sh=+m[1],sm=+(m[2]||0),eh=+m[3],em=+(m[4]||0);
-  if(sh>23||eh>23||sm>59||em>59)return null;
+  const range=text.match(/(\d{1,2})時(?:(\d{1,2})分)?(?:から|〜|～|-)\s*(\d{1,2})時(?:(\d{1,2})分)?/);
+  const single=!range && text.match(/(\d{1,2})時(?:(\d{1,2})分)?/);
+  if(!range&&!single)return null;
+  const sh=+(range?range[1]:single[1]),sm=+((range?range[2]:single[2])||0);
+  const eh=range?+range[3]:sh+1,em=range?+((range[4])||0):sm;
+  if(sh>23||eh>24||sm>59||em>59)return null;
   const iso=(h,min)=>new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate(),h-9,min)).toISOString();
   let start=iso(sh,sm),end=iso(eh,em);if(Date.parse(end)<=Date.parse(start))end=new Date(Date.parse(end)+86400000).toISOString();
   return {start:{dateTime:start,timeZone:"Asia/Tokyo"},end:{dateTime:end,timeZone:"Asia/Tokyo"}};
@@ -177,11 +179,12 @@ module.exports = async function handler(req, res) {
     if(actionToken)return calendarDirect(res,"保留中の操作があります。「はい」で実行、「キャンセル」で中止できます。","保留中の操作があります。",{pendingCalendarAction:actionToken});
     const title=calendarQuotedTitle(userText) || (() => {
       let candidate=userText
-        .replace(/20\\d{2}年\\d{1,2}月\\d{1,2}日/g," ")
+        .replace(/20\d{2}年\d{1,2}月\d{1,2}日/g," ")
         .replace(/明後日|あさって|明日|あした|今日|本日/g," ")
-        .replace(/\\d{1,2}時(?:\\d{1,2}分)?(?:から|〜|～|-)\\s*\\d{1,2}時(?:\\d{1,2}分)?/g," ")
-        .replace(/予定を?(?:入れて|追加して|登録して|作って|作成して)|カレンダーに(?:入れて|登録して)|予定を?(?:変更して|ずらして|削除して)|削除して|消して/g," ")
-        .replace(/[、。,.！!？?]/g," ").trim();
+        .replace(/\d{1,2}時(?:\d{1,2}分)?(?:から|〜|～|-)\s*\d{1,2}時(?:\d{1,2}分)?/g," ")
+        .replace(/\d{1,2}時(?:\d{1,2}分)?/g," ")
+        .replace(/(?:予定|スケジュール|カレンダー)(?:を|に)?|(?:入れて|追加して|登録して|作って|作成して|変更して|ずらして|削除して|消して|教えて|お願いします)/g," ")
+        .replace(/[「」『』"“”、。,.！!？?]/g," ").trim();
       return candidate.length>0 && candidate.length<=200 ? candidate : null;
     })();
     const creating=/(?:予定|スケジュール|カレンダー).*(?:入れて|追加|登録|作って|作成)|(?:入れて|追加して|登録して).*(?:予定|スケジュール|カレンダー)/.test(userText);
