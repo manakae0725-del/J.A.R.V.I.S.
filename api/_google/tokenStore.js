@@ -116,6 +116,11 @@ async function saveConnection({ userId, identity, tokenResponse, scopes }) {
   const refreshToken = tokenResponse.refresh_token
     ? encryptToken(tokenResponse.refresh_token)
     : existing?.refresh_token_ciphertext || null;
+  if (!refreshToken) {
+    const error = new Error("Google refresh token was not issued");
+    error.code = "refresh_token_missing";
+    throw error;
+  }
   const now = new Date().toISOString();
   const record = {
     user_id: userId,
