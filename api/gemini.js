@@ -268,7 +268,7 @@ module.exports = async function handler(req, res) {
       typeof pendingSuggestion === "string" &&
       pendingSuggestion.trim().length > 0 &&
       userText.length <= 48 &&
-      /^(はい|はい、|うん|うん、|ぜひ|ぜひ、|お願いします|お願い|よろしく|よろしくお願いします|それもお願い|それもお願いします|それでお願い|それでお願いします|それをお願い|それをお願いします|いいよ|いいですね|そうして|進めて|実行して|ok|okay|yes|sure|please)[。！!、,.\\s]*$/i.test(userText) &&
+      /^(はい|はい、|うん|うん、|ぜひ|ぜひ、|お願いします|お願い|よろしく|よろしくお願いします|それもお願い|それもお願いします|それでお願い|それでお願いします|それをお願い|それをお願いします|いいよ|いいですね|そうして|進めて|実行して|ok|okay|yes|sure|please)[。！!、,.\s]*$/i.test(userText) &&
       !/(いいえ|やめ|不要|しない|違う|待って|あとで|保留|キャンセル)/i.test(userText)
       ? pendingSuggestion.trim().slice(0, 240)
       : "";
