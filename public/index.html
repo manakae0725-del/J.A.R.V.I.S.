@@ -308,7 +308,7 @@ color: #61a6ff;
  z-index:9500;display:none;opacity:0;visibility:hidden;
  transform:translate(-50%,-46%);
  transition:opacity .38s ease,transform .48s cubic-bezier(.2,.75,.25,1),visibility .38s ease;
- padding:10px;border:1px solid rgba(0,174,255,.52);
+ padding:7px;border:1px solid rgba(0,174,255,.52);
  background:linear-gradient(135deg,rgba(2,25,48,.82),rgba(1,10,24,.76));
  box-shadow:0 0 24px rgba(0,119,255,.16),inset 0 0 18px rgba(0,153,255,.07);
  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
@@ -318,10 +318,11 @@ color: #61a6ff;
 #textArea.is-closing{opacity:0;visibility:hidden;transform:translate(-50%,-46%);pointer-events:none;}
 #textArea:before{content:"INPUT CONSOLE // J.A.R.V.I.S.";display:block;color:rgba(135,220,255,.8);font:10px/1.4 monospace;letter-spacing:2px;padding:2px 4px 8px;border-bottom:1px solid rgba(0,153,255,.22);margin-bottom:8px;}
 #textInput{
- display:block;width:100%;min-height:64px;max-height:28vh;padding:12px;
+ display:block;width:100%;height:42px;min-height:42px;max-height:24vh;padding:9px 10px;
+ overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;
  border:1px solid rgba(0,153,255,.28);border-radius:2px;
- background:rgba(0,8,20,.66);color:#e8f7ff;font:14px/1.5 monospace;
- resize:vertical;pointer-events:auto;touch-action:manipulation;outline:none;
+ background:rgba(0,8,20,.66);color:#e8f7ff;font:13px/1.45 monospace;
+ resize:none;pointer-events:auto;outline:none;
  box-shadow:inset 0 0 12px rgba(0,119,255,.08);
 }
 #textInput:focus{border-color:rgba(0,205,255,.72);box-shadow:0 0 12px rgba(0,153,255,.14),inset 0 0 12px rgba(0,119,255,.1);}
