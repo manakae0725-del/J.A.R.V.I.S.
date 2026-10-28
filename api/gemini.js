@@ -175,10 +175,18 @@ module.exports = async function handler(req, res) {
       }catch(e){console.error("Calendar action failed",{name:e?.name||"Error",status:e?.status});return calendarDirect(res,"Googleカレンダーの操作に失敗しました。カレンダーを確認してください。","Googleカレンダーの操作に失敗しました。",{pendingCalendarAction:null})}
     }
     if(actionToken)return calendarDirect(res,"保留中の操作があります。「はい」で実行、「キャンセル」で中止できます。","保留中の操作があります。",{pendingCalendarAction:actionToken});
-    const title=calendarQuotedTitle(userText);
-    const creating=/予定を入れて|予定を追加|予定を登録|カレンダーに入れて|予定を作って/.test(userText);
-    const updating=/予定を変更|時間を変更|変更して|時間をずらして/.test(userText);
-    const deleting=/予定を削除|削除して|消して/.test(userText);
+    const title=calendarQuotedTitle(userText) || (() => {
+      let candidate=userText
+        .replace(/20\\d{2}年\\d{1,2}月\\d{1,2}日/g," ")
+        .replace(/明後日|あさって|明日|あした|今日|本日/g," ")
+        .replace(/\\d{1,2}時(?:\\d{1,2}分)?(?:から|〜|～|-)\\s*\\d{1,2}時(?:\\d{1,2}分)?/g," ")
+        .replace(/予定を?(?:入れて|追加して|登録して|作って|作成して)|カレンダーに(?:入れて|登録して)|予定を?(?:変更して|ずらして|削除して)|削除して|消して/g," ")
+        .replace(/[、。,.！!？?]/g," ").trim();
+      return candidate.length>0 && candidate.length<=200 ? candidate : null;
+    })();
+    const creating=/(?:予定|スケジュール|カレンダー).*(?:入れて|追加|登録|作って|作成)|(?:入れて|追加して|登録して).*(?:予定|スケジュール|カレンダー)/.test(userText);
+    const updating=/(?:予定|スケジュール).*(?:変更|ずらして|時間を変)|(?:変更|ずらして).*(?:予定|スケジュール)/.test(userText);
+    const deleting=/(?:予定|スケジュール).*(?:削除|消して)|(?:削除|消して).*(?:予定|スケジュール)/.test(userText);
     if(creating||updating||deleting){
       try{
         const cs=await listConnectionsForUser(user.id),c=Array.isArray(cs)?cs.find(x=>x?.status==="connected"):null;
