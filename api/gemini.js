@@ -111,7 +111,7 @@ function spreadsheetIdFromUrl(value) {
   const marker = "/spreadsheets/d/";
   const index = value.indexOf(marker);
   if (index < 0) return null;
-  const id = value.slice(index + marker.length).split(/[/?#\\s]/, 1)[0];
+  const id = value.slice(index + marker.length).split(/[/?#]/, 1)[0].split(" ")[0];
   return /^[a-zA-Z0-9_-]{10,200}$/.test(id) ? id : null;
 }
 
