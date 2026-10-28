@@ -262,10 +262,14 @@ module.exports = async function handler(req, res) {
 
 
     // Spreadsheet registry is user-scoped and stored in Supabase memories, never in source code.
+    const registrationUrls = [...userText.matchAll(/https?:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+[^\s<>"']*/g)];
     const spreadsheetRegistrationIntent =
-      /(?:登録|覚えて|記憶して|設定して)/.test(userText) &&
-      /(?:売上管理|店販管理)/.test(userText) &&
-      userText.includes("docs.google.com/spreadsheets/d/");
+      userText.includes("docs.google.com/spreadsheets/d/") &&
+      (
+        (/(?:登録|覚えて|記憶して|設定して)/.test(userText) &&
+          /(?:売上管理|店販管理)/.test(userText)) ||
+        registrationUrls.length === 2
+      );
     if (spreadsheetRegistrationIntent) {
       try {
         // Prefer URLs explicitly placed on the same line as their labels.
@@ -277,8 +281,8 @@ module.exports = async function handler(req, res) {
         let retailUrl = extractUrl(lines.find(line => line.includes("店販管理")));
         const allUrls = [...userText.matchAll(/https?:\/\/[^\s<>"']+/g)]
           .map(match => match[0].replace(/[),.;]+$/, ""));
-        if ((!salesUrl || !retailUrl) && allUrls.length === 2 &&
-            userText.includes("売上管理") && userText.includes("店販管理")) {
+        if ((!salesUrl || !retailUrl) && allUrls.length === 2) {
+          // In a two-link registration message, URL order is sales first, retail second.
           salesUrl = salesUrl || allUrls[0];
           retailUrl = retailUrl || allUrls[1];
         }
