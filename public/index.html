@@ -2060,7 +2060,7 @@ function animateJarvisResponse(text) {
         container.textContent = content;
         return Promise.resolve(token);
     }
-    const chunks = content.match(/[\\s\\S]{1,5}/gu) || [];
+    const chunks = content.match(/[\s\S]{1,5}/gu) || [];
     let index = 0;
     return new Promise(resolve => {
         function revealNext() {
