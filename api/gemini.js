@@ -204,6 +204,92 @@ module.exports = async function handler(req, res) {
       : rawText;
 
 
+    // Google Sheets natural-language read: read-only; writes remain behind an explicit confirmation flow.
+    const sheetsReadIntent =
+      /(?:スプレッドシート|シート|表|売上表)/.test(userText) &&
+      /(?:読んで|読み取って|見せて|表示して|確認して|調べて|取得して|読める|内容|一覧)/.test(userText) &&
+      !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して)/.test(userText);
+    if (sheetsReadIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections)
+          ? connections.find(item => item?.status === "connected")
+          : null;
+        if (!connection?.id) {
+          return calendarDirect(res, "Googleが未接続です。先にGoogle接続を行ってください。", "Googleが未接続です。");
+        }
+
+        const quotedNames = [...userText.matchAll(/[「『“"]([^」』”"]{1,200})[」』”"]/g)].map(match => match[1].trim());
+        const knownSpreadsheetName = userText.includes("個人販売管理表") ? "個人販売管理表" : null;
+        const spreadsheetName = knownSpreadsheetName || quotedNames.find(name => /管理表|スプレッドシート|販売|売上/.test(name));
+        if (!spreadsheetName) {
+          return calendarDirect(res, "読み取るスプレッドシート名を指定してください。例：「個人販売管理表」の「売上」シートを読んで。", "読み取るスプレッドシート名を指定してください。");
+        }
+
+        const escapedName = spreadsheetName.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        const driveQuery = new URLSearchParams({
+          q: "name = '" + escapedName + "' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
+          pageSize: "10",
+          orderBy: "modifiedTime desc",
+          fields: "files(id,name,mimeType,modifiedTime)"
+        });
+        const driveResult = await googleApiRequest(
+          user.id, connection.id,
+          "https://www.googleapis.com/drive/v3/files?" + driveQuery.toString()
+        );
+        const files = Array.isArray(driveResult?.files) ? driveResult.files : [];
+        if (files.length !== 1) {
+          return calendarDirect(
+            res,
+            files.length ? "同じ名前のスプレッドシートが複数あります。ファイル名をより具体的に指定してください。" : "「" + spreadsheetName + "」というスプレッドシートが見つかりませんでした。Driveのファイル名を確認してください。",
+            "対象のスプレッドシートを特定できませんでした。"
+          );
+        }
+
+        const spreadsheet = files[0];
+        const metadata = await googleApiRequest(
+          user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(spreadsheet.id) +
+          "?" + new URLSearchParams({ fields: "properties(title),sheets(properties(title,gridProperties(rowCount,columnCount)))" })
+        );
+        const availableSheets = Array.isArray(metadata?.sheets) ? metadata.sheets : [];
+        const requestedTab = quotedNames.find(name => availableSheets.some(sheet => sheet?.properties?.title === name));
+        const tab = requestedTab || (userText.includes("売上") && availableSheets.some(sheet => sheet?.properties?.title === "売上")
+          ? "売上"
+          : availableSheets[0]?.properties?.title);
+        if (!tab) {
+          return calendarDirect(res, "スプレッドシートに読み取れるシートがありません。", "シートが見つかりません。");
+        }
+
+        const range = "'" + tab.replace(/'/g, "''") + "'!A1:Z20";
+        const valuesQuery = new URLSearchParams({
+          valueRenderOption: "FORMATTED_VALUE",
+          dateTimeRenderOption: "FORMATTED_STRING"
+        });
+        const valuesResult = await googleApiRequest(
+          user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(spreadsheet.id) +
+          "/values/" + encodeURIComponent(range) + "?" + valuesQuery.toString()
+        );
+        const rows = Array.isArray(valuesResult?.values) ? valuesResult.values.slice(0, 20) : [];
+        if (!rows.length) {
+          return calendarDirect(res, "「" + spreadsheet.name + "」の「" + tab + "」シートは空です。", "指定したシートにデータはありません。");
+        }
+        const formattedRows = rows.map(row => row.map(cell => String(cell ?? "").slice(0, 200)).join(" | "));
+        const resultText = "Google Sheets読み取り結果： " + spreadsheet.name + " / " + tab + "\\n" +
+          formattedRows.join("\\n") +
+          (rows.length === 20 ? "\\n（先頭20行を表示。必要なら範囲を指定してください）" : "");
+        return calendarDirect(res, resultText, "スプレッドシートの内容を取得しました。");
+      } catch (error) {
+        console.error("Google Sheets natural-language read failed", {
+          name: error?.name || "Error",
+          status: Number.isInteger(error?.status) ? error.status : undefined,
+          code: typeof error?.code === "string" ? error.code : undefined
+        });
+        return calendarDirect(res, "Google Sheetsの読み取りに失敗しました。Google接続状態とファイル名を確認してください。", "スプレッドシートを読み取れませんでした。");
+      }
+    }
+
     // Calendar confirmation uses intent categories, not a fixed list of phrases.
     const actionToken=req.body?.pendingCalendarAction;
     let pendingAction=verifyCalendarAction(actionToken,user.id);
