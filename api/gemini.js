@@ -267,15 +267,17 @@ module.exports = async function handler(req, res) {
         .replace(/明後日|あさって|明日|あした|今日|本日/g," ")
         .replace(/\d{1,2}時(?:\d{1,2}分)?(?:から|〜|～|-)\s*\d{1,2}時(?:\d{1,2}分)?/g," ")
         .replace(/\d{1,2}時(?:\d{1,2}分)?/g," ")
-        .replace(/(?:予定|スケジュール|カレンダー)(?:を|に|の)?|(?:入れて|追加して|登録して|作って|作成して|変更して|ずらして|削除して|消して|教えて|お願いします)/g," ")
+        .replace(/(?:予定|スケジュール|カレンダー)(?:を|に|の)?|(?:入れておいて|入れといて|入れて|入れてください|追加しました|追加して|追加|登録しました|登録して|登録|作って|作成して|変更して|ずらして|削除して|取り消して|消して|予約して|押さえて|組んで|教えて|お願いします|も|もお願い)/g," ")
         .replace(/[「」『』"“”、。,.！!？?]/g," ")
         .replace(/^[\sにのをはがでとへからまで]+|[\sにのをはがでとへからまで]+$/g," ")
         .replace(/\s+/g," ").trim();
       return candidate.length>0 && candidate.length<=200 ? candidate : null;
     })();
-    const creating=/(?:予定|スケジュール|カレンダー).*(?:入れて|追加|登録|作って|作成)|(?:入れて|追加して|登録して).*(?:予定|スケジュール|カレンダー)/.test(userText);
-    const updating=/(?:予定|スケジュール).*(?:変更|ずらして|時間を変)|(?:変更|ずらして).*(?:予定|スケジュール)/.test(userText);
-    const deleting=/(?:予定|スケジュール).*(?:削除|消して)|(?:削除|消して).*(?:予定|スケジュール)/.test(userText);
+    const addVerb=/(?:入れて|入れといて|入れておいて|追加して|追加|登録して|登録|作って|作成して|予定にして|スケジュールして|予約して|押さえて|組んで)/.test(userText);
+    const hasDateOrTime=!!calendarDate(userText)||/\d{1,2}時/.test(userText);
+    const creating=/(?:予定|スケジュール|カレンダー).*(?:入れて|入れといて|入れておいて|追加|登録|作って|作成)|(?:入れて|入れといて|入れておいて|追加して|登録して|予約して|押さえて).*(?:予定|スケジュール|カレンダー)/.test(userText)||(addVerb&&hasDateOrTime);
+    const updating=/(?:予定|スケジュール|カレンダー).*(?:変更|ずらして|時間を変)|(?:変更|ずらして).*(?:予定|スケジュール|カレンダー)/.test(userText);
+    const deleting=/(?:予定|スケジュール|カレンダー).*(?:削除|消して|取り消して)|(?:削除|消して|取り消して).*(?:予定|スケジュール|カレンダー)/.test(userText);
     if(creating||updating||deleting){
       try{
         const cs=await listConnectionsForUser(user.id),c=Array.isArray(cs)?cs.find(x=>x?.status==="connected"):null;
