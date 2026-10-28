@@ -72,7 +72,7 @@ function verifyCalendarAction(token,userId) {
   try{const p=JSON.parse(Buffer.from(body,"base64url").toString("utf8"));return p.userId===userId&&p.exp>Date.now()?p:null}catch(_){return null}
 }
 function calendarDate(text) {
-  const m=text.match(/(20\\d{2})[年/-](\\d{1,2})[月/-](\\d{1,2})日?/);
+  const m=text.match(/(20\d{2})[年/-](\d{1,2})[月/-](\d{1,2})日?/);
   if(m)return new Date(Date.UTC(+m[1],+m[2]-1,+m[3]));
   const now=new Date(Date.now()+9*3600000),d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));
   if(/明後日|あさって/.test(text))d.setUTCDate(d.getUTCDate()+2);
@@ -81,7 +81,7 @@ function calendarDate(text) {
   return d;
 }
 function calendarTime(text,date) {
-  const m=text.match(/(\\d{1,2})時(?:(\\d{1,2})分)?(?:から|〜|～|-)\\s*(\\d{1,2})時(?:(\\d{1,2})分)?/);
+  const m=text.match(/(\d{1,2})時(?:(\d{1,2})分)?(?:から|〜|～|-)\\s*(\d{1,2})時(?:(\d{1,2})分)?/);
   if(!m)return null;
   const sh=+m[1],sm=+(m[2]||0),eh=+m[3],em=+(m[4]||0);
   if(sh>23||eh>23||sm>59||em>59)return null;
@@ -188,7 +188,7 @@ module.exports = async function handler(req, res) {
           const d=calendarDate(userText),t=d&&calendarTime(userText,d);
           if(!title||!d||!t)return calendarDirect(res,"予定名を「」で囲み、今日・明日・明後日または年月日と、開始・終了時刻を指定してください。例：明日「買い物」を10時から11時で予定に入れて。","予定名、日付、開始・終了時刻を指定してください。");
           const token=signCalendarAction({userId:user.id,action:"create",event:{summary:title,...t}});
-          return calendarDirect(res,"次の内容で登録します：『"+title+"』、"+d.toISOString().slice(0,10)+"、"+userText.match(/\\d{1,2}時[^。]*?(?:から|〜|～|-)[^。]*?\\d{1,2}時/)?.[0]+"。実行してよろしいですか？「はい」または「キャンセル」とお答えください。","予定を登録します。よろしいですか？",{pendingCalendarAction:token});
+          return calendarDirect(res,"次の内容で登録します：『"+title+"』、"+d.toISOString().slice(0,10)+"、"+userText.match(/\d{1,2}時[^。]*?(?:から|〜|～|-)[^。]*?\d{1,2}時/)?.[0]+"。実行してよろしいですか？「はい」または「キャンセル」とお答えください。","予定を登録します。よろしいですか？",{pendingCalendarAction:token});
         }
         if(!title)return calendarDirect(res,"対象の予定名を「」で指定してください。","対象の予定名を「」で指定してください。");
         const now=new Date(),params=new URLSearchParams({timeMin:now.toISOString(),timeMax:new Date(now.getTime()+180*86400000).toISOString(),singleEvents:"true",orderBy:"startTime",maxResults:"100",q:title});
