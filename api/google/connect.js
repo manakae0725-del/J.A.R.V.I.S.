@@ -13,7 +13,9 @@ const CALENDAR_SCOPES = [
   "profile",
   "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
   "https://www.googleapis.com/auth/calendar.events",
-  "https://www.googleapis.com/auth/tasks"
+  "https://www.googleapis.com/auth/tasks",
+  "https://www.googleapis.com/auth/spreadsheets",
+  "https://www.googleapis.com/auth/drive.readonly"
 ];
 
 module.exports = async function handler(req, res) {
