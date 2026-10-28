@@ -934,10 +934,12 @@ OPTIONAL VISUALIZATION
 必要な場合だけ、回答内容を補助する visualization を返してください。
 通常の会話・短い回答では type を "none" にしてください。
 比較・推移など複数の数値がある場合は "bar" または "line" を使ってください。
-構造・手順・因果関係を整理すると理解しやすい場合は "diagram" を使ってください。
+割合・構成比は "pie" または "donut"、順序や処理の流れは "flowchart"、部品や要素の関係は "structure"、概念的な配置図・簡易図面は "blueprint"、達成率など0〜100の割合は "gauge"、複数項目の数値比較・順位付けは "matrix" を使ってください。
+構造・手順・因果関係を整理すると理解しやすい場合は "diagram" も使えます。
 数値や手順を推測で作らないでください。根拠となるデータがなければ図表を出さないでください。
 labels は短い項目名、values は labels と同じ数の数値、steps は図解の順序を示す短い文字列です。
-bar / line では labels と values を2〜6個にしてください。diagram では steps を2〜4個にしてください。
+bar / line / pie / donut / matrix では labels と values を2〜6個にしてください。diagram / flowchart では steps を2〜6個にしてください。structure / blueprint では labels を3〜6個にしてください。gauge では values の先頭に0〜100の値を1つ入れてください。
+blueprint は寸法精度を保証する設計図ではなく、説明用の概念配置図として使ってください。
 visualization は画面表示専用です。reply と speechText は通常どおり自然な文章にし、図表の説明を読み上げ用文章へ詰め込まないでください。
 `;
 
@@ -969,7 +971,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
             visualization: {
               type: "object",
               properties: {
-                type: { type: "string", enum: ["none", "bar", "line", "diagram"] },
+                type: { type: "string", enum: ["none", "bar", "line", "diagram", "pie", "donut", "flowchart", "structure", "blueprint", "gauge", "matrix"] },
                 title: { type: "string" },
                 labels: { type: "array", items: { type: "string" } },
                 values: { type: "array", items: { type: "number" } },
