@@ -396,7 +396,20 @@ body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity 
 #textArea.is-open{z-index:9500}
 
 </style></head><body class="auth-locked">
-<div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button>
+<div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:12000;padding:12px;background:rgba(0,10,25,.94);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
+  <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <button id="gcalConnect" type="button">Google接続</button>
+    <button id="gcalStatus" type="button">接続状態</button>
+    <button id="gcalRead" type="button">今後30日の予定取得</button>
+    <button id="gcalCreate" type="button">テスト予定を追加</button>
+  </div>
+  <pre id="gcalResult" style="white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0">ログイン後に操作してください。</pre>
+</div>
+<style>
+#googleCalendarTest button{background:#102b40;color:#e7f7ff;border:1px solid #258bc4;border-radius:4px;padding:8px 10px;font:inherit}
+body.auth-locked #googleCalendarTest{display:none!important}
+</style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 
 <div class="jarvis-holo-panel" id="jarvisHoloPanel" aria-live="polite">
@@ -2527,4 +2540,61 @@ async function sendToGemini(text) {
     }
 }
 
+</script>
+<script>
+(function(){
+ const panel=document.getElementById("googleCalendarTest");
+ const output=document.getElementById("gcalResult");
+ let connectionId=null;
+ const say=(value)=>{output.textContent=typeof value==="string"?value:JSON.stringify(value,null,2);};
+ async function request(path,options={}){
+   const token=await window.jarvisGetAccessToken();
+   if(!token) throw new Error("J.A.R.V.I.S.にログインしてください。");
+   const response=await fetch(path,{...options,headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,...(options.headers||{})},cache:"no-store"});
+   const data=await response.json().catch(()=>({error:"Invalid JSON response"}));
+   if(!response.ok) throw new Error("HTTP "+response.status+": "+(data.error||"Request failed"));
+   return data;
+ }
+ async function loadStatus(){
+   const data=await request("/api/google/status");
+   const connections=Array.isArray(data.connections)?data.connections:[];
+   const ready=connections.find(c=>c.status==="connected"||c.status==="ready"||c.connection_status==="connected"||c.connection_status==="ready")||connections[0];
+   connectionId=ready?.id||ready?.connection_id||null;
+   say({ok:data.ok,connections,selectedConnectionId:connectionId});
+   return data;
+ }
+ document.getElementById("gcalConnect").addEventListener("click",async()=>{
+   try{say("Google接続を開始しています…");const data=await request("/api/google/connect",{method:"POST",body:"{}"});if(!data.authorizationUrl)throw new Error("認証URLが返されませんでした。");window.location.assign(data.authorizationUrl);}
+   catch(e){say(e.message);}
+ });
+ document.getElementById("gcalStatus").addEventListener("click",async()=>{
+   try{say("接続状態を確認しています…");await loadStatus();}
+   catch(e){say(e.message);}
+ });
+ document.getElementById("gcalRead").addEventListener("click",async()=>{
+   try{
+     say("接続状態を確認しています…");
+     if(!connectionId) await loadStatus();
+     if(!connectionId) throw new Error("接続IDがありません。先にGoogle接続を行ってください。");
+     const now=new Date(),end=new Date(now.getTime()+30*86400000);
+     const q=new URLSearchParams({connectionId,timeMin:now.toISOString(),timeMax:end.toISOString()});
+     const data=await request("/api/google/calendar?"+q.toString());
+     say({ok:data.ok,count:(data.events||[]).length,events:(data.events||[]).map(e=>({id:e.id,summary:e.summary,start:e.start,end:e.end}))});
+   }catch(e){say(e.message);}
+ });
+ document.getElementById("gcalCreate").addEventListener("click",async()=>{
+   try{
+     if(!connectionId) await loadStatus();
+     if(!connectionId) throw new Error("接続IDがありません。先にGoogle接続を行ってください。");
+     if(!confirm("Googleカレンダーに「J.A.R.V.I.S. 接続テスト」という予定を追加します。よろしいですか？")) return;
+     const start=new Date(Date.now()+10*60000),end=new Date(start.getTime()+15*60000);
+     const data=await request("/api/google/calendar",{method:"POST",body:JSON.stringify({action:"create",connectionId,summary:"J.A.R.V.I.S. 接続テスト",description:"J.A.R.V.I.S. Google Calendar integration test. Delete after verification.",start:{dateTime:start.toISOString()},end:{dateTime:end.toISOString()}})});
+     say({ok:data.ok,event:{id:data.event?.id,summary:data.event?.summary,start:data.event?.start,end:data.event?.end}});
+   }catch(e){say(e.message);}
+ });
+ window.addEventListener("jarvis-auth-change",event=>{panel.style.display=event.detail?.userId?"block":"none";if(event.detail?.userId)say("ログイン済みです。Google接続から開始してください。");});
+ if(window.jarvisCurrentUserId) panel.style.display="block";
+ const result=new URLSearchParams(location.search).get("google_connection");
+ if(result){say("Google接続結果: "+result);history.replaceState(null,"",location.pathname);}
+})();
 </script></body></html>
