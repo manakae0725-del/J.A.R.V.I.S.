@@ -374,7 +374,8 @@ color: #61a6ff;
 body.auth-locked .datetime,body.auth-locked #jarvisHoloPanel,body.auth-locked #textArea,body.auth-locked .sideHUD,body.auth-locked #jarvisSignOut{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
 #authScreen.is-exiting{opacity:0;background:transparent}
-#authScreen.is-authenticating{background:rgba(0,30,72,.08)}\n#authScreen.is-authenticating ~ #c{filter:brightness(1.45) saturate(1.2);transition:filter .35s ease}
+#authScreen.is-authenticating{background:rgba(0,30,72,.08)}
+#authScreen.is-authenticating ~ #c{filter:brightness(1.45) saturate(1.2);transition:filter .35s ease}
 .auth-card{position:absolute;inset:0;pointer-events:none}
 #googleLoginButton{position:absolute;left:50%;top:20%;width:min(48vw,260px);height:min(48vw,260px);transform:translate(-50%,-50%);border:0;border-radius:50%;background:transparent;color:transparent;cursor:pointer;pointer-events:auto;opacity:0}
 #googleLoginButton:disabled{cursor:wait}
@@ -765,6 +766,7 @@ for(let i=0;i<21;i++){const a=rand()*Math.PI*2,rr=Math.sqrt(rand())*176;corePts.
 function frame(){
  requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
  stars.forEach(s=>{ctx.fillStyle='rgba(45,120,255,'+(s.a*(.65+.35*Math.sin(t+s.x*10))+0.04)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
+ if (!document.body.classList.contains('auth-locked')) {
  // Peripheral cyber-HUD: restrained data traces and segmented markers on the black field, separate from the Core.
  ctx.save();ctx.globalCompositeOperation='screen';
  const hudC='rgba(28,190,255,';
@@ -910,7 +912,9 @@ function frame(){
   ctx.beginPath();ctx.ellipse(x,y,rr*.55,rr*1.15,-.5,0,Math.PI*2);ctx.stroke();
  }
  ctx.restore();
+ }
  const r=Math.min(w,h)*.145;
+ if (!document.body.classList.contains('auth-locked')) {
  // Soft blue mist drifting around the Core; kept translucent so the silhouette stays readable.
  ctx.save();ctx.globalCompositeOperation='screen';
  for(let i=0;i<9;i++){
@@ -977,6 +981,7 @@ function frame(){
  beamGradV.addColorStop(1,'rgba(0,120,255,0)');
  line(cx,0,cx,h,beamGradV,.8);
  ctx.restore();
+ }
  // Particle flow surrounds and lightly overlaps the core silhouette.
  const transition = window.jarvisParticleTransition;
  const transitionElapsed = transition && transition.startedAt ? performance.now() - transition.startedAt : 1000;
@@ -1011,6 +1016,7 @@ function frame(){
  // Core activity is expressed through particle motion rather than extra rings.
  // Core remains a flat graphic at the center; particles and 3D-style orbit rings add depth.
  drawCore(r);
+ if (!document.body.classList.contains('auth-locked')) {
  // Animated holographic projection platform beneath the Core.
  {
   const py=Math.min(h*.88,cy+r*7.2),rx=Math.min(w*.43,r*4.15),ry=Math.max(10,rx*.22);
@@ -1066,6 +1072,7 @@ function frame(){
   emitter.addColorStop(0,'rgba(210,245,255,.95)');emitter.addColorStop(.16,'rgba(55,175,255,.78)');emitter.addColorStop(.48,'rgba(0,105,255,.22)');emitter.addColorStop(1,'rgba(0,100,255,0)');
   ctx.fillStyle=emitter;ctx.beginPath();ctx.ellipse(cx,py,rx*.19,ry*.42,0,0,Math.PI*2);ctx.fill();
   ctx.restore();ctx.shadowBlur=0;
+ }
  }
  // Fine particles crossing the foreground give a subtle layered effect.
  particles.filter(p=>p.r>.9).forEach(p=>{const a=p.a-t*p.speed*.16;const rr=r*(.78+Math.sin(t+p.phase)*.06);const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.8;ctx.fillStyle='rgba(135,200,255,'+(.8*transitionFade)+')';ctx.beginPath();ctx.arc(x,y,p.s*.5,0,Math.PI*2);ctx.fill()});
