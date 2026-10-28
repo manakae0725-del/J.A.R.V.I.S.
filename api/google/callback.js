@@ -1,13 +1,9 @@
+const { consumeOAuthState, saveConnection } = require("../_google/tokenStore");
 const {
   hashState,
-  consumeOAuthState,
-  saveConnection
-} = require("../_google/tokenStore");
-const {
   exchangeCode,
   fetchGoogleIdentity
 } = require("../_google/oauth");
-const { consumeOAuthState: consumeState } = require("../_google/tokenStore");
 
 function appBaseUrl() {
   const configured = process.env.JARVIS_APP_URL;
@@ -48,7 +44,7 @@ module.exports = async function handler(req, res) {
 
   let stateRecord;
   try {
-    stateRecord = await consumeState(hashState(state));
+    stateRecord = await consumeOAuthState(hashState(state));
   } catch (error) {
     console.error("Google OAuth state validation failed", {
       name: error?.name || "Error"
