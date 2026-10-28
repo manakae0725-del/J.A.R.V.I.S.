@@ -232,6 +232,9 @@ module.exports = {
   consumeOAuthState,
   saveConnection,
   getConnectionForUser,
+  updateConnectionTokens,
+  markConnectionStatus,
+  updateConnectionLastUsed,
   deleteConnectionForUser,
   listConnectionsForUser
 };
