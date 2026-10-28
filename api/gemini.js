@@ -204,6 +204,54 @@ module.exports = async function handler(req, res) {
       : rawText;
 
 
+    // Spreadsheet agent v1: inspect a workbook's structure before proposing any edits.
+    const sheetAgentIntent =
+      /(?:スプレッドシート|シート|売上管理|店販管理)/.test(userText) &&
+      /(?:完成させて|直して|修正して|作って|構造を調べて|調査して|数式を確認|未完成|自分で作って|整えて)/.test(userText) &&
+      !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して)/.test(userText);
+    if (sheetAgentIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。先にGoogle接続を行ってください。", "Googleが未接続です。");
+
+        const spreadsheetName = /店販管理/.test(userText) ? "店販管理" : /売上管理/.test(userText) ? "売上管理" : null;
+        if (!spreadsheetName) {
+          return calendarDirect(res, "調査するファイル名を指定してください。「売上管理を調査して」または「店販管理を調査して」と依頼できます。", "調査するスプレッドシート名を指定してください。");
+        }
+        const q = new URLSearchParams({
+          q: "name = '" + spreadsheetName.replace(/'/g, "\\'") + "' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
+          pageSize: "10",
+          orderBy: "modifiedTime desc",
+          fields: "files(id,name,mimeType,modifiedTime)"
+        });
+        const found = await googleApiRequest(user.id, connection.id, "https://www.googleapis.com/drive/v3/files?" + q);
+        const files = Array.isArray(found?.files) ? found.files : [];
+        if (files.length !== 1) return calendarDirect(res, files.length ? "同じ名前のファイルが複数あります。ファイル名を特定してください。" : "「" + spreadsheetName + "」が見つかりませんでした。Google Drive上のファイル名を確認してください。", "対象ファイルを特定できませんでした。");
+
+        const file = files[0];
+        const metadata = await googleApiRequest(user.id, connection.id, "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(file.id) + "?" + new URLSearchParams({fields:"properties(title),sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)))"}));
+        const sheetList = Array.isArray(metadata?.sheets) ? metadata.sheets : [];
+        const reports = [];
+        for (const sheet of sheetList.slice(0, 10)) {
+          const title = sheet?.properties?.title;
+          if (!title) continue;
+          const range = "'" + title.replace(/'/g, "''") + "'!A1:Z20";
+          const values = await googleApiRequest(user.id, connection.id, "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(file.id) + "/values/" + encodeURIComponent(range) + "?" + new URLSearchParams({valueRenderOption:"FORMULA",dateTimeRenderOption:"FORMATTED_STRING"}));
+          const rows = Array.isArray(values?.values) ? values.values : [];
+          const nonEmptyRows = rows.filter(row => row.some(cell => String(cell ?? "").trim() !== ""));
+          const formulas = rows.flat().filter(cell => typeof cell === "string" && cell.startsWith("=")).length;
+          const header = (rows[0] || []).map((cell, i) => String(cell || "").trim() ? String(cell).slice(0, 80) : "[" + String.fromCharCode(65 + i) + "列]").join(" | ");
+          reports.push("【" + title + "】範囲A1:Z20 / 入力済み行 " + nonEmptyRows.length + "行 / 数式 " + formulas + "個\n先頭行: " + (header || "空") + (rows.length > 1 ? "\nサンプル: " + rows.slice(1, 4).map(row => row.map(cell => String(cell ?? "").slice(0, 60)).join(" | ")).join("\n") : ""));
+        }
+        const report = "スプレッドシート構造の調査結果（読み取り専用）\nファイル: " + file.name + "\nシート数: " + sheetList.length + "\n\n" + (reports.join("\n\n") || "シートが見つかりませんでした。") + "\n\n次の段階では、この調査結果をもとに修正計画を提示し、承認後に変更する機能を追加します。今回はデータ・数式を変更していません。";
+        return calendarDirect(res, report, "スプレッドシートの構造を調査しました。今回は変更していません。");
+      } catch (error) {
+        console.error("Spreadsheet agent inspection failed", {name:error?.name || "Error", status:Number.isInteger(error?.status)?error.status:undefined, code:typeof error?.code==="string"?error.code:undefined});
+        return calendarDirect(res, "スプレッドシートの調査に失敗しました。Google接続状態とファイル名を確認してください。", "スプレッドシートを調査できませんでした。");
+      }
+    }
+
     // Google Sheets read and basic sales analysis. All operations here are read-only.
     const sheetsReadIntent =
       /(?:スプレッドシート|シート|表|売上表|売上|利益|利益率|販売実績)/.test(userText) &&
