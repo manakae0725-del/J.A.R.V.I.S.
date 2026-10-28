@@ -1374,6 +1374,7 @@ var recognitionRunning=false;
 var recognition=null;
 var previousInteractionId=null;
 var pendingCalendarAction=null;
+var pendingJarvisSuggestion="";
 var currentMode="voice";
 
 /* =========================================================
@@ -1396,6 +1397,8 @@ window.addEventListener("jarvis-auth-change", (event) => {
     memories = [];
     previousInteractionId = null;
     pendingCalendarAction = null;
+    pendingJarvisSuggestion = "";
+    renderJarvisSuggestion("");
 
     if (nextUserId) {
         void loadMemories();
@@ -2445,7 +2448,8 @@ async function sendToGemini(text) {
                     text: cleanText,
                     previousInteractionId: previousInteractionId,
                     memoryContext: buildMemoryContext(),
-                    pendingCalendarAction: pendingCalendarAction
+                    pendingCalendarAction: pendingCalendarAction,
+                    pendingSuggestion: pendingJarvisSuggestion
                 }),
                 signal: controller.signal
             }
@@ -2471,6 +2475,12 @@ async function sendToGemini(text) {
 
         if (Object.prototype.hasOwnProperty.call(data, "pendingCalendarAction")) {
             pendingCalendarAction = data.pendingCalendarAction || null;
+        }
+
+        // A suggestion is valid only for the immediately following user turn.
+        pendingJarvisSuggestion = "";
+        if (typeof data.suggestion === "string" && data.suggestion.trim()) {
+            pendingJarvisSuggestion = data.suggestion.trim().slice(0, 240);
         }
 
         // 会話IDは、開始時と同じユーザーの応答である場合のみ更新する。
