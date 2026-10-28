@@ -303,13 +303,40 @@ color: #61a6ff;
 
 
 
-/* Preview text mode: keep the original text UI hidden until an upward swipe. */
-#textArea{z-index:9500;display:none;}
-#textArea.is-open{display:block;}
-#textInput{background:rgba(2,12,28,.99);border-color:rgba(0,153,255,.65);color:#e8f7ff;box-shadow:0 0 18px rgba(0,119,255,.16);}
-#textInput::placeholder{font-size:14px;letter-spacing:3px;opacity:.4;color:#9acfff;text-shadow:0 0 8px rgba(0,153,255,.9),0 0 18px rgba(0,119,255,.7);}
-#textInput::-webkit-input-placeholder{font-size:14px;letter-spacing:3px;opacity:.4;color:#9acfff;text-shadow:0 0 8px rgba(0,153,255,.9),0 0 18px rgba(0,119,255,.7);}
-#sendButton{border-color:rgba(0,153,255,.65);background:rgba(0,60,120,.45);color:#d8f3ff;cursor:pointer;}
+/* Holographic text console: hidden between uses, softly projected when opened. */
+#textArea{
+ z-index:9500;display:none;opacity:0;visibility:hidden;
+ transform:translate(-50%,-46%);
+ transition:opacity .38s ease,transform .48s cubic-bezier(.2,.75,.25,1),visibility .38s ease;
+ padding:10px;border:1px solid rgba(0,174,255,.52);
+ background:linear-gradient(135deg,rgba(2,25,48,.82),rgba(1,10,24,.76));
+ box-shadow:0 0 24px rgba(0,119,255,.16),inset 0 0 18px rgba(0,153,255,.07);
+ backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+ clip-path:polygon(0 9px,9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px));
+}
+#textArea.is-open{display:block;opacity:1;visibility:visible;transform:translate(-50%,-50%);}
+#textArea.is-closing{opacity:0;visibility:hidden;transform:translate(-50%,-46%);pointer-events:none;}
+#textArea:before{content:"INPUT CONSOLE // J.A.R.V.I.S.";display:block;color:rgba(135,220,255,.8);font:10px/1.4 monospace;letter-spacing:2px;padding:2px 4px 8px;border-bottom:1px solid rgba(0,153,255,.22);margin-bottom:8px;}
+#textInput{
+ display:block;width:100%;min-height:64px;max-height:28vh;padding:12px;
+ border:1px solid rgba(0,153,255,.28);border-radius:2px;
+ background:rgba(0,8,20,.66);color:#e8f7ff;font:14px/1.5 monospace;
+ resize:vertical;pointer-events:auto;touch-action:manipulation;outline:none;
+ box-shadow:inset 0 0 12px rgba(0,119,255,.08);
+}
+#textInput:focus{border-color:rgba(0,205,255,.72);box-shadow:0 0 12px rgba(0,153,255,.14),inset 0 0 12px rgba(0,119,255,.1);}
+#textInput::placeholder,#textInput::-webkit-input-placeholder{font-size:12px;letter-spacing:2px;opacity:.5;color:#9acfff;text-shadow:0 0 8px rgba(0,153,255,.55);}
+#sendButton{
+ display:block;position:relative;margin:9px 0 0 auto;min-width:116px;height:38px;padding:0 18px;
+ border:1px solid rgba(0,190,255,.68);border-radius:2px;
+ background:linear-gradient(100deg,rgba(0,83,150,.55),rgba(0,35,75,.72));
+ color:#bfeaff;font:12px monospace;font-weight:bold;letter-spacing:2px;
+ cursor:pointer;box-shadow:inset 0 0 14px rgba(0,153,255,.09),0 0 12px rgba(0,119,255,.1);
+ clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));
+ transition:background .2s ease,box-shadow .2s ease,border-color .2s ease;
+}
+#sendButton:before{content:"";display:inline-block;width:6px;height:6px;margin-right:9px;background:#00d4ff;box-shadow:0 0 8px #00d4ff;vertical-align:middle;}
+#sendButton:active{background:rgba(0,130,220,.4);border-color:#00d4ff;box-shadow:0 0 18px rgba(0,153,255,.35);}
 @media(max-width:480px){#textArea{width:calc(100% - 36px);}}
 
 .jarvis-holo-panel{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 40px));max-height:52vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:rgba(0,153,255,.45) transparent;padding:12px 15px;z-index:30;pointer-events:auto;background:rgba(1,12,25,.82);border:1px solid rgba(0,153,255,.45);box-shadow:0 0 25px rgba(0,119,255,.25),inset 0 0 15px rgba(0,153,255,.12);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))}
@@ -373,7 +400,7 @@ color: #61a6ff;
     <br>
 
     <button id="sendButton">
-        送信
+        TRANSMIT
     </button>
 
 </div>
@@ -1546,8 +1573,9 @@ function setMode(mode) {
 
     if (mode === "text") {
 
-        textArea.style.display =
-            "block";
+        textArea.classList.remove("is-closing");
+        textArea.style.display = "block";
+        requestAnimationFrame(() => textArea.classList.add("is-open"));
 
         conversationActive =
             false;
@@ -1566,8 +1594,14 @@ function setMode(mode) {
 
      } else {
 
-    textArea.style.display =
-        "none";
+    textArea.classList.remove("is-open");
+    textArea.classList.add("is-closing");
+    setTimeout(() => {
+        if (currentMode !== "text") {
+            textArea.style.display = "none";
+            textArea.classList.remove("is-closing");
+        }
+    }, 420);
 
     conversationActive =
         true;
