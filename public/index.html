@@ -374,6 +374,12 @@ color: #61a6ff;
 body.auth-locked .datetime,body.auth-locked #jarvisHoloPanel,body.auth-locked #textArea,body.auth-locked .sideHUD,body.auth-locked #jarvisSignOut{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
 #authScreen.is-exiting{opacity:0;background:transparent}
+body.home-revealing canvas{opacity:.35;transition:opacity .85s ease}
+body:not(.auth-locked) canvas{opacity:1;transition:opacity .85s ease}
+body.home-revealing .datetime,body.home-revealing .sideHUD,body.home-revealing #textArea,body.home-revealing #jarvisHoloPanel,body.home-revealing #jarvisSignOut{opacity:0!important;transition:opacity .85s ease!important}
+body:not(.auth-locked):not(.home-revealing) .datetime,body:not(.auth-locked):not(.home-revealing) .sideHUD,body:not(.auth-locked):not(.home-revealing) #textArea,body:not(.auth-locked):not(.home-revealing) #jarvisSignOut{opacity:1;transition:opacity .85s ease}
+body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity .85s ease,visibility .25s ease}
+
 #authScreen.is-authenticating{background:rgba(0,30,72,.08)}
 #authScreen.is-authenticating ~ #c{filter:brightness(1.45) saturate(1.2);transition:filter .35s ease}
 .auth-card{position:absolute;inset:0;pointer-events:none}
@@ -682,7 +688,7 @@ POWER
  window.jarvisAuthReady=new Promise(resolve=>{resolveReady=resolve;});
  window.jarvisGetAccessToken=async function(){await window.jarvisAuthReady;if(!client)return null;const result=await client.auth.getSession();return result.data.session?result.data.session.access_token:null;};
  let currentSession=null,hasResolvedInitialSession=false;
- function revealHome(){screen.classList.remove("is-authenticating");screen.classList.add("is-exiting");setTimeout(()=>{screen.hidden=true;screen.classList.remove("is-exiting");document.body.classList.remove("auth-locked");},850);}
+ function revealHome(){screen.classList.remove("is-authenticating");document.body.classList.add("home-revealing");screen.classList.add("is-exiting");setTimeout(()=>{screen.hidden=true;screen.classList.remove("is-exiting");document.body.classList.remove("auth-locked");requestAnimationFrame(()=>requestAnimationFrame(()=>{document.body.classList.remove("home-revealing");}));},850);}
  function show(session,eventName=""){currentSession=session||null;const signedIn=Boolean(session);signOut.hidden=!signedIn;window.jarvisCurrentUserId=signedIn&&session.user&&typeof session.user.id==="string"?session.user.id:null;
   if(!signedIn){screen.hidden=false;screen.classList.remove("is-exiting","is-authenticating");button.disabled=false;}
   else if(eventName==="SIGNED_IN"||eventName==="PASSWORD_RECOVERY"){revealHome();}
