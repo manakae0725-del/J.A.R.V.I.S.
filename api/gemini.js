@@ -204,10 +204,10 @@ module.exports = async function handler(req, res) {
       : rawText;
 
 
-    // Google Sheets natural-language read: read-only; writes remain behind an explicit confirmation flow.
+    // Google Sheets read and basic sales analysis. All operations here are read-only.
     const sheetsReadIntent =
-      /(?:スプレッドシート|シート|表|売上表)/.test(userText) &&
-      /(?:読んで|読み取って|見せて|表示して|確認して|調べて|取得して|読める|内容|一覧)/.test(userText) &&
+      /(?:スプレッドシート|シート|表|売上表|売上|利益|利益率|販売実績)/.test(userText) &&
+      /(?:読んで|読み取って|見せて|表示して|確認して|調べて|取得して|読める|内容|一覧|いくら|合計|売上|利益|利益率|分析|集計|何件|何個|今月|先月|今年|今期|月別)/.test(userText) &&
       !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して)/.test(userText);
     if (sheetsReadIntent) {
       try {
@@ -221,7 +221,9 @@ module.exports = async function handler(req, res) {
 
         const quotedNames = [...userText.matchAll(/[「『“"]([^」』”"]{1,200})[」』”"]/g)].map(match => match[1].trim());
         const knownSpreadsheetName = userText.includes("個人販売管理表") ? "個人販売管理表" : null;
-        const spreadsheetName = knownSpreadsheetName || quotedNames.find(name => /管理表|スプレッドシート|販売|売上/.test(name));
+        const analyticalQuestion = /(?:売上|利益|利益率|販売実績|月別|合計|集計|分析|何件|何個|いくら)/.test(userText);
+        const spreadsheetName = knownSpreadsheetName || quotedNames.find(name => /管理表|スプレッドシート|販売|売上/.test(name)) ||
+          (analyticalQuestion ? "個人販売管理表" : null);
         if (!spreadsheetName) {
           return calendarDirect(res, "読み取るスプレッドシート名を指定してください。例：「個人販売管理表」の「売上」シートを読んで。", "読み取るスプレッドシート名を指定してください。");
         }
@@ -261,7 +263,7 @@ module.exports = async function handler(req, res) {
           return calendarDirect(res, "スプレッドシートに読み取れるシートがありません。", "シートが見つかりません。");
         }
 
-        const range = "'" + tab.replace(/'/g, "''") + "'!A1:Z20";
+        const range = "'" + tab.replace(/'/g, "''") + "'!A1:Z1000";
         const valuesQuery = new URLSearchParams({
           valueRenderOption: "FORMATTED_VALUE",
           dateTimeRenderOption: "FORMATTED_STRING"
@@ -271,17 +273,85 @@ module.exports = async function handler(req, res) {
           "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(spreadsheet.id) +
           "/values/" + encodeURIComponent(range) + "?" + valuesQuery.toString()
         );
-        const rows = Array.isArray(valuesResult?.values) ? valuesResult.values.slice(0, 20) : [];
+        const rows = Array.isArray(valuesResult?.values) ? valuesResult.values.slice(0, 1000) : [];
         if (!rows.length) {
           return calendarDirect(res, "「" + spreadsheet.name + "」の「" + tab + "」シートは空です。", "指定したシートにデータはありません。");
         }
-        const formattedRows = rows.map(row => row.map(cell => String(cell ?? "").slice(0, 200)).join(" | "));
+
+        if (analyticalQuestion && rows.length > 1) {
+          const headers = rows[0].map(value => String(value || "").trim());
+          const indexOfHeader = (...names) => headers.findIndex(header => names.includes(header));
+          const dateIndex = indexOfHeader("販売日", "日付", "購入日");
+          const qtyIndex = indexOfHeader("数量", "個数", "販売数量");
+          const priceIndex = indexOfHeader("販売価格", "売上", "売上金額");
+          const profitIndex = indexOfHeader("利益", "粗利益", "利益額");
+          const monthMatch = userText.match(/(\d{1,2})月/);
+          const now = new Date();
+          const wantedMonth = monthMatch ? Number(monthMatch[1]) : /先月/.test(userText) ? (now.getMonth() || 12) : now.getMonth() + 1;
+          const wantedYear = /去年|昨年/.test(userText) ? now.getFullYear() - 1 : now.getFullYear();
+          const useDateFilter = /今月|先月|今年|去年|昨年|\d{1,2}月|月別/.test(userText);
+          const parseNumber = value => {
+            if (value === undefined || value === null || value === "") return 0;
+            const parsed = Number(String(value).replace(/[¥￥,\s]/g, "").replace(/円/g, ""));
+            return Number.isFinite(parsed) ? parsed : 0;
+          };
+          const parseMonth = value => {
+            const s = String(value || "").trim();
+            const full = s.match(/(20\d{2})[年\/-](\d{1,2})[月\/-](\d{1,2})/);
+            if (full) return { year: Number(full[1]), month: Number(full[2]) };
+            const jp = s.match(/(\d{1,2})月\s*(\d{1,2})日/);
+            if (jp) return { year: wantedYear, month: Number(jp[1]) };
+            const short = s.match(/^(\d{1,2})[\/-](\d{1,2})$/);
+            if (short) return { year: wantedYear, month: Number(short[1]) };
+            return null;
+          };
+          let dataRows = rows.slice(1).filter(row => row.some(value => String(value ?? "").trim() !== ""));
+          if (useDateFilter && dateIndex >= 0) {
+            dataRows = dataRows.filter(row => {
+              const date = parseMonth(row[dateIndex]);
+              if (!date) return false;
+              if (/今年|去年|昨年/.test(userText) && date.year !== wantedYear) return false;
+              if (/今月|先月|\d{1,2}月/.test(userText) && date.month !== wantedMonth) return false;
+              return true;
+            });
+          }
+          const totalSales = dataRows.reduce((sum, row) => {
+            if (priceIndex < 0) return sum;
+            const price = parseNumber(row[priceIndex]);
+            const quantity = qtyIndex < 0 ? 1 : parseNumber(row[qtyIndex]);
+            return sum + price * quantity;
+          }, 0);
+          const totalProfit = dataRows.reduce((sum, row) => sum + (profitIndex < 0 ? 0 : parseNumber(row[profitIndex])), 0);
+          const totalQty = dataRows.reduce((sum, row) => sum + (qtyIndex < 0 ? 0 : parseNumber(row[qtyIndex])), 0);
+          const yen = value => Math.round(value).toLocaleString("ja-JP") + "円";
+          const period = useDateFilter ? (monthMatch ? wantedMonth + "月" : /先月/.test(userText) ? "先月" : /今年|去年|昨年/.test(userText) ? wantedYear + "年" : "今月") : "全期間";
+          const lines = ["集計対象：「" + spreadsheet.name + "」/「" + tab + "」/ " + period, "対象データ件数：" + dataRows.length + "件"];
+          if (/(?:利益率)/.test(userText)) {
+            if (priceIndex < 0 || profitIndex < 0) {
+              lines.push("利益率：必要な列（販売価格・利益）が見つからないため算出できません。");
+            } else if (totalSales === 0) {
+              lines.push("利益率：売上合計が0円のため算出できません。");
+            } else {
+              lines.push("売上合計：" + yen(totalSales), "利益合計：" + yen(totalProfit), "利益率：" + (totalProfit / totalSales * 100).toFixed(1) + "%");
+            }
+          } else if (/(?:利益)/.test(userText)) {
+            lines.push(profitIndex < 0 ? "利益列が見つからないため算出できません。" : "利益合計：" + yen(totalProfit));
+          } else if (/(?:売上|いくら|合計)/.test(userText)) {
+            lines.push(priceIndex < 0 ? "販売価格列が見つからないため算出できません。" : "売上合計：" + yen(totalSales));
+          }
+          if (/(?:何個|数量|個数)/.test(userText)) lines.push("数量合計：" + totalQty.toLocaleString("ja-JP") + "個");
+          if (/(?:何件|件数)/.test(userText)) lines.push("データ件数：" + dataRows.length + "件");
+          lines.push("注：販売価格×数量を売上として集計しています。日付に年がない行は指定年のデータとみなします。");
+          return calendarDirect(res, lines.join("\n"), "スプレッドシートを集計しました。");
+        }
+
+        const formattedRows = rows.slice(0, 20).map(row => row.map(cell => String(cell ?? "").slice(0, 200)).join(" | "));
         const resultText = "Google Sheets読み取り結果： " + spreadsheet.name + " / " + tab + "\n" +
           formattedRows.join("\n") +
-          (rows.length === 20 ? "\n（先頭20行を表示。必要なら範囲を指定してください）" : "");
+          (rows.length >= 20 ? "\n（先頭20行を表示。必要なら範囲を指定してください）" : "");
         return calendarDirect(res, resultText, "スプレッドシートの内容を取得しました。");
       } catch (error) {
-        console.error("Google Sheets natural-language read failed", {
+        console.error("Google Sheets read/analysis failed", {
           name: error?.name || "Error",
           status: Number.isInteger(error?.status) ? error.status : undefined,
           code: typeof error?.code === "string" ? error.code : undefined
