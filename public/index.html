@@ -409,8 +409,9 @@ body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity 
     <button id="gtaskDelete" type="button">テストタスク削除</button>
     <button id="gdriveRead" type="button">Driveファイル一覧</button>
     <button id="gsheetsRead" type="button">Sheets読み取り</button>
+    <button id="gsheetsWriteTest" type="button">Sheets書き込みテスト</button>
   </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><input id="gsheetsId" type="text" placeholder="スプレッドシートID" aria-label="スプレッドシートID" style="min-width:180px;max-width:100%;padding:8px;background:#06182a;color:#e7f7ff;border:1px solid #258bc4"><input id="gsheetsRange" type="text" value="A1:Z20" aria-label="読み取り範囲" style="width:100px;padding:8px;background:#06182a;color:#e7f7ff;border:1px solid #258bc4"></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><input id="gsheetsId" type="text" placeholder="スプレッドシートID" aria-label="スプレッドシートID" style="min-width:180px;max-width:100%;padding:8px;background:#06182a;color:#e7f7ff;border:1px solid #258bc4"><input id="gsheetsRange" type="text" value="A1:Z20" aria-label="読み取り範囲" style="width:100px;padding:8px;background:#06182a;color:#e7f7ff;border:1px solid #258bc4"><div style="width:100%;font-size:11px;color:#9acfff">書き込みテストは JARVIS_TEST!A1:B2 のみを更新します。</div></div>
   <pre id="gcalResult" style="white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0">ログイン後に操作してください。</pre>
 </div>
 <style>
@@ -2666,6 +2667,22 @@ async function sendToGemini(text) {
      const q=new URLSearchParams({connectionId,pageSize:"25"});
      const data=await request("/api/google/drive?"+q.toString());
      say({ok:data.ok,count:(data.files||[]).length,files:(data.files||[]).map(f=>({id:f.id,name:f.name,mimeType:f.mimeType,modifiedTime:f.modifiedTime,webViewLink:f.webViewLink}))});
+   }catch(e){say(e.message);}
+ });
+ document.getElementById("gsheetsWriteTest").addEventListener("click",async()=>{
+   try{
+     if(!connectionId) await loadStatus();
+     if(!connectionId) throw new Error("接続IDがありません。先にGoogle接続を行ってください。");
+     const spreadsheetId=document.getElementById("gsheetsId").value.trim();
+     if(!spreadsheetId) throw new Error("スプレッドシートIDを入力してください。");
+     const testRange="JARVIS_TEST!A1:B2";
+     if(!confirm("指定したスプレッドシートの "+testRange+" にテスト値を書き込みます。既存の同範囲の値は上書きされます。続行しますか？")) return;
+     say("テスト用シートへ書き込み中…");
+     const data=await request("/api/google/sheets",{method:"POST",body:JSON.stringify({
+       action:"update",connectionId,spreadsheetId,range:testRange,valueInputOption:"RAW",
+       values:[["テスト項目","結果"],["JARVIS書き込みテスト","成功"]]
+     })});
+     say({ok:data.ok,action:data.action,updatedRange:data.updatedRange,updates:data.updates,note:"JARVIS_TEST!A1:B2 の書き込み結果を確認してください。"});
    }catch(e){say(e.message);}
  });
  document.getElementById("gsheetsRead").addEventListener("click",async()=>{
