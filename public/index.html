@@ -356,6 +356,9 @@ color: #61a6ff;
 @keyframes voicePulse{0%,100%{opacity:.4;transform:scale(.9)}50%{opacity:1;transform:scale(1.1)}}
 .jarvis-visualization{margin-top:10px;color:#d8f3ff;font:11px/1.4 monospace;pointer-events:none}
 .jarvis-visualization[hidden]{display:none!important}
+.jarvis-suggestion{margin-top:10px;padding:8px 10px;border-left:2px solid rgba(0,210,255,.7);background:rgba(0,100,180,.10);color:#aeeaff;font:11px/1.5 monospace;overflow-wrap:anywhere}
+.jarvis-suggestion[hidden]{display:none!important}
+.jarvis-suggestion-label{display:block;margin-bottom:3px;color:rgba(105,205,255,.65);font-size:9px;letter-spacing:1.5px}
 .jarvis-visualization .viz-title{margin:0 0 6px;color:#8acfff;letter-spacing:1px;font-size:10px}
 .jarvis-visualization svg{display:block;width:100%;height:auto;max-height:210px;overflow:visible}.jarvis-visualization svg.viz-diagram-svg{max-height:none}.jarvis-visualization .viz-step-text{fill:#e8f7ff;font:11px monospace}
 .jarvis-visualization .viz-gauge-value{fill:#e8f7ff;font:24px monospace;font-weight:bold}.jarvis-visualization .viz-blueprint-grid{stroke:rgba(35,199,255,.13);stroke-width:.5}
@@ -431,6 +434,7 @@ body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{disp
  <div id="voiceStatus" class="voice-status">VOICE MODE STANDBY</div>
  <div id="voiceResponse" class="voice-response">上から下へスワイプして音声モードを開始します</div>
  <div id="jarvisVisualization" class="jarvis-visualization" hidden aria-label="回答の図表"></div>
+ <div id="jarvisSuggestion" class="jarvis-suggestion" hidden aria-label="次の提案"></div>
 </div>
 <div id="textArea">
 
@@ -2225,6 +2229,21 @@ function animateJarvisResponse(text) {
     });
 }
 
+function renderJarvisSuggestion(suggestion) {
+    const container = document.getElementById("jarvisSuggestion");
+    if (!container) return;
+    container.replaceChildren();
+    const text = typeof suggestion === "string" ? suggestion.trim().slice(0, 240) : "";
+    container.hidden = !text;
+    if (!text) return;
+    const label = document.createElement("span");
+    label.className = "jarvis-suggestion-label";
+    label.textContent = "NEXT SUGGESTION";
+    const content = document.createElement("span");
+    content.textContent = text;
+    container.append(label, content);
+}
+
 function renderJarvisVisualization(viz) {
     const container = document.getElementById("jarvisVisualization");
     if (!container) return;
@@ -2484,6 +2503,7 @@ async function sendToGemini(text) {
         responseAnimation.then(token => {
             if (token !== null && requestUserId === window.jarvisCurrentUserId) {
                 renderJarvisVisualization(data.visualization);
+                renderJarvisSuggestion(data.suggestion);
             }
         });
 
@@ -2495,9 +2515,11 @@ async function sendToGemini(text) {
             requestUserId === window.jarvisCurrentUserId
         ) {
             status.textContent = "RESPONDING...";
-            const spoken = await speakWithGemini(
-                data.speechText || data.text
-            );
+            const spokenText = [
+                data.speechText || data.text,
+                typeof data.suggestion === "string" ? data.suggestion.trim() : ""
+            ].filter(Boolean).join(" ");
+            const spoken = await speakWithGemini(spokenText);
 
             if (
                 spoken &&
@@ -2536,6 +2558,7 @@ async function sendToGemini(text) {
             document.getElementById("voiceResponse").textContent =
                 "処理に失敗しました。通信状態を確認して、もう一度お試しください。";
             renderJarvisVisualization(null);
+            renderJarvisSuggestion("");
             document.getElementById("jarvisHoloPanel").classList.add("show");
             status.textContent = "処理に失敗しました";
             window.setJarvisCoreState("standby");
