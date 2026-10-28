@@ -268,10 +268,20 @@ module.exports = async function handler(req, res) {
       userText.includes("docs.google.com/spreadsheets/d/");
     if (spreadsheetRegistrationIntent) {
       try {
-        const salesLine = userText.split(/\r?\n/).find(line => line.includes("売上管理"));
-        const retailLine = userText.split(/\r?\n/).find(line => line.includes("店販管理"));
-        const salesUrl = salesLine?.match(/https?:\S+/)?.[0];
-        const retailUrl = retailLine?.match(/https?:\S+/)?.[0];
+        // Prefer URLs explicitly placed on the same line as their labels.
+        // If the user supplied exactly two URLs separately, map them in the requested order
+        // (sales first, retail second) when both labels are present in the registration request.
+        const lines = userText.split(/\r?\n/);
+        const extractUrl = line => line?.match(/https?:\/\/[^\s<>"']+/)?.[0]?.replace(/[),.;]+$/, "");
+        let salesUrl = extractUrl(lines.find(line => line.includes("売上管理")));
+        let retailUrl = extractUrl(lines.find(line => line.includes("店販管理")));
+        const allUrls = [...userText.matchAll(/https?:\/\/[^\s<>"']+/g)]
+          .map(match => match[0].replace(/[),.;]+$/, ""));
+        if ((!salesUrl || !retailUrl) && allUrls.length === 2 &&
+            userText.includes("売上管理") && userText.includes("店販管理")) {
+          salesUrl = salesUrl || allUrls[0];
+          retailUrl = retailUrl || allUrls[1];
+        }
         const salesId = spreadsheetIdFromUrl(salesUrl);
         const retailId = spreadsheetIdFromUrl(retailUrl);
         if (!salesId || !retailId) {
