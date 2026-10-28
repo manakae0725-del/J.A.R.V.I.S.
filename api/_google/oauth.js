@@ -117,6 +117,7 @@ module.exports = {
   hashState,
   createAuthorizationUrl,
   exchangeCode,
+  refreshAccessToken,
   fetchGoogleIdentity,
   revokeGoogleToken
 };
