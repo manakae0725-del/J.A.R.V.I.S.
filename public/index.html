@@ -372,9 +372,9 @@ color: #61a6ff;
 #authScreen{position:fixed;inset:0;z-index:100000;display:block;padding:0;background:rgba(1,7,18,.10);color:#d8efff;font-family:"Courier New",Courier,monospace;opacity:1;transition:opacity .85s ease,background .7s ease;pointer-events:none}
 #authScreen[hidden]{display:none!important}
 #authScreen.is-exiting{opacity:0;background:transparent}
-#authScreen.is-authenticating{background:rgba(0,30,72,.08)}
+#authScreen.is-authenticating{background:rgba(0,30,72,.08)}\n#authScreen.is-authenticating ~ #c{filter:brightness(1.45) saturate(1.2);transition:filter .35s ease}
 .auth-card{position:absolute;inset:0;pointer-events:none}
-#googleLoginButton{position:absolute;left:50%;top:20%;width:min(34vw,210px);height:min(34vw,210px);transform:translate(-50%,-50%);border:0;border-radius:50%;background:transparent;color:transparent;cursor:pointer;pointer-events:auto;opacity:0}
+#googleLoginButton{position:absolute;left:50%;top:20%;width:min(48vw,260px);height:min(48vw,260px);transform:translate(-50%,-50%);border:0;border-radius:50%;background:transparent;color:transparent;cursor:pointer;pointer-events:auto;opacity:0}
 #googleLoginButton:disabled{cursor:wait}
 #authMessage{position:absolute;top:calc(20% + min(14.5vh, 100px) + 22px);left:0;width:100%;min-height:18px;margin:0;color:rgba(150,220,255,.9);font:10px/1.5 monospace;letter-spacing:3px;text-align:center;text-shadow:0 0 12px rgba(0,153,255,.65);opacity:0;transition:opacity .25s ease}
 #authScreen.is-authenticating #authMessage{opacity:1}
