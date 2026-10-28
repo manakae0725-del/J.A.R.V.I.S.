@@ -13,7 +13,9 @@ function normalizeDateValue(value) {
   if (!isObject(value)) return null;
   if (typeof value.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.date)) {
     const parsed = Date.parse(`${value.date}T00:00:00Z`);
-    if (!Number.isFinite(parsed)) return null;
+    if (!Number.isFinite(parsed) || new Date(parsed).toISOString().slice(0, 10) !== value.date) {
+      return null;
+    }
     return { date: value.date };
   }
   if (typeof value.dateTime === "string" && value.dateTime.length <= 64 &&
@@ -127,7 +129,9 @@ module.exports = async function handler(req, res) {
       const timeMax = typeof req.query?.timeMax === "string"
         ? req.query.timeMax
         : new Date(now + 30 * 86400_000).toISOString();
-      if (!Number.isFinite(Date.parse(timeMin)) || !Number.isFinite(Date.parse(timeMax)) ||
+      const hasTimezone = (value) => /(?:Z|[+-]\d{2}:\d{2})$/i.test(value);
+      if (!hasTimezone(timeMin) || !hasTimezone(timeMax) ||
+          !Number.isFinite(Date.parse(timeMin)) || !Number.isFinite(Date.parse(timeMax)) ||
           Date.parse(timeMax) <= Date.parse(timeMin)) {
         return res.status(400).json({ error: "Invalid time range" });
       }
