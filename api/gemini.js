@@ -925,6 +925,22 @@ WEATHER RESPONSE RULES
 `;
     }
 
+    geminiInput += `
+
+==============================
+OPTIONAL VISUALIZATION
+==============================
+
+必要な場合だけ、回答内容を補助する visualization を返してください。
+通常の会話・短い回答では type を "none" にしてください。
+比較・推移など複数の数値がある場合は "bar" または "line" を使ってください。
+構造・手順・因果関係を整理すると理解しやすい場合は "diagram" を使ってください。
+数値や手順を推測で作らないでください。根拠となるデータがなければ図表を出さないでください。
+labels は短い項目名、values は labels と同じ数の数値、steps は図解の順序を示す短い文字列です。
+bar / line では labels と values を2〜6個にしてください。diagram では steps を2〜4個にしてください。
+visualization は画面表示専用です。reply と speechText は通常どおり自然な文章にし、図表の説明を読み上げ用文章へ詰め込まないでください。
+`;
+
     // ==========================================
     // Gemini Request
     // ==========================================
@@ -950,6 +966,17 @@ WEATHER RESPONSE RULES
               type: "string",
             },
 
+            visualization: {
+              type: "object",
+              properties: {
+                type: { type: "string", enum: ["none", "bar", "line", "diagram"] },
+                title: { type: "string" },
+                labels: { type: "array", items: { type: "string" } },
+                values: { type: "array", items: { type: "number" } },
+                steps: { type: "array", items: { type: "string" } }
+              },
+              required: ["type", "title", "labels", "values", "steps"]
+            },
             memory: {
               type: "object",
 
@@ -993,6 +1020,7 @@ WEATHER RESPONSE RULES
             "reply",
             "speechText",
             "memory",
+            "visualization",
           ],
         },
       },
@@ -1184,6 +1212,8 @@ WEATHER RESPONSE RULES
       !result.reply ||
       !result.speechText ||
       !result.memory ||
+      !result.visualization ||
+      !["none", "bar", "line", "diagram"].includes(result.visualization.type) ||
       typeof result.memory.shouldSave !==
         "boolean"
     ) {
@@ -1209,6 +1239,7 @@ WEATHER RESPONSE RULES
     return res.status(200).json({
       text: result.reply,
       speechText: result.speechText,
+      visualization: result.visualization,
       interactionId,
 
   searchPerformed:
