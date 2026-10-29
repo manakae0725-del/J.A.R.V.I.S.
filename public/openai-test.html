@@ -57,7 +57,7 @@ button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-h
     const result=await response.json();
     if(!response.ok||!result.ok){
      const messages={ROUTING_CONFIGURATION_MISSING:"Preview の OpenAI API キーまたはモデル名を確認してください。",AUTHENTICATION_FAILED:"OpenAI APIキーまたは権限を確認してください。",RATE_LIMITED:"制限に達しました。時間をおいてください。",TIMEOUT:"応答が時間内に返りませんでした。"};
-     out.textContent="失敗\\n原因コード: "+(result.error||"HTTP_"+response.status)+"\\n"+(messages[result.error]||"Vercel の Preview Runtime Logs で確認してください。");return;
+     out.textContent="失敗\\n原因コード: "+(result.error||"HTTP_"+response.status)+"\\n状態: "+(result.responseStatus||"不明")+"\\n詳細: "+(result.incompleteReason||"なし")+"\\n"+(messages[result.error]||"Vercel の Preview Runtime Logs で確認してください。");return;
     }
     out.textContent="成功\\n経路: "+result.route+"\\nModel: "+result.model+"\\n応答: "+result.text+"\\n時間: "+result.durationMs+" ms";
    }catch(error){out.textContent="テスト失敗: "+(error?.message||"通信エラー");}
