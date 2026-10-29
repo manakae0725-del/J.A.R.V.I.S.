@@ -216,6 +216,7 @@ module.exports = async function handler(req, res) {
   }
 
   const user = await requireAuth(req, res);
+  if (!user) return;
 
   // Optional AI council mode reuses this existing function to stay within the Vercel Hobby function limit.
   if (req.body && req.body.mode === "ai-council") {
@@ -260,8 +261,6 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: "AI council request failed" });
     }
   }
-
-  if (!user) return;
 
   if (!(await enforceRateLimit(res, user, "gemini-minute", 10, 60))) return;
   if (!(await enforceRateLimit(res, user, "gemini-day", 200, 86400))) return;
