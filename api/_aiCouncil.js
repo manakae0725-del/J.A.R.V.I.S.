@@ -106,10 +106,15 @@ async function callOpenAI({ systemInstruction, userInput, maxOutputTokens, timeo
   let text = typeof data.output_text === "string" ? data.output_text : "";
   if (!text && Array.isArray(data.output)) {
     text = data.output.flatMap(item => Array.isArray(item.content) ? item.content : [])
-      .filter(part => part?.type === "output_text" && typeof part.text === "string")
+      .filter(part => (part?.type === "output_text" || part?.type === "text") && typeof part.text === "string")
       .map(part => part.text).join("\n");
   }
-  if (!text) throw safeError("INVALID_RESPONSE", "openai");
+  if (!text.trim()) {
+    const error = safeError("INVALID_RESPONSE", "openai");
+    error.responseStatus = typeof data.status === "string" ? data.status : null;
+    error.incompleteReason = typeof data.incomplete_details?.reason === "string" ? data.incomplete_details.reason : null;
+    throw error;
+  }
   return { provider: "openai", model, text };
 }
 
@@ -238,7 +243,7 @@ async function testOpenAIConnection(options = {}) {
     const result = await callOpenAI({
       systemInstruction: typeof options.systemInstruction === "string" ? options.systemInstruction.slice(0, 2000) : "This is a connectivity test. Reply with exactly OPENAI_CONNECTION_OK and nothing else.",
       userInput: typeof options.userInput === "string" && options.userInput.trim() ? options.userInput.trim().slice(0, 1200) : "Reply with exactly OPENAI_CONNECTION_OK.",
-      maxOutputTokens: 32,
+      maxOutputTokens: Number.isInteger(options.maxOutputTokens) ? Math.max(64, Math.min(options.maxOutputTokens, 160)) : 32,
       timeoutMs: 8000
     });
     const durationMs = Date.now() - startedAt;
@@ -249,7 +254,12 @@ async function testOpenAIConnection(options = {}) {
     const errorCode = typeof error?.code === "string" ? error.code : "PROVIDER_UNAVAILABLE";
     const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : null;
     await logUsage("openai", false, statusCode, durationMs, errorCode);
-    return { ok: false, provider: "openai", error: errorCode, statusCode, durationMs };
+    return {
+      ok: false, provider: "openai", error: errorCode, statusCode,
+      responseStatus: typeof error?.responseStatus === "string" ? error.responseStatus : null,
+      incompleteReason: typeof error?.incompleteReason === "string" ? error.incompleteReason : null,
+      durationMs
+    };
   }
 }
 
