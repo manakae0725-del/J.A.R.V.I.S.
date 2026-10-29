@@ -229,18 +229,22 @@ module.exports = async function handler(req, res) {
     autoTaskText.length >= 80 &&
     (complexTaskPattern.test(autoTaskText) || autoTaskText.length >= 1200) &&
     process.env.JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED === "true";
-  const configuredAutoProviders = [];
-  if (process.env.OPENAI_API_KEY && process.env.JARVIS_OPENAI_MODEL) configuredAutoProviders.push("openai");
-  if (process.env.ANTHROPIC_API_KEY && process.env.JARVIS_ANTHROPIC_MODEL) configuredAutoProviders.push("anthropic");
+  // Select one specialist provider to avoid multiplying costs for a single request.
+  const configuredAutoProvider =
+    process.env.OPENAI_API_KEY && process.env.JARVIS_OPENAI_MODEL
+      ? "openai"
+      : process.env.ANTHROPIC_API_KEY && process.env.JARVIS_ANTHROPIC_MODEL
+        ? "anthropic"
+        : null;
 
-  if (autoCommanderEligible && configuredAutoProviders.length > 0) {
+  if (autoCommanderEligible && configuredAutoProvider) {
     if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) return;
-    if (!(await enforceRateLimit(res, user, "auto-commander-day", 10, 86400))) return;
+    if (!(await enforceRateLimit(res, user, "auto-commander-day", 5, 86400))) return;
     try {
       const result = await runAiCouncil({
         userInput: autoTaskText,
         systemInstruction: "You are a specialist council advising J.A.R.V.I.S. Analyze the user's request, state uncertainty, and do not claim to execute external actions. Give a concise, actionable synthesis.",
-        providers: configuredAutoProviders,
+        providers: [configuredAutoProvider],
         timeoutMs: 20000,
         maxOutputTokens: 600
       });
