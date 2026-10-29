@@ -89,3 +89,38 @@ test("reports missing OpenAI configuration without calling the network", async (
   assert.equal(typeof result.results[0].durationMs, "number");
   assert.equal(calls, 0);
 });
+
+
+test("normalizes provider rate limits without leaking response details", async () => {
+  process.env.JARVIS_AI_COUNCIL_ENABLED = "true";
+  process.env.GEMINI_API_KEY = "test-key-not-real";
+  global.fetch = async () => ({
+    ok: false,
+    status: 429,
+    text: async () => JSON.stringify({ error: { message: "private provider detail" } })
+  });
+  const result = await runAiCouncil({ userInput: "test", providers: ["gemini"] });
+  assert.equal(result.results[0].ok, false);
+  assert.equal(result.results[0].error, "RATE_LIMITED");
+  assert.equal(result.results[0].statusCode, 429);
+  assert.equal("text" in result.results[0], false);
+});
+
+test("normalizes request timeout and rejects oversized input before network access", async () => {
+  process.env.JARVIS_AI_COUNCIL_ENABLED = "true";
+  process.env.GEMINI_API_KEY = "test-key-not-real";
+  let calls = 0;
+  global.fetch = async (_url, options) => {
+    calls++;
+    const error = new Error("aborted");
+    error.name = "AbortError";
+    throw error;
+  };
+  const timeoutResult = await runAiCouncil({ userInput: "test", providers: ["gemini"] });
+  assert.equal(timeoutResult.results[0].error, "TIMEOUT");
+  await assert.rejects(
+    runAiCouncil({ userInput: "x".repeat(12001), providers: ["gemini"] }),
+    error => error.code === "INVALID_INPUT"
+  );
+  assert.equal(calls, 1);
+});
