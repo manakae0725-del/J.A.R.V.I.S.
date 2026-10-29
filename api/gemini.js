@@ -218,6 +218,55 @@ module.exports = async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
+  // Automatic commander routing is opt-in and fail-safe: ordinary Gemini flow remains unchanged unless
+  // both flags are enabled, the task merits review, and at least one paid provider is configured.
+  const autoTask = req.body && req.body.autoCommander === true ? req.body.text : null;
+  const autoTaskText = typeof autoTask === "string" ? autoTask.trim() : "";
+  const complexTaskPattern = /(?:比較|分析|設計|監査|検証|予測|戦略|計画|原因|改善|要件|アーキテクチャ|セキュリティ|脆弱性|複数の観点|メリット.{0,8}デメリット|compare|analy[sz]e|architecture|security audit|threat model|root cause|forecast|strategy|trade.?off|review the code)/i;
+  const autoCommanderEligible =
+    process.env.JARVIS_AUTO_COMMANDER_ENABLED === "true" &&
+    process.env.JARVIS_AI_COUNCIL_ENABLED === "true" &&
+    autoTaskText.length >= 80 &&
+    (complexTaskPattern.test(autoTaskText) || autoTaskText.length >= 1200) &&
+    process.env.JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED === "true";
+  const configuredAutoProviders = [];
+  if (process.env.OPENAI_API_KEY && process.env.JARVIS_OPENAI_MODEL) configuredAutoProviders.push("openai");
+  if (process.env.ANTHROPIC_API_KEY && process.env.JARVIS_ANTHROPIC_MODEL) configuredAutoProviders.push("anthropic");
+
+  if (autoCommanderEligible && configuredAutoProviders.length > 0) {
+    if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) return;
+    if (!(await enforceRateLimit(res, user, "auto-commander-day", 10, 86400))) return;
+    try {
+      const result = await runAiCouncil({
+        userInput: autoTaskText,
+        systemInstruction: "You are a specialist council advising J.A.R.V.I.S. Analyze the user's request, state uncertainty, and do not claim to execute external actions. Give a concise, actionable synthesis.",
+        providers: configuredAutoProviders,
+        timeoutMs: 20000,
+        maxOutputTokens: 600
+      });
+      const text = result.results.map(item =>
+        item.ok && typeof item.text === "string"
+          ? "【" + item.provider + "】\\n" + item.text
+          : "【" + item.provider + "】処理できませんでした。"
+      ).join("\\n\\n");
+      return res.status(200).json({
+        mode: "ai-council",
+        text,
+        speechText: text,
+        results: result.results,
+        providerCount: result.providerCount,
+        visualization: null,
+        memory: null,
+        interactionId: null
+      });
+    } catch (error) {
+      const code = typeof error?.code === "string" ? error.code : "INTERNAL_ERROR";
+      console.error("Automatic commander routing failed", { code });
+      // Do not fail the user's ordinary request because an advisory provider failed.
+      // Continue into the existing Gemini path below.
+    }
+  }
+
   // Optional AI council mode reuses this existing function to stay within the Vercel Hobby function limit.
   if (req.body && req.body.mode === "ai-council") {
     if (!(await enforceRateLimit(res, user, "ai-council-minute", 3, 60))) return;
