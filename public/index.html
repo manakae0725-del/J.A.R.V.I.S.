@@ -418,6 +418,8 @@ body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity 
 #googleCalendarTest button,#googleCalendarToggle{background:#102b40;color:#e7f7ff;border:1px solid #258bc4;border-radius:4px;padding:8px 10px;font:inherit}
 #googleCalendarToggle{position:fixed;right:12px;bottom:12px;z-index:12001;box-shadow:0 0 14px rgba(22,139,209,.22)}
 #googleCalendarToggle[hidden]{display:none!important}
+/* Google app test/connect panel is intentionally hidden from the home screen. OAuth logic remains available for a later Settings entry point. */
+#googleCalendarToggle{display:none!important}
 body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{display:none!important}
 @media(max-width:480px){#googleCalendarTest{left:10px!important;right:10px!important;bottom:60px!important;max-height:42vh!important}#googleCalendarToggle{right:10px;bottom:10px}}
 </style>
