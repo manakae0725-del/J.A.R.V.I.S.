@@ -82,11 +82,10 @@ test("reports missing OpenAI configuration without calling the network", async (
   let calls = 0;
   global.fetch = async () => { calls++; throw new Error("should not be called"); };
   const result = await runAiCouncil({ userInput: "test", providers: ["openai"] });
-  assert.deepEqual(result.results[0], {
-    ok: false,
-    provider: "openai",
-    error: "CONFIGURATION_MISSING",
-    statusCode: null
-  });
+  assert.equal(result.results[0].ok, false);
+  assert.equal(result.results[0].provider, "openai");
+  assert.equal(result.results[0].error, "CONFIGURATION_MISSING");
+  assert.equal(result.results[0].statusCode, null);
+  assert.equal(typeof result.results[0].durationMs, "number");
   assert.equal(calls, 0);
 });
