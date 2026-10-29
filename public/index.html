@@ -2486,16 +2486,33 @@ async function sendToGemini(text) {
         }
 
         window.setJarvisCoreState("responding");
-        const responseAnimation = animateJarvisResponse(data.text);
+        const voiceResponse = document.getElementById("voiceResponse");
+        const hasVisualization = !!(
+            data.visualization &&
+            typeof data.visualization.type === "string" &&
+            data.visualization.type !== "none"
+        );
+        // In voice mode, keep the visual panel focused on the chart while the
+        // corresponding explanation is spoken through TTS. Text mode remains unchanged.
+        const visualVoiceMode = currentMode === "voice" && hasVisualization;
+        if (voiceResponse) {
+            voiceResponse.hidden = visualVoiceMode;
+            voiceResponse.setAttribute("aria-hidden", visualVoiceMode ? "true" : "false");
+        }
         const holoPanel = document.getElementById("jarvisHoloPanel");
         holoPanel.classList.remove("show");
         void holoPanel.offsetWidth;
         holoPanel.classList.add("show");
-        responseAnimation.then(token => {
-            if (token !== null && requestUserId === window.jarvisCurrentUserId) {
-                renderJarvisVisualization(data.visualization);
-            }
-        });
+        if (visualVoiceMode) {
+            renderJarvisVisualization(data.visualization);
+        } else {
+            const responseAnimation = animateJarvisResponse(data.text);
+            responseAnimation.then(token => {
+                if (token !== null && requestUserId === window.jarvisCurrentUserId) {
+                    renderJarvisVisualization(data.visualization);
+                }
+            });
+        }
 
         status.textContent = "";
 
