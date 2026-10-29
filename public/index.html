@@ -2416,26 +2416,15 @@ async function sendToGemini(text) {
             return;
         }
 
-        // 「司令官:」を先頭につけた依頼だけ、AI council 経路へ明示的に送る。
-        // 通常会話は従来どおり Gemini 経路のまま。サーバー側の機能・有料AIガードは維持する。
-        const commanderMatch = cleanText.match(/^司令官[：:]\\s*/);
-        const isCommanderRequest = Boolean(commanderMatch);
-        const requestBody = isCommanderRequest
-            ? {
-                mode: "ai-council",
-                task: cleanText.slice(commanderMatch[0].length).trim(),
-                providers: ["gemini", "openai", "anthropic"]
-            }
-            : {
-                text: cleanText,
-                previousInteractionId: previousInteractionId,
-                memoryContext: buildMemoryContext(),
-                pendingCalendarAction: pendingCalendarAction
-            };
-
-        if (isCommanderRequest && !requestBody.task) {
-            throw new Error("司令官への依頼内容を入力してください。");
-        }
+        // J.A.R.V.I.S.が通常の依頼文から自動判断できるよう、毎回の合言葉は要求しない。
+        // サーバー側の自動司令官機能が無効・未設定なら、従来のGemini処理をそのまま使う。
+        const requestBody = {
+            text: cleanText,
+            autoCommander: true,
+            previousInteractionId: previousInteractionId,
+            memoryContext: buildMemoryContext(),
+            pendingCalendarAction: pendingCalendarAction
+        };
 
         const response = await fetch(
             "/api/gemini",
@@ -2452,22 +2441,8 @@ async function sendToGemini(text) {
 
         const data = await response.json();
 
-        // 司令官の複数AI結果を、既存の回答パネル・音声出力に渡せる形式へ整形する。
-        if (isCommanderRequest && response.ok) {
-            const results = Array.isArray(data.results) ? data.results : [];
-            data.text = results.map(result => {
-                const provider = typeof result.provider === "string" ? result.provider : "AI";
-                if (result.ok && typeof result.text === "string") {
-                    return "【" + provider + "】\\n" + result.text;
-                }
-                return "【" + provider + "】処理できませんでした（" +
-                    (typeof result.error === "string" ? result.error : "UNKNOWN_ERROR") + "）。";
-            }).join("\\n\\n");
-            data.speechText = data.text;
-            data.visualization = null;
-            data.memory = null;
-            data.interactionId = null;
-        }
+        // 自動司令官が返した結果は、既存の回答パネル・音声出力へそのまま渡す。
+        // 失敗時はサーバーが通常Gemini経路へフォールバックする。
 
         // 応答待ちの間にアカウントが変わっていたら、古い応答を破棄する。
         if (requestUserId !== window.jarvisCurrentUserId) {
