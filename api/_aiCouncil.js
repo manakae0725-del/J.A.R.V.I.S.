@@ -149,6 +149,7 @@ async function logUsage(provider, success, statusCode, durationMs, errorCode = n
     while (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
     const response = await fetch(baseUrl + "/rest/v1/api_usage", {
       method: "POST",
+      signal: AbortSignal.timeout(3000),
       headers: {
         apikey: supabaseKey,
         Authorization: "Bearer " + supabaseKey,
