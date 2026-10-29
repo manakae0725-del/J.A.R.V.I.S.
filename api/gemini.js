@@ -245,7 +245,8 @@ module.exports = async function handler(req, res) {
     }
     const result = await testOpenAIConnection({
       userInput: route.taskText,
-      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. This is a routing test. Do not execute or claim external actions. Briefly state that the OpenAI specialist route is working, then give one concise observation."
+      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. This is a routing test. Do not execute or claim external actions. Briefly state that the OpenAI specialist route is working, then give one concise observation.",
+      maxOutputTokens: 128
     });
     if (!result.ok) {
       return res.status(502).json({ ok: false, provider: route.provider, error: result.error, statusCode: result.statusCode });
