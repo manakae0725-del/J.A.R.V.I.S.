@@ -228,6 +228,43 @@ module.exports = async function handler(req, res) {
     return res.status(result.ok ? 200 : 502).json(result);
   }
 
+  // Explicit, bounded routing probe for Preview verification. This does not enable automatic routing.
+  if (req.body && req.body.mode === "commander-routing-test") {
+    if (!(await enforceRateLimit(res, user, "commander-routing-test-minute", 1, 60))) return;
+    if (!(await enforceRateLimit(res, user, "commander-routing-test-day", 2, 86400))) return;
+    const probeTask = "このシステムのセキュリティを分析し、改善案を比較してください。OpenAIへの接続と司令官ルーティングの経路確認が目的です。実際の設定変更や外部操作は行わず、確認結果と注意点を簡潔に返してください。";
+    const probeEnv = {
+      ...process.env,
+      JARVIS_AUTO_COMMANDER_ENABLED: "true",
+      JARVIS_AI_COUNCIL_ENABLED: "true",
+      JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED: "true"
+    };
+    const route = getAutoCommanderConfig({ autoCommander: true, text: probeTask, env: probeEnv });
+    if (!route.eligible || !route.provider) {
+      return res.status(503).json({ ok: false, error: "ROUTING_CONFIGURATION_MISSING" });
+    }
+    const result = await runAiCouncil({
+      userInput: route.taskText,
+      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. This is a routing test. Do not execute or claim external actions. Briefly state that the OpenAI specialist route is working, then give one concise observation.",
+      providers: [route.provider],
+      timeoutMs: 8000,
+      maxOutputTokens: 96
+    });
+    const item = result.results.find(entry => entry.ok && typeof entry.text === "string" && entry.text.trim());
+    if (!item) {
+      const failure = result.results[0] || {};
+      return res.status(502).json({ ok: false, provider: route.provider, error: failure.error || "PROVIDER_UNAVAILABLE", statusCode: failure.statusCode || null });
+    }
+    return res.status(200).json({
+      ok: true,
+      route: "commander -> " + item.provider,
+      provider: item.provider,
+      model: item.model,
+      text: item.text.slice(0, 600),
+      durationMs: item.durationMs
+    });
+  }
+
   // Automatic commander routing is opt-in and fail-safe: ordinary Gemini flow remains unchanged unless
   // both flags are enabled, the task merits review, and at least one paid provider is configured.
   const { taskText: autoTaskText, eligible: autoCommanderEligible, provider: configuredAutoProvider } =
