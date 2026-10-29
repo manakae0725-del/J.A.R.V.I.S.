@@ -238,11 +238,13 @@ module.exports = async function handler(req, res) {
         timeoutMs: 20000,
         maxOutputTokens: 600
       });
-      const text = result.results.map(item =>
-        item.ok && typeof item.text === "string"
-          ? "【" + item.provider + "】\n" + item.text
-          : "【" + item.provider + "】処理できませんでした。"
-      ).join("\n\n");
+      if (!result.results.some(item => item.ok && typeof item.text === "string" && item.text.trim())) {
+        throw new Error("Automatic commander provider returned no usable result");
+      }
+      const text = result.results
+        .filter(item => item.ok && typeof item.text === "string" && item.text.trim())
+        .map(item => "【" + item.provider + "】\n" + item.text)
+        .join("\n\n");
       return res.status(200).json({
         mode: "ai-council",
         text,
