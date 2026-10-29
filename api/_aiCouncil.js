@@ -140,6 +140,36 @@ async function callAnthropic({ systemInstruction, userInput, maxOutputTokens, ti
   return { provider: "anthropic", model, text };
 }
 
+async function logUsage(provider, success, statusCode, durationMs, errorCode = null) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !supabaseKey) return;
+  try {
+    const response = await fetch(supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/api_usage", {
+      method: "POST",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: "Bearer " + supabaseKey,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({
+        provider,
+        service: "ai_council",
+        success,
+        status_code: statusCode,
+        duration_ms: durationMs,
+        metadata: errorCode ? { error: errorCode } : {}
+      })
+    });
+    if (!response.ok) {
+      console.error("[AI COUNCIL] Usage log rejected", { provider, statusCode: response.status });
+    }
+  } catch (error) {
+    console.error("[AI COUNCIL] Usage log failed", { provider, name: error?.name || "Error" });
+  }
+}
+
 const PROVIDERS = {
   gemini: callGemini,
   openai: callOpenAI,
@@ -182,18 +212,18 @@ async function runAiCouncil(options = {}) {
   // Deliberately sequential: prevents accidental burst fan-out and simplifies cost controls.
   const results = [];
   for (const provider of providers) {
+    const startedAt = Date.now();
     try {
-      results.push({
-        ok: true,
-        ...(await PROVIDERS[provider]({ systemInstruction, userInput, maxOutputTokens, timeoutMs }))
-      });
+      const result = await PROVIDERS[provider]({ systemInstruction, userInput, maxOutputTokens, timeoutMs });
+      const durationMs = Date.now() - startedAt;
+      await logUsage(provider, true, 200, durationMs);
+      results.push({ ok: true, ...result, durationMs });
     } catch (error) {
-      results.push({
-        ok: false,
-        provider,
-        error: typeof error?.code === "string" ? error.code : "PROVIDER_UNAVAILABLE",
-        statusCode: Number.isInteger(error?.statusCode) ? error.statusCode : null
-      });
+      const durationMs = Date.now() - startedAt;
+      const errorCode = typeof error?.code === "string" ? error.code : "PROVIDER_UNAVAILABLE";
+      const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : null;
+      await logUsage(provider, false, statusCode, durationMs, errorCode);
+      results.push({ ok: false, provider, error: errorCode, statusCode, durationMs });
     }
   }
   return { results, providerCount: providers.length };
