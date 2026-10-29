@@ -523,8 +523,15 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // Visualization creation requests must reach the normal Gemini visualization flow,
+    // even when they mention sales/revenue. Do not accidentally route them into Drive lookup.
+    const visualizationCreationIntent =
+      /(?:グラフ|棒グラフ|円グラフ|折れ線グラフ|チャート|図表|可視化)/.test(userText) &&
+      /(?:作成|作って|作成して|生成|描いて|表示して|出して)/.test(userText);
+
     // Google Sheets read and basic sales analysis. All operations here are read-only.
     const sheetsReadIntent =
+      !visualizationCreationIntent &&
       /(?:スプレッドシート|シート|表|売上表|売上|利益|利益率|販売実績)/.test(userText) &&
       /(?:読んで|読み取って|見せて|表示して|確認して|調べて|取得して|読める|内容|一覧|いくら|合計|売上|利益|利益率|分析|集計|何件|何個|今月|先月|今年|今期|月別)/.test(userText) &&
       !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して)/.test(userText);
