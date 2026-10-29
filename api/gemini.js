@@ -250,9 +250,9 @@ module.exports = async function handler(req, res) {
       });
       const text = result.results.map(item =>
         item.ok && typeof item.text === "string"
-          ? "【" + item.provider + "】\\n" + item.text
+          ? "【" + item.provider + "】\n" + item.text
           : "【" + item.provider + "】処理できませんでした。"
-      ).join("\\n\\n");
+      ).join("\n\n");
       return res.status(200).json({
         mode: "ai-council",
         text,
