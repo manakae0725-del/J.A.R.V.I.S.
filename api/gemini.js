@@ -243,25 +243,20 @@ module.exports = async function handler(req, res) {
     if (!route.eligible || !route.provider) {
       return res.status(503).json({ ok: false, error: "ROUTING_CONFIGURATION_MISSING" });
     }
-    const result = await runAiCouncil({
+    const result = await testOpenAIConnection({
       userInput: route.taskText,
-      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. This is a routing test. Do not execute or claim external actions. Briefly state that the OpenAI specialist route is working, then give one concise observation.",
-      providers: [route.provider],
-      timeoutMs: 8000,
-      maxOutputTokens: 96
+      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. This is a routing test. Do not execute or claim external actions. Briefly state that the OpenAI specialist route is working, then give one concise observation."
     });
-    const item = result.results.find(entry => entry.ok && typeof entry.text === "string" && entry.text.trim());
-    if (!item) {
-      const failure = result.results[0] || {};
-      return res.status(502).json({ ok: false, provider: route.provider, error: failure.error || "PROVIDER_UNAVAILABLE", statusCode: failure.statusCode || null });
+    if (!result.ok) {
+      return res.status(502).json({ ok: false, provider: route.provider, error: result.error, statusCode: result.statusCode });
     }
     return res.status(200).json({
       ok: true,
-      route: "commander -> " + item.provider,
-      provider: item.provider,
-      model: item.model,
-      text: item.text.slice(0, 600),
-      durationMs: item.durationMs
+      route: "commander -> " + result.provider,
+      provider: result.provider,
+      model: result.model,
+      text: result.text.slice(0, 600),
+      durationMs: result.durationMs
     });
   }
 
