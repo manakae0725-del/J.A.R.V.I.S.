@@ -55,6 +55,7 @@ async function logApiUsage({
 const { requireAuth } = require("./_auth");
 const { enforceRateLimit } = require("./_rateLimit");
 const { runAiCouncil } = require("./_aiCouncil");
+const { getAutoCommanderConfig } = require("../lib/commanderRouting");
 const { listConnectionsForUser } = require("./_google/tokenStore");
 const { googleApiRequest } = require("./_google/client");
 
@@ -220,22 +221,11 @@ module.exports = async function handler(req, res) {
 
   // Automatic commander routing is opt-in and fail-safe: ordinary Gemini flow remains unchanged unless
   // both flags are enabled, the task merits review, and at least one paid provider is configured.
-  const autoTask = req.body && req.body.autoCommander === true ? req.body.text : null;
-  const autoTaskText = typeof autoTask === "string" ? autoTask.trim() : "";
-  const complexTaskPattern = /(?:比較|分析|設計|監査|検証|予測|戦略|計画|原因|改善|要件|アーキテクチャ|セキュリティ|脆弱性|複数の観点|メリット.{0,8}デメリット|compare|analy[sz]e|architecture|security audit|threat model|root cause|forecast|strategy|trade.?off|review the code)/i;
-  const autoCommanderEligible =
-    process.env.JARVIS_AUTO_COMMANDER_ENABLED === "true" &&
-    process.env.JARVIS_AI_COUNCIL_ENABLED === "true" &&
-    autoTaskText.length >= 80 &&
-    (complexTaskPattern.test(autoTaskText) || autoTaskText.length >= 1200) &&
-    process.env.JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED === "true";
-  // Select one specialist provider to avoid multiplying costs for a single request.
-  const configuredAutoProvider =
-    process.env.OPENAI_API_KEY && process.env.JARVIS_OPENAI_MODEL
-      ? "openai"
-      : process.env.ANTHROPIC_API_KEY && process.env.JARVIS_ANTHROPIC_MODEL
-        ? "anthropic"
-        : null;
+  const { taskText: autoTaskText, eligible: autoCommanderEligible, provider: configuredAutoProvider } =
+    getAutoCommanderConfig({
+      autoCommander: req.body && req.body.autoCommander,
+      text: req.body && req.body.text
+    });
 
   if (autoCommanderEligible && configuredAutoProvider) {
     if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) return;
