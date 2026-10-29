@@ -54,7 +54,7 @@ async function logApiUsage({
 
 const { requireAuth } = require("./_auth");
 const { enforceRateLimit } = require("./_rateLimit");
-const { runAiCouncil } = require("./_aiCouncil");
+const { runAiCouncil, testOpenAIConnection } = require("./_aiCouncil");
 const { getAutoCommanderConfig } = require("../lib/commanderRouting");
 const { listConnectionsForUser } = require("./_google/tokenStore");
 const { googleApiRequest } = require("./_google/client");
@@ -218,6 +218,15 @@ module.exports = async function handler(req, res) {
 
   const user = await requireAuth(req, res);
   if (!user) return;
+
+  // Explicit OpenAI connectivity probe: fixed prompt, one provider call, strict rate limits.
+  // Independent of council/automatic-routing flags; does not alter ordinary chat routing.
+  if (req.body && req.body.mode === "openai-connection-test") {
+    if (!(await enforceRateLimit(res, user, "openai-connection-test-minute", 1, 60))) return;
+    if (!(await enforceRateLimit(res, user, "openai-connection-test-day", 3, 86400))) return;
+    const result = await testOpenAIConnection();
+    return res.status(result.ok ? 200 : 502).json(result);
+  }
 
   // Automatic commander routing is opt-in and fail-safe: ordinary Gemini flow remains unchanged unless
   // both flags are enabled, the task merits review, and at least one paid provider is configured.
