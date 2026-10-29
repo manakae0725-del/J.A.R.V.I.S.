@@ -232,4 +232,25 @@ async function runAiCouncil(options = {}) {
   return { results, providerCount: providers.length };
 }
 
-module.exports = { runAiCouncil };
+async function testOpenAIConnection() {
+  const startedAt = Date.now();
+  try {
+    const result = await callOpenAI({
+      systemInstruction: "This is a connectivity test. Reply with exactly OPENAI_CONNECTION_OK and nothing else.",
+      userInput: "Reply with exactly OPENAI_CONNECTION_OK.",
+      maxOutputTokens: 32,
+      timeoutMs: 8000
+    });
+    const durationMs = Date.now() - startedAt;
+    await logUsage("openai", true, 200, durationMs);
+    return { ok: true, provider: "openai", model: result.model, text: result.text.slice(0, 200), durationMs };
+  } catch (error) {
+    const durationMs = Date.now() - startedAt;
+    const errorCode = typeof error?.code === "string" ? error.code : "PROVIDER_UNAVAILABLE";
+    const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : null;
+    await logUsage("openai", false, statusCode, durationMs, errorCode);
+    return { ok: false, provider: "openai", error: errorCode, statusCode, durationMs };
+  }
+}
+
+module.exports = { runAiCouncil, testOpenAIConnection };
