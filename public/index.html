@@ -2483,7 +2483,10 @@ async function sendToGemini(text) {
         // A suggestion is valid only for the immediately following user turn.
         pendingJarvisSuggestion = "";
         if (typeof data.suggestion === "string" && data.suggestion.trim()) {
-            pendingJarvisSuggestion = data.suggestion.trim().slice(0, 240);
+            pendingJarvisSuggestion = {
+                text: data.suggestion.trim().slice(0, 240),
+                previousUserText: cleanText.slice(0, 1200)
+            };
         }
 
         // 会話IDは、開始時と同じユーザーの応答である場合のみ更新する。
