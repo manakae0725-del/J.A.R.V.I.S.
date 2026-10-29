@@ -232,7 +232,7 @@ module.exports = async function handler(req, res) {
   if (req.body && req.body.mode === "commander-routing-test") {
     if (!(await enforceRateLimit(res, user, "commander-routing-test-minute", 1, 60))) return;
     if (!(await enforceRateLimit(res, user, "commander-routing-test-day", 2, 86400))) return;
-    const probeTask = "このシステムのセキュリティを分析し、改善案を比較してください。OpenAIへの接続と司令官ルーティングの経路確認が目的です。実際の設定変更や外部操作は行わず、確認結果と注意点を簡潔に返してください。";
+    const probeTask = "司令官ルーティングのテストです。OPENAI_ROUTE_OK とだけ短く返してください。";
     const probeEnv = {
       ...process.env,
       JARVIS_AUTO_COMMANDER_ENABLED: "true",
@@ -245,11 +245,11 @@ module.exports = async function handler(req, res) {
     }
     const result = await testOpenAIConnection({
       userInput: route.taskText,
-      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. This is a routing test. Do not execute or claim external actions. Briefly state that the OpenAI specialist route is working, then give one concise observation.",
-      maxOutputTokens: 128
+      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. This is a routing test. Do not execute or claim external actions. Reply with exactly OPENAI_ROUTE_OK and nothing else. This is a routing connectivity test.",
+      maxOutputTokens: 384
     });
     if (!result.ok) {
-      return res.status(502).json({ ok: false, provider: route.provider, error: result.error, statusCode: result.statusCode });
+      return res.status(502).json({ ok: false, provider: route.provider, error: result.error, statusCode: result.statusCode, responseStatus: result.responseStatus, incompleteReason: result.incompleteReason });
     }
     return res.status(200).json({
       ok: true,
