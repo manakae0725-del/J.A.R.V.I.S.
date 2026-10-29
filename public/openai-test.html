@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>J.A.R.V.I.S. OpenAI 接続テスト</title>
+<style>
+:root{color-scheme:dark}body{margin:0;background:#030914;color:#dff5ff;font:16px system-ui,sans-serif;min-height:100vh;display:grid;place-items:center}
+main{width:min(92vw,520px);padding:24px;border:1px solid #1678b8;background:linear-gradient(145deg,#071b30,#020812);box-shadow:0 0 28px #0066aa33}
+h1{font-size:20px;letter-spacing:.08em}p{line-height:1.65;color:#a8cde8}
+button,a{display:inline-block;border:1px solid #39b8ff;background:#0b2b45;color:#e8f8ff;padding:12px 16px;border-radius:5px;font:inherit;text-decoration:none}
+button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-height:70px;padding:12px;background:#01060c;border:1px solid #164364;color:#bdeaff}
+.small{font-size:12px;color:#7da6c3}
+</style>
+</head>
+<body><main>
+<h1>J.A.R.V.I.S. / OPENAI CONNECTION TEST</h1>
+<p>OpenAI API に固定の短い確認文を1回だけ送信します。自動ルーティングや通常会話の設定は変更しません。</p>
+<p id="session">認証状態を確認しています…</p>
+<button id="test" disabled>OpenAI 接続テスト（1回）</button>
+<p><a href="/">J.A.R.V.I.S. に戻る</a></p>
+<pre id="result" aria-live="polite">未実行</pre>
+<p class="small">制限：1分に1回・1日3回。APIキーはブラウザへ送信・表示しません。テスト実行時には少額の従量課金が発生する場合があります。</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async()=>{
+ const sessionEl=document.getElementById("session"),button=document.getElementById("test"),out=document.getElementById("result");
+ try{
+  const cfgResponse=await fetch("/api/auth-config",{cache:"no-store"}),cfg=await cfgResponse.json();
+  if(!cfgResponse.ok||!cfg.url||!cfg.anonKey)throw new Error("認証設定を取得できません");
+  const client=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  const {data,error}=await client.auth.getSession();if(error)throw error;
+  if(!data.session){sessionEl.textContent="未ログインです。先に J.A.R.V.I.S. へログインしてください。";return;}
+  sessionEl.textContent="ログイン済み。テストを実行できます。";button.disabled=false;
+  button.addEventListener("click",async()=>{
+   button.disabled=true;out.textContent="OpenAI に接続中…";
+   try{
+    const {data:sessionData}=await client.auth.getSession();
+    if(!sessionData.session)throw new Error("ログイン状態が切れました。再ログインしてください。");
+    const response=await fetch("/api/gemini",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+sessionData.session.access_token},body:JSON.stringify({mode:"openai-connection-test"})});
+    const result=await response.json();
+    if(!response.ok||!result.ok){
+     const messages={CONFIGURATION_MISSING:"APIキーまたはモデル名がサーバーに設定されていません。",AUTHENTICATION_FAILED:"OpenAI APIキーまたは権限を確認してください。",PROVIDER_REQUEST_REJECTED:"モデル名、APIキーの権限、利用可能な残高を確認してください。",RATE_LIMITED:"OpenAI側のレート制限です。時間をおいてください。",TIMEOUT:"応答が時間内に返りませんでした。"};
+     out.textContent="失敗\n原因コード: "+(result.error||"HTTP_"+response.status)+"\n"+(messages[result.error]||"Vercel の Preview Runtime Logs で詳細を確認してください。");return;
+    }
+    out.textContent="成功\nProvider: "+result.provider+"\nModel: "+result.model+"\n応答: "+result.text+"\n時間: "+result.durationMs+" ms";
+   }catch(error){out.textContent="テスト失敗: "+(error?.message||"通信エラー");}
+   finally{button.disabled=false;}
+  });
+ }catch(error){sessionEl.textContent="初期化失敗: "+(error?.message||"不明なエラー");}
+})();
+</script></body></html>
