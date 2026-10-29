@@ -232,12 +232,12 @@ async function runAiCouncil(options = {}) {
   return { results, providerCount: providers.length };
 }
 
-async function testOpenAIConnection() {
+async function testOpenAIConnection(options = {}) {
   const startedAt = Date.now();
   try {
     const result = await callOpenAI({
-      systemInstruction: "This is a connectivity test. Reply with exactly OPENAI_CONNECTION_OK and nothing else.",
-      userInput: "Reply with exactly OPENAI_CONNECTION_OK.",
+      systemInstruction: typeof options.systemInstruction === "string" ? options.systemInstruction.slice(0, 2000) : "This is a connectivity test. Reply with exactly OPENAI_CONNECTION_OK and nothing else.",
+      userInput: typeof options.userInput === "string" && options.userInput.trim() ? options.userInput.trim().slice(0, 1200) : "Reply with exactly OPENAI_CONNECTION_OK.",
       maxOutputTokens: 32,
       timeoutMs: 8000
     });
