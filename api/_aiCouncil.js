@@ -145,7 +145,9 @@ async function logUsage(provider, success, statusCode, durationMs, errorCode = n
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !supabaseKey) return;
   try {
-    const response = await fetch(supabaseUrl.replace(/\/+$/, "") + "/rest/v1/api_usage", {
+    let baseUrl = supabaseUrl;
+    while (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
+    const response = await fetch(baseUrl + "/rest/v1/api_usage", {
       method: "POST",
       headers: {
         apikey: supabaseKey,
