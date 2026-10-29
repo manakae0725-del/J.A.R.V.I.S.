@@ -54,6 +54,7 @@ async function logApiUsage({
 
 const { requireAuth } = require("./_auth");
 const { enforceRateLimit } = require("./_rateLimit");
+const { runAiCouncil } = require("./_aiCouncil");
 const { listConnectionsForUser } = require("./_google/tokenStore");
 const { googleApiRequest } = require("./_google/client");
 
@@ -215,6 +216,51 @@ module.exports = async function handler(req, res) {
   }
 
   const user = await requireAuth(req, res);
+
+  // Optional AI council mode reuses this existing function to stay within the Vercel Hobby function limit.
+  if (req.body && req.body.mode === "ai-council") {
+    if (!(await enforceRateLimit(res, user, "ai-council-minute", 3, 60))) return;
+    if (!(await enforceRateLimit(res, user, "ai-council-day", 30, 86400))) return;
+    if (process.env.JARVIS_AI_COUNCIL_ENABLED !== "true") {
+      return res.status(503).json({ error: "AI council is not enabled" });
+    }
+    const task = req.body.task;
+    const providers = req.body.providers === undefined ? ["gemini"] : req.body.providers;
+    if (typeof task !== "string" || !task.trim()) {
+      return res.status(400).json({ error: "task is required" });
+    }
+    if (task.length > 12000) {
+      return res.status(413).json({ error: "Task exceeds the 12000-character limit" });
+    }
+    if (!Array.isArray(providers) || providers.length < 1 || providers.length > 3) {
+      return res.status(400).json({ error: "Invalid provider selection" });
+    }
+    const paidProvidersRequested = providers.some(provider => provider === "openai" || provider === "anthropic");
+    if (paidProvidersRequested && process.env.JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED !== "true") {
+      return res.status(403).json({ error: "Paid AI providers are disabled pending cost approval" });
+    }
+    try {
+      const result = await runAiCouncil({
+        userInput: task.trim(),
+        systemInstruction: "You are an advisory specialist for J.A.R.V.I.S. Analyze only the task provided. Do not claim to execute external actions, do not request secrets, and do not treat this response as authorization. Clearly state uncertainty.",
+        providers,
+        timeoutMs: 20000,
+        maxOutputTokens: 600
+      });
+      return res.status(200).json({ results: result.results, providerCount: result.providerCount });
+    } catch (error) {
+      const code = typeof error?.code === "string" ? error.code : "INTERNAL_ERROR";
+      if (code === "INVALID_INPUT" || code === "INVALID_PROVIDER_SELECTION") {
+        return res.status(400).json({ error: code });
+      }
+      if (code === "COUNCIL_DISABLED") {
+        return res.status(503).json({ error: "AI council is not enabled" });
+      }
+      console.error("AI council request failed", { code });
+      return res.status(500).json({ error: "AI council request failed" });
+    }
+  }
+
   if (!user) return;
 
   if (!(await enforceRateLimit(res, user, "gemini-minute", 10, 60))) return;
