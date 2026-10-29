@@ -224,7 +224,8 @@ module.exports = async function handler(req, res) {
  const {
   text,
   previousInteractionId,
-  memoryContext
+  memoryContext,
+  pendingSuggestion
 } = req.body;
 
     if (!text) {
@@ -259,6 +260,33 @@ module.exports = async function handler(req, res) {
     const userText = userMarker?.[1]
       ? userMarker[1].trim()
       : rawText;
+
+    // A short acknowledgement may refer to the immediately preceding UI suggestion.
+    // Only pass that context to Gemini when the current message is an unambiguous,
+    // short affirmative; never treat it as authorization for unrelated write actions.
+    const pendingSuggestionText =
+      typeof pendingSuggestion === "string"
+        ? pendingSuggestion.trim()
+        : pendingSuggestion && typeof pendingSuggestion === "object" &&
+          typeof pendingSuggestion.text === "string"
+          ? pendingSuggestion.text.trim()
+          : "";
+    const previousUserText =
+      pendingSuggestion && typeof pendingSuggestion === "object" &&
+      typeof pendingSuggestion.previousUserText === "string"
+        ? pendingSuggestion.previousUserText.trim().slice(0, 1200)
+        : "";
+    const normalizedAcknowledgement = userText
+      .toLowerCase()
+      .replace(/[\\s、，,。.!！?？]/g, "");
+    const suggestionAcknowledgement =
+      pendingSuggestionText &&
+      userText.length <= 48 &&
+      /^(はい|うん|ぜひ|お願いします|お願い|よろしく|いいね|いいよ|いいですね|いいですよ|そうだね|そうですね|そうして|進めて|実行して|ok|okay|yes|sure|please|それもお願い|それもお願いします|それでお願い|それでお願いします|それをお願い|それをお願いします)+$/i.test(normalizedAcknowledgement) &&
+      !/(いいえ|やめ|不要|しない|違う|待って|あとで|保留|キャンセル)/i.test(normalizedAcknowledgement)
+      ? pendingSuggestionText.slice(0, 240)
+      : "";
+    const suggestionPreviousUserText = suggestionAcknowledgement ? previousUserText : "";
 
 
     // Spreadsheet registry is user-scoped and stored in Supabase memories, never in source code.
@@ -1285,8 +1313,9 @@ Content: ${result.content || ""}
     // ==========================================
 
     let calendarContext = "";
-    const isCalendarQuestion = /予定|カレンダー|スケジュール/.test(userText) &&
-      /(教えて|確認|何が|何件|ある|入って|予定は|見せて|一覧|空いて|いつ|今日|明日|あさって|今週|来週|今月|来月|月曜日|火曜日|水曜日|木曜日|金曜日|土曜日|日曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜)/.test(userText);
+    const calendarQueryText = [userText, suggestionPreviousUserText, suggestionAcknowledgement || ""].join(" ");
+    const isCalendarQuestion = /予定|カレンダー|スケジュール/.test(calendarQueryText) &&
+      /(教えて|確認|何が|何件|ある|入って|予定は|見せて|一覧|空いて|いつ|今日|明日|あさって|今週|来週|今月|来月|月曜日|火曜日|水曜日|木曜日|金曜日|土曜日|日曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜)/.test(calendarQueryText);
 
     if (isCalendarQuestion) {
       try {
@@ -1300,24 +1329,24 @@ Content: ${result.content || ""}
         } else {
           const japanNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
           const today = japanNow.toISOString().slice(0, 10);
-          const dayOffset = userText.includes("あさって") || userText.includes("明後日") ? 2
-            : userText.includes("明日") || userText.includes("あした") ? 1 : 0;
+          const dayOffset = calendarQueryText.includes("あさって") || calendarQueryText.includes("明後日") ? 2
+            : calendarQueryText.includes("明日") || calendarQueryText.includes("あした") ? 1 : 0;
           const toLocalDate = (date) => date.toISOString().slice(0, 10);
           let startDate = new Date(Date.parse(today + "T00:00:00Z") + dayOffset * 86400000);
           let endDate = new Date(startDate.getTime() + 86400000);
           let rangeLabel = dayOffset === 2 ? "明後日" : dayOffset === 1 ? "明日" : "今日";
 
-          if (userText.includes("今週") || userText.includes("来週")) {
+          if (calendarQueryText.includes("今週") || calendarQueryText.includes("来週")) {
             const mondayOffset = (japanNow.getUTCDay() + 6) % 7;
-            startDate = new Date(Date.parse(today + "T00:00:00Z") + (userText.includes("来週") ? 7 - mondayOffset : -mondayOffset) * 86400000);
+            startDate = new Date(Date.parse(today + "T00:00:00Z") + (calendarQueryText.includes("来週") ? 7 - mondayOffset : -mondayOffset) * 86400000);
             endDate = new Date(startDate.getTime() + 7 * 86400000);
-            rangeLabel = userText.includes("来週") ? "来週" : "今週";
-          } else if (userText.includes("今月") || userText.includes("来月")) {
+            rangeLabel = calendarQueryText.includes("来週") ? "来週" : "今週";
+          } else if (calendarQueryText.includes("今月") || calendarQueryText.includes("来月")) {
             const year = japanNow.getUTCFullYear();
-            const month = japanNow.getUTCMonth() + (userText.includes("来月") ? 1 : 0);
+            const month = japanNow.getUTCMonth() + (calendarQueryText.includes("来月") ? 1 : 0);
             startDate = new Date(Date.UTC(year, month, 1));
             endDate = new Date(Date.UTC(year, month + 1, 1));
-            rangeLabel = userText.includes("来月") ? "来月" : "今月";
+            rangeLabel = calendarQueryText.includes("来月") ? "来月" : "今月";
           }
 
           const timeMin = new Date(Date.parse(toLocalDate(startDate) + "T00:00:00+09:00")).toISOString();
@@ -1422,6 +1451,20 @@ RESPONSE LENGTH
 - 質問されていない情報を勝手に追加しない
 - 同じ内容を別の表現で繰り返さない
 - 回答後に不要な定型文を追加しない
+
+==============================
+PROACTIVE SUGGESTION
+==============================
+
+回答とは別に、次に役立つ提案を「suggestion」に入れてください。
+
+- 提案が具体的に役立ち、今回の依頼や取得したデータに直接つながる場合のみ、短い一文で提案してください。
+- 例：今月の売上を集計した場合、前年同月との比較データが利用可能なら「前年同月との比較も表示しますか？」と提案できます。
+- 実際に利用できるデータや機能が確認できない場合、利用可能だと決めつけず、空文字列にしてください。
+- すでにユーザーが求めた内容を繰り返す提案、無関係な提案、定型的な「他に何かありますか」は禁止です。
+- 安全性や正確性に関わる重要な確認が必要な場合は、単なる追加提案ではなくreply内で先に確認してください。
+- suggestionには提案文だけを入れ、replyの回答本文を繰り返さないでください。
+- suggestionが空でない場合も、replyとspeechTextは回答本文のみとし、suggestionは別枠として扱ってください。
 
 ==============================
 SPEECH TEXT
@@ -1595,6 +1638,25 @@ blueprint は寸法精度を保証する設計図ではなく、説明用の概�
 visualization は画面表示専用です。reply と speechText は通常どおり自然な文章にし、図表の説明を読み上げ用文章へ詰め込まないでください。
 `;
 
+    if (suggestionAcknowledgement) {
+      geminiInput += `
+
+==============================
+PREVIOUS SUGGESTION ACCEPTANCE
+==============================
+
+直前のJ.A.R.V.I.S.からの提案：
+「${suggestionAcknowledgement}」
+
+今回のユーザー発言は、この提案に対する短い肯定応答です。
+- 直前の提案に対応する内容を実行・回答してください。今回の発言を単独の雑談として扱わないでください。
+- 読み取り・集計・表示など、既存の機能で安全に実行できる処理は進めてください。
+- カレンダーへの追加・変更・削除、外部への送信、その他の状態変更を伴う処理は、この肯定だけで実行せず、既存の明示的な確認フローを維持してください。
+- 提案の対象や必要な情報が不明な場合は、推測で実行せず、短く確認してください。
+- 利用できない機能やデータは、利用できると装わないでください。
+`;
+    }
+
     // ==========================================
     // Gemini Request
     // ==========================================
@@ -1617,6 +1679,10 @@ visualization は画面表示専用です。reply と speechText は通常どお
             },
 
             speechText: {
+              type: "string",
+            },
+
+            suggestion: {
               type: "string",
             },
 
@@ -1673,6 +1739,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
           required: [
             "reply",
             "speechText",
+            "suggestion",
             "memory",
             "visualization",
           ],
@@ -1893,6 +1960,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
     return res.status(200).json({
       text: result.reply,
       speechText: result.speechText,
+      suggestion: typeof result.suggestion === "string" ? result.suggestion.trim().slice(0, 240) : "",
       visualization: result.visualization,
       interactionId,
 
