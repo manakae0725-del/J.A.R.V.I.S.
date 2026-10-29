@@ -264,14 +264,29 @@ module.exports = async function handler(req, res) {
     // A short acknowledgement may refer to the immediately preceding UI suggestion.
     // Only pass that context to Gemini when the current message is an unambiguous,
     // short affirmative; never treat it as authorization for unrelated write actions.
+    const pendingSuggestionText =
+      typeof pendingSuggestion === "string"
+        ? pendingSuggestion.trim()
+        : pendingSuggestion && typeof pendingSuggestion === "object" &&
+          typeof pendingSuggestion.text === "string"
+          ? pendingSuggestion.text.trim()
+          : "";
+    const previousUserText =
+      pendingSuggestion && typeof pendingSuggestion === "object" &&
+      typeof pendingSuggestion.previousUserText === "string"
+        ? pendingSuggestion.previousUserText.trim().slice(0, 1200)
+        : "";
+    const normalizedAcknowledgement = userText
+      .toLowerCase()
+      .replace(/[\\s、，,。.!！?？]/g, "");
     const suggestionAcknowledgement =
-      typeof pendingSuggestion === "string" &&
-      pendingSuggestion.trim().length > 0 &&
+      pendingSuggestionText &&
       userText.length <= 48 &&
-      /^(?:(?:いいね|いいですね|いいよ|いいですよ|そうだね|そうですね)[、,。！!\s]*(?:はい|うん|よろしく(?:お願いします)?|お願い(?:します)?|それもお願い(?:します)?|それでお願い(?:します)?|それをお願い(?:します)?)?|(?:はい|うん|ぜひ|お願いします|お願い|よろしく(?:お願いします)?|それもお願い(?:します)?|それでお願い(?:します)?|それをお願い(?:します)?|そうして|進めて|実行して|ok|okay|yes|sure|please))[。！!、,.\s]*$/i.test(userText) &&
-      !/(いいえ|やめ|不要|しない|違う|待って|あとで|保留|キャンセル)/i.test(userText)
-      ? pendingSuggestion.trim().slice(0, 240)
+      /^(はい|うん|ぜひ|お願いします|お願い|よろしく|いいね|いいよ|いいですね|いいですよ|そうだね|そうですね|そうして|進めて|実行して|ok|okay|yes|sure|please|それもお願い|それもお願いします|それでお願い|それでお願いします|それをお願い|それをお願いします)+$/i.test(normalizedAcknowledgement) &&
+      !/(いいえ|やめ|不要|しない|違う|待って|あとで|保留|キャンセル)/i.test(normalizedAcknowledgement)
+      ? pendingSuggestionText.slice(0, 240)
       : "";
+    const suggestionPreviousUserText = suggestionAcknowledgement ? previousUserText : "";
 
 
     // Spreadsheet registry is user-scoped and stored in Supabase memories, never in source code.
@@ -1298,8 +1313,9 @@ Content: ${result.content || ""}
     // ==========================================
 
     let calendarContext = "";
-    const isCalendarQuestion = /予定|カレンダー|スケジュール/.test(userText) &&
-      /(教えて|確認|何が|何件|ある|入って|予定は|見せて|一覧|空いて|いつ|今日|明日|あさって|今週|来週|今月|来月|月曜日|火曜日|水曜日|木曜日|金曜日|土曜日|日曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜)/.test(userText);
+    const calendarQueryText = [userText, suggestionPreviousUserText, suggestionAcknowledgement || ""].join(" ");
+    const isCalendarQuestion = /予定|カレンダー|スケジュール/.test(calendarQueryText) &&
+      /(教えて|確認|何が|何件|ある|入って|予定は|見せて|一覧|空いて|いつ|今日|明日|あさって|今週|来週|今月|来月|月曜日|火曜日|水曜日|木曜日|金曜日|土曜日|日曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜)/.test(calendarQueryText);
 
     if (isCalendarQuestion) {
       try {
@@ -1313,24 +1329,24 @@ Content: ${result.content || ""}
         } else {
           const japanNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
           const today = japanNow.toISOString().slice(0, 10);
-          const dayOffset = userText.includes("あさって") || userText.includes("明後日") ? 2
-            : userText.includes("明日") || userText.includes("あした") ? 1 : 0;
+          const dayOffset = calendarQueryText.includes("あさって") || calendarQueryText.includes("明後日") ? 2
+            : calendarQueryText.includes("明日") || calendarQueryText.includes("あした") ? 1 : 0;
           const toLocalDate = (date) => date.toISOString().slice(0, 10);
           let startDate = new Date(Date.parse(today + "T00:00:00Z") + dayOffset * 86400000);
           let endDate = new Date(startDate.getTime() + 86400000);
           let rangeLabel = dayOffset === 2 ? "明後日" : dayOffset === 1 ? "明日" : "今日";
 
-          if (userText.includes("今週") || userText.includes("来週")) {
+          if (calendarQueryText.includes("今週") || calendarQueryText.includes("来週")) {
             const mondayOffset = (japanNow.getUTCDay() + 6) % 7;
-            startDate = new Date(Date.parse(today + "T00:00:00Z") + (userText.includes("来週") ? 7 - mondayOffset : -mondayOffset) * 86400000);
+            startDate = new Date(Date.parse(today + "T00:00:00Z") + (calendarQueryText.includes("来週") ? 7 - mondayOffset : -mondayOffset) * 86400000);
             endDate = new Date(startDate.getTime() + 7 * 86400000);
-            rangeLabel = userText.includes("来週") ? "来週" : "今週";
-          } else if (userText.includes("今月") || userText.includes("来月")) {
+            rangeLabel = calendarQueryText.includes("来週") ? "来週" : "今週";
+          } else if (calendarQueryText.includes("今月") || calendarQueryText.includes("来月")) {
             const year = japanNow.getUTCFullYear();
-            const month = japanNow.getUTCMonth() + (userText.includes("来月") ? 1 : 0);
+            const month = japanNow.getUTCMonth() + (calendarQueryText.includes("来月") ? 1 : 0);
             startDate = new Date(Date.UTC(year, month, 1));
             endDate = new Date(Date.UTC(year, month + 1, 1));
-            rangeLabel = userText.includes("来月") ? "来月" : "今月";
+            rangeLabel = calendarQueryText.includes("来月") ? "来月" : "今月";
           }
 
           const timeMin = new Date(Date.parse(toLocalDate(startDate) + "T00:00:00+09:00")).toISOString();
