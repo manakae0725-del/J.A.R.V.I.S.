@@ -1941,13 +1941,19 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // Conversation Context
     // ==========================================
 
-    if (
-      previousInteractionId &&
-      typeof previousInteractionId === "string"
-    ) {
-      requestBody.previous_interaction_id =
-        previousInteractionId;
+    const hasPreviousInteractionId =
+      typeof previousInteractionId === "string" &&
+      previousInteractionId.length > 0;
+
+    if (hasPreviousInteractionId) {
+      requestBody.previous_interaction_id = previousInteractionId;
     }
+
+    // Diagnostic only: never log or expose the interaction ID itself.
+    console.log("[CONVERSATION] Request continuity", {
+      hasPreviousInteractionId,
+      previousInteractionIdLength: hasPreviousInteractionId ? previousInteractionId.length : 0
+    });
 
     // ==========================================
     // Gemini Debug
@@ -2139,9 +2145,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // ==========================================
 
     const interactionId =
-      typeof data.id === "string"
+      typeof data.id === "string" && data.id.length > 0
         ? data.id
         : null;
+
+    // Diagnostic only: record presence, not the ID value.
+    console.log("[CONVERSATION] Response continuity", {
+      hasInteractionId: Boolean(interactionId),
+      responseStatus: response.status
+    });
 
     // ==========================================
     // Response
