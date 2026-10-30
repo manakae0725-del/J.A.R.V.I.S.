@@ -1837,7 +1837,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
             .join("\\n\\n");
 
           if (specialistText) {
+            const geminiInputLengthBeforeAdvisory = geminiInput.length;
             geminiInput += "\\n\\n==============================\\nSPECIALIST ADVISORY\\n==============================\\n以下は司令官が選択した専門AIの分析です。元の依頼と取得済みデータを照合し、必要なら不確実性や不足情報を明示したうえで、J.A.R.V.I.S.として最終回答を作成してください。専門AIの内容を無条件に正しいものとして扱わず、根拠のない情報は採用しないでください。\\n\\n" + specialistText;
+            console.info("[COMMANDER] Specialist advisory appended to Gemini input", {
+              provider: configuredAutoProvider,
+              advisoryChars: specialistText.length,
+              geminiInputCharsBefore: geminiInputLengthBeforeAdvisory,
+              geminiInputCharsAfter: geminiInput.length,
+              appended: geminiInput.length > geminiInputLengthBeforeAdvisory
+            });
           } else {
             console.warn("Automatic commander returned no usable advisory", {
               provider: configuredAutoProvider,
