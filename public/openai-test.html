@@ -19,21 +19,24 @@ button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-h
 <button id="test" disabled>OpenAI 接続テスト（1回）</button>
 <button id="routeTest" disabled>司令官ルーティングテスト（1回）</button>
 <button id="classifyTest" disabled>司令官の判断テスト（無料）</button>
+<p>通常会話からの自動判定テスト（Preview専用・OpenAI最大1回）</p>
+<textarea id="liveTask" rows="5" style="box-sizing:border-box;width:100%;margin:8px 0;padding:12px;background:#010c18;color:#dff5ff;border:1px solid #39b8ff;font:inherit" maxlength="4000">今月の売上データを分析し、前月と比較して傾向と原因を整理し、来月の改善策を具体的に提案してください。</textarea>
+<button id="liveTest" disabled>入力内容で司令官テスト（1回）</button>
 <p><a href="/">J.A.R.V.I.S. に戻る</a></p>
 <pre id="result" aria-live="polite">未実行</pre>
-<p class="small">制限：OpenAI接続テストは1分1回・1日3回。司令官ルーティングテストはPreview専用で1分1回・1日3回（通常枠とは別）。判断テストはAI APIを呼び出しません。APIキーはブラウザへ送信・表示しません。ルーティングテストでは少額の従量課金が発生します。</p>
+<p class="small">制限：OpenAI接続テストは1分1回・1日3回。司令官ルーティングテストはPreview専用で1分1回・1日3回（通常枠とは別）。判断テストはAI APIを呼び出しません。入力テストはPreview専用で、専門AI候補と判定された場合のみOpenAIを最大1回呼び出します。APIキーはブラウザへ送信・表示しません。ルーティングテストでは少額の従量課金が発生します。</p>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (async()=>{
- const sessionEl=document.getElementById("session"),button=document.getElementById("test"),routeButton=document.getElementById("routeTest"),classifyButton=document.getElementById("classifyTest"),out=document.getElementById("result");
+ const sessionEl=document.getElementById("session"),button=document.getElementById("test"),routeButton=document.getElementById("routeTest"),classifyButton=document.getElementById("classifyTest"),liveButton=document.getElementById("liveTest"),liveTask=document.getElementById("liveTask"),out=document.getElementById("result");
  try{
   const cfgResponse=await fetch("/api/auth-config",{cache:"no-store"}),cfg=await cfgResponse.json();
   if(!cfgResponse.ok||!cfg.url||!cfg.anonKey)throw new Error("認証設定を取得できません");
   const client=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   const {data,error}=await client.auth.getSession();if(error)throw error;
   if(!data.session){sessionEl.textContent="未ログインです。先に J.A.R.V.I.S. へログインしてください。";return;}
-  sessionEl.textContent="ログイン済み。テストを実行できます。";button.disabled=false;routeButton.disabled=false;classifyButton.disabled=false;
+  sessionEl.textContent="ログイン済み。テストを実行できます。";button.disabled=false;routeButton.disabled=false;classifyButton.disabled=false;liveButton.disabled=false;
   button.addEventListener("click",async()=>{
    button.disabled=true;out.textContent="OpenAI に接続中…";
    try{
@@ -71,6 +74,24 @@ button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-h
     out.textContent="判定テスト完了（AI API呼び出しなし）\n"+results.join("\n");
    }catch(error){out.textContent="判定テスト失敗: "+(error?.message||"通信エラー");}
    finally{classifyButton.disabled=false;button.disabled=false;routeButton.disabled=false;}
+  });
+  liveButton.addEventListener("click",async()=>{
+   const task=liveTask.value.trim();
+   if(!task){out.textContent="テスト文を入力してください。";return;}
+   liveButton.disabled=true;button.disabled=true;routeButton.disabled=true;classifyButton.disabled=true;out.textContent="司令官が入力内容を判定中…";
+   try{
+    const {data:sessionData}=await client.auth.getSession();
+    if(!sessionData.session)throw new Error("ログイン状態が切れました。再ログインしてください。");
+    const response=await fetch("/api/gemini",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+sessionData.session.access_token},body:JSON.stringify({mode:"commander-live-test",text:task})});
+    const result=await response.json();
+    if(!response.ok||!result.ok){
+     out.textContent="失敗\n原因コード: "+(result.error||"HTTP_"+response.status)+"\n判定: "+(result.classification?.shouldDelegate?"専門AI候補":"未確定")+(result.providerCall===false?"\nAI API呼び出し: なし":"")+(result.retryAfterSeconds?"\n再試行可能まで: "+result.retryAfterSeconds+"秒":"");
+     return;
+    }
+    const c=result.classification||{};
+    out.textContent=(result.delegated?"専門AIへ振り分け成功":"通常処理判定（AI API呼び出しなし）")+"\n判定: "+(c.shouldDelegate?"専門AI候補":"通常処理")+" / "+(c.intent||"")+" / "+(c.reason||"")+"\n経路: "+(result.route||"Geminiへ渡す想定")+"\nModel: "+(result.model||"呼び出しなし")+"\n応答: "+(result.text||result.message||"")+"\n時間: "+(result.durationMs??"-")+" ms";
+   }catch(error){out.textContent="テスト失敗: "+(error?.message||"通信エラー");}
+   finally{liveButton.disabled=false;button.disabled=false;routeButton.disabled=false;classifyButton.disabled=false;}
   });
   routeButton.addEventListener("click",async()=>{
    routeButton.disabled=true;button.disabled=true;out.textContent="司令官ルーティングを確認中…";
