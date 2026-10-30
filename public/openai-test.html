@@ -18,6 +18,7 @@ button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-h
 <p id="session">認証状態を確認しています…</p>
 <button id="test" disabled>OpenAI 接続テスト（1回）</button>
 <button id="routeTest" disabled>司令官ルーティングテスト（1回）</button>
+<button id="classifyTest" disabled>司令官の判断テスト（無料）</button>
 <p><a href="/">J.A.R.V.I.S. に戻る</a></p>
 <pre id="result" aria-live="polite">未実行</pre>
 <p class="small">制限：1分に1回・1日3回。APIキーはブラウザへ送信・表示しません。テスト実行時には少額の従量課金が発生する場合があります。</p>
@@ -25,14 +26,14 @@ button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-h
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (async()=>{
- const sessionEl=document.getElementById("session"),button=document.getElementById("test"),routeButton=document.getElementById("routeTest"),out=document.getElementById("result");
+ const sessionEl=document.getElementById("session"),button=document.getElementById("test"),routeButton=document.getElementById("routeTest"),classifyButton=document.getElementById("classifyTest"),out=document.getElementById("result");
  try{
   const cfgResponse=await fetch("/api/auth-config",{cache:"no-store"}),cfg=await cfgResponse.json();
   if(!cfgResponse.ok||!cfg.url||!cfg.anonKey)throw new Error("認証設定を取得できません");
   const client=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   const {data,error}=await client.auth.getSession();if(error)throw error;
   if(!data.session){sessionEl.textContent="未ログインです。先に J.A.R.V.I.S. へログインしてください。";return;}
-  sessionEl.textContent="ログイン済み。テストを実行できます。";button.disabled=false;routeButton.disabled=false;
+  sessionEl.textContent="ログイン済み。テストを実行できます。";button.disabled=false;routeButton.disabled=false;classifyButton.disabled=false;
   button.addEventListener("click",async()=>{
    button.disabled=true;out.textContent="OpenAI に接続中…";
    try{
@@ -47,6 +48,29 @@ button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-h
     out.textContent="成功\nProvider: "+result.provider+"\nModel: "+result.model+"\n応答: "+result.text+"\n時間: "+result.durationMs+" ms";
    }catch(error){out.textContent="テスト失敗: "+(error?.message||"通信エラー");}
    finally{button.disabled=false;}
+  });
+  classifyButton.addEventListener("click",async()=>{
+   classifyButton.disabled=true;button.disabled=true;routeButton.disabled=true;out.textContent="司令官の判断を確認中…";
+   try{
+    const {data:sessionData}=await client.auth.getSession();
+    if(!sessionData.session)throw new Error("ログイン状態が切れました。再ログインしてください。");
+    const samples=[
+     ["挨拶","おはようございます。今日もよろしくお願いします。"],
+     ["用語説明","セキュリティとは何ですか？"],
+     ["売上分析","今月の売上データを分析し、前月と比較して傾向と原因を整理し、来月の改善策を具体的に提案してください。"],
+     ["セキュリティ監査","認証処理とAPIのセキュリティを監査し、脆弱性の可能性と改善策を優先順位付きで説明してください。"],
+     ["単純な状況確認","今日の売上はいくらですか？"]
+    ];
+    const results=[];
+    for(const [label,text] of samples){
+     const response=await fetch("/api/gemini",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+sessionData.session.access_token},body:JSON.stringify({mode:"commander-classification-test",text})});
+     const result=await response.json();
+     if(!response.ok||!result.ok)throw new Error(label+": "+(result.error||"HTTP_"+response.status));
+     results.push(label+": "+(result.shouldDelegate?"専門AI候補":"通常処理")+" / "+result.intent+" / "+result.reason);
+    }
+    out.textContent="判定テスト完了（AI API呼び出しなし）\n"+results.join("\n");
+   }catch(error){out.textContent="判定テスト失敗: "+(error?.message||"通信エラー");}
+   finally{classifyButton.disabled=false;button.disabled=false;routeButton.disabled=false;}
   });
   routeButton.addEventListener("click",async()=>{
    routeButton.disabled=true;button.disabled=true;out.textContent="司令官ルーティングを確認中…";
