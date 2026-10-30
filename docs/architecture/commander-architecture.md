@@ -65,6 +65,17 @@ Core principle: **one commander, multiple replaceable specialists, independently
 8. Produce one integrated answer, plus a visualization when the response format warrants it.
 9. Record sanitized outcome and usage data; report partial failures honestly.
 
+## Current commander classification implementation (Preview development)
+
+- The current first-stage classifier is deterministic and local; it does not make an additional model call.
+- It separates simple conversation, definition/transformation requests, general requests, and specialist-analysis candidates.
+- Specialist routing requires both a meaningful complex-action signal and a task/domain context or explicit multi-step structure.
+- Message length alone never triggers a paid provider.
+- A request such as "what does security mean?" or "explain the word analysis" stays on the normal path even though it contains a domain/analysis keyword.
+- Feature flags, explicit client opt-in, and a configured provider are still all required before a paid provider can be called.
+- This is a conservative heuristic classifier, not full semantic understanding. It may miss unusual phrasing; ambiguous cases deliberately stay on the normal Gemini path.
+- Do not enable automatic paid routing until the live Preview tests cover false positives, false negatives, provider failure, and cost/rate limits.
+
 ## AI council behavior
 
 - Three AI providers are configured as named adapters, not hardcoded into the commander logic.
