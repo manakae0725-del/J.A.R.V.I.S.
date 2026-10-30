@@ -261,6 +261,33 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  // Classification-only probe: never calls an AI provider and never changes routing flags.
+  if (req.body && req.body.mode === "commander-classification-test") {
+    if (!(await enforceRateLimit(res, user, "commander-classification-minute", 5, 60))) return;
+    if (!(await enforceRateLimit(res, user, "commander-classification-day", 30, 86400))) return;
+    const input = req.body.text;
+    if (typeof input !== "string" || !input.trim() || input.length > 4000) {
+      return res.status(400).json({ ok: false, error: "INVALID_CLASSIFICATION_INPUT" });
+    }
+    const classification = getAutoCommanderConfig({
+      autoCommander: true,
+      text: input,
+      env: {
+        ...process.env,
+        JARVIS_AUTO_COMMANDER_ENABLED: "true",
+        JARVIS_AI_COUNCIL_ENABLED: "true",
+        JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED: "true"
+      }
+    }).classification;
+    return res.status(200).json({
+      ok: true,
+      intent: classification.intent,
+      complexity: classification.complexity,
+      shouldDelegate: classification.shouldDelegate,
+      reason: classification.reason,
+      providerCall: false
+    });
+  }
   // Automatic commander routing is opt-in and fail-safe: ordinary Gemini flow remains unchanged unless
   // both flags are enabled, the task merits review, and at least one paid provider is configured.
   const { taskText: autoTaskText, eligible: autoCommanderEligible, provider: configuredAutoProvider } =
