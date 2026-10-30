@@ -336,7 +336,7 @@ module.exports = async function handler(req, res) {
 
   // Classification-only probe: never calls an AI provider and never changes routing flags.
   if (req.body && req.body.mode === "commander-classification-test") {
-    if (!(await enforceRateLimit(res, user, "commander-classification-minute", 5, 60))) return;
+    if (!(await enforceRateLimit(res, user, "commander-classification-minute", 12, 60))) return;
     if (!(await enforceRateLimit(res, user, "commander-classification-day", 30, 86400))) return;
     const input = req.body.text;
     if (typeof input !== "string" || !input.trim() || input.length > 4000) {
