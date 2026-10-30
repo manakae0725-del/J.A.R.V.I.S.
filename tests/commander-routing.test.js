@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { getAutoCommanderConfig } = require("../lib/commanderRouting");
+const { classifyCommanderTask, getAutoCommanderConfig } = require("../lib/commanderRouting");
 
 const enabledEnv = {
   JARVIS_AUTO_COMMANDER_ENABLED: "true",
@@ -31,9 +31,8 @@ test("requires explicit autoCommander request, minimum length, and a complex-tas
   assert.equal(getAutoCommanderConfig({ autoCommander: true, text: complexTask, env: enabledEnv }).eligible, true);
 });
 
-test("long tasks qualify without keywords only at the configured threshold", () => {
-  assert.equal(getAutoCommanderConfig({ autoCommander: true, text: "通常の依頼です。" + "文章".repeat(590), env: enabledEnv }).eligible, false);
-  assert.equal(getAutoCommanderConfig({ autoCommander: true, text: "通常の依頼です。" + "文章".repeat(620), env: enabledEnv }).eligible, true);
+test("length alone never triggers paid-provider routing", () => {
+  assert.equal(getAutoCommanderConfig({ autoCommander: true, text: "通常の依頼です。" + "文章".repeat(620), env: enabledEnv }).eligible, false);
 });
 
 test("selects one configured paid provider, preferring OpenAI and falling back to Anthropic", () => {
@@ -81,4 +80,32 @@ test("paid provider calls remain disabled when paid-provider flag is false", () 
     }).eligible,
     false
   );
+});
+
+const semanticCases = [
+  ["simple greeting", "おはようございます。今日もよろしくお願いします。", false],
+  ["definition mentioning analysis", "分析という言葉の意味を教えてください。", false],
+  ["general question mentioning security", "セキュリティとは何ですか？", false],
+  ["action verb without work context", "比較してください。", false],
+  ["simple task padded with repeated text", "明日の予定を教えてください。" + "文章".repeat(100), false],
+  ["business analysis with context", "今月の売上データを分析し、前月と比較して傾向と原因を整理し、来月の改善策を具体的に提案してください。", true],
+  ["security audit with context", "認証処理とAPIのセキュリティを監査し、脆弱性の可能性と改善策を優先順位付きで説明してください。", true],
+  ["architecture design with requirements", "新しい予約管理システムの要件を整理し、構成を設計して複数案のメリットとデメリットを比較してください。", true]
+];
+
+for (const [name, text, expected] of semanticCases) {
+  test("semantic classification: " + name, () => {
+    assert.equal(classifyCommanderTask(text).shouldDelegate, expected);
+  });
+}
+
+test("classification is exposed even when routing flags are disabled", () => {
+  const result = getAutoCommanderConfig({
+    autoCommander: true,
+    text: "今月の売上データを分析し、前月と比較して改善策を提案してください。",
+    env: { ...enabledEnv, JARVIS_AUTO_COMMANDER_ENABLED: "false" }
+  });
+  assert.equal(result.classification.intent, "specialist_analysis");
+  assert.equal(result.eligible, false);
+  assert.equal(result.provider, null);
 });
