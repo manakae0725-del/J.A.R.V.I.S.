@@ -1808,14 +1808,10 @@ visualization は画面表示専用です。reply と speechText は通常どお
     });
 
     if (autoCommanderEligible && configuredAutoProvider) {
-      let specialistRateAllowed = true;
-      if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) {
-        specialistRateAllowed = false;
-      } else if (!(await enforceRateLimit(res, user, "auto-commander-day", 5, 86400))) {
-        specialistRateAllowed = false;
-      }
+      if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) return;
+      if (!(await enforceRateLimit(res, user, "auto-commander-day", 5, 86400))) return;
 
-      if (specialistRateAllowed) {
+      {
         try {
           const specialistContext = [
             "User request:",
