@@ -1374,6 +1374,35 @@ var previousInteractionId=null;
 var pendingCalendarAction=null;
 var currentMode="voice";
 
+function getConversationStorageKey(userId) {
+    return userId ? "jarvis_interaction_id_" + userId : null;
+}
+
+function loadConversationInteractionId(userId) {
+    const key = getConversationStorageKey(userId);
+    if (!key) return null;
+    try {
+        const value = sessionStorage.getItem(key);
+        return typeof value === "string" && value.length > 0 ? value : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function saveConversationInteractionId(userId, interactionId) {
+    const key = getConversationStorageKey(userId);
+    if (!key) return;
+    try {
+        if (interactionId) sessionStorage.setItem(key, interactionId);
+        else sessionStorage.removeItem(key);
+    } catch (_) {
+        // Session storage may be unavailable; in-memory continuity still works.
+    }
+}
+
+// Restore only within this browser tab and the currently authenticated user.
+previousInteractionId = loadConversationInteractionId(window.jarvisCurrentUserId || null);
+
 /* =========================================================
    LONG-TERM MEMORY SYSTEM (PORTED)
    ========================================================= */
@@ -1389,11 +1418,16 @@ window.addEventListener("jarvis-auth-change", (event) => {
 
     if (nextUserId === memoryOwnerId) return;
 
+    const previousUserId = memoryOwnerId;
     memoryOwnerId = nextUserId;
     memoryLoadGeneration++;
     memories = [];
     previousInteractionId = null;
     pendingCalendarAction = null;
+
+    // Never carry a conversation ID across account changes.
+    saveConversationInteractionId(previousUserId, null);
+    previousInteractionId = loadConversationInteractionId(nextUserId);
 
     if (nextUserId) {
         void loadMemories();
@@ -2470,7 +2504,14 @@ async function sendToGemini(text) {
             requestUserId === window.jarvisCurrentUserId
         ) {
             previousInteractionId = data.interactionId;
+            saveConversationInteractionId(requestUserId, data.interactionId);
         }
+
+        console.info("[CONVERSATION] Client continuity", {
+            sentPreviousInteractionId: Boolean(requestBody.previousInteractionId),
+            receivedInteractionId: Boolean(data.interactionId),
+            storedInteractionId: Boolean(previousInteractionId)
+        });
 
         if (
             data.memory &&
