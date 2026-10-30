@@ -361,50 +361,6 @@ module.exports = async function handler(req, res) {
       providerCall: false
     });
   }
-  // Automatic commander routing is opt-in and fail-safe: ordinary Gemini flow remains unchanged unless
-  // both flags are enabled, the task merits review, and at least one paid provider is configured.
-  const { taskText: autoTaskText, eligible: autoCommanderEligible, provider: configuredAutoProvider } =
-    getAutoCommanderConfig({
-      autoCommander: req.body && req.body.autoCommander,
-      text: req.body && req.body.text
-    });
-
-  if (autoCommanderEligible && configuredAutoProvider) {
-    if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) return;
-    if (!(await enforceRateLimit(res, user, "auto-commander-day", 5, 86400))) return;
-    try {
-      const result = await runAiCouncil({
-        userInput: autoTaskText,
-        systemInstruction: "You are a specialist council advising J.A.R.V.I.S. Analyze the user's request, state uncertainty, and do not claim to execute external actions. Give a concise, actionable synthesis.",
-        providers: [configuredAutoProvider],
-        timeoutMs: 20000,
-        maxOutputTokens: 600
-      });
-      if (!result.results.some(item => item.ok && typeof item.text === "string" && item.text.trim())) {
-        throw new Error("Automatic commander provider returned no usable result");
-      }
-      const text = result.results
-        .filter(item => item.ok && typeof item.text === "string" && item.text.trim())
-        .map(item => "【" + item.provider + "】\n" + item.text)
-        .join("\n\n");
-      return res.status(200).json({
-        mode: "ai-council",
-        text,
-        speechText: text,
-        results: result.results,
-        providerCount: result.providerCount,
-        visualization: null,
-        memory: null,
-        interactionId: null
-      });
-    } catch (error) {
-      const code = typeof error?.code === "string" ? error.code : "INTERNAL_ERROR";
-      console.error("Automatic commander routing failed", { code });
-      // Do not fail the user's ordinary request because an advisory provider failed.
-      // Continue into the existing Gemini path below.
-    }
-  }
-
   // Optional AI council mode reuses this existing function to stay within the Vercel Hobby function limit.
   if (req.body && req.body.mode === "ai-council") {
     if (!(await enforceRateLimit(res, user, "ai-council-minute", 3, 60))) return;
@@ -1833,6 +1789,72 @@ bar / line / pie / donut / matrix では labels と values を2〜6個にして�
 blueprint は寸法精度を保証する設計図ではなく、説明用の概念配置図として使ってください。
 visualization は画面表示専用です。reply と speechText は通常どおり自然な文章にし、図表の説明を読み上げ用文章へ詰め込まないでください。
 `;
+
+    // ==========================================
+    // Commander specialist advisory (after context retrieval)
+    // ==========================================
+
+    // Keep Gemini as the final response composer so the existing interaction ID,
+    // memory-save contract, speechText, and visualization pipeline remain intact.
+    // The specialist receives the actual user request plus retrieved, relevant context.
+    const {
+      taskText: autoTaskText,
+      eligible: autoCommanderEligible,
+      provider: configuredAutoProvider,
+      classification: autoCommanderClassification
+    } = getAutoCommanderConfig({
+      autoCommander: req.body && req.body.autoCommander,
+      text: userText
+    });
+
+    if (autoCommanderEligible && configuredAutoProvider) {
+      let specialistRateAllowed = true;
+      if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) {
+        specialistRateAllowed = false;
+      } else if (!(await enforceRateLimit(res, user, "auto-commander-day", 5, 86400))) {
+        specialistRateAllowed = false;
+      }
+
+      if (specialistRateAllowed) {
+        try {
+          const specialistContext = [
+            "User request:",
+            autoTaskText,
+            calendarContext ? "\\nRetrieved Google Calendar data:\\n" + calendarContext : "",
+            searchContext ? "\\nRetrieved web search results:\\n" + searchContext : "",
+            typeof memoryContext === "string" && memoryContext.trim()
+              ? "\\nRelevant long-term memory:\\n" + memoryContext.trim()
+              : ""
+          ].filter(Boolean).join("\\n");
+
+          const result = await runAiCouncil({
+            userInput: specialistContext.slice(0, 24000),
+            systemInstruction: "You are J.A.R.V.I.S.'s specialist analyst. Analyze the supplied request using only the supplied context. Do not invent missing data or claim to execute external actions. State uncertainty and provide a concise, actionable analysis.",
+            providers: [configuredAutoProvider],
+            timeoutMs: 20000,
+            maxOutputTokens: 600
+          });
+
+          const specialistText = result.results
+            .filter(item => item.ok && typeof item.text === "string" && item.text.trim())
+            .map(item => "【専門AIの分析 / " + item.provider + "】\\n" + item.text)
+            .join("\\n\\n");
+
+          if (specialistText) {
+            geminiInput += "\\n\\n==============================\\nSPECIALIST ADVISORY\\n==============================\\n以下は司令官が選択した専門AIの分析です。元の依頼と取得済みデータを照合し、必要なら不確実性や不足情報を明示したうえで、J.A.R.V.I.S.として最終回答を作成してください。専門AIの内容を無条件に正しいものとして扱わず、根拠のない情報は採用しないでください。\\n\\n" + specialistText;
+          } else {
+            console.warn("Automatic commander returned no usable advisory", {
+              provider: configuredAutoProvider,
+              intent: autoCommanderClassification?.intent
+            });
+          }
+        } catch (error) {
+          const code = typeof error?.code === "string" ? error.code : "INTERNAL_ERROR";
+          console.error("Automatic commander advisory failed; continuing with Gemini", { code });
+          // Specialist failure must not prevent the existing Gemini response path.
+        }
+      }
+    }
 
     // ==========================================
     // Gemini Request
