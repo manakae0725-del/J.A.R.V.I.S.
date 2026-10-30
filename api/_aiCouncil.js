@@ -145,7 +145,7 @@ async function callAnthropic({ systemInstruction, userInput, maxOutputTokens, ti
   return { provider: "anthropic", model, text };
 }
 
-async function logUsage(provider, success, statusCode, durationMs, errorCode = null) {
+async function logUsage(provider, success, statusCode, durationMs, errorCode = null, diagnostics = {}) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !supabaseKey) return;
@@ -167,7 +167,7 @@ async function logUsage(provider, success, statusCode, durationMs, errorCode = n
         success,
         status_code: statusCode,
         duration_ms: durationMs,
-        metadata: errorCode ? { error: errorCode } : {}
+        metadata: errorCode ? { error: errorCode, ...diagnostics } : {}
       })
     });
     if (!response.ok) {
@@ -230,7 +230,11 @@ async function runAiCouncil(options = {}) {
       const durationMs = Date.now() - startedAt;
       const errorCode = typeof error?.code === "string" ? error.code : "PROVIDER_UNAVAILABLE";
       const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : null;
-      await logUsage(provider, false, statusCode, durationMs, errorCode);
+      const diagnostics = {};
+      if (typeof error?.responseStatus === "string") diagnostics.response_status = error.responseStatus;
+      if (typeof error?.incompleteReason === "string") diagnostics.incomplete_reason = error.incompleteReason;
+      await logUsage(provider, false, statusCode, durationMs, errorCode, diagnostics);
+      console.warn("[AI COUNCIL] Provider returned no usable response", { provider, error: errorCode, statusCode, ...diagnostics });
       results.push({ ok: false, provider, error: errorCode, statusCode, durationMs });
     }
   }
