@@ -24,7 +24,7 @@ button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-h
 <button id="liveTest" disabled>入力内容で司令官テスト（1回）</button>
 <p><a href="/">J.A.R.V.I.S. に戻る</a></p>
 <pre id="result" aria-live="polite">未実行</pre>
-<p class="small">制限：OpenAI接続テストは1分1回・1日3回。司令官ルーティングテストはPreview専用で1分1回・1日3回（通常枠とは別）。判断テストはAI APIを呼び出しません。入力テストはPreview専用で、専門AI候補と判定された場合のみOpenAIを最大1回呼び出します。APIキーはブラウザへ送信・表示しません。ルーティングテストでは少額の従量課金が発生します。</p>
+<p class="small">制限：OpenAI接続テストは1分1回・1日3回。司令官ルーティングテストはPreview専用で1分1回・1日3回（通常枠とは別）。判断テストは1分12回・1日30回まで（10件の一括確認に対応）、AI APIを呼び出しません。入力テストはPreview専用で、専門AI候補と判定された場合のみOpenAIを最大1回呼び出します。APIキーはブラウザへ送信・表示しません。ルーティングテストでは少額の従量課金が発生します。</p>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
