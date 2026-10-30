@@ -232,7 +232,7 @@ module.exports = async function handler(req, res) {
   if (req.body && req.body.mode === "commander-routing-test") {
     if (!(await enforceRateLimit(res, user, "commander-routing-test-minute", 1, 60))) return;
     if (!(await enforceRateLimit(res, user, "commander-routing-test-day", 2, 86400))) return;
-    const probeTask = "司令官ルーティングの動作確認です。OpenAIへの接続経路を分析し、選択された専門AIが正常に応答できることだけを確認してください。外部操作や設定変更は行わず、短く回答してください。";
+    const probeTask = "司令官ルーティングの動作確認です。J.A.R.V.I.S.のシステムとAPI接続経路を分析し、選択された専門AIが正常に応答できることだけを確認してください。外部操作や設定変更は行わず、短く回答してください。";
     const probeEnv = {
       ...process.env,
       JARVIS_AUTO_COMMANDER_ENABLED: "true",
