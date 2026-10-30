@@ -91,6 +91,9 @@ const semanticCases = [
   ["business analysis with context", "今月の売上データを分析し、前月と比較して傾向と原因を整理し、来月の改善策を具体的に提案してください。", true],
   ["security audit with context", "認証処理とAPIのセキュリティを監査し、脆弱性の可能性と改善策を優先順位付きで説明してください。", true],
   ["architecture design with requirements", "新しい予約管理システムの要件を整理し、構成を設計して複数案のメリットとデメリットを比較してください。", true]
+  ,["code review phrasing", "このコードの問題点を洗い出して、修正すべき箇所を教えてください。", true]
+  ,["business cause investigation", "今月は売上が落ちています。原因を調査して改善案を出してください。", true]
+  ,["routine status question", "今日の売上はいくらですか？", false]
 ];
 
 for (const [name, text, expected] of semanticCases) {
