@@ -21,7 +21,7 @@ button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-h
 <button id="classifyTest" disabled>司令官の判断テスト（無料）</button>
 <p><a href="/">J.A.R.V.I.S. に戻る</a></p>
 <pre id="result" aria-live="polite">未実行</pre>
-<p class="small">制限：1分に1回・1日3回。APIキーはブラウザへ送信・表示しません。テスト実行時には少額の従量課金が発生する場合があります。</p>
+<p class="small">制限：OpenAI接続テストは1分1回・1日3回。司令官ルーティングテストは1分1回・1日2回。判断テストはAI APIを呼び出しません。APIキーはブラウザへ送信・表示しません。ルーティングテストでは少額の従量課金が発生します。</p>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -81,7 +81,7 @@ button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-h
     const result=await response.json();
     if(!response.ok||!result.ok){
      const messages={ROUTING_CONFIGURATION_MISSING:"Preview の OpenAI API キーまたはモデル名を確認してください。",AUTHENTICATION_FAILED:"OpenAI APIキーまたは権限を確認してください。",RATE_LIMITED:"制限に達しました。時間をおいてください。",TIMEOUT:"応答が時間内に返りませんでした。"};
-     out.textContent="失敗\n原因コード: "+(result.error||"HTTP_"+response.status)+"\n状態: "+(result.responseStatus||"不明")+"\n詳細: "+(result.incompleteReason||"なし")+"\n"+(messages[result.error]||"Vercel の Preview Runtime Logs で確認してください。");return;
+     out.textContent="失敗\n原因コード: "+(result.error||"HTTP_"+response.status)+"\n状態: "+(result.responseStatus||"不明")+"\n詳細: "+(result.incompleteReason||"なし")+(result.retryAfterSeconds?"\n再試行可能まで: "+result.retryAfterSeconds+"秒":"")+"\n"+(messages[result.error]||"Vercel の Preview Runtime Logs で確認してください。");return;
     }
     out.textContent="成功\n経路: "+result.route+"\nModel: "+result.model+"\n応答: "+result.text+"\n時間: "+result.durationMs+" ms";
    }catch(error){out.textContent="テスト失敗: "+(error?.message||"通信エラー");}
