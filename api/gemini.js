@@ -1828,7 +1828,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
             systemInstruction: "You are J.A.R.V.I.S.'s specialist analyst. Analyze the supplied request using only the supplied context. Do not invent missing data or claim to execute external actions. State uncertainty and provide a concise, actionable analysis.",
             providers: [configuredAutoProvider],
             timeoutMs: 20000,
-            maxOutputTokens: 600
+            maxOutputTokens: 1200
           });
 
           const specialistText = result.results
