@@ -265,6 +265,75 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  // One-shot end-to-end Commander test: classify supplied text and call OpenAI only when eligible.
+  // Preview-only; does not change global routing flags or affect ordinary chat.
+  if (req.body && req.body.mode === "commander-live-test") {
+    if (process.env.VERCEL_ENV !== "preview") {
+      return res.status(403).json({ ok: false, error: "PREVIEW_ONLY_TEST" });
+    }
+    if (!(await enforceRateLimit(res, user, "commander-live-preview-minute", 1, 60))) return;
+    if (!(await enforceRateLimit(res, user, "commander-live-preview-day", 3, 86400))) return;
+    const input = req.body.text;
+    if (typeof input !== "string" || !input.trim() || input.length > 4000) {
+      return res.status(400).json({ ok: false, error: "INVALID_CLASSIFICATION_INPUT" });
+    }
+    const route = getAutoCommanderConfig({
+      autoCommander: true,
+      text: input,
+      env: {
+        ...process.env,
+        JARVIS_AUTO_COMMANDER_ENABLED: "true",
+        JARVIS_AI_COUNCIL_ENABLED: "true",
+        JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED: "true"
+      }
+    });
+    if (!route.classification.shouldDelegate) {
+      return res.status(200).json({
+        ok: true,
+        delegated: false,
+        classification: route.classification,
+        providerCall: false,
+        message: "通常処理判定のため、AI APIは呼び出していません。"
+      });
+    }
+    if (route.provider !== "openai") {
+      return res.status(503).json({
+        ok: false,
+        error: "OPENAI_NOT_CONFIGURED",
+        classification: route.classification,
+        providerCall: false
+      });
+    }
+    const result = await testOpenAIConnection({
+      userInput: route.taskText,
+      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. Analyze the user's request and provide a concise useful response. Do not execute or claim external actions. State uncertainty where relevant.",
+      maxOutputTokens: 600
+    });
+    if (!result.ok) {
+      return res.status(502).json({
+        ok: false,
+        delegated: true,
+        provider: "openai",
+        classification: route.classification,
+        error: result.error,
+        statusCode: result.statusCode,
+        responseStatus: result.responseStatus,
+        incompleteReason: result.incompleteReason
+      });
+    }
+    return res.status(200).json({
+      ok: true,
+      delegated: true,
+      route: "commander -> openai",
+      provider: result.provider,
+      model: result.model,
+      classification: route.classification,
+      text: result.text.slice(0, 3000),
+      durationMs: result.durationMs,
+      providerCall: true
+    });
+  }
+
   // Classification-only probe: never calls an AI provider and never changes routing flags.
   if (req.body && req.body.mode === "commander-classification-test") {
     if (!(await enforceRateLimit(res, user, "commander-classification-minute", 5, 60))) return;
