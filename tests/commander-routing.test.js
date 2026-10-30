@@ -94,6 +94,11 @@ const semanticCases = [
   ,["code review phrasing", "このコードの問題点を洗い出して、修正すべき箇所を教えてください。", true]
   ,["business cause investigation", "今月は売上が落ちています。原因を調査して改善案を出してください。", true]
   ,["routine status question", "今日の売上はいくらですか？", false]
+  ,["short business comparison", "売上を比較してください。", true]
+  ,["general security explanation", "セキュリティについて教えてください。", false]
+  ,["short code review request", "このコードをレビューしてください。", true]
+  ,["simple business status with context", "今月の売上はいくらですか？", false]
+  ,["short architecture design request", "予約管理システムを設計してください。", true]
 ];
 
 for (const [name, text, expected] of semanticCases) {
