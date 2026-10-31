@@ -706,6 +706,7 @@ module.exports = async function handler(req, res) {
       /(?:フリー売上|指名売上)/.test(userText) &&
       /(?:登録|記録|追加)/.test(userText);
     if (dailySalesIntent) {
+      let dailyStage = "parse";
       try {
         const countMatch = label => {
           const match = userText.match(new RegExp(label + "\\s*([0-9]+)\\s*人"));
@@ -735,6 +736,7 @@ module.exports = async function handler(req, res) {
         if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m - 1 || parsed.getUTCDate() !== d) {
           return calendarDirect(res, "売上日が正しくありません。登録は行っていません。", "日付を確認してください。");
         }
+        dailyStage = "load_google_connection";
         const connections = await listConnectionsForUser(user.id);
         const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
         if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
@@ -742,6 +744,7 @@ module.exports = async function handler(req, res) {
         const workbook = registry?.managementWorkbook;
         if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが未登録です。");
         const base = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id);
+        dailyStage = "read_sales_and_staff";
         const [salesResult, staffResult] = await Promise.all([
           googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Sales'!A1:V10000")),
           googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Staff'!A1:Z1000"))
@@ -765,6 +768,7 @@ module.exports = async function handler(req, res) {
         // Extend the header only to the right; existing rows and columns remain untouched.
         const missing = extra.filter(k=>si[k]===undefined);
         if (missing.length) {
+          dailyStage = "extend_sales_headers";
           const colName = n => { let s=""; for(;n>0;n=Math.floor((n-1)/26)) s=String.fromCharCode(65+(n-1)%26)+s; return s; };
           const start = headers.length + 1;
           const end = start + missing.length - 1;
@@ -780,6 +784,7 @@ module.exports = async function handler(req, res) {
           String(row?.[si.staff_id]??"").trim()===String(linked[0][sti.staff_id]).trim() &&
           String(row?.[si.record_status]??"active").toLowerCase()==="active");
         if (existingDaily) return calendarDirect(res, saleDate + "の日次売上は既に登録されています。二重登録を避けるため追記していません。修正が必要な場合は「訂正」と明示してください。", "この日の日次売上は登録済みです。");
+        dailyStage = "resolve_nomination_fee";
         const feeRules = Array.isArray(registry?.nominationFeeRules) ? registry.nominationFeeRules : [{effective_from:"2026-10-31",unit_fee:800}];
         const applicable = feeRules.filter(rule=>String(rule.effective_from||"")<=saleDate).sort((a,b)=>String(b.effective_from).localeCompare(String(a.effective_from)))[0];
         if (!applicable || !Number.isSafeInteger(Number(applicable.unit_fee)) || Number(applicable.unit_fee)<0) {
@@ -799,10 +804,12 @@ module.exports = async function handler(req, res) {
           nomination_fee_unit:unitFee,daily_customer_count:freeCount+nominationCount
         };
         const row=headers.map(h=>Object.prototype.hasOwnProperty.call(record,h)?record[h]:"");
+        dailyStage = "append_daily_sales";
         const appended=await googleApiRequest(user.id,connection.id,
           base+"/values/"+encodeURIComponent("'Sales'!A:V")+":append?"+new URLSearchParams({valueInputOption:"RAW",insertDataOption:"INSERT_ROWS"}),
           {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({majorDimension:"ROWS",values:[row]})});
         if (!(Number(appended?.updates?.updatedRows)>=1)) return calendarDirect(res,"Salesへの追記応答を確認できません。重複防止のため再送しないでください。Salesタブを確認してください。","登録結果を確認できません。");
+        dailyStage = "verify_daily_sales";
         let verified=false;
         try {
           const check=await googleApiRequest(user.id,connection.id,base+"/values/"+encodeURIComponent("'Sales'!A1:V10000"));
@@ -813,6 +820,7 @@ module.exports = async function handler(req, res) {
             Number(saved[ix.technical_sales])===totalTech && Number(saved[ix.nomination_fee])===feeTotal);
         } catch(e) { console.error("Daily sales read-back verification failed",{name:e?.name||"Error"}); }
         if (!verified) return calendarDirect(res,"追記応答は成功しましたが読み戻し照合ができません。重複防止のため再登録しないでください。Salesタブを確認してください。","追記済み・照合未確認です。",{dailySales:{registered:true,verified:false,salesId:record.sales_id}});
+        dailyStage = "save_nomination_fee_rules";
         if (!Array.isArray(registry?.nominationFeeRules)) {
           await saveSpreadsheetRegistry(user.id,{...(registry||{}),nominationFeeRules:feeRules});
         }
@@ -821,7 +829,7 @@ module.exports = async function handler(req, res) {
           "日次売上を登録しました。",
           {dailySales:{registered:true,verified:true,salesId:record.sales_id,saleDate,freeCount,nominationCount,freeSales,nominationSales,unitFee,feeTotal,totalTech,staffId:record.staff_id}});
       } catch(error) {
-        console.error("Daily sales registration failed",{name:error?.name||"Error",status:Number.isInteger(error?.status)?error.status:undefined});
+        console.error("Daily sales registration failed",{stage:dailyStage,name:error?.name||"Error",status:Number.isInteger(error?.status)?error.status:undefined});
         return calendarDirect(res,"日次売上の登録に失敗しました。登録結果が不明な場合はSalesタブを確認してから再依頼してください。","日次売上の登録に失敗しました。");
       }
     }
