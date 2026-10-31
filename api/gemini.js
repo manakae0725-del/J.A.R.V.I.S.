@@ -498,7 +498,7 @@ module.exports = async function handler(req, res) {
     // Source rows remain raw; summaries are calculated from these records.
     const managementWorkbookSchema = [
       { title: "Sales", headers: ["sales_id","transaction_date","customer_type","menu_id","menu_name","technical_sales","nomination_fee","retail_sales","service_minutes","staff_id","notes","record_status","created_at","updated_at"] },
-      { title: "RetailSales", headers: ["retail_sale_id","sale_date","product_id","quantity","unit_sale_price","unit_cost","gross_profit","staff_id","notes","record_status","created_at","updated_at"] },
+      { title: "RetailSales", headers: ["retail_sale_id","sale_date","customer_id","product_id","quantity","unit_sale_price","unit_cost","gross_profit","staff_id","notes","record_status","created_at","updated_at"] },
       { title: "Products", headers: ["product_id","product_name","category","unit_cost","default_sale_price","active_from","active_to","is_active","created_at","updated_at"] },
       { title: "Menus", headers: ["menu_id","menu_name","category","default_price","standard_minutes","active_from","active_to","is_active","created_at","updated_at"] },
       { title: "Staff", headers: ["staff_id","display_name","employment_type","active_from","active_to","is_active","created_at","updated_at"] },
@@ -538,7 +538,7 @@ module.exports = async function handler(req, res) {
               gridProperties: { rowCount: 1000, columnCount: definition.headers.length }
             } } });
             added.push(definition.title);
-          } else if (definition.title === "CompensationRules") {
+          } else if (["CompensationRules", "RetailSales"].includes(definition.title)) {
             const oldColumns = Number(existing.gridProperties?.columnCount) || 0;
             requests.push({
               updateSheetProperties: {
@@ -562,14 +562,14 @@ module.exports = async function handler(req, res) {
             { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requests }) }
           );
         }
-        const updatedRecord = { ...workbook, schemaVersion: 2, updatedAt: new Date().toISOString() };
+        const updatedRecord = { ...workbook, schemaVersion: 3, updatedAt: new Date().toISOString() };
         await saveSpreadsheetRegistry(user.id, { ...registry, version: 1, managementWorkbook: updatedRecord });
         return calendarDirect(res,
-          "管理ブックをスキーマv2に更新しました。追加タブ: " + (added.join(" / ") || "なし") +
+          "管理ブックをスキーマv3に更新しました。追加タブ: " + (added.join(" / ") || "なし") +
           "。ヘッダー更新: " + (changedHeaders.join(" / ") || "なし") +
           "。既存の売上・店販・商品・設定・変更履歴のデータ行は変更していません。",
           "管理ブックの構造を更新しました。",
-          { managementWorkbook: { schemaVersion: 2, addedSheets: added, updatedHeaders: changedHeaders } }
+          { managementWorkbook: { schemaVersion: 3, addedSheets: added, updatedHeaders: changedHeaders } }
         );
       } catch (error) {
         console.error("Management workbook schema upgrade failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
