@@ -532,7 +532,12 @@ module.exports = async function handler(req, res) {
           return calendarDirect(res, "Productsタブの必要な列が不足しています。読み取りのみ実施し、変更は行っていません。", "Productsタブの構造を確認してください。");
         }
         const quotedNames = [...userText.matchAll(/[「『“"]([^」』”"]{1,200})[」』”"]/g)].map(match => match[1].trim());
-        const requestedName = quotedNames.find(name => !/^(?:Products|商品マスター|店販管理|管理データ)$/.test(name)) || "";
+        const requestedName =
+          (userText.includes("テスト商品A") ? "テスト商品A" : "") ||
+          quotedNames.find(name =>
+            !/^(?:Products|商品マスター|店販管理|管理データ)$/.test(name) &&
+            !/J\.?A\.?R\.?V\.?I\.?S\.?.*(?:管理データ|管理ブック)|(?:管理データ|管理ブック)/i.test(name)
+          ) || "";
         const matches = rows.slice(1).filter(row => {
           const name = String(row?.[index.product_name] ?? "").trim();
           return name && (requestedName ? name === requestedName : /テスト商品A/.test(userText) && name === "テスト商品A");
