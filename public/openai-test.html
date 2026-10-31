@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>J.A.R.V.I.S. OpenAI 接続テスト</title>
+<style>
+:root{color-scheme:dark}body{margin:0;background:#030914;color:#dff5ff;font:16px system-ui,sans-serif;min-height:100vh;display:grid;place-items:center}
+main{width:min(92vw,520px);padding:24px;border:1px solid #1678b8;background:linear-gradient(145deg,#071b30,#020812);box-shadow:0 0 28px #0066aa33}
+h1{font-size:20px;letter-spacing:.08em}p{line-height:1.65;color:#a8cde8}
+button,a{display:inline-block;border:1px solid #39b8ff;background:#0b2b45;color:#e8f8ff;padding:12px 16px;border-radius:5px;font:inherit;text-decoration:none}
+button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-height:70px;padding:12px;background:#01060c;border:1px solid #164364;color:#bdeaff}
+.small{font-size:12px;color:#7da6c3}
+</style>
+</head>
+<body><main>
+<h1>J.A.R.V.I.S. / OPENAI CONNECTION TEST</h1>
+<p>OpenAI API に固定の短い確認文を1回だけ送信します。自動ルーティングや通常会話の設定は変更しません。</p>
+<p id="session">認証状態を確認しています…</p>
+<button id="test" disabled>OpenAI 接続テスト（1回）</button>
+<button id="routeTest" disabled>司令官ルーティングテスト（1回）</button>
+<button id="classifyTest" disabled>司令官の判断テスト（無料）</button>
+<p>通常会話からの自動判定テスト（Preview専用・OpenAI最大1回）</p>
+<textarea id="liveTask" rows="5" style="box-sizing:border-box;width:100%;margin:8px 0;padding:12px;background:#010c18;color:#dff5ff;border:1px solid #39b8ff;font:inherit" maxlength="4000">今月の売上データを分析し、前月と比較して傾向と原因を整理し、来月の改善策を具体的に提案してください。</textarea>
+<button id="liveTest" disabled>入力内容で司令官テスト（1回）</button>
+<p><a href="/">J.A.R.V.I.S. に戻る</a></p>
+<pre id="result" aria-live="polite">未実行</pre>
+<p class="small">制限：OpenAI接続テストは1分1回・1日3回。司令官ルーティングテストはPreview専用で1分1回・1日3回（通常枠とは別）。判断テストは1分12回・1日30回まで（10件の一括確認に対応）、AI APIを呼び出しません。入力テストはPreview専用で、専門AI候補と判定された場合のみOpenAIを最大1回呼び出します。APIキーはブラウザへ送信・表示しません。ルーティングテストでは少額の従量課金が発生します。</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async()=>{
+ const sessionEl=document.getElementById("session"),button=document.getElementById("test"),routeButton=document.getElementById("routeTest"),classifyButton=document.getElementById("classifyTest"),liveButton=document.getElementById("liveTest"),liveTask=document.getElementById("liveTask"),out=document.getElementById("result");
+ try{
+  const cfgResponse=await fetch("/api/auth-config",{cache:"no-store"}),cfg=await cfgResponse.json();
+  if(!cfgResponse.ok||!cfg.url||!cfg.anonKey)throw new Error("認証設定を取得できません");
+  const client=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  const {data,error}=await client.auth.getSession();if(error)throw error;
+  if(!data.session){sessionEl.textContent="未ログインです。先に J.A.R.V.I.S. へログインしてください。";return;}
+  sessionEl.textContent="ログイン済み。テストを実行できます。";button.disabled=false;routeButton.disabled=false;classifyButton.disabled=false;liveButton.disabled=false;
+  button.addEventListener("click",async()=>{
+   button.disabled=true;out.textContent="OpenAI に接続中…";
+   try{
+    const {data:sessionData}=await client.auth.getSession();
+    if(!sessionData.session)throw new Error("ログイン状態が切れました。再ログインしてください。");
+    const response=await fetch("/api/gemini",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+sessionData.session.access_token},body:JSON.stringify({mode:"openai-connection-test"})});
+    const result=await response.json();
+    if(!response.ok||!result.ok){
+     const messages={CONFIGURATION_MISSING:"APIキーまたはモデル名がサーバーに設定されていません。",AUTHENTICATION_FAILED:"OpenAI APIキーまたは権限を確認してください。",PROVIDER_REQUEST_REJECTED:"モデル名、APIキーの権限、利用可能な残高を確認してください。",RATE_LIMITED:"OpenAI側のレート制限です。時間をおいてください。",TIMEOUT:"応答が時間内に返りませんでした。"};
+     out.textContent="失敗\n原因コード: "+(result.error||"HTTP_"+response.status)+"\n"+(messages[result.error]||"Vercel の Preview Runtime Logs で詳細を確認してください。");return;
+    }
+    out.textContent="成功\nProvider: "+result.provider+"\nModel: "+result.model+"\n応答: "+result.text+"\n時間: "+result.durationMs+" ms";
+   }catch(error){out.textContent="テスト失敗: "+(error?.message||"通信エラー");}
+   finally{button.disabled=false;}
+  });
+  classifyButton.addEventListener("click",async()=>{
+   classifyButton.disabled=true;button.disabled=true;routeButton.disabled=true;out.textContent="司令官の判断を確認中…";
+   try{
+    const {data:sessionData}=await client.auth.getSession();
+    if(!sessionData.session)throw new Error("ログイン状態が切れました。再ログインしてください。");
+    const samples=[
+     ["挨拶","おはようございます。今日もよろしくお願いします。"],
+     ["用語説明","セキュリティとは何ですか？"],
+     ["売上分析","今月の売上データを分析し、前月と比較して傾向と原因を整理し、来月の改善策を具体的に提案してください。"],
+     ["セキュリティ監査","認証処理とAPIのセキュリティを監査し、脆弱性の可能性と改善策を優先順位付きで説明してください。"],
+     ["単純な状況確認","今日の売上はいくらですか？"],
+     ["短い売上比較","売上を比較してください。"],
+     ["一般的なセキュリティ説明","セキュリティについて教えてください。"],
+     ["短いコードレビュー","このコードをレビューしてください。"],
+     ["単純な売上確認","今月の売上はいくらですか？"],
+     ["短いシステム設計","予約管理システムを設計してください。"]
+    ];
+    const results=[];
+    for(const [label,text] of samples){
+     const response=await fetch("/api/gemini",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+sessionData.session.access_token},body:JSON.stringify({mode:"commander-classification-test",text})});
+     const result=await response.json();
+     if(!response.ok||!result.ok)throw new Error(label+": "+(result.error||"HTTP_"+response.status));
+     results.push(label+": "+(result.shouldDelegate?"専門AI候補":"通常処理")+" / "+result.intent+" / "+result.reason);
+    }
+    out.textContent="判定テスト完了（AI API呼び出しなし）\n"+results.join("\n");
+   }catch(error){out.textContent="判定テスト失敗: "+(error?.message||"通信エラー");}
+   finally{classifyButton.disabled=false;button.disabled=false;routeButton.disabled=false;}
+  });
+  liveButton.addEventListener("click",async()=>{
+   const task=liveTask.value.trim();
+   if(!task){out.textContent="テスト文を入力してください。";return;}
+   liveButton.disabled=true;button.disabled=true;routeButton.disabled=true;classifyButton.disabled=true;out.textContent="司令官が入力内容を判定中…";
+   try{
+    const {data:sessionData}=await client.auth.getSession();
+    if(!sessionData.session)throw new Error("ログイン状態が切れました。再ログインしてください。");
+    const response=await fetch("/api/gemini",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+sessionData.session.access_token},body:JSON.stringify({mode:"commander-live-test",text:task})});
+    const result=await response.json();
+    if(!response.ok||!result.ok){
+     out.textContent="失敗\n原因コード: "+(result.error||"HTTP_"+response.status)+"\n判定: "+(result.classification?.shouldDelegate?"専門AI候補":"未確定")+(result.providerCall===false?"\nAI API呼び出し: なし":"")+(result.retryAfterSeconds?"\n再試行可能まで: "+result.retryAfterSeconds+"秒":"");
+     return;
+    }
+    const c=result.classification||{};
+    out.textContent=(result.delegated?"専門AIへ振り分け成功":"通常処理判定（AI API呼び出しなし）")+"\n判定: "+(c.shouldDelegate?"専門AI候補":"通常処理")+" / "+(c.intent||"")+" / "+(c.reason||"")+"\n経路: "+(result.route||"Geminiへ渡す想定")+"\nModel: "+(result.model||"呼び出しなし")+"\n応答: "+(result.text||result.message||"")+"\n時間: "+(result.durationMs??"-")+" ms";
+   }catch(error){out.textContent="テスト失敗: "+(error?.message||"通信エラー");}
+   finally{liveButton.disabled=false;button.disabled=false;routeButton.disabled=false;classifyButton.disabled=false;}
+  });
+  routeButton.addEventListener("click",async()=>{
+   routeButton.disabled=true;button.disabled=true;out.textContent="司令官ルーティングを確認中…";
+   try{
+    const {data:sessionData}=await client.auth.getSession();
+    if(!sessionData.session)throw new Error("ログイン状態が切れました。再ログインしてください。");
+    const response=await fetch("/api/gemini",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+sessionData.session.access_token},body:JSON.stringify({mode:"commander-routing-test"})});
+    const result=await response.json();
+    if(!response.ok||!result.ok){
+     const messages={PREVIEW_ONLY_TEST:"このテストはPreview環境でのみ実行できます。",ROUTING_CONFIGURATION_MISSING:"Preview の OpenAI API キーまたはモデル名を確認してください。",AUTHENTICATION_FAILED:"OpenAI APIキーまたは権限を確認してください。",RATE_LIMITED:"制限に達しました。時間をおいてください。",TIMEOUT:"応答が時間内に返りませんでした。"};
+     out.textContent="失敗\n原因コード: "+(result.error||"HTTP_"+response.status)+"\n状態: "+(result.responseStatus||"不明")+"\n詳細: "+(result.incompleteReason||"なし")+(result.retryAfterSeconds?"\n再試行可能まで: "+result.retryAfterSeconds+"秒":"")+"\n"+(messages[result.error]||"Vercel の Preview Runtime Logs で確認してください。");return;
+    }
+    out.textContent="成功\n経路: "+result.route+"\nModel: "+result.model+"\n応答: "+result.text+"\n時間: "+result.durationMs+" ms";
+   }catch(error){out.textContent="テスト失敗: "+(error?.message||"通信エラー");}
+   finally{routeButton.disabled=false;button.disabled=false;}
+  });
+ }catch(error){sessionEl.textContent="初期化失敗: "+(error?.message||"不明なエラー");}
+})();
+</script></body></html>

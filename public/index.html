@@ -318,7 +318,7 @@ color: #61a6ff;
 #textArea.is-closing{opacity:0;visibility:hidden;transform:translate(-50%,-46%);pointer-events:none;}
 #textArea:before{content:"INPUT CONSOLE // J.A.R.V.I.S.";display:block;color:rgba(135,220,255,.8);font:10px/1.4 monospace;letter-spacing:2px;padding:2px 4px 8px;border-bottom:1px solid rgba(0,153,255,.22);margin-bottom:8px;}
 #textInput{
- display:block;width:100%;height:42px;min-height:42px;max-height:24vh;padding:9px 10px;
+ display:block;width:100%;height:calc(1.45em * 3 + 18px);min-height:calc(1.45em * 3 + 18px);max-height:24vh;padding:9px 10px;
  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;
  border:1px solid rgba(0,153,255,.28);border-radius:2px;
  background:rgba(0,8,20,.66);color:#e8f7ff;font:13px/1.45 monospace;
@@ -338,7 +338,7 @@ color: #61a6ff;
 }
 #sendButton:before{content:"";display:inline-block;width:6px;height:6px;margin-right:9px;background:#00d4ff;box-shadow:0 0 8px #00d4ff;vertical-align:middle;}
 #sendButton:active{background:rgba(0,130,220,.4);border-color:#00d4ff;box-shadow:0 0 18px rgba(0,153,255,.35);}
-@media(max-width:480px){#textArea{width:calc(100% - 24px);padding:3px;}#textArea:before{padding:0 4px 3px;margin-bottom:3px;font-size:9px;}#textInput{height:32px;min-height:32px;padding:5px 9px;}#sendButton{height:28px;margin-top:4px;min-width:100px;padding:0 12px;font-size:11px;}}
+@media(max-width:480px){#textArea{width:calc(100% - 24px);padding:3px;}#textArea:before{padding:0 4px 3px;margin-bottom:3px;font-size:9px;}#textInput{height:calc(1.45em * 3 + 10px);min-height:calc(1.45em * 3 + 10px);padding:5px 9px;}#sendButton{height:28px;margin-top:4px;min-width:100px;padding:0 12px;font-size:11px;}}
 
 .jarvis-holo-panel{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 40px));max-height:52vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:rgba(0,153,255,.45) transparent;padding:12px 15px;z-index:30;pointer-events:auto;background:rgba(1,12,25,.82);border:1px solid rgba(0,153,255,.45);box-shadow:0 0 25px rgba(0,119,255,.25),inset 0 0 15px rgba(0,153,255,.12);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))}
 .jarvis-holo-panel.show{animation:jarvisPanelOpen .85s cubic-bezier(.2,.75,.25,1) both}
@@ -418,6 +418,8 @@ body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity 
 #googleCalendarTest button,#googleCalendarToggle{background:#102b40;color:#e7f7ff;border:1px solid #258bc4;border-radius:4px;padding:8px 10px;font:inherit}
 #googleCalendarToggle{position:fixed;right:12px;bottom:12px;z-index:12001;box-shadow:0 0 14px rgba(22,139,209,.22)}
 #googleCalendarToggle[hidden]{display:none!important}
+/* Google app test/connect panel is intentionally hidden from the home screen. OAuth logic remains available for a later Settings entry point. */
+#googleCalendarToggle{display:none!important}
 body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{display:none!important}
 @media(max-width:480px){#googleCalendarTest{left:10px!important;right:10px!important;bottom:60px!important;max-height:42vh!important}#googleCalendarToggle{right:10px;bottom:10px}}
 </style>
@@ -1372,6 +1374,35 @@ var previousInteractionId=null;
 var pendingCalendarAction=null;
 var currentMode="voice";
 
+function getConversationStorageKey(userId) {
+    return userId ? "jarvis_interaction_id_" + userId : null;
+}
+
+function loadConversationInteractionId(userId) {
+    const key = getConversationStorageKey(userId);
+    if (!key) return null;
+    try {
+        const value = sessionStorage.getItem(key);
+        return typeof value === "string" && value.length > 0 ? value : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function saveConversationInteractionId(userId, interactionId) {
+    const key = getConversationStorageKey(userId);
+    if (!key) return;
+    try {
+        if (interactionId) sessionStorage.setItem(key, interactionId);
+        else sessionStorage.removeItem(key);
+    } catch (_) {
+        // Session storage may be unavailable; in-memory continuity still works.
+    }
+}
+
+// Restore only within this browser tab and the currently authenticated user.
+previousInteractionId = loadConversationInteractionId(window.jarvisCurrentUserId || null);
+
 /* =========================================================
    LONG-TERM MEMORY SYSTEM (PORTED)
    ========================================================= */
@@ -1387,11 +1418,16 @@ window.addEventListener("jarvis-auth-change", (event) => {
 
     if (nextUserId === memoryOwnerId) return;
 
+    const previousUserId = memoryOwnerId;
     memoryOwnerId = nextUserId;
     memoryLoadGeneration++;
     memories = [];
     previousInteractionId = null;
     pendingCalendarAction = null;
+
+    // Never carry a conversation ID across account changes.
+    saveConversationInteractionId(previousUserId, null);
+    previousInteractionId = loadConversationInteractionId(nextUserId);
 
     if (nextUserId) {
         void loadMemories();
@@ -2414,6 +2450,16 @@ async function sendToGemini(text) {
             return;
         }
 
+        // J.A.R.V.I.S.が通常の依頼文から自動判断できるよう、毎回の合言葉は要求しない。
+        // サーバー側の自動司令官機能が無効・未設定なら、従来のGemini処理をそのまま使う。
+        const requestBody = {
+            text: cleanText,
+            autoCommander: true,
+            previousInteractionId: previousInteractionId,
+            memoryContext: buildMemoryContext(),
+            pendingCalendarAction: pendingCalendarAction
+        };
+
         const response = await fetch(
             "/api/gemini",
             {
@@ -2422,17 +2468,15 @@ async function sendToGemini(text) {
                     "Content-Type": "application/json",
                     Authorization: "Bearer " + accessToken
                 },
-                body: JSON.stringify({
-                    text: cleanText,
-                    previousInteractionId: previousInteractionId,
-                    memoryContext: buildMemoryContext(),
-                    pendingCalendarAction: pendingCalendarAction
-                }),
+                body: JSON.stringify(requestBody),
                 signal: controller.signal
             }
         );
 
         const data = await response.json();
+
+        // 自動司令官が返した結果は、既存の回答パネル・音声出力へそのまま渡す。
+        // 失敗時はサーバーが通常Gemini経路へフォールバックする。
 
         // 応答待ちの間にアカウントが変わっていたら、古い応答を破棄する。
         if (requestUserId !== window.jarvisCurrentUserId) {
@@ -2460,7 +2504,14 @@ async function sendToGemini(text) {
             requestUserId === window.jarvisCurrentUserId
         ) {
             previousInteractionId = data.interactionId;
+            saveConversationInteractionId(requestUserId, data.interactionId);
         }
+
+        console.info("[CONVERSATION] Client continuity", {
+            sentPreviousInteractionId: Boolean(requestBody.previousInteractionId),
+            receivedInteractionId: Boolean(data.interactionId),
+            storedInteractionId: Boolean(previousInteractionId)
+        });
 
         if (
             data.memory &&
@@ -2476,16 +2527,33 @@ async function sendToGemini(text) {
         }
 
         window.setJarvisCoreState("responding");
-        const responseAnimation = animateJarvisResponse(data.text);
+        const voiceResponse = document.getElementById("voiceResponse");
+        const hasVisualization = !!(
+            data.visualization &&
+            typeof data.visualization.type === "string" &&
+            data.visualization.type !== "none"
+        );
+        // In voice mode, keep the visual panel focused on the chart while the
+        // corresponding explanation is spoken through TTS. Text mode remains unchanged.
+        const visualVoiceMode = currentMode === "voice" && hasVisualization;
+        if (voiceResponse) {
+            voiceResponse.hidden = visualVoiceMode;
+            voiceResponse.setAttribute("aria-hidden", visualVoiceMode ? "true" : "false");
+        }
         const holoPanel = document.getElementById("jarvisHoloPanel");
         holoPanel.classList.remove("show");
         void holoPanel.offsetWidth;
         holoPanel.classList.add("show");
-        responseAnimation.then(token => {
-            if (token !== null && requestUserId === window.jarvisCurrentUserId) {
-                renderJarvisVisualization(data.visualization);
-            }
-        });
+        if (visualVoiceMode) {
+            renderJarvisVisualization(data.visualization);
+        } else {
+            const responseAnimation = animateJarvisResponse(data.text);
+            responseAnimation.then(token => {
+                if (token !== null && requestUserId === window.jarvisCurrentUserId) {
+                    renderJarvisVisualization(data.visualization);
+                }
+            });
+        }
 
         status.textContent = "";
 

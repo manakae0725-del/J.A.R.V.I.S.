@@ -54,6 +54,8 @@ async function logApiUsage({
 
 const { requireAuth } = require("./_auth");
 const { enforceRateLimit } = require("./_rateLimit");
+const { runAiCouncil, testOpenAIConnection } = require("./_aiCouncil");
+const { getAutoCommanderConfig } = require("../lib/commanderRouting");
 const { listConnectionsForUser } = require("./_google/tokenStore");
 const { googleApiRequest } = require("./_google/client");
 
@@ -217,6 +219,192 @@ module.exports = async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
+  // Explicit OpenAI connectivity probe: fixed prompt, one provider call, strict rate limits.
+  // Independent of council/automatic-routing flags; does not alter ordinary chat routing.
+  if (req.body && req.body.mode === "openai-connection-test") {
+    if (!(await enforceRateLimit(res, user, "openai-connection-test-minute", 1, 60))) return;
+    if (!(await enforceRateLimit(res, user, "openai-connection-test-day", 3, 86400))) return;
+    const result = await testOpenAIConnection();
+    return res.status(result.ok ? 200 : 502).json(result);
+  }
+
+  // Explicit, bounded Preview-only routing probe. Uses separate buckets from normal and legacy tests.
+  // This does not enable automatic routing and cannot run in Production.
+  if (req.body && req.body.mode === "commander-routing-test") {
+    if (process.env.VERCEL_ENV !== "preview") {
+      return res.status(403).json({ ok: false, error: "PREVIEW_ONLY_TEST" });
+    }
+    if (!(await enforceRateLimit(res, user, "commander-routing-preview-minute", 1, 60))) return;
+    if (!(await enforceRateLimit(res, user, "commander-routing-preview-day", 3, 86400))) return;
+    const probeTask = "司令官ルーティングの動作確認です。J.A.R.V.I.S.のシステムとAPI接続経路を分析し、選択された専門AIが正常に応答できることだけを確認してください。外部操作や設定変更は行わず、短く回答してください。";
+    const probeEnv = {
+      ...process.env,
+      JARVIS_AUTO_COMMANDER_ENABLED: "true",
+      JARVIS_AI_COUNCIL_ENABLED: "true",
+      JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED: "true"
+    };
+    const route = getAutoCommanderConfig({ autoCommander: true, text: probeTask, env: probeEnv });
+    if (!route.eligible || !route.provider) {
+      return res.status(503).json({ ok: false, error: "ROUTING_CONFIGURATION_MISSING" });
+    }
+    const result = await testOpenAIConnection({
+      userInput: route.taskText,
+      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. This is a routing test. Do not execute or claim external actions. Reply with exactly OPENAI_ROUTE_OK and nothing else. This is a routing connectivity test.",
+      maxOutputTokens: 384
+    });
+    if (!result.ok) {
+      return res.status(502).json({ ok: false, provider: route.provider, error: result.error, statusCode: result.statusCode, responseStatus: result.responseStatus, incompleteReason: result.incompleteReason });
+    }
+    return res.status(200).json({
+      ok: true,
+      route: "commander -> " + result.provider,
+      provider: result.provider,
+      model: result.model,
+      text: result.text.slice(0, 600),
+      durationMs: result.durationMs
+    });
+  }
+
+  // One-shot end-to-end Commander test: classify supplied text and call OpenAI only when eligible.
+  // Preview-only; does not change global routing flags or affect ordinary chat.
+  if (req.body && req.body.mode === "commander-live-test") {
+    if (process.env.VERCEL_ENV !== "preview") {
+      return res.status(403).json({ ok: false, error: "PREVIEW_ONLY_TEST" });
+    }
+    if (!(await enforceRateLimit(res, user, "commander-live-preview-minute", 1, 60))) return;
+    if (!(await enforceRateLimit(res, user, "commander-live-preview-day", 3, 86400))) return;
+    const input = req.body.text;
+    if (typeof input !== "string" || !input.trim() || input.length > 4000) {
+      return res.status(400).json({ ok: false, error: "INVALID_CLASSIFICATION_INPUT" });
+    }
+    const route = getAutoCommanderConfig({
+      autoCommander: true,
+      text: input,
+      env: {
+        ...process.env,
+        JARVIS_AUTO_COMMANDER_ENABLED: "true",
+        JARVIS_AI_COUNCIL_ENABLED: "true",
+        JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED: "true"
+      }
+    });
+    if (!route.classification.shouldDelegate) {
+      return res.status(200).json({
+        ok: true,
+        delegated: false,
+        classification: route.classification,
+        providerCall: false,
+        message: "通常処理判定のため、AI APIは呼び出していません。"
+      });
+    }
+    if (route.provider !== "openai") {
+      return res.status(503).json({
+        ok: false,
+        error: "OPENAI_NOT_CONFIGURED",
+        classification: route.classification,
+        providerCall: false
+      });
+    }
+    const result = await testOpenAIConnection({
+      userInput: route.taskText,
+      systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. Analyze the user's request and provide a concise useful response. Do not execute or claim external actions. State uncertainty where relevant.",
+      maxOutputTokens: 600
+    });
+    if (!result.ok) {
+      return res.status(502).json({
+        ok: false,
+        delegated: true,
+        provider: "openai",
+        classification: route.classification,
+        error: result.error,
+        statusCode: result.statusCode,
+        responseStatus: result.responseStatus,
+        incompleteReason: result.incompleteReason
+      });
+    }
+    return res.status(200).json({
+      ok: true,
+      delegated: true,
+      route: "commander -> openai",
+      provider: result.provider,
+      model: result.model,
+      classification: route.classification,
+      text: result.text.slice(0, 3000),
+      durationMs: result.durationMs,
+      providerCall: true
+    });
+  }
+
+  // Classification-only probe: never calls an AI provider and never changes routing flags.
+  if (req.body && req.body.mode === "commander-classification-test") {
+    if (!(await enforceRateLimit(res, user, "commander-classification-minute", 12, 60))) return;
+    if (!(await enforceRateLimit(res, user, "commander-classification-day", 30, 86400))) return;
+    const input = req.body.text;
+    if (typeof input !== "string" || !input.trim() || input.length > 4000) {
+      return res.status(400).json({ ok: false, error: "INVALID_CLASSIFICATION_INPUT" });
+    }
+    const classification = getAutoCommanderConfig({
+      autoCommander: true,
+      text: input,
+      env: {
+        ...process.env,
+        JARVIS_AUTO_COMMANDER_ENABLED: "true",
+        JARVIS_AI_COUNCIL_ENABLED: "true",
+        JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED: "true"
+      }
+    }).classification;
+    return res.status(200).json({
+      ok: true,
+      intent: classification.intent,
+      complexity: classification.complexity,
+      shouldDelegate: classification.shouldDelegate,
+      reason: classification.reason,
+      providerCall: false
+    });
+  }
+  // Optional AI council mode reuses this existing function to stay within the Vercel Hobby function limit.
+  if (req.body && req.body.mode === "ai-council") {
+    if (!(await enforceRateLimit(res, user, "ai-council-minute", 3, 60))) return;
+    if (!(await enforceRateLimit(res, user, "ai-council-day", 30, 86400))) return;
+    if (process.env.JARVIS_AI_COUNCIL_ENABLED !== "true") {
+      return res.status(503).json({ error: "AI council is not enabled" });
+    }
+    const task = req.body.task;
+    const providers = req.body.providers === undefined ? ["gemini"] : req.body.providers;
+    if (typeof task !== "string" || !task.trim()) {
+      return res.status(400).json({ error: "task is required" });
+    }
+    if (task.length > 12000) {
+      return res.status(413).json({ error: "Task exceeds the 12000-character limit" });
+    }
+    if (!Array.isArray(providers) || providers.length < 1 || providers.length > 3) {
+      return res.status(400).json({ error: "Invalid provider selection" });
+    }
+    const paidProvidersRequested = providers.some(provider => provider === "openai" || provider === "anthropic");
+    if (paidProvidersRequested && process.env.JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED !== "true") {
+      return res.status(403).json({ error: "Paid AI providers are disabled pending cost approval" });
+    }
+    try {
+      const result = await runAiCouncil({
+        userInput: task.trim(),
+        systemInstruction: "You are an advisory specialist for J.A.R.V.I.S. Analyze only the task provided. Do not claim to execute external actions, do not request secrets, and do not treat this response as authorization. Clearly state uncertainty.",
+        providers,
+        timeoutMs: 20000,
+        maxOutputTokens: 600
+      });
+      return res.status(200).json({ results: result.results, providerCount: result.providerCount });
+    } catch (error) {
+      const code = typeof error?.code === "string" ? error.code : "INTERNAL_ERROR";
+      if (code === "INVALID_INPUT" || code === "INVALID_PROVIDER_SELECTION") {
+        return res.status(400).json({ error: code });
+      }
+      if (code === "COUNCIL_DISABLED") {
+        return res.status(503).json({ error: "AI council is not enabled" });
+      }
+      console.error("AI council request failed", { code });
+      return res.status(500).json({ error: "AI council request failed" });
+    }
+  }
+
   if (!(await enforceRateLimit(res, user, "gemini-minute", 10, 60))) return;
   if (!(await enforceRateLimit(res, user, "gemini-day", 200, 86400))) return;
 
@@ -306,10 +494,931 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // Canonical field-name schema for the future J.A.R.V.I.S. management workbook.
+    // Source rows remain raw; summaries are calculated from these records.
+    const managementWorkbookSchema = [
+      { title: "Sales", headers: ["sales_id","transaction_date","customer_type","menu_id","menu_name","technical_sales","nomination_fee","retail_sales","service_minutes","staff_id","notes","record_status","created_at","updated_at"] },
+      { title: "RetailSales", headers: ["retail_sale_id","sale_date","customer_id","product_id","quantity","unit_sale_price","unit_cost","gross_profit","staff_id","notes","record_status","created_at","updated_at"] },
+      { title: "Products", headers: ["product_id","product_name","category","unit_cost","default_sale_price","active_from","active_to","is_active","created_at","updated_at"] },
+      { title: "Menus", headers: ["menu_id","menu_name","category","default_price","standard_minutes","active_from","active_to","is_active","created_at","updated_at"] },
+      { title: "Staff", headers: ["staff_id","display_name","employment_type","active_from","active_to","is_active","created_at","updated_at","auth_user_id"] },
+      { title: "CompensationRules", headers: ["rule_id","staff_id","employment_type","effective_from","effective_to","base_salary","nomination_fee_per_visit","commission_rate","commission_basis","fixed_allowances_json","deduction_rules_json","payment_cycle","is_active","created_at","updated_at"] },
+      { title: "Settings", headers: ["setting_key","setting_value","description","updated_at"] },
+      { title: "ChangeLog", headers: ["change_id","changed_at","changed_by","target_sheet","target_record_id","field_name","old_value","new_value","reason"] }
+    ];
+    // Explicit read-only lookup of a named product in the management workbook.
+    const productMasterVerificationIntent =
+      /(?:Products|商品マスター).{0,30}(?:タブ|シート|一覧|商品)/i.test(userText) &&
+      /(?:読み取り専用|読み取って|照会|確認|調べて|表示)/.test(userText) &&
+      !/(?:追加して|登録して|変更して|更新して|削除して|書き込んで|追加する|登録する|変更する|更新する|削除する|書き込む)/.test(userText);
+    if (productMasterVerificationIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが見つかりません。");
+        const productResult = await googleApiRequest(
+          user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) +
+          "/values/" + encodeURIComponent("'Products'!A1:J1000")
+        );
+        const rows = Array.isArray(productResult?.values) ? productResult.values : [];
+        const headers = (rows[0] || []).map(value => String(value || "").trim());
+        const index = Object.fromEntries(headers.map((name, i) => [name, i]));
+        const required = ["product_id","product_name","unit_cost","default_sale_price","is_active"];
+        if (required.some(name => index[name] === undefined)) {
+          return calendarDirect(res, "Productsタブの必要な列が不足しています。読み取りのみ実施し、変更は行っていません。", "Productsタブの構造を確認してください。");
+        }
+        const quotedNames = [...userText.matchAll(/[「『“"]([^」』”"]{1,200})[」』”"]/g)].map(match => match[1].trim());
+        const requestedName =
+          (userText.includes("テスト商品A") ? "テスト商品A" : "") ||
+          quotedNames.find(name =>
+            !/^(?:Products|商品マスター|店販管理|管理データ)$/.test(name) &&
+            !/J\.?A\.?R\.?V\.?I\.?S\.?.*(?:管理データ|管理ブック)|(?:管理データ|管理ブック)/i.test(name)
+          ) || "";
+        const matches = rows.slice(1).filter(row => {
+          const name = String(row?.[index.product_name] ?? "").trim();
+          return name && (requestedName ? name === requestedName : /テスト商品A/.test(userText) && name === "テスト商品A");
+        });
+        const lines = matches.map(row => [
+          "商品名: " + String(row[index.product_name] ?? ""),
+          "商品ID: " + String(row[index.product_id] ?? ""),
+          "仕入原価: " + String(row[index.unit_cost] ?? ""),
+          "販売価格: " + String(row[index.default_sale_price] ?? ""),
+          "有効状態: " + (String(row[index.is_active] ?? "").toLowerCase() === "false" ? "無効" : "有効")
+        ].join("\n"));
+        const responseText = matches.length
+          ? "ProductsタブをGoogle Sheetsから読み取りました。該当商品は" + matches.length + "件です。\n\n" + lines.join("\n\n") + "\n\n読み取り専用で実行し、データの追加・変更・削除は行っていません。"
+          : "ProductsタブをGoogle Sheetsから読み取りましたが、指定商品「" + (requestedName || "テスト商品A") + "」は見つかりませんでした。読み取り専用で実行し、データの追加・変更・削除は行っていません。";
+        return calendarDirect(res, responseText, "Productsタブの読み取り照合が完了しました。", {
+          productMasterVerification: {
+            requestedName: requestedName || "テスト商品A",
+            matchCount: matches.length,
+            products: matches.map(row => ({
+              productId: String(row[index.product_id] ?? ""),
+              productName: String(row[index.product_name] ?? ""),
+              unitCost: String(row[index.unit_cost] ?? ""),
+              salePrice: String(row[index.default_sale_price] ?? ""),
+              isActive: String(row[index.is_active] ?? "").toLowerCase() !== "false"
+            }))
+          }
+        });
+      } catch (error) {
+        console.error("Product master verification failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "Productsタブの読み取りに失敗しました。データ変更は行っていません。", "商品マスターを確認できませんでした。");
+      }
+    }
+
+    // Read-only verification of the currently authenticated user's staff mapping.
+    const staffVerificationIntent = /(?:自分|本人|ログインユーザー).{0,20}(?:スタッフ情報|スタッフ登録|スタッフID).{0,12}(?:確認|照合|表示)|(?:スタッフ情報|スタッフ登録|スタッフID).{0,12}(?:確認|照合|表示)/.test(userText) &&
+      !/(?:登録して|登録する|追加して|変更して|更新して|削除して)/.test(userText);
+    if (staffVerificationIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが見つかりません。");
+        const staffResult = await googleApiRequest(
+          user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "/values/" + encodeURIComponent("'Staff'!A1:Z1000")
+        );
+        const rows = Array.isArray(staffResult?.values) ? staffResult.values : [];
+        const headers = (rows[0] || []).map(value => String(value || "").trim());
+        const index = Object.fromEntries(headers.map((name, i) => [name, i]));
+        const required = ["staff_id","display_name","employment_type","is_active","auth_user_id"];
+        if (required.some(name => index[name] === undefined)) {
+          return calendarDirect(res, "Staffタブの必要な列が不足しています。読み取りのみ実施し、変更は行っていません。", "Staffタブの構造を確認してください。");
+        }
+        const matches = rows.slice(1).filter(row => String(row?.[index.auth_user_id] ?? "").trim() === user.id);
+        if (matches.length !== 1) {
+          return calendarDirect(res,
+            matches.length === 0 ? "Staffタブに現在のログインユーザーの登録行が見つかりませんでした。読み取りのみ実施しました。"
+              : "現在のログインユーザーに紐付くStaff行が複数あります。重複状態です。読み取りのみ実施しました。",
+            "スタッフ情報の照合結果を確認してください。"
+          );
+        }
+        const row = matches[0];
+        const result = {
+          staffId: String(row[index.staff_id] ?? ""),
+          displayName: String(row[index.display_name] ?? ""),
+          employmentType: String(row[index.employment_type] ?? ""),
+          isActive: String(row[index.is_active] ?? "").toLowerCase() !== "false"
+        };
+        return calendarDirect(res,
+          "Staffタブの実データを読み取り専用で確認しました。\n表示名: " + result.displayName +
+          "\n雇用形態: " + result.employmentType + "\nスタッフID: " + result.staffId +
+          "\n有効状態: " + (result.isActive ? "有効" : "無効") +
+          "\nログインユーザーとの紐付け: 一致。シートへの変更は行っていません。",
+          "スタッフ情報の読み取り照合が完了しました。",
+          { staffVerification: result }
+        );
+      } catch (error) {
+        console.error("Staff verification failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "Staffタブの読み取り照合に失敗しました。データ変更は行っていません。", "スタッフ情報を確認できませんでした。");
+      }
+    }
+
+    // Register only the currently authenticated user as a staff member; never accept a client-supplied auth ID.
+    const staffRegistrationIntent = /(?:自分を|本人を)?スタッフ登録|スタッフ情報を登録/.test(userText);
+    if (staffRegistrationIntent) {
+      try {
+        const nameMatch = userText.match(/(?:表示名|スタッフ名|名前)\s*(?:は|を|[:：])?\s*([^\n、,。]+)/);
+        const employmentMatch = userText.match(/(正社員|業務委託|パート|アルバイト)/);
+        const displayName = String(nameMatch?.[1] || "").trim().replace(/(?:で)?スタッフ登録.*$/,"").trim();
+        const employmentType = employmentMatch?.[1] || "";
+        if (!displayName || displayName.length > 80 || !employmentType) {
+          return calendarDirect(res,
+            "スタッフ登録には表示名と雇用形態が必要です。例：「表示名は真人、雇用形態は正社員でスタッフ登録して」。",
+            "表示名と雇用形態を指定してください。"
+          );
+        }
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが見つかりません。");
+        const staffResult = await googleApiRequest(
+          user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "/values/" + encodeURIComponent("'Staff'!A1:Z1000")
+        );
+        const staffRows = Array.isArray(staffResult?.values) ? staffResult.values : [];
+        const staffHeaders = (staffRows[0] || []).map(value => String(value || "").trim());
+        const staffIndex = Object.fromEntries(staffHeaders.map((name, index) => [name, index]));
+        const required = ["staff_id","display_name","employment_type","active_from","is_active","created_at","updated_at","auth_user_id"];
+        if (required.some(name => staffIndex[name] === undefined)) {
+          return calendarDirect(res, "Staffタブにauth_user_id列がありません。先に「管理データをスキーマv4に更新して」と依頼してください。スタッフ情報はまだ登録していません。", "先に管理データの構造更新が必要です。");
+        }
+        const existingLinks = staffRows.slice(1).filter(row =>
+          String(row?.[staffIndex.auth_user_id] ?? "").trim() === user.id
+        );
+        if (existingLinks.length > 1) {
+          return calendarDirect(res, "このログインユーザーに複数のスタッフ行が紐付いています。Staffタブを確認してください。", "スタッフ情報が重複しています。");
+        }
+        if (existingLinks.length === 1) {
+          return calendarDirect(res,
+            "このログインユーザーは既にスタッフ登録されています。スタッフID: " + String(existingLinks[0][staffIndex.staff_id] || "未設定") + "。重複登録は行っていません。",
+            "スタッフ登録済みです。"
+          );
+        }
+        const now = new Date();
+        const activeFrom = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+        const timestamp = now.toISOString();
+        const staffRecord = {
+          staff_id: crypto.randomUUID(),
+          display_name: displayName,
+          employment_type: employmentType,
+          active_from: activeFrom,
+          active_to: "",
+          is_active: true,
+          created_at: timestamp,
+          updated_at: timestamp,
+          auth_user_id: user.id
+        };
+        const staffRow = staffHeaders.map(header => Object.prototype.hasOwnProperty.call(staffRecord, header) ? staffRecord[header] : "");
+        const appendUrl = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) +
+          "/values/" + encodeURIComponent("'Staff'!A:Z") + ":append?" +
+          new URLSearchParams({ valueInputOption: "RAW", insertDataOption: "INSERT_ROWS" });
+        const appended = await googleApiRequest(user.id, connection.id, appendUrl, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ majorDimension: "ROWS", values: [staffRow] })
+        });
+        if (!(Number(appended?.updates?.updatedRows) >= 1)) {
+          return calendarDirect(res, "スタッフ情報の登録結果を確認できませんでした。重複登録を避けるため再試行していません。Staffタブを確認してください。", "登録結果を確認できませんでした。");
+        }
+        return calendarDirect(res,
+          displayName + "さんをスタッフ登録しました。雇用形態: " + employmentType + "。スタッフIDは自動発行し、ログインユーザーと紐付けました。",
+          "スタッフ登録が完了しました。",
+          { staff: { registered: true, staffId: staffRecord.staff_id, employmentType } }
+        );
+      } catch (error) {
+        console.error("Staff registration failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "スタッフ登録に失敗しました。Staffタブを確認してから再依頼してください。", "スタッフ登録に失敗しました。");
+      }
+    }
+    // Daily summary sales registration: one row per staff member per date.
+    const dailySalesIntent =
+      /(?:フリー|指名)\s*[0-9]+\s*人/.test(userText) &&
+      /(?:フリー売上|指名売上)/.test(userText) &&
+      /(?:登録|記録|追加)/.test(userText);
+    if (dailySalesIntent) {
+      let dailyStage = "parse";
+      try {
+        const countMatch = label => {
+          const match = userText.match(new RegExp(label + "\\s*([0-9]+)\\s*人"));
+          return match ? Number(match[1]) : 0;
+        };
+        const amountMatch = label => {
+          const match = userText.match(new RegExp(label + "\\s*([0-9][0-9,]*)\\s*円"));
+          return match ? Number(match[1].replace(/,/g, "")) : NaN;
+        };
+        const freeCount = countMatch("フリー");
+        const nominationCount = countMatch("指名");
+        const freeSales = amountMatch("フリー売上");
+        const nominationSales = amountMatch("指名売上");
+        if (!Number.isSafeInteger(freeSales) || freeSales < 0 ||
+            !Number.isSafeInteger(nominationSales) || nominationSales < 0 ||
+            freeCount + nominationCount < 1) {
+          return calendarDirect(res,
+            "日次登録には「フリー○人、指名○人、フリー売上○円、指名売上○円」が必要です。登録は行っていません。",
+            "人数と区分別技術売上を確認してください。");
+        }
+        const dateMatch = userText.match(/(20\d{2})[年/-](\d{1,2})[月/-](\d{1,2})日?/);
+        const saleDate = dateMatch
+          ? [dateMatch[1], String(Number(dateMatch[2])).padStart(2, "0"), String(Number(dateMatch[3])).padStart(2, "0")].join("-")
+          : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+        const [y, m, d] = saleDate.split("-").map(Number);
+        const parsed = new Date(Date.UTC(y, m - 1, d));
+        if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m - 1 || parsed.getUTCDate() !== d) {
+          return calendarDirect(res, "売上日が正しくありません。登録は行っていません。", "日付を確認してください。");
+        }
+        dailyStage = "load_google_connection";
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが未登録です。");
+        const base = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id);
+        dailyStage = "read_sales_and_staff";
+        const [salesResult, staffResult] = await Promise.all([
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Sales'!A1:V10000")),
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Staff'!A1:Z1000"))
+        ]);
+        const rows = Array.isArray(salesResult?.values) ? salesResult.values : [];
+        const headers = (rows[0] || []).map(v => String(v || "").trim());
+        const staffRows = Array.isArray(staffResult?.values) ? staffResult.values : [];
+        const staffHeaders = (staffRows[0] || []).map(v => String(v || "").trim());
+        const si = Object.fromEntries(headers.map((v,i)=>[v,i]));
+        const sti = Object.fromEntries(staffHeaders.map((v,i)=>[v,i]));
+        const required = ["sales_id","transaction_date","technical_sales","nomination_fee","retail_sales","staff_id","record_status","created_at","updated_at"];
+        const extra = ["record_type","free_customer_count","nomination_customer_count","free_technical_sales","nomination_technical_sales","nomination_fee_unit","daily_customer_count"];
+        if (required.some(k=>si[k]===undefined) || ["staff_id","is_active","auth_user_id"].some(k=>sti[k]===undefined)) {
+          return calendarDirect(res, "SalesまたはStaffの列構成が一致しません。登録は行っていません。", "シート構造を確認してください。");
+        }
+        const linked = staffRows.slice(1).filter(row =>
+          String(row?.[sti.auth_user_id]??"").trim()===user.id &&
+          String(row?.[sti.is_active]??"").toLowerCase()!=="false" &&
+          String(row?.[sti.staff_id]??"").trim());
+        if (linked.length!==1) return calendarDirect(res, "ログインユーザーに紐付く有効なスタッフ情報を一意に確認できません。登録は行っていません。", "スタッフ情報を確認してください。");
+        // Extend the header only to the right; existing rows and columns remain untouched.
+        const missing = extra.filter(k=>si[k]===undefined);
+        if (missing.length) {
+          dailyStage = "extend_sales_headers";
+          const colName = n => { let s=""; for(;n>0;n=Math.floor((n-1)/26)) s=String.fromCharCode(65+(n-1)%26)+s; return s; };
+          const start = headers.length + 1;
+          const end = start + missing.length - 1;
+          const metadata = await googleApiRequest(user.id, connection.id,
+            base + "?" + new URLSearchParams({fields:"sheets(properties(sheetId,title,gridProperties(columnCount)))"}));
+          const salesSheet = (metadata?.sheets || []).find(sheet => sheet?.properties?.title === "Sales");
+          if (!salesSheet?.properties?.sheetId) throw new Error("Sales sheet metadata unavailable");
+          const currentColumns = Number(salesSheet.properties.gridProperties?.columnCount || 0);
+          if (currentColumns < end) {
+            await googleApiRequest(user.id, connection.id, base + ":batchUpdate", {
+              method:"POST",headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({requests:[{appendDimension:{
+                sheetId:salesSheet.properties.sheetId,dimension:"COLUMNS",length:end-currentColumns
+              }}]})
+            });
+          }
+          await googleApiRequest(user.id, connection.id,
+            base + "/values/" + encodeURIComponent("'Sales'!" + colName(start) + "1:" + colName(end) + "1") + "?valueInputOption=RAW",
+            {method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:[missing]})});
+          headers.push(...missing);
+          missing.forEach((k,i)=>{si[k]=start-1+i;});
+        }
+        const existingDaily = rows.slice(1).some(row =>
+          String(row?.[si.transaction_date]??"").slice(0,10)===saleDate &&
+          String(row?.[si.record_type]??"")==="daily_summary" &&
+          String(row?.[si.staff_id]??"").trim()===String(linked[0][sti.staff_id]).trim() &&
+          String(row?.[si.record_status]??"active").toLowerCase()==="active");
+        if (existingDaily) return calendarDirect(res, saleDate + "の日次売上は既に登録されています。二重登録を避けるため追記していません。修正が必要な場合は「訂正」と明示してください。", "この日の日次売上は登録済みです。");
+        dailyStage = "resolve_nomination_fee";
+        const feeRules = Array.isArray(registry?.nominationFeeRules) ? registry.nominationFeeRules : [{effective_from:"2026-10-31",unit_fee:800}];
+        const applicable = feeRules.filter(rule=>String(rule.effective_from||"")<=saleDate).sort((a,b)=>String(b.effective_from).localeCompare(String(a.effective_from)))[0];
+        if (!applicable || !Number.isSafeInteger(Number(applicable.unit_fee)) || Number(applicable.unit_fee)<0) {
+          return calendarDirect(res, "適用する指名料単価を確認できません。登録は行っていません。", "指名料設定を確認してください。");
+        }
+        const unitFee = Number(applicable.unit_fee);
+        const feeTotal = nominationCount * unitFee;
+        const totalTech = freeSales + nominationSales;
+        const now = new Date().toISOString();
+        const record = {
+          sales_id:crypto.randomUUID(), transaction_date:saleDate, customer_type:"daily",
+          menu_id:"",menu_name:"",technical_sales:totalTech,nomination_fee:feeTotal,retail_sales:0,
+          service_minutes:"",staff_id:String(linked[0][sti.staff_id]).trim(),notes:"",
+          record_status:"active",created_at:now,updated_at:now,
+          record_type:"daily_summary",free_customer_count:freeCount,nomination_customer_count:nominationCount,
+          free_technical_sales:freeSales,nomination_technical_sales:nominationSales,
+          nomination_fee_unit:unitFee,daily_customer_count:freeCount+nominationCount
+        };
+        const row=headers.map(h=>Object.prototype.hasOwnProperty.call(record,h)?record[h]:"");
+        dailyStage = "append_daily_sales";
+        const appended=await googleApiRequest(user.id,connection.id,
+          base+"/values/"+encodeURIComponent("'Sales'!A:V")+":append?"+new URLSearchParams({valueInputOption:"RAW",insertDataOption:"INSERT_ROWS"}),
+          {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({majorDimension:"ROWS",values:[row]})});
+        if (!(Number(appended?.updates?.updatedRows)>=1)) return calendarDirect(res,"Salesへの追記応答を確認できません。重複防止のため再送しないでください。Salesタブを確認してください。","登録結果を確認できません。");
+        dailyStage = "verify_daily_sales";
+        let verified=false;
+        try {
+          const check=await googleApiRequest(user.id,connection.id,base+"/values/"+encodeURIComponent("'Sales'!A1:V10000"));
+          const rr=check?.values||[]; const hh=(rr[0]||[]).map(v=>String(v||"").trim()); const ix=Object.fromEntries(hh.map((v,i)=>[v,i]));
+          const saved=rr.slice(1).find(row=>String(row?.[ix.sales_id]??"")===record.sales_id);
+          verified=Boolean(saved && saved[ix.record_type]==="daily_summary" &&
+            Number(saved[ix.free_customer_count])===freeCount && Number(saved[ix.nomination_customer_count])===nominationCount &&
+            Number(saved[ix.technical_sales])===totalTech && Number(saved[ix.nomination_fee])===feeTotal);
+        } catch(e) { console.error("Daily sales read-back verification failed",{name:e?.name||"Error"}); }
+        if (!verified) return calendarDirect(res,"追記応答は成功しましたが読み戻し照合ができません。重複防止のため再登録しないでください。Salesタブを確認してください。","追記済み・照合未確認です。",{dailySales:{registered:true,verified:false,salesId:record.sales_id}});
+        dailyStage = "save_nomination_fee_rules";
+        if (!Array.isArray(registry?.nominationFeeRules)) {
+          await saveSpreadsheetRegistry(user.id,{...(registry||{}),nominationFeeRules:feeRules});
+        }
+        return calendarDirect(res,
+          saleDate+"の日次売上を登録しました。客数："+(freeCount+nominationCount)+"人（フリー"+freeCount+"人・指名"+nominationCount+"人）。技術売上："+totalTech.toLocaleString("ja-JP")+"円、指名料："+feeTotal.toLocaleString("ja-JP")+"円（単価"+unitFee+"円）。Salesへの記録と読み戻し照合が完了しました。",
+          "日次売上を登録しました。",
+          {dailySales:{registered:true,verified:true,salesId:record.sales_id,saleDate,freeCount,nominationCount,freeSales,nominationSales,unitFee,feeTotal,totalTech,staffId:record.staff_id}});
+      } catch(error) {
+        console.error("Daily sales registration failed",{stage:dailyStage,name:error?.name||"Error",status:Number.isInteger(error?.status)?error.status:undefined});
+        return calendarDirect(res,"日次売上の登録に失敗しました。登録結果が不明な場合はSalesタブを確認してから再依頼してください。","日次売上の登録に失敗しました。");
+      }
+    }
+
+    // Update the per-customer nomination fee rate with an effective date.
+    const nominationFeeChangeIntent = /指名料[\s\\S]{0,20}(?:変更|改定|を).{0,20}([0-9][0-9,]*)\s*円/.test(userText) && /(?:から|適用|変更|改定)/.test(userText);
+    if (nominationFeeChangeIntent) {
+      try {
+        const feeMatch=userText.match(/指名料[\s\\S]{0,20}(?:変更|改定|を)[\s\\S]{0,20}?([0-9][0-9,]*)\s*円/);
+        const dateMatch=userText.match(/(20\d{2})[年/-](\d{1,2})[月/-](\d{1,2})日?/);
+        if(!feeMatch||!dateMatch) return calendarDirect(res,"指名料の変更には新しい単価と適用開始日が必要です。例：「指名料を900円に変更、2027年1月1日から適用」。","新単価と適用開始日を指定してください。");
+        const fee=Number(feeMatch[1].replace(/,/g,""));
+        const effective=[dateMatch[1],String(Number(dateMatch[2])).padStart(2,"0"),String(Number(dateMatch[3])).padStart(2,"0")].join("-");
+        if(!Number.isSafeInteger(fee)||fee<0) return calendarDirect(res,"指名料が正しくありません。変更していません。","単価を確認してください。");
+        const registry=await readSpreadsheetRegistry(user.id);
+        const rules=Array.isArray(registry?.nominationFeeRules)?registry.nominationFeeRules:[{effective_from:"2026-10-31",unit_fee:800}];
+        const next=rules.filter(rule=>rule.effective_from!==effective);
+        next.push({effective_from:effective,unit_fee:fee});
+        next.sort((a,b)=>String(a.effective_from).localeCompare(String(b.effective_from)));
+        await saveSpreadsheetRegistry(user.id,{...(registry||{}),nominationFeeRules:next});
+        return calendarDirect(res,"指名料を"+fee.toLocaleString("ja-JP")+"円に設定しました。適用開始日："+effective+"。過去の日次記録に保存済みの単価は変更されません。","指名料設定を更新しました。");
+      } catch(error) {
+        console.error("Nomination fee rule update failed",{name:error?.name||"Error"});
+        return calendarDirect(res,"指名料設定を更新できませんでした。","設定更新に失敗しました。");
+      }
+    }
+
+    // Explicit per-customer technical sales registration. Retail details remain in RetailSales.
+    const technicalSaleRegisterIntent =
+      /(?:技術売上|指名料|フリー売上|指名売上)[\s\S]{0,80}(?:登録|記録|追加)|(?:売上を|売上)[\s\S]{0,40}(?:登録して|記録して|追加して)/.test(userText) &&
+      !/(?:店販|商品)[\s\S]{0,40}(?:販売|売れた)/.test(userText);
+    if (technicalSaleRegisterIntent) {
+      try {
+        const customerTypeMatch = userText.match(/(指名|フリー)/);
+        const technicalMatch = userText.match(/(?:技術売上|技術料|施術売上)\s*(?:は|が|[:：])?\s*([0-9][0-9,]*)\s*円/);
+        const nominationMatch = userText.match(/指名料\s*(?:は|が|[:：])?\s*([0-9][0-9,]*)\s*円/);
+        const technicalSales = technicalMatch ? Number(technicalMatch[1].replace(/,/g, "")) : NaN;
+        const nominationFee = nominationMatch ? Number(nominationMatch[1].replace(/,/g, "")) : 0;
+        if (!customerTypeMatch || !Number.isSafeInteger(technicalSales) || technicalSales < 0 ||
+            !Number.isSafeInteger(nominationFee) || nominationFee < 0) {
+          return calendarDirect(res,
+            "売上登録には「指名／フリー」と「技術売上○円」が必要です。指名料は省略時0円です。例：「今日の指名、技術売上8800円、指名料800円を売上登録して」。",
+            "顧客区分と技術売上を指定してください。"
+          );
+        }
+        const dateMatch = userText.match(/(20\d{2})[年/-](\d{1,2})[月/-](\d{1,2})日?/);
+        const saleDate = dateMatch
+          ? [dateMatch[1], String(Number(dateMatch[2])).padStart(2, "0"), String(Number(dateMatch[3])).padStart(2, "0")].join("-")
+          : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+        const [saleYear, saleMonth, saleDay] = saleDate.split("-").map(Number);
+        const parsedDate = new Date(Date.UTC(saleYear, saleMonth - 1, saleDay));
+        if (!Number.isFinite(parsedDate.getTime()) ||
+            parsedDate.getUTCFullYear() !== saleYear ||
+            parsedDate.getUTCMonth() !== saleMonth - 1 ||
+            parsedDate.getUTCDate() !== saleDay) {
+          return calendarDirect(res, "売上日の日付形式が正しくありません。登録は行っていません。", "売上日を確認してください。");
+        }
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが未登録です。");
+        const base = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id);
+        const [salesResult, staffResult] = await Promise.all([
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Sales'!A1:N1")),
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Staff'!A1:Z1000"))
+        ]);
+        const salesHeaders = (salesResult?.values?.[0] || []).map(value => String(value || "").trim());
+        const staffRows = Array.isArray(staffResult?.values) ? staffResult.values : [];
+        const staffHeaders = (staffRows[0] || []).map(value => String(value || "").trim());
+        const salesIndex = Object.fromEntries(salesHeaders.map((name, index) => [name, index]));
+        const staffIndex = Object.fromEntries(staffHeaders.map((name, index) => [name, index]));
+        const requiredSales = ["sales_id","transaction_date","customer_type","technical_sales","nomination_fee","retail_sales","staff_id","notes","record_status","created_at","updated_at"];
+        const requiredStaff = ["staff_id","is_active","auth_user_id"];
+        if (requiredSales.some(name => salesIndex[name] === undefined) || requiredStaff.some(name => staffIndex[name] === undefined)) {
+          return calendarDirect(res, "SalesまたはStaffのヘッダーが必要な構成と一致しません。書き込みは行っていません。", "シート構造が一致しないため登録を中止しました。");
+        }
+        const linkedStaff = staffRows.slice(1).filter(row =>
+          String(row?.[staffIndex.auth_user_id] ?? "").trim() === user.id &&
+          String(row?.[staffIndex.is_active] ?? "").toLowerCase() !== "false" &&
+          String(row?.[staffIndex.staff_id] ?? "").trim()
+        );
+        if (linkedStaff.length !== 1) {
+          return calendarDirect(res,
+            linkedStaff.length === 0 ? "ログインユーザーに紐付く有効なスタッフ情報がありません。売上登録は行っていません。"
+              : "ログインユーザーに複数の有効スタッフ情報が紐付いています。Staffタブを確認してください。売上登録は行っていません。",
+            "スタッフ情報を確認してください。"
+          );
+        }
+        const now = new Date();
+        const timestamp = now.toISOString();
+        const record = {
+          sales_id: crypto.randomUUID(),
+          transaction_date: saleDate,
+          customer_type: customerTypeMatch[1] === "指名" ? "nomination" : "free",
+          menu_id: "",
+          menu_name: "",
+          technical_sales: technicalSales,
+          nomination_fee: nominationFee,
+          // Product-level retail entries are recorded separately in RetailSales to avoid double counting.
+          retail_sales: 0,
+          service_minutes: "",
+          staff_id: String(linkedStaff[0][staffIndex.staff_id]).trim(),
+          notes: "",
+          record_status: "active",
+          created_at: timestamp,
+          updated_at: timestamp
+        };
+        const row = salesHeaders.map(header => Object.prototype.hasOwnProperty.call(record, header) ? record[header] : "");
+        const appendUrl = base + "/values/" + encodeURIComponent("'Sales'!A:N") +
+          ":append?" + new URLSearchParams({ valueInputOption: "RAW", insertDataOption: "INSERT_ROWS" });
+        const appended = await googleApiRequest(user.id, connection.id, appendUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ majorDimension: "ROWS", values: [row] })
+        });
+        if (!(Number(appended?.updates?.updatedRows) >= 1)) {
+          return calendarDirect(res, "Salesへの追記応答を確認できませんでした。重複登録を避けるため再試行していません。Salesタブを確認してください。", "登録結果を確認できませんでした。");
+        }
+        let verified = false;
+        try {
+          const readBack = await googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Sales'!A1:N10000"));
+          const savedRows = Array.isArray(readBack?.values) ? readBack.values : [];
+          const savedHeaders = (savedRows[0] || []).map(value => String(value || "").trim());
+          const savedIndex = Object.fromEntries(savedHeaders.map((name, index) => [name, index]));
+          const saved = savedRows.slice(1).find(item => String(item?.[savedIndex.sales_id] ?? "").trim() === record.sales_id);
+          verified = Boolean(saved &&
+            String(saved[savedIndex.staff_id] ?? "").trim() === record.staff_id &&
+            String(saved[savedIndex.customer_type] ?? "").trim() === record.customer_type &&
+            Number(saved[savedIndex.technical_sales]) === technicalSales &&
+            Number(saved[savedIndex.nomination_fee]) === nominationFee);
+        } catch (verifyError) {
+          console.error("Technical sales read-back verification failed", { name: verifyError?.name || "Error", status: Number.isInteger(verifyError?.status) ? verifyError.status : undefined });
+        }
+        if (!verified) {
+          return calendarDirect(res,
+            "Salesへの追記応答は成功しましたが、読み戻し照合ができませんでした。重複防止のため再登録しないでください。Salesタブを確認してください。",
+            "追記済み・読み戻し未確認です。",
+            { technicalSale: { registered: true, verified: false, salesId: record.sales_id } }
+          );
+        }
+        return calendarDirect(res,
+          saleDate + "の" + (record.customer_type === "nomination" ? "指名" : "フリー") +
+          "売上を登録しました。技術売上: " + technicalSales.toLocaleString("ja-JP") +
+          "円 / 指名料: " + nominationFee.toLocaleString("ja-JP") + "円。Salesへの記録と読み戻し照合が完了しました。",
+          "技術売上を登録しました。",
+          { technicalSale: { registered: true, verified: true, salesId: record.sales_id, saleDate, customerType: record.customer_type, technicalSales, nominationFee, staffId: record.staff_id } }
+        );
+      } catch (error) {
+        console.error("Technical sales registration failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "技術売上の登録に失敗しました。登録結果が不明な場合はSalesタブを確認してから再依頼してください。", "技術売上の登録に失敗しました。");
+      }
+    }
+
+    // Explicit retail-sale registration: write only to the registered J.A.R.V.I.S. workbook.
+    const retailSaleRegisterIntent =
+      /(?:店販|商品).{0,35}(?:売れた|販売(?:した|しました|して)|売った|売りました|購入された|登録して|記録して)|(?:売れた|販売(?:した|しました|して)|売った|売りました).{0,35}(?:店販|商品)|(?:売れた|販売(?:した|しました)|売った|売りました).{0,30}(?:登録|記録|追加)|(?:登録|記録|追加).{0,25}(?:売れた|販売(?:した|しました)|売った|売りました)/.test(userText);
+    if (retailSaleRegisterIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。先に管理ブックを作成してください。", "管理ブックが未登録です。");
+        const base = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id);
+        const [productResult, retailHeaderResult, staffResult] = await Promise.all([
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Products'!A1:J1000")),
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'RetailSales'!A1:M1")),
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Staff'!A1:Z1000"))
+        ]);
+        const productRows = Array.isArray(productResult?.values) ? productResult.values : [];
+        const staffRows = Array.isArray(staffResult?.values) ? staffResult.values : [];
+        const productHeaders = (productRows[0] || []).map(value => String(value || "").trim());
+        const retailHeaders = (retailHeaderResult?.values?.[0] || []).map(value => String(value || "").trim());
+        const staffHeaders = (staffRows[0] || []).map(value => String(value || "").trim());
+        const productIndex = Object.fromEntries(productHeaders.map((name, index) => [name, index]));
+        const retailIndex = Object.fromEntries(retailHeaders.map((name, index) => [name, index]));
+        const staffIndex = Object.fromEntries(staffHeaders.map((name, index) => [name, index]));
+        const requiredProductFields = ["product_id", "product_name", "unit_cost", "default_sale_price", "is_active"];
+        const requiredRetailFields = ["retail_sale_id", "sale_date", "product_id", "quantity", "unit_sale_price", "unit_cost", "gross_profit", "staff_id", "record_status", "created_at", "updated_at"];
+        const requiredStaffFields = ["staff_id", "display_name", "is_active", "auth_user_id"];
+        if (requiredProductFields.some(name => productIndex[name] === undefined) ||
+            requiredRetailFields.some(name => retailIndex[name] === undefined)) {
+          return calendarDirect(res, "ProductsまたはRetailSalesのヘッダーが現在のスキーマと一致しません。書き込みは行っていません。", "シート構造が一致しないため登録を中止しました。");
+        }
+        if (requiredStaffFields.some(name => staffIndex[name] === undefined)) {
+          return calendarDirect(res, "Staffタブにauth_user_id列がありません。先に管理データをスキーマv4へ更新してください。店販データへの書き込みは行っていません。", "スタッフ連携の準備が必要です。");
+        }
+        const linkedStaff = staffRows.slice(1).filter(row =>
+          String(row?.[staffIndex.auth_user_id] ?? "").trim() === user.id &&
+          String(row?.[staffIndex.is_active] ?? "").toLowerCase() !== "false" &&
+          String(row?.[staffIndex.staff_id] ?? "").trim()
+        );
+        if (linkedStaff.length !== 1) {
+          return calendarDirect(res,
+            linkedStaff.length === 0
+              ? "ログインユーザーに紐付くスタッフ情報がありません。先に「スタッフ登録」と表示名・雇用形態を指定してください。店販登録は行っていません。"
+              : "同じログインユーザーに複数の有効スタッフ情報が紐付いています。Staffタブを確認してください。店販登録は行っていません。",
+            "スタッフ情報を確認してください。"
+          );
+        }
+        const currentStaffId = String(linkedStaff[0][staffIndex.staff_id]).trim();
+        const activeProducts = productRows.slice(1).filter(row =>
+          String(row?.[productIndex.is_active] ?? "").toLowerCase() !== "false" &&
+          String(row?.[productIndex.product_name] ?? "").trim()
+        );
+        const inferredNameMatch = userText.match(/(?:商品名は|商品は)?\s*(.+?)を\s*\d+\s*(?:個|本|点)/);
+        const requestedProductName = String(inferredNameMatch?.[1] || "").trim().replace(/^(?:店販で|店販商品|商品)\s*/, "");
+        const exactNameMatches = requestedProductName
+          ? activeProducts.filter(row =>
+              String(row[productIndex.product_name] ?? "").trim().toLowerCase() === requestedProductName.toLowerCase()
+            )
+          : [];
+        const matchedProducts = exactNameMatches.length
+          ? exactNameMatches
+          : requestedProductName
+            ? []
+            : activeProducts.filter(row =>
+                userText.toLowerCase().includes(String(row[productIndex.product_name]).trim().toLowerCase())
+              );
+        const costLabelMatch = userText.match(/(?:仕入原価|仕入れ原価|原価|仕入れ値)\s*(?:は|が|[:：])?\s*([0-9][0-9,]*)\s*円/);
+        const labelledPriceMatch = userText.match(/(?:単価|販売価格|売価)\s*([0-9][0-9,]*)\s*円/);
+        const allYenAmounts = [...userText.matchAll(/([0-9][0-9,]*)\s*円/g)];
+        const costAmountIndex = costLabelMatch ? userText.indexOf(costLabelMatch[1], costLabelMatch.index) : -1;
+        const priceCandidates = allYenAmounts.filter(match => match.index !== costAmountIndex);
+        const resolvedPriceMatch = labelledPriceMatch || (priceCandidates.length === 1 ? priceCandidates[0] : null);
+        let product = matchedProducts[0];
+        if (matchedProducts.length > 1) {
+          return calendarDirect(res, "商品名が複数一致しました。商品名を正式名称で指定してください。", "商品を特定できないため登録していません。");
+        }
+        if (matchedProducts.length === 0) {
+          const inferredName = requestedProductName;
+          const costMatch = costLabelMatch;
+          const salePriceMatch = resolvedPriceMatch;
+          if (!inferredName || !costMatch || !salePriceMatch) {
+            return calendarDirect(res,
+              "Productsに未登録の商品です。商品マスターへ追加するため、商品名・仕入原価・販売価格を指定してください。例：「商品名Aを1本、仕入原価1,800円、販売価格3,300円で販売したので登録して」。",
+              "未登録商品のため、商品情報が必要です。"
+            );
+          }
+          const newUnitCost = Number(costMatch[1].replace(/,/g, ""));
+          const newSalePrice = Number(salePriceMatch[1].replace(/,/g, ""));
+          if (!Number.isFinite(newUnitCost) || newUnitCost < 0 || !Number.isFinite(newSalePrice) || newSalePrice < 0) {
+            return calendarDirect(res, "仕入原価と販売価格を確認してください。商品マスターへの追加は行っていません。", "商品価格を確認してください。");
+          }
+          const nowForProduct = new Date();
+          const productDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(nowForProduct);
+          const newProduct = {
+            product_id: crypto.randomUUID(), product_name: inferredName, category: "",
+            unit_cost: newUnitCost, default_sale_price: newSalePrice,
+            active_from: productDate, active_to: "", is_active: true,
+            created_at: nowForProduct.toISOString(), updated_at: nowForProduct.toISOString()
+          };
+          const productRow = productHeaders.map(header => Object.prototype.hasOwnProperty.call(newProduct, header) ? newProduct[header] : "");
+          const productAppendUrl = base + "/values/" + encodeURIComponent("'Products'!A:J") +
+            ":append?" + new URLSearchParams({ valueInputOption: "RAW", insertDataOption: "INSERT_ROWS" });
+          const productAppend = await googleApiRequest(user.id, connection.id, productAppendUrl, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ majorDimension: "ROWS", values: [productRow] })
+          });
+          if (!(Number(productAppend?.updates?.updatedRows) >= 1)) {
+            return calendarDirect(res, "商品マスターへの追加結果を確認できませんでした。重複防止のため自動再試行はしていません。Productsを確認してください。", "商品登録結果を確認できませんでした。");
+          }
+          product = productHeaders.map((header, index) => productRow[index] ?? "");
+        }
+        const productName = String(product[productIndex.product_name]).trim();
+        const productPosition = userText.toLowerCase().indexOf(productName.toLowerCase());
+        const beforeProduct = userText.slice(0, productPosition);
+        const afterProduct = userText.slice(productPosition + productName.length);
+        const quantityAfter = afterProduct.match(/^\s*(?:を)?\s*(\d+)\s*(?:個|本|点)/);
+        const quantityBefore = beforeProduct.match(/(\d+)\s*(?:個|本|点)\s*(?:の)?\s*$/);
+        const quantity = Number(quantityAfter?.[1] || quantityBefore?.[1]);
+        if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) {
+          return calendarDirect(res, productName + "の販売数量を確認してください。例：「" + productName + "を1本販売したので登録して」。", "販売数量を確認してください。");
+        }
+        const defaultPrice = Number(product[productIndex.default_sale_price]);
+        const unitSalePrice = resolvedPriceMatch ? Number(resolvedPriceMatch[1].replace(/,/g, "")) : defaultPrice;
+        const unitCost = Number(product[productIndex.unit_cost]);
+        if (!Number.isFinite(unitSalePrice) || unitSalePrice < 0 || !Number.isFinite(unitCost) || unitCost < 0) {
+          return calendarDirect(res, productName + "の販売価格または仕入原価がProductsタブに正しく登録されていません。書き込みは行っていません。", "商品マスターの価格情報を確認してください。");
+        }
+        const now = new Date();
+        const saleDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+        const timestamp = now.toISOString();
+        const record = {
+          retail_sale_id: crypto.randomUUID(), sale_date: saleDate, customer_id: "",
+          product_id: product[productIndex.product_id], quantity, unit_sale_price: unitSalePrice,
+          unit_cost: unitCost, gross_profit: (unitSalePrice - unitCost) * quantity,
+          staff_id: currentStaffId, notes: "", record_status: "active", created_at: timestamp, updated_at: timestamp
+        };
+        const row = retailHeaders.map(header => Object.prototype.hasOwnProperty.call(record, header) ? record[header] : "");
+        const appendUrl = base + "/values/" + encodeURIComponent("'RetailSales'!A:M") +
+          ":append?" + new URLSearchParams({ valueInputOption: "RAW", insertDataOption: "INSERT_ROWS" });
+        const appended = await googleApiRequest(user.id, connection.id, appendUrl, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ majorDimension: "ROWS", values: [row] })
+        });
+        if (!(Number(appended?.updates?.updatedRows) >= 1)) {
+          return calendarDirect(res, "Google Sheetsへの追記結果を確認できませんでした。重複登録を避けるため、自動再試行はしていません。", "登録結果を確認できませんでした。");
+        }
+        let readBackVerified = false;
+        try {
+          const readBack = await googleApiRequest(
+            user.id, connection.id,
+            base + "/values/" + encodeURIComponent("'RetailSales'!A1:M10000")
+          );
+          const savedRows = Array.isArray(readBack?.values) ? readBack.values : [];
+          const savedHeaders = (savedRows[0] || []).map(value => String(value || "").trim());
+          const savedIndex = Object.fromEntries(savedHeaders.map((name, index) => [name, index]));
+          const savedRecord = savedRows.slice(1).find(saved =>
+            String(saved?.[savedIndex.retail_sale_id] ?? "").trim() === record.retail_sale_id
+          );
+          if (savedRecord) {
+            const savedStaffId = String(savedRecord[savedIndex.staff_id] ?? "").trim();
+            const savedProductId = String(savedRecord[savedIndex.product_id] ?? "").trim();
+            const savedQuantity = Number(savedRecord[savedIndex.quantity]);
+            if (savedStaffId !== currentStaffId || savedProductId !== String(record.product_id) || savedQuantity !== quantity) {
+              return calendarDirect(res,
+                "店販行は追記されましたが、読み戻し内容が登録値と一致しません。再登録は行わず、RetailSalesを確認してください。",
+                "登録後の照合で不一致を検出しました。",
+                { retailSale: { registered: true, verified: false, retailSaleId: record.retail_sale_id } }
+              );
+            }
+            readBackVerified = true;
+          }
+        } catch (verifyError) {
+          console.error("Retail sale read-back verification failed", { name: verifyError?.name || "Error", status: Number.isInteger(verifyError?.status) ? verifyError.status : undefined });
+        }
+        if (!readBackVerified) {
+          return calendarDirect(res,
+            "店販行の追記応答は成功しましたが、読み戻し確認ができませんでした。重複防止のため再登録しないでください。RetailSalesを確認してください。",
+            "追記済み・読み戻し未確認です。",
+            { retailSale: { registered: true, verified: false, retailSaleId: record.retail_sale_id } }
+          );
+        }
+        return calendarDirect(res,
+          productName + "の販売を登録しました。\n数量: " + quantity + " / 販売単価: " + unitSalePrice.toLocaleString("ja-JP") +
+          "円 / 利益: " + record.gross_profit.toLocaleString("ja-JP") + "円。登録先: RetailSales。",
+          productName + "の販売を登録しました。",
+          { retailSale: { registered: true, verified: true, retailSaleId: record.retail_sale_id, productId: record.product_id, staffId: currentStaffId, quantity, unitSalePrice, unitCost, grossProfit: record.gross_profit, saleDate } }
+        );
+      } catch (error) {
+        console.error("Retail sale registration failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "店販登録に失敗しました。登録結果が不明な場合は、RetailSalesを確認してから再依頼してください。", "店販登録に失敗しました。");
+      }
+    }
+
+    const managementWorkbookCreateIntent =
+      /(?:管理ブック|管理データ).{0,24}(?:作成して|作って|新規作成)|(?:新規|新しい).{0,16}(?:管理ブック|管理データ).{0,12}(?:作成して|作って)/.test(userText);
+    const managementWorkbookSchemaIntent =
+      /(?:管理ブック|管理データ|新しい売上管理|新しい店販管理)/.test(userText) &&
+      /(?:構成|設計|項目|タブ|シート|どんな|表示)/.test(userText) &&
+      !/(?:調査|監査|詳しく|読み取|中身|データを確認|実際の内容)/.test(userText);
+    const managementWorkbookAuditIntent =
+      /(?:管理ブック|管理データ).{0,50}(?:監査|照合|整合性|ヘッダー確認|列名確認)|(?:全8タブ|8タブ).{0,30}(?:監査|照合|確認)/.test(userText) &&
+      /(?:読み取り専用|データ行は変更しない|変更しない|照合|監査)/.test(userText);
+    const managementWorkbookUpgradeIntent =
+      !managementWorkbookAuditIntent &&
+      /(?:管理ブック|管理データ).{0,40}(?:拡張|項目を追加|整備|最新(?:の構成|スキーマ|版)|スキーマ(?:更新|v?3|v?4)|v?[34]に更新)/.test(userText);
+    if (managementWorkbookUpgradeIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "管理ブックが登録されていません。先に作成してください。", "管理ブックが見つかりません。");
+        const metadata = await googleApiRequest(user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "?" +
+          new URLSearchParams({ fields: "sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)))" }));
+        const existingSheets = Array.isArray(metadata?.sheets) ? metadata.sheets : [];
+        const byTitle = new Map(existingSheets.map(item => [item?.properties?.title, item?.properties]));
+        const requests = [];
+        const added = [];
+        const changedHeaders = [];
+        for (const definition of managementWorkbookSchema) {
+          const existing = byTitle.get(definition.title);
+          if (!existing) {
+            requests.push({ addSheet: { properties: {
+              title: definition.title,
+              gridProperties: { rowCount: 1000, columnCount: definition.headers.length }
+            } } });
+            added.push(definition.title);
+          } else if (definition.title === "Staff") {
+            const headerData = await googleApiRequest(user.id, connection.id,
+              "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "/values/" + encodeURIComponent("Staff!A1:Z1"));
+            const currentHeader = Array.isArray(headerData?.values?.[0]) ? headerData.values[0].map(value => String(value ?? "").trim()) : [];
+            if (!currentHeader.includes("auth_user_id")) {
+              const lastUsedIndex = currentHeader.reduce((last, value, index) => value ? index : last, -1);
+              const targetColumnIndex = lastUsedIndex + 1;
+              const columnLetter = targetColumnIndex < 26 ? String.fromCharCode(65 + targetColumnIndex) : null;
+              if (!columnLetter) throw new Error("Staff header has no available column for auth_user_id");
+              const oldColumns = Number(existing.gridProperties?.columnCount) || 0;
+              requests.push({
+                updateSheetProperties: {
+                  properties: { sheetId: existing.sheetId, gridProperties: { columnCount: Math.max(oldColumns, targetColumnIndex + 1) } },
+                  fields: "gridProperties.columnCount"
+                }
+              });
+              requests.push({
+                updateCells: {
+                  range: { sheetId: existing.sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: targetColumnIndex, endColumnIndex: targetColumnIndex + 1 },
+                  rows: [{ values: [{ userEnteredValue: { stringValue: "auth_user_id" } }] }],
+                  fields: "userEnteredValue"
+                }
+              });
+              changedHeaders.push("Staff.auth_user_id");
+            }
+          } else if (definition.title === "Menus") {
+            const headerRange = definition.title + "!A1:" + String.fromCharCode(64 + definition.headers.length) + "1";
+            const headerData = await googleApiRequest(user.id, connection.id,
+              "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "/values/" + encodeURIComponent(headerRange));
+            const currentHeader = Array.isArray(headerData?.values?.[0]) ? headerData.values[0] : [];
+            if (currentHeader.some(value => String(value ?? "").trim() !== "")) continue;
+            const oldColumns = Number(existing.gridProperties?.columnCount) || 0;
+            requests.push({
+              updateSheetProperties: {
+                properties: { sheetId: existing.sheetId, gridProperties: { columnCount: Math.max(oldColumns, definition.headers.length) } },
+                fields: "gridProperties.columnCount"
+              }
+            });
+            requests.push({
+              updateCells: {
+                range: { sheetId: existing.sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: definition.headers.length },
+                rows: [{ values: definition.headers.map(value => ({ userEnteredValue: { stringValue: value } })) }],
+                fields: "userEnteredValue"
+              }
+            });
+            changedHeaders.push(definition.title);
+          } else if (["CompensationRules", "RetailSales"].includes(definition.title)) {
+            const oldColumns = Number(existing.gridProperties?.columnCount) || 0;
+            requests.push({
+              updateSheetProperties: {
+                properties: { sheetId: existing.sheetId, gridProperties: { columnCount: Math.max(oldColumns, definition.headers.length) } },
+                fields: "gridProperties.columnCount"
+              }
+            });
+            requests.push({
+              updateCells: {
+                range: { sheetId: existing.sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: definition.headers.length },
+                rows: [{ values: definition.headers.map(value => ({ userEnteredValue: { stringValue: value } })) }],
+                fields: "userEnteredValue"
+              }
+            });
+            changedHeaders.push(definition.title);
+          }
+        }
+        if (requests.length) {
+          await googleApiRequest(user.id, connection.id,
+            "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + ":batchUpdate",
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requests }) }
+          );
+        }
+        const updatedRecord = { ...workbook, schemaVersion: 4, updatedAt: new Date().toISOString() };
+        await saveSpreadsheetRegistry(user.id, { ...registry, version: 1, managementWorkbook: updatedRecord });
+        return calendarDirect(res,
+          "管理ブックをスキーマv4に更新しました。追加タブ: " + (added.join(" / ") || "なし") +
+          "。ヘッダー更新: " + (changedHeaders.join(" / ") || "なし") +
+          "。既存の売上・店販・商品・設定・変更履歴のデータ行は変更していません。",
+          "管理ブックの構造を更新しました。",
+          { managementWorkbook: { schemaVersion: 4, addedSheets: added, updatedHeaders: changedHeaders } }
+        );
+      } catch (error) {
+        console.error("Management workbook schema upgrade failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "管理ブックの構造更新に失敗しました。データ行は変更していません。", "管理ブックの更新に失敗しました。");
+      }
+    }
+    if (managementWorkbookCreateIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。先にGoogle接続を行ってください。", "Googleが未接続です。");
+        const existingRegistry = await readSpreadsheetRegistry(user.id);
+        const existingWorkbook = existingRegistry?.managementWorkbook;
+        if (existingWorkbook?.id) {
+          return calendarDirect(res,
+            "J.A.R.V.I.S.管理ブックは既に登録されています。重複作成は行いません。\nURL: " + (existingWorkbook.url || "登録済み") ,
+            "管理ブックは既に登録されています。",
+            { managementWorkbook: { created: false, alreadyExists: true, spreadsheetId: existingWorkbook.id, spreadsheetUrl: existingWorkbook.url || null } }
+          );
+        }
+        const createSheets = managementWorkbookSchema.map(sheet => ({
+          properties: {
+            title: sheet.title,
+            gridProperties: { rowCount: 1000, columnCount: sheet.headers.length }
+          },
+          data: [{
+            startRow: 0,
+            startColumn: 0,
+            rowData: [{
+              values: sheet.headers.map(value => ({ userEnteredValue: { stringValue: value } }))
+            }]
+          }]
+        }));
+        const created = await googleApiRequest(
+          user.id,
+          connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              properties: { title: "J.A.R.V.I.S. 管理データ" },
+              sheets: createSheets
+            })
+          }
+        );
+        if (!created?.spreadsheetId) throw new Error("Google Sheets returned no spreadsheetId");
+        const workbookRecord = {
+          id: created.spreadsheetId,
+          name: created?.properties?.title || "J.A.R.V.I.S. 管理データ",
+          url: created?.spreadsheetUrl || null,
+          schemaVersion: 1,
+          createdAt: new Date().toISOString()
+        };
+        await saveSpreadsheetRegistry(user.id, {
+          ...(existingRegistry || { version: 1, spreadsheets: {} }),
+          version: 1,
+          managementWorkbook: workbookRecord
+        });
+        return calendarDirect(res,
+          "J.A.R.V.I.S.管理ブックを作成し、登録しました。\nURL: " + (workbookRecord.url || "Google Sheetsで確認してください") +
+          "\nタブ: " + managementWorkbookSchema.map(sheet => sheet.title).join(" / ") +
+          "\n各タブはfield nameで識別します。元データと計算値を分離し、集計は元データから算出する設計です。既存の売上管理・店販管理ファイルは変更していません。",
+          "J.A.R.V.I.S.管理ブックを作成しました。既存ファイルは変更していません。",
+          { managementWorkbook: { created: true, spreadsheetId: created.spreadsheetId, spreadsheetUrl: workbookRecord.url, schemaVersion: 1 } }
+        );
+      } catch (error) {
+        console.error("Management workbook creation failed", {
+          name: error?.name || "Error",
+          status: Number.isInteger(error?.status) ? error.status : undefined,
+          code: typeof error?.code === "string" ? error.code : undefined
+        });
+        return calendarDirect(res,
+          "J.A.R.V.I.S.管理ブックを作成できませんでした。Google接続状態とSheets APIの権限を確認してください。既存ファイルへの変更は行っていません。",
+          "管理ブックを作成できませんでした。"
+        );
+      }
+    }
+    if (managementWorkbookSchemaIntent) {
+      const schemaLines = managementWorkbookSchema.map(sheet =>
+        sheet.title + ": " + sheet.headers.join(", ")
+      );
+      let workbookStatus = "Google Sheetsはまだ作成されていません。";
+      try {
+        const currentRegistry = await readSpreadsheetRegistry(user.id);
+        const currentWorkbook = currentRegistry?.managementWorkbook;
+        if (currentWorkbook?.id) {
+          workbookStatus = "管理ブックは登録済みです。\\nURL: " +
+            (currentWorkbook.url || ("https://docs.google.com/spreadsheets/d/" + currentWorkbook.id + "/edit"));
+        }
+      } catch (error) {
+        console.error("Management workbook status lookup failed", { name: error?.name || "Error" });
+        workbookStatus = "管理ブックの登録状態を確認できませんでした。";
+      }
+      return calendarDirect(res,
+        "J.A.R.V.I.S.管理ブックの標準構成\\n" +
+        workbookStatus + "\\n\\n" +
+        schemaLines.join("\\n") +
+        "\\n\\n日付はYYYY-MM-DD、金額・数量・時間は数値、レコードは安定IDで識別します。報酬ルールは適用期間で管理し、社員・業務委託の両方に対応します。集計値は元データから算出し、元データと混在させません。顧客氏名など不要な個人情報は保存しません。",
+        "管理ブックの構成と登録状態を確認しました。"
+      );
+    }
+
     // Spreadsheet agent v3: supports explicit plan creation and registered stable IDs.
+    const spreadsheetFollowupPlanIntent =
+      /(?:先ほど|さっき|前回).{0,30}(?:監査|調査|結果).{0,30}(?:修正計画|計画|修正案)|(?:監査結果|調査結果).{0,30}(?:修正計画|計画|修正案)|(?:修正計画|計画を作成).{0,20}(?:監査|調査)/.test(userText);
     const sheetAgentIntent =
-      /(?:スプレッドシート|シート|売上管理|店販管理)/.test(userText) &&
-      /(?:完成させて|直して|修正して|修正計画|計画を作成|作成して|作って|構造を調べて|調査して|数式を確認|未完成|自分で作って|整えて|詳しく)/.test(userText) &&
+      (/(?:スプレッドシート|シート|管理ブック|管理データ|売上管理|店販管理)/.test(userText) ||
+        spreadsheetFollowupPlanIntent) &&
+      (
+        managementWorkbookAuditIntent ||
+        /(?:完成させて|直して|修正して|修正計画|計画を作成|作成して|作って|構造を調べて|調査して|確認して|確認|数式を確認|未完成|自分で作って|整えて|詳しく)/.test(userText)
+      ) &&
       !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して|実行して)/.test(userText);
     if (sheetAgentIntent) {
       try {
@@ -317,14 +1426,24 @@ module.exports = async function handler(req, res) {
         const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
         if (!connection?.id) return calendarDirect(res, "Googleが未接続です。先にGoogle接続を行ってください。", "Googleが未接続です。");
 
-        const spreadsheetName = /店販管理/.test(userText) ? "店販管理" : /売上管理/.test(userText) ? "売上管理" : null;
+        // Follow-up plan requests may refer to the immediately preceding audit without repeating its file name.
+        // In that narrow case, the preceding audit flow is for the registered sales workbook.
+        const spreadsheetName = /管理ブック|管理データ/.test(userText)
+          ? "管理ブック"
+          : /店販管理/.test(userText)
+            ? "店販管理"
+            : /売上管理/.test(userText) || spreadsheetFollowupPlanIntent
+              ? "売上管理"
+              : null;
         if (!spreadsheetName) {
           return calendarDirect(res, "調査するファイル名を指定してください。「売上管理を詳しく調査して」と依頼できます。", "調査するスプレッドシート名を指定してください。");
         }
         const registry = await readSpreadsheetRegistry(user.id);
-        const registered = spreadsheetName === "売上管理"
-          ? registry?.spreadsheets?.sales
-          : registry?.spreadsheets?.retail;
+        const registered = spreadsheetName === "管理ブック"
+          ? registry?.managementWorkbook
+          : spreadsheetName === "売上管理"
+            ? registry?.spreadsheets?.sales
+            : registry?.spreadsheets?.retail;
         let file = null;
         if (registered?.id && /^[a-zA-Z0-9_-]{10,200}$/.test(registered.id)) {
           const candidate = await googleApiRequest(user.id, connection.id,
@@ -351,6 +1470,10 @@ module.exports = async function handler(req, res) {
         const sheetList = Array.isArray(metadata?.sheets) ? metadata.sheets : [];
         const reports = [];
         const findings = [];
+        const allFormulaCells = [];
+        const allFormulaErrors = [];
+        const allSheetSnapshots = [];
+        const formulaColumnReferences = new Map();
         const colName = n => {
           let out = "";
           while (n >= 0) { out = String.fromCharCode(n % 26 + 65) + out; n = Math.floor(n / 26) - 1; }
@@ -361,8 +1484,12 @@ module.exports = async function handler(req, res) {
           const title = props.title;
           if (!title) continue;
           const isSummary = /集計|summary|dashboard/i.test(title);
-          const lastCol = isSummary ? "C" : "K";
-          const maxRows = Math.max(20, Math.min(Number(props.gridProperties?.rowCount) || 100, isSummary ? 100 : 500));
+          const gridRows = Math.max(1, Number(props.gridProperties?.rowCount) || 100);
+          const gridColumns = Math.max(1, Number(props.gridProperties?.columnCount) || 26);
+          // Audit the full declared grid (bounded for response size), not only A:K/A:C.
+          // This is necessary to detect references to columns such as I and formulas beyond K.
+          const lastCol = colName(Math.min(gridColumns, 100) - 1);
+          const maxRows = Math.max(20, Math.min(gridRows, 1000));
           const range = "'" + title.replace(/'/g, "''") + "'!A1:" + lastCol + maxRows;
           const baseUrl = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(file.id) + "/values/" + encodeURIComponent(range);
           const [formulaResult, displayResult] = await Promise.all([
@@ -371,6 +1498,7 @@ module.exports = async function handler(req, res) {
           ]);
           const formulaRows = Array.isArray(formulaResult?.values) ? formulaResult.values : [];
           const displayRows = Array.isArray(displayResult?.values) ? displayResult.values : [];
+          allSheetSnapshots.push({ sheet: title, formulaRows, displayRows });
           const populated = formulaRows.filter(row => row.some(cell => String(cell ?? "").trim() !== ""));
           const formulaCells = [];
           const formulasByColumn = new Map();
@@ -385,6 +1513,14 @@ module.exports = async function handler(req, res) {
                 formulaCells.push({addr, col:colName(c), row:r+1, formula:value, normalized});
                 if (!formulasByColumn.has(colName(c))) formulasByColumn.set(colName(c), []);
                 formulasByColumn.get(colName(c)).push({row:r+1, formula:value, normalized});
+                // Record cross-cell column references for safe structural-change review.
+                const referencePattern = /(?:'[^']+'!|[A-Za-z0-9_]+!)?\$?([A-Z]{1,3})\$?\d+/g;
+                let referenceMatch;
+                while ((referenceMatch = referencePattern.exec(value)) !== null) {
+                  const referencedColumn = referenceMatch[1];
+                  if (!formulaColumnReferences.has(referencedColumn)) formulaColumnReferences.set(referencedColumn, []);
+                  formulaColumnReferences.get(referencedColumn).push({sheet:title, cell:colName(c)+(r+1), formula:value});
+                }
               }
               const shown = displayRows[r]?.[c];
               if (typeof shown === "string" && /^#(?:REF!|DIV\/0!|VALUE!|N\/A|NAME\?|NUM!|NULL!)/.test(shown)) {
@@ -392,7 +1528,28 @@ module.exports = async function handler(req, res) {
               }
             }
           }
-          const header = (formulaRows[0] || []).map((cell, i) => String(cell || "").trim() || "[" + colName(i) + "列]").join(" | ");
+          allFormulaCells.push(...formulaCells.map(item => ({ sheet: title, ...item })));
+          allFormulaErrors.push(...formulaErrors.map(item => ({ sheet: title, value: item })));
+          const headerValues = (formulaRows[0] || []).map(cell => String(cell || "").trim());
+          const header = headerValues.map((cell, i) => cell || "[" + colName(i) + "列]").join(" | ");
+          if (spreadsheetName === "管理ブック") {
+            const expectedSheet = managementWorkbookSchema.find(item => item.title === title);
+            if (!expectedSheet) {
+              findings.push("管理ブックに想定外のタブ「" + title + "」があります。用途を確認してください。");
+            } else {
+              const expectedHeaders = expectedSheet.headers;
+              const missing = expectedHeaders.filter((value, index) => headerValues[index] !== value);
+              const extra = headerValues.slice(expectedHeaders.length).filter(Boolean);
+              const orderMismatch = expectedHeaders.some((value, index) => headerValues[index] !== value);
+              if (orderMismatch || headerValues.length !== expectedHeaders.length) {
+                findings.push("「" + title + "」のヘッダーがスキーマv3と一致しません。期待列数=" +
+                  expectedHeaders.length + " / 実際の列数=" + headerValues.length +
+                  (missing.length ? " / 不一致・不足候補=" + missing.join(", ") : "") +
+                  (extra.length ? " / 余分な列=" + extra.join(", ") : "") +
+                  "。列の自動変更は行っていません。");
+              }
+            }
+          }
           const colStats = [];
           for (const [col, entries] of formulasByColumn.entries()) {
             const patterns = new Map();
@@ -416,13 +1573,102 @@ module.exports = async function handler(req, res) {
             "\n数式例: " + (samples || "なし") +
             (formulaErrors.length ? "\n計算エラー: " + formulaErrors.slice(0,8).join(", ") : "\n表示上の計算エラー: なし"));
         }
+        if (spreadsheetName === "管理ブック") {
+          const actualTitles = new Set(sheetList.map(item => item?.properties?.title).filter(Boolean));
+          const missingTabs = managementWorkbookSchema.map(item => item.title).filter(title => !actualTitles.has(title));
+          if (missingTabs.length) findings.push("スキーマv3で必要なタブが不足しています: " + missingTabs.join(", "));
+          else findings.push("スキーマv3の必須8タブはすべて存在します。");
+        }
+        const iColumnRefs = formulaColumnReferences.get("I") || [];
+        if (iColumnRefs.length) {
+          const examples = iColumnRefs.slice(0, 20).map(item => item.sheet + "!" + item.cell + " (" + item.formula + ")");
+          findings.push("I列を参照する数式が" + iColumnRefs.length + "件あります。列削除・移動前に参照先の意味を確認してください。参照例: " + examples.join(" / "));
+        } else {
+          findings.push("監査範囲内でI列を参照する数式は検出されませんでした。ただし、監査上限外の行・列、名前付き範囲、グラフ等の参照は別途確認が必要です。");
+        }
         if (/売上管理/.test(spreadsheetName)) {
           findings.push("集計シートの月別総売上は、8月がG2:G100とF101:F200、9月がG列の別範囲を参照しているように見えます。月別の対象行が意図どおりか確認が必要です。");
           findings.push("平均客単価・時間売上は客数や施術時間が0のときに#DIV/0!となる可能性があります。IFERRORまたは分母チェックを検討します。");
           findings.push("シート1のG列（合計売上）はD列（技術売上）+E列（指名料）+F列（店販）の数式パターンが行全体で一貫しているか確認が必要です。");
         }
+        // Persist the last audited workbook so later plan requests can resolve "that audit" without a repeated file name.
+        try {
+          await saveSpreadsheetRegistry(user.id, {
+            ...(registry || { version: 1, spreadsheets: {} }),
+            lastAuditSpreadsheet: spreadsheetName
+          });
+        } catch (registryError) {
+          console.error("Spreadsheet audit context save failed", { name: registryError?.name || "Error" });
+        }
+        if (spreadsheetFollowupPlanIntent) {
+          const salesSheet = sheetList.find(item => item?.properties?.title === "シート1")?.properties?.title || sheetList[0]?.properties?.title || "シート1";
+          const summarySheet = sheetList.find(item => /集計|summary|dashboard/i.test(item?.properties?.title || ""))?.properties?.title || "集計";
+          const snapshotFor = name => allSheetSnapshots.find(item => item.sheet === name);
+          const cellAt = (snapshot, address, rowsKey) => {
+            if (!snapshot) return "";
+            const match = address.match(/^([A-Z]+)(\d+)$/);
+            if (!match) return "";
+            let col = 0;
+            for (const ch of match[1]) col = col * 26 + ch.charCodeAt(0) - 64;
+            return snapshot[rowsKey]?.[Number(match[2]) - 1]?.[col - 1] ?? "";
+          };
+          const salesSnapshot = snapshotFor(salesSheet);
+          const summarySnapshot = snapshotFor(summarySheet);
+          const formulaAt = (snapshot, address) => String(cellAt(snapshot, address, "formulaRows") || "");
+          const displayAt = (snapshot, address) => String(cellAt(snapshot, address, "displayRows") ?? "");
+          const summaryCells = ["B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","C2"];
+          const summaryFormulaLines = summaryCells.map(address =>
+            address + ": " + (formulaAt(summarySnapshot, address) || "数式なし") +
+            " / 表示値: " + (displayAt(summarySnapshot, address) || "空欄")
+          );
+          const gFormulas = allFormulaCells.filter(item => item.sheet === salesSheet && item.col === "G");
+          const gPatterns = new Map();
+          for (const item of gFormulas) {
+            if (!gPatterns.has(item.normalized)) gPatterns.set(item.normalized, []);
+            gPatterns.get(item.normalized).push(item);
+          }
+          const gPatternLines = [...gPatterns.entries()].map(([pattern, items]) =>
+            pattern + " : " + items.length + "セル（例: " +
+            items.slice(0, 8).map(item => item.addr + "=" + item.formula).join(" / ") + "）"
+          );
+          const dateSnapshot = salesSnapshot;
+          const dateRows = [];
+          if (dateSnapshot) {
+            const dateValues = dateSnapshot.displayRows || [];
+            for (let i = 1; i < dateValues.length; i++) {
+              const date = String(dateValues[i]?.[0] ?? "").trim();
+              if (date) dateRows.push("A" + (i + 1) + "=" + date);
+              if (dateRows.length >= 30) break;
+            }
+          }
+          const monthReferences = summaryCells
+            .filter(address => /^B[2-8]$/.test(address) || address === "C2")
+            .map(address => address + " (" + displayAt(summarySnapshot, address) + ") -> " + (formulaAt(summarySnapshot, address) || "数式なし"));
+          const errorLines = allFormulaErrors
+            .filter(item => item.sheet === summarySheet)
+            .map(item => item.value);
+          const planLines = [
+            "1. 集計シートの月別集計は、見出しセルと参照範囲を対で確認します。式の参照先だけでは月の意味を断定できないため、元データの日付列と照合するまで変更しません。",
+            "2. B9・B11は現在の式と表示値を確認済みです。ゼロ除算時に0を表示するか空欄にするかは、未入力状態の意味を決めてから選択します。",
+            "3. " + salesSheet + "!G列は数式パターンごとに分類しました。例外セルは個別確認し、列全体の一括置換は行いません。",
+            "4. " + summarySheet + "!B2:B11・C2の式はセル単位で一覧化しました。式の意味が確定しないセルは修正対象にしません。"
+          ];
+          const planReport = "スプレッドシート修正計画（読み取り専用・実行前）\\nファイル: " + file.name +
+            "\\n対象: " + salesSheet + " / " + summarySheet +
+            "\\n\\n【集計シートの現行数式・表示値】\\n" + summaryFormulaLines.join("\\n") +
+            "\\n\\n【" + salesSheet + " のG列数式パターン】\\n数式セル数: " + gFormulas.length + " / パターン数: " + gPatterns.size +
+            "\\n" + (gPatternLines.join("\\n") || "数式なし") +
+            "\\n\\n【元データの日付列（A列・先頭30件まで）】\\n" + (dateRows.join(" / ") || "日付の入力値なし") +
+            "\\n\\n【集計シートの計算エラー】\\n" + (errorLines.join(", ") || "表示上の計算エラーなし") +
+            "\\n\\n【修正計画】\\n" + planLines.join("\\n") +
+            "\\n\\n【影響範囲】B9・B11は集計表示のみ。B2:B8・C2およびG列は売上集計値に影響するため、月別の行配置と数式の意図が確認できたセルだけを変更します。" +
+            "\\n【実行前の確認】変更対象セル・変更前後の式・表示値・参照範囲・影響する集計項目を一覧化し、バックアップ可能な状態で明示承認を得ます。" +
+            "\\n\\n今回は計画の精度を上げるための再取得のみです。Google Sheetsへの変更は一切行っていません。日付列の実データと月別集計の対応が確認できない箇所は、引き続き保留します。";
+          return calendarDirect(res, planReport, "修正計画を更新しました。シートは変更していません。");
+        }
         const report = "スプレッドシート詳細監査（読み取り専用）\nファイル: " + file.name +
-          "\nシート数: " + sheetList.length + "\n調査上限: 各シート最大" + (sheetList.some(s=>/集計|summary|dashboard/i.test(s?.properties?.title||"")) ? "500" : "500") + "行（集計シートは100行）" +
+          "\nシート数: " + sheetList.length + "\n調査範囲: 各シート最大100列・1,000行（実際のシート範囲に応じて制限）" +
+          "\n\n【列参照監査】\nI列を参照する数式: " + (iColumnRefs.length ? iColumnRefs.length + "件" : "検出なし") +
           "\n\n" + (reports.join("\n\n") || "シートが見つかりませんでした。") +
           "\n\n【修正候補】\n" + [...new Set(findings)].map((item,i)=>(i+1)+". "+item).join("\n") +
           "\n\nこれは監査と修正候補の提示のみです。シートの値・数式は変更していません。次に、変更対象セル・変更前後の数式・影響範囲を明記した計画を作成し、明示的な承認後にのみ実行します。";
@@ -433,9 +1679,16 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // Visualization creation requests must reach the normal Gemini visualization flow,
+    // even when they mention sales/revenue. Do not accidentally route them into Drive lookup.
+    const visualizationCreationIntent =
+      /(?:グラフ|棒グラフ|円グラフ|折れ線グラフ|チャート|図表|可視化)/.test(userText) &&
+      /(?:作成|作って|作成して|生成|描いて|表示して|出して)/.test(userText);
+
     // Google Sheets read and basic sales analysis. All operations here are read-only.
     const sheetsReadIntent =
-      /(?:スプレッドシート|シート|表|売上表|売上|利益|利益率|販売実績)/.test(userText) &&
+      !visualizationCreationIntent &&
+      /(?:スプレッドシート|シート|店販管理|店販|表|売上表|売上|利益|利益率|販売実績)/.test(userText) &&
       /(?:読んで|読み取って|見せて|表示して|確認して|調べて|取得して|読める|内容|一覧|いくら|合計|売上|利益|利益率|分析|集計|何件|何個|今月|先月|今年|今期|月別)/.test(userText) &&
       !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して)/.test(userText);
     if (sheetsReadIntent) {
@@ -449,35 +1702,59 @@ module.exports = async function handler(req, res) {
         }
 
         const quotedNames = [...userText.matchAll(/[「『“"]([^」』”"]{1,200})[」』”"]/g)].map(match => match[1].trim());
-        const knownSpreadsheetName = userText.includes("個人販売管理表") ? "個人販売管理表" : null;
         const analyticalQuestion = /(?:売上|利益|利益率|販売実績|月別|合計|集計|分析|何件|何個|いくら)/.test(userText);
-        const spreadsheetName = knownSpreadsheetName || quotedNames.find(name => /管理表|スプレッドシート|販売|売上/.test(name)) ||
-          (analyticalQuestion ? "個人販売管理表" : null);
+        const explicitSales = /(?:売上管理|技術売上|客単価|施術売上|指名売上)/.test(userText);
+        const explicitRetail = /(?:店販管理|個人販売管理表|商品販売|販売数量|販売個数|商品名)/.test(userText);
+        const registry = await readSpreadsheetRegistry(user.id);
+        const managementWorkbookEntry = !explicitRetail ? registry?.managementWorkbook : null;
+        const usingManagementWorkbook = Boolean(managementWorkbookEntry?.id);
+        const registeredEntry = explicitRetail
+          ? registry?.spreadsheets?.retail
+          : usingManagementWorkbook
+            ? managementWorkbookEntry
+            : explicitSales || analyticalQuestion
+              ? registry?.spreadsheets?.sales
+              : null;
+        const spreadsheetName = registeredEntry?.name ||
+          (usingManagementWorkbook ? "J.A.R.V.I.S.管理ブック" : explicitRetail ? "店販管理" : explicitSales || analyticalQuestion ? "売上管理" : null) ||
+          quotedNames.find(name => /管理表|スプレッドシート|販売|売上/.test(name));
         if (!spreadsheetName) {
-          return calendarDirect(res, "読み取るスプレッドシート名を指定してください。例：「個人販売管理表」の「売上」シートを読んで。", "読み取るスプレッドシート名を指定してください。");
+          return calendarDirect(res, "読み取るスプレッドシート名を指定してください。「売上管理」または「店販管理」を指定できます。", "読み取るスプレッドシート名を指定してください。");
         }
 
-        const escapedName = spreadsheetName.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        const driveQuery = new URLSearchParams({
-          q: "name = '" + escapedName + "' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
-          pageSize: "10",
-          orderBy: "modifiedTime desc",
-          fields: "files(id,name,mimeType,modifiedTime)"
-        });
-        const driveResult = await googleApiRequest(
-          user.id, connection.id,
-          "https://www.googleapis.com/drive/v3/files?" + driveQuery.toString()
-        );
-        const files = Array.isArray(driveResult?.files) ? driveResult.files : [];
-        if (files.length !== 1) {
-          return calendarDirect(
-            res,
-            files.length ? "同じ名前のスプレッドシートが複数あります。ファイル名をより具体的に指定してください。" : "「" + spreadsheetName + "」というスプレッドシートが見つかりませんでした。Driveのファイル名を確認してください。",
-            "対象のスプレッドシートを特定できませんでした。"
+        let spreadsheet = null;
+        if (registeredEntry?.id && /^[a-zA-Z0-9_-]{10,200}$/.test(registeredEntry.id)) {
+          spreadsheet = await googleApiRequest(
+            user.id, connection.id,
+            "https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(registeredEntry.id) + "?" +
+            new URLSearchParams({ fields: "id,name,mimeType,modifiedTime" })
           );
+          if (spreadsheet?.mimeType !== "application/vnd.google-apps.spreadsheet") {
+            return calendarDirect(res, "登録済みIDのファイルがGoogleスプレッドシートではありません。登録情報を確認してください。", "登録済みファイルを確認できませんでした。");
+          }
+        } else {
+          const escapedName = spreadsheetName.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+          const driveQuery = new URLSearchParams({
+            q: "name = '" + escapedName + "' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
+            pageSize: "10",
+            orderBy: "modifiedTime desc",
+            fields: "files(id,name,mimeType,modifiedTime)"
+          });
+          const driveResult = await googleApiRequest(
+            user.id, connection.id,
+            "https://www.googleapis.com/drive/v3/files?" + driveQuery.toString()
+          );
+          const files = Array.isArray(driveResult?.files) ? driveResult.files : [];
+          if (files.length !== 1) {
+            return calendarDirect(
+              res,
+              files.length ? "同じ名前のスプレッドシートが複数あります。ファイル名をより具体的に指定してください。" : "「" + spreadsheetName + "」というスプレッドシートが見つかりませんでした。Driveのファイル名を確認してください。",
+              "対象のスプレッドシートを特定できませんでした。"
+            );
+          }
+          spreadsheet = files[0];
         }
 
-        const spreadsheet = files[0];
         const metadata = await googleApiRequest(
           user.id, connection.id,
           "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(spreadsheet.id) +
@@ -485,9 +1762,11 @@ module.exports = async function handler(req, res) {
         );
         const availableSheets = Array.isArray(metadata?.sheets) ? metadata.sheets : [];
         const requestedTab = quotedNames.find(name => availableSheets.some(sheet => sheet?.properties?.title === name));
-        const tab = requestedTab || (userText.includes("売上") && availableSheets.some(sheet => sheet?.properties?.title === "売上")
-          ? "売上"
-          : availableSheets[0]?.properties?.title);
+        const tab = usingManagementWorkbook
+          ? (explicitRetail ? "RetailSales" : "Sales")
+          : requestedTab || (userText.includes("売上") && availableSheets.some(sheet => sheet?.properties?.title === "売上")
+            ? "売上"
+            : availableSheets[0]?.properties?.title);
         if (!tab) {
           return calendarDirect(res, "スプレッドシートに読み取れるシートがありません。", "シートが見つかりません。");
         }
@@ -507,12 +1786,119 @@ module.exports = async function handler(req, res) {
           return calendarDirect(res, "「" + spreadsheet.name + "」の「" + tab + "」シートは空です。", "指定したシートにデータはありません。");
         }
 
+        // Canonical management workbook aggregation: Sales + RetailSales are separate source logs.
+        if (usingManagementWorkbook && analyticalQuestion && !explicitRetail) {
+          const retailResult = await googleApiRequest(
+            user.id, connection.id,
+            "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(spreadsheet.id) +
+            "/values/" + encodeURIComponent("'RetailSales'!A1:M1000") + "?" + valuesQuery.toString()
+          );
+          const retailRows = Array.isArray(retailResult?.values) ? retailResult.values : [];
+          const salesHeaders = rows[0].map(value => String(value || "").trim());
+          const retailHeaders = (retailRows[0] || []).map(value => String(value || "").trim());
+          const salesCol = Object.fromEntries(salesHeaders.map((name, index) => [name, index]));
+          const retailCol = Object.fromEntries(retailHeaders.map((name, index) => [name, index]));
+          const requiredSales = ["transaction_date", "customer_type", "technical_sales", "nomination_fee", "record_status"];
+          const requiredRetail = ["sale_date", "quantity", "unit_sale_price", "gross_profit", "record_status"];
+          if (requiredSales.some(name => salesCol[name] === undefined) ||
+              requiredRetail.some(name => retailCol[name] === undefined)) {
+            return calendarDirect(res,
+              "管理ブックのSalesまたはRetailSalesの列構成が一致しないため、集計を中止しました。データ変更は行っていません。",
+              "集計元のシート構造を確認してください。"
+            );
+          }
+          const numberValue = value => {
+            const n = Number(String(value ?? "").replace(/[¥￥,\s]/g, "").replace(/円/g, ""));
+            return Number.isFinite(n) ? n : 0;
+          };
+          const monthOf = value => {
+            const m = String(value || "").trim().match(/(20\d{2})-(\d{1,2})-(\d{1,2})/);
+            return m ? { year: Number(m[1]), month: Number(m[2]) } : null;
+          };
+          const monthMatch = userText.match(/(\d{1,2})月/);
+          const nowJst = new Date(Date.now() + 9 * 3600000);
+          const wantedYear = /去年|昨年/.test(userText) ? nowJst.getUTCFullYear() - 1 : nowJst.getUTCFullYear();
+          const wantedMonth = monthMatch ? Number(monthMatch[1]) : /先月/.test(userText)
+            ? (nowJst.getUTCMonth() || 12)
+            : nowJst.getUTCMonth() + 1;
+          const todayJst = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+          }).format(new Date());
+          const todayRequested = /今日|本日/.test(userText);
+          const useDateFilter = todayRequested || /今月|先月|今年|去年|昨年|\d{1,2}月|月別/.test(userText);
+          const matchesPeriod = value => {
+            const rawDate = String(value || "").trim();
+            if (todayRequested) return rawDate.slice(0, 10) === todayJst;
+            if (!useDateFilter) return true;
+            const date = monthOf(rawDate);
+            if (!date) return false;
+            if (/今年|去年|昨年/.test(userText) && date.year !== wantedYear) return false;
+            if ((/今月|先月|\d{1,2}月/.test(userText)) && date.month !== wantedMonth) return false;
+            return true;
+          };
+          const allActiveSales = rows.slice(1).filter(row =>
+            String(row[salesCol.record_status] || "active").toLowerCase() === "active" &&
+            String(row[salesCol.transaction_date] || "").trim() &&
+            matchesPeriod(row[salesCol.transaction_date])
+          );
+          const dailySummaryDates = new Set(allActiveSales
+            .filter(row => String(row[salesCol.record_type] || "") === "daily_summary")
+            .map(row => String(row[salesCol.transaction_date] || "").slice(0, 10)));
+          // For a date with a daily summary, ignore legacy per-customer rows for that same date.
+          const activeSales = allActiveSales.filter(row =>
+            String(row[salesCol.record_type] || "") === "daily_summary" ||
+            !dailySummaryDates.has(String(row[salesCol.transaction_date] || "").slice(0, 10))
+          );
+          const activeRetail = retailRows.slice(1).filter(row =>
+            String(row[retailCol.record_status] || "active").toLowerCase() === "active" &&
+            String(row[retailCol.sale_date] || "").trim() &&
+            matchesPeriod(row[retailCol.sale_date])
+          );
+          const technicalTotal = activeSales.reduce((sum, row) => sum + numberValue(row[salesCol.technical_sales]), 0);
+          const nominationTotal = activeSales.reduce((sum, row) => sum + numberValue(row[salesCol.nomination_fee]), 0);
+          const legacyCustomerCount = activeSales.filter(row => String(row[salesCol.record_type] || "") !== "daily_summary").length;
+          const dailyCustomerCount = activeSales.reduce((sum, row) =>
+            sum + (String(row[salesCol.record_type] || "") === "daily_summary"
+              ? numberValue(row[salesCol.daily_customer_count]) : 0), 0);
+          const customerCount = legacyCustomerCount + dailyCustomerCount;
+          const retailTotal = activeRetail.reduce((sum, row) =>
+            sum + numberValue(row[retailCol.unit_sale_price]) * numberValue(row[retailCol.quantity]), 0);
+          const profitTotal = activeRetail.reduce((sum, row) => sum + numberValue(row[retailCol.gross_profit]), 0);
+          const total = technicalTotal + nominationTotal + retailTotal;
+          const yen = value => Math.round(value).toLocaleString("ja-JP") + "円";
+          const period = todayRequested ? todayJst
+            : useDateFilter
+              ? (monthMatch ? wantedYear + "年" + wantedMonth + "月"
+                : /先月/.test(userText) ? wantedYear + "年" + wantedMonth + "月"
+                : /今年|去年|昨年/.test(userText) ? wantedYear + "年" : wantedYear + "年" + wantedMonth + "月")
+              : "全期間";
+          const resultLines = [
+            "集計対象：「" + spreadsheet.name + "」/ Sales + RetailSales / " + period,
+            "客数：" + customerCount + "人",
+            "技術売上：" + yen(technicalTotal),
+            "指名料合計：" + yen(nominationTotal),
+            "店販売上件数：" + activeRetail.length + "件",
+            "店販売上：" + yen(retailTotal),
+            "総売上：" + yen(total)
+          ];
+          if (/(?:利益率|利益)/.test(userText)) {
+            resultLines.push("店販粗利益：" + yen(profitTotal));
+            if (/(?:利益率)/.test(userText)) {
+              resultLines.push(retailTotal > 0 ? "店販粗利益率：" + (profitTotal / retailTotal * 100).toFixed(1) + "%" : "店販売上が0円のため利益率は算出できません。");
+            }
+          }
+          return calendarDirect(res, resultLines.join("\n"), "売上を集計しました。");
+        }
+
         if (analyticalQuestion && rows.length > 1) {
           const headers = rows[0].map(value => String(value || "").trim());
           const indexOfHeader = (...names) => headers.findIndex(header => names.includes(header));
           const dateIndex = indexOfHeader("販売日", "日付", "購入日");
           const qtyIndex = indexOfHeader("数量", "個数", "販売数量");
           const priceIndex = indexOfHeader("販売価格", "売上", "売上金額");
+          const totalSalesIndex = indexOfHeader("合計売上", "総売上", "総売上額");
+          const isSalesManagement = totalSalesIndex >= 0 &&
+            (spreadsheetName === "売上管理" || indexOfHeader("技術売上") >= 0 || indexOfHeader("指名料") >= 0);
           const profitIndex = indexOfHeader("利益", "粗利益", "利益額");
           const monthMatch = userText.match(/(\d{1,2})月/);
           const now = new Date();
@@ -534,7 +1920,14 @@ module.exports = async function handler(req, res) {
             if (short) return { year: wantedYear, month: Number(short[1]) };
             return null;
           };
-          let dataRows = rows.slice(1).filter(row => row.some(value => String(value ?? "").trim() !== ""));
+          let dataRows = rows.slice(1).filter(row => {
+            const hasInput = row.some((value, index) =>
+              index !== totalSalesIndex && String(value ?? "").trim() !== ""
+            );
+            const hasNonZeroCalculatedSales = totalSalesIndex >= 0 &&
+              parseNumber(row[totalSalesIndex]) !== 0;
+            return hasInput || hasNonZeroCalculatedSales;
+          });
           if (useDateFilter && dateIndex >= 0) {
             dataRows = dataRows.filter(row => {
               const date = parseMonth(row[dateIndex]);
@@ -545,6 +1938,9 @@ module.exports = async function handler(req, res) {
             });
           }
           const totalSales = dataRows.reduce((sum, row) => {
+            if (isSalesManagement) {
+              return sum + parseNumber(row[totalSalesIndex]);
+            }
             if (priceIndex < 0) return sum;
             const price = parseNumber(row[priceIndex]);
             const quantity = qtyIndex < 0 ? 1 : parseNumber(row[qtyIndex]);
@@ -556,8 +1952,8 @@ module.exports = async function handler(req, res) {
           const period = useDateFilter ? (monthMatch ? wantedMonth + "月" : /先月/.test(userText) ? "先月" : /今年|去年|昨年/.test(userText) ? wantedYear + "年" : "今月") : "全期間";
           const lines = ["集計対象：「" + spreadsheet.name + "」/「" + tab + "」/ " + period, "対象データ件数：" + dataRows.length + "件"];
           if (/(?:利益率)/.test(userText)) {
-            if (priceIndex < 0 || profitIndex < 0) {
-              lines.push("利益率：必要な列（販売価格・利益）が見つからないため算出できません。");
+            if ((isSalesManagement ? totalSalesIndex : priceIndex) < 0 || profitIndex < 0) {
+              lines.push("利益率：必要な列（売上・利益）が見つからないため算出できません。");
             } else if (totalSales === 0) {
               lines.push("利益率：売上合計が0円のため算出できません。");
             } else {
@@ -566,11 +1962,11 @@ module.exports = async function handler(req, res) {
           } else if (/(?:利益)/.test(userText)) {
             lines.push(profitIndex < 0 ? "利益列が見つからないため算出できません。" : "利益合計：" + yen(totalProfit));
           } else if (/(?:売上|いくら|合計)/.test(userText)) {
-            lines.push(priceIndex < 0 ? "販売価格列が見つからないため算出できません。" : "売上合計：" + yen(totalSales));
+            lines.push((isSalesManagement ? totalSalesIndex : priceIndex) < 0 ? "売上列が見つからないため算出できません。" : "売上合計：" + yen(totalSales));
           }
           if (/(?:何個|数量|個数)/.test(userText)) lines.push("数量合計：" + totalQty.toLocaleString("ja-JP") + "個");
           if (/(?:何件|件数)/.test(userText)) lines.push("データ件数：" + dataRows.length + "件");
-          lines.push("注：販売価格×数量を売上として集計しています。日付に年がない行は指定年のデータとみなします。");
+          lines.push("注：" + (isSalesManagement ? "売上管理は「合計売上」列を直接合算しています。" : "店販管理は「販売価格×数量」で売上を集計しています。") + "数式のみの空行は件数から除外しています。日付に年がない行は指定年のデータとみなします。");
           return calendarDirect(res, lines.join("\n"), "スプレッドシートを集計しました。");
         }
 
@@ -1596,6 +2992,76 @@ visualization は画面表示専用です。reply と speechText は通常どお
 `;
 
     // ==========================================
+    // Commander specialist advisory (after context retrieval)
+    // ==========================================
+
+    // Keep Gemini as the final response composer so the existing interaction ID,
+    // memory-save contract, speechText, and visualization pipeline remain intact.
+    // The specialist receives the actual user request plus retrieved, relevant context.
+    const {
+      taskText: autoTaskText,
+      eligible: autoCommanderEligible,
+      provider: configuredAutoProvider,
+      classification: autoCommanderClassification
+    } = getAutoCommanderConfig({
+      autoCommander: req.body && req.body.autoCommander,
+      text: userText
+    });
+
+    if (autoCommanderEligible && configuredAutoProvider) {
+      if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) return;
+      if (!(await enforceRateLimit(res, user, "auto-commander-day", 5, 86400))) return;
+
+      {
+        try {
+          const specialistContext = [
+            "User request:",
+            autoTaskText,
+            calendarContext ? "\nRetrieved Google Calendar data:\\n" + calendarContext : "",
+            searchContext ? "\nRetrieved web search results:\\n" + searchContext : "",
+            typeof memoryContext === "string" && memoryContext.trim()
+              ? "\nRelevant long-term memory:\\n" + memoryContext.trim()
+              : ""
+          ].filter(Boolean).join("\n");
+
+          const result = await runAiCouncil({
+            userInput: specialistContext.slice(0, 24000),
+            systemInstruction: "You are J.A.R.V.I.S.'s specialist analyst. Analyze the supplied request using only the supplied context. Do not invent missing data or claim to execute external actions. State uncertainty and provide a concise, actionable analysis.",
+            providers: [configuredAutoProvider],
+            timeoutMs: 20000,
+            maxOutputTokens: 1200
+          });
+
+          const specialistText = result.results
+            .filter(item => item.ok && typeof item.text === "string" && item.text.trim())
+            .map(item => "【専門AIの分析 / " + item.provider + "】\\n" + item.text)
+            .join("\n\\n");
+
+          if (specialistText) {
+            const geminiInputLengthBeforeAdvisory = geminiInput.length;
+            geminiInput += "\n\\n==============================\\nSPECIALIST ADVISORY\\n==============================\\n以下は司令官が選択した専門AIの分析です。元の依頼と取得済みデータを照合し、必要なら不確実性や不足情報を明示したうえで、J.A.R.V.I.S.として最終回答を作成してください。専門AIの内容を無条件に正しいものとして扱わず、根拠のない情報は採用しないでください。\\n\\n" + specialistText;
+            console.info("[COMMANDER] Specialist advisory appended to Gemini input", {
+              provider: configuredAutoProvider,
+              advisoryChars: specialistText.length,
+              geminiInputCharsBefore: geminiInputLengthBeforeAdvisory,
+              geminiInputCharsAfter: geminiInput.length,
+              appended: geminiInput.length > geminiInputLengthBeforeAdvisory
+            });
+          } else {
+            console.warn("Automatic commander returned no usable advisory", {
+              provider: configuredAutoProvider,
+              intent: autoCommanderClassification?.intent
+            });
+          }
+        } catch (error) {
+          const code = typeof error?.code === "string" ? error.code : "INTERNAL_ERROR";
+          console.error("Automatic commander advisory failed; continuing with Gemini", { code });
+          // Specialist failure must not prevent the existing Gemini response path.
+        }
+      }
+    }
+
+    // ==========================================
     // Gemini Request
     // ==========================================
 
@@ -1684,13 +3150,19 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // Conversation Context
     // ==========================================
 
-    if (
-      previousInteractionId &&
-      typeof previousInteractionId === "string"
-    ) {
-      requestBody.previous_interaction_id =
-        previousInteractionId;
+    const hasPreviousInteractionId =
+      typeof previousInteractionId === "string" &&
+      previousInteractionId.length > 0;
+
+    if (hasPreviousInteractionId) {
+      requestBody.previous_interaction_id = previousInteractionId;
     }
+
+    // Diagnostic only: never log or expose the interaction ID itself.
+    console.log("[CONVERSATION] Request continuity", {
+      hasPreviousInteractionId,
+      previousInteractionIdLength: hasPreviousInteractionId ? previousInteractionId.length : 0
+    });
 
     // ==========================================
     // Gemini Debug
@@ -1882,9 +3354,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // ==========================================
 
     const interactionId =
-      typeof data.id === "string"
+      typeof data.id === "string" && data.id.length > 0
         ? data.id
         : null;
+
+    // Diagnostic only: record presence, not the ID value.
+    console.log("[CONVERSATION] Response continuity", {
+      hasInteractionId: Boolean(interactionId),
+      responseStatus: response.status
+    });
 
     // ==========================================
     // Response
