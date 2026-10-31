@@ -677,11 +677,24 @@ module.exports = async function handler(req, res) {
       const schemaLines = managementWorkbookSchema.map(sheet =>
         sheet.title + ": " + sheet.headers.join(", ")
       );
+      let workbookStatus = "Google Sheetsはまだ作成されていません。";
+      try {
+        const currentRegistry = await readSpreadsheetRegistry(user.id);
+        const currentWorkbook = currentRegistry?.managementWorkbook;
+        if (currentWorkbook?.id) {
+          workbookStatus = "管理ブックは登録済みです。\\nURL: " +
+            (currentWorkbook.url || ("https://docs.google.com/spreadsheets/d/" + currentWorkbook.id + "/edit"));
+        }
+      } catch (error) {
+        console.error("Management workbook status lookup failed", { name: error?.name || "Error" });
+        workbookStatus = "管理ブックの登録状態を確認できませんでした。";
+      }
       return calendarDirect(res,
-        "J.A.R.V.I.S.管理ブックの標準構成案（まだGoogle Sheetsは作成していません）\n" +
-        schemaLines.join("\n") +
-        "\n\n日付はYYYY-MM-DD、金額・数量・時間は数値、レコードは安定IDで識別します。報酬ルールは適用期間で管理し、社員・業務委託の両方に対応します。集計値は元データから算出し、元データと混在させません。顧客氏名など不要な個人情報は保存しません。",
-        "管理ブックの構成案を表示しました。まだ作成・変更はしていません。"
+        "J.A.R.V.I.S.管理ブックの標準構成\\n" +
+        workbookStatus + "\\n\\n" +
+        schemaLines.join("\\n") +
+        "\\n\\n日付はYYYY-MM-DD、金額・数量・時間は数値、レコードは安定IDで識別します。報酬ルールは適用期間で管理し、社員・業務委託の両方に対応します。集計値は元データから算出し、元データと混在させません。顧客氏名など不要な個人情報は保存しません。",
+        "管理ブックの構成と登録状態を確認しました。"
       );
     }
 
