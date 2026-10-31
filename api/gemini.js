@@ -700,6 +700,155 @@ module.exports = async function handler(req, res) {
         return calendarDirect(res, "スタッフ登録に失敗しました。Staffタブを確認してから再依頼してください。", "スタッフ登録に失敗しました。");
       }
     }
+    // Daily summary sales registration: one row per staff member per date.
+    const dailySalesIntent =
+      /(?:フリー|指名)\\s*[0-9]+\\s*人/.test(userText) &&
+      /(?:フリー売上|指名売上)/.test(userText) &&
+      /(?:登録|記録|追加)/.test(userText);
+    if (dailySalesIntent) {
+      try {
+        const countMatch = label => {
+          const match = userText.match(new RegExp(label + "\\\\s*([0-9]+)\\\\s*人"));
+          return match ? Number(match[1]) : 0;
+        };
+        const amountMatch = label => {
+          const match = userText.match(new RegExp(label + "\\\\s*([0-9][0-9,]*)\\\\s*円"));
+          return match ? Number(match[1].replace(/,/g, "")) : NaN;
+        };
+        const freeCount = countMatch("フリー");
+        const nominationCount = countMatch("指名");
+        const freeSales = amountMatch("フリー売上");
+        const nominationSales = amountMatch("指名売上");
+        if (!Number.isSafeInteger(freeSales) || freeSales < 0 ||
+            !Number.isSafeInteger(nominationSales) || nominationSales < 0 ||
+            freeCount + nominationCount < 1) {
+          return calendarDirect(res,
+            "日次登録には「フリー○人、指名○人、フリー売上○円、指名売上○円」が必要です。登録は行っていません。",
+            "人数と区分別技術売上を確認してください。");
+        }
+        const dateMatch = userText.match(/(20\\d{2})[年/-](\\d{1,2})[月/-](\\d{1,2})日?/);
+        const saleDate = dateMatch
+          ? [dateMatch[1], String(Number(dateMatch[2])).padStart(2, "0"), String(Number(dateMatch[3])).padStart(2, "0")].join("-")
+          : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+        const [y, m, d] = saleDate.split("-").map(Number);
+        const parsed = new Date(Date.UTC(y, m - 1, d));
+        if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m - 1 || parsed.getUTCDate() !== d) {
+          return calendarDirect(res, "売上日が正しくありません。登録は行っていません。", "日付を確認してください。");
+        }
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが未登録です。");
+        const base = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id);
+        const [salesResult, staffResult] = await Promise.all([
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Sales'!A1:V10000")),
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Staff'!A1:Z1000"))
+        ]);
+        const rows = Array.isArray(salesResult?.values) ? salesResult.values : [];
+        const headers = (rows[0] || []).map(v => String(v || "").trim());
+        const staffRows = Array.isArray(staffResult?.values) ? staffResult.values : [];
+        const staffHeaders = (staffRows[0] || []).map(v => String(v || "").trim());
+        const si = Object.fromEntries(headers.map((v,i)=>[v,i]));
+        const sti = Object.fromEntries(staffHeaders.map((v,i)=>[v,i]));
+        const required = ["sales_id","transaction_date","technical_sales","nomination_fee","retail_sales","staff_id","record_status","created_at","updated_at"];
+        const extra = ["record_type","free_customer_count","nomination_customer_count","free_technical_sales","nomination_technical_sales","nomination_fee_unit","daily_customer_count"];
+        if (required.some(k=>si[k]===undefined) || ["staff_id","is_active","auth_user_id"].some(k=>sti[k]===undefined)) {
+          return calendarDirect(res, "SalesまたはStaffの列構成が一致しません。登録は行っていません。", "シート構造を確認してください。");
+        }
+        const linked = staffRows.slice(1).filter(row =>
+          String(row?.[sti.auth_user_id]??"").trim()===user.id &&
+          String(row?.[sti.is_active]??"").toLowerCase()!=="false" &&
+          String(row?.[sti.staff_id]??"").trim());
+        if (linked.length!==1) return calendarDirect(res, "ログインユーザーに紐付く有効なスタッフ情報を一意に確認できません。登録は行っていません。", "スタッフ情報を確認してください。");
+        // Extend the header only to the right; existing rows and columns remain untouched.
+        const missing = extra.filter(k=>si[k]===undefined);
+        if (missing.length) {
+          const colName = n => { let s=""; for(;n>0;n=Math.floor((n-1)/26)) s=String.fromCharCode(65+(n-1)%26)+s; return s; };
+          const start = headers.length + 1;
+          const end = start + missing.length - 1;
+          await googleApiRequest(user.id, connection.id,
+            base + "/values/" + encodeURIComponent("'Sales'!" + colName(start) + "1:" + colName(end) + "1") + "?valueInputOption=RAW",
+            {method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:[missing]})});
+          headers.push(...missing);
+          missing.forEach((k,i)=>{si[k]=start-1+i;});
+        }
+        const existingDaily = rows.slice(1).some(row =>
+          String(row?.[si.transaction_date]??"").slice(0,10)===saleDate &&
+          String(row?.[si.record_type]??"")==="daily_summary" &&
+          String(row?.[si.staff_id]??"").trim()===String(linked[0][sti.staff_id]).trim() &&
+          String(row?.[si.record_status]??"active").toLowerCase()==="active");
+        if (existingDaily) return calendarDirect(res, saleDate + "の日次売上は既に登録されています。二重登録を避けるため追記していません。修正が必要な場合は「訂正」と明示してください。", "この日の日次売上は登録済みです。");
+        const feeRules = Array.isArray(registry?.nominationFeeRules) ? registry.nominationFeeRules : [{effective_from:"2026-10-31",unit_fee:800}];
+        const applicable = feeRules.filter(rule=>String(rule.effective_from||"")<=saleDate).sort((a,b)=>String(b.effective_from).localeCompare(String(a.effective_from)))[0];
+        if (!applicable || !Number.isSafeInteger(Number(applicable.unit_fee)) || Number(applicable.unit_fee)<0) {
+          return calendarDirect(res, "適用する指名料単価を確認できません。登録は行っていません。", "指名料設定を確認してください。");
+        }
+        const unitFee = Number(applicable.unit_fee);
+        const feeTotal = nominationCount * unitFee;
+        const totalTech = freeSales + nominationSales;
+        const now = new Date().toISOString();
+        const record = {
+          sales_id:crypto.randomUUID(), transaction_date:saleDate, customer_type:"daily",
+          menu_id:"",menu_name:"",technical_sales:totalTech,nomination_fee:feeTotal,retail_sales:0,
+          service_minutes:"",staff_id:String(linked[0][sti.staff_id]).trim(),notes:"",
+          record_status:"active",created_at:now,updated_at:now,
+          record_type:"daily_summary",free_customer_count:freeCount,nomination_customer_count:nominationCount,
+          free_technical_sales:freeSales,nomination_technical_sales:nominationSales,
+          nomination_fee_unit:unitFee,daily_customer_count:freeCount+nominationCount
+        };
+        const row=headers.map(h=>Object.prototype.hasOwnProperty.call(record,h)?record[h]:"");
+        const appended=await googleApiRequest(user.id,connection.id,
+          base+"/values/"+encodeURIComponent("'Sales'!A:V")+":append?"+new URLSearchParams({valueInputOption:"RAW",insertDataOption:"INSERT_ROWS"}),
+          {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({majorDimension:"ROWS",values:[row]})});
+        if (!(Number(appended?.updates?.updatedRows)>=1)) return calendarDirect(res,"Salesへの追記応答を確認できません。重複防止のため再送しないでください。Salesタブを確認してください。","登録結果を確認できません。");
+        let verified=false;
+        try {
+          const check=await googleApiRequest(user.id,connection.id,base+"/values/"+encodeURIComponent("'Sales'!A1:V10000"));
+          const rr=check?.values||[]; const hh=(rr[0]||[]).map(v=>String(v||"").trim()); const ix=Object.fromEntries(hh.map((v,i)=>[v,i]));
+          const saved=rr.slice(1).find(row=>String(row?.[ix.sales_id]??"")===record.sales_id);
+          verified=Boolean(saved && saved[ix.record_type]==="daily_summary" &&
+            Number(saved[ix.free_customer_count])===freeCount && Number(saved[ix.nomination_customer_count])===nominationCount &&
+            Number(saved[ix.technical_sales])===totalTech && Number(saved[ix.nomination_fee])===feeTotal);
+        } catch(e) { console.error("Daily sales read-back verification failed",{name:e?.name||"Error"}); }
+        if (!verified) return calendarDirect(res,"追記応答は成功しましたが読み戻し照合ができません。重複防止のため再登録しないでください。Salesタブを確認してください。","追記済み・照合未確認です。",{dailySales:{registered:true,verified:false,salesId:record.sales_id}});
+        if (!Array.isArray(registry?.nominationFeeRules)) {
+          await saveSpreadsheetRegistry(user.id,{...(registry||{}),nominationFeeRules:feeRules});
+        }
+        return calendarDirect(res,
+          saleDate+"の日次売上を登録しました。客数："+(freeCount+nominationCount)+"人（フリー"+freeCount+"人・指名"+nominationCount+"人）。技術売上："+totalTech.toLocaleString("ja-JP")+"円、指名料："+feeTotal.toLocaleString("ja-JP")+"円（単価"+unitFee+"円）。Salesへの記録と読み戻し照合が完了しました。",
+          "日次売上を登録しました。",
+          {dailySales:{registered:true,verified:true,salesId:record.sales_id,saleDate,freeCount,nominationCount,freeSales,nominationSales,unitFee,feeTotal,totalTech,staffId:record.staff_id}});
+      } catch(error) {
+        console.error("Daily sales registration failed",{name:error?.name||"Error",status:Number.isInteger(error?.status)?error.status:undefined});
+        return calendarDirect(res,"日次売上の登録に失敗しました。登録結果が不明な場合はSalesタブを確認してから再依頼してください。","日次売上の登録に失敗しました。");
+      }
+    }
+
+    // Update the per-customer nomination fee rate with an effective date.
+    const nominationFeeChangeIntent = /指名料[\\s\\S]{0,20}(?:変更|改定|を).{0,20}([0-9][0-9,]*)\\s*円/.test(userText) && /(?:から|適用|変更|改定)/.test(userText);
+    if (nominationFeeChangeIntent) {
+      try {
+        const feeMatch=userText.match(/指名料[\\s\\S]{0,20}(?:変更|改定|を)[\\s\\S]{0,20}?([0-9][0-9,]*)\\s*円/);
+        const dateMatch=userText.match(/(20\\d{2})[年/-](\\d{1,2})[月/-](\\d{1,2})日?/);
+        if(!feeMatch||!dateMatch) return calendarDirect(res,"指名料の変更には新しい単価と適用開始日が必要です。例：「指名料を900円に変更、2027年1月1日から適用」。","新単価と適用開始日を指定してください。");
+        const fee=Number(feeMatch[1].replace(/,/g,""));
+        const effective=[dateMatch[1],String(Number(dateMatch[2])).padStart(2,"0"),String(Number(dateMatch[3])).padStart(2,"0")].join("-");
+        if(!Number.isSafeInteger(fee)||fee<0) return calendarDirect(res,"指名料が正しくありません。変更していません。","単価を確認してください。");
+        const registry=await readSpreadsheetRegistry(user.id);
+        const rules=Array.isArray(registry?.nominationFeeRules)?registry.nominationFeeRules:[{effective_from:"2026-10-31",unit_fee:800}];
+        const next=rules.filter(rule=>rule.effective_from!==effective);
+        next.push({effective_from:effective,unit_fee:fee});
+        next.sort((a,b)=>String(a.effective_from).localeCompare(String(b.effective_from)));
+        await saveSpreadsheetRegistry(user.id,{...(registry||{}),nominationFeeRules:next});
+        return calendarDirect(res,"指名料を"+fee.toLocaleString("ja-JP")+"円に設定しました。適用開始日："+effective+"。過去の日次記録に保存済みの単価は変更されません。","指名料設定を更新しました。");
+      } catch(error) {
+        console.error("Nomination fee rule update failed",{name:error?.name||"Error"});
+        return calendarDirect(res,"指名料設定を更新できませんでした。","設定更新に失敗しました。");
+      }
+    }
+
     // Explicit per-customer technical sales registration. Retail details remain in RetailSales.
     const technicalSaleRegisterIntent =
       /(?:技術売上|指名料|フリー売上|指名売上)[\s\S]{0,80}(?:登録|記録|追加)|(?:売上を|売上)[\s\S]{0,40}(?:登録して|記録して|追加して)/.test(userText) &&
