@@ -727,7 +727,7 @@ module.exports = async function handler(req, res) {
           const indexOfHeader = (...names) => headers.findIndex(header => names.includes(header));
           const dateIndex = indexOfHeader("販売日", "日付", "購入日");
           const qtyIndex = indexOfHeader("数量", "個数", "販売数量");
-          const priceIndex = indexOfHeader("販売価格", "売上", "売上金額");
+          const priceIndex = indexOfHeader("販売価格", "売上", "売上金額", "合計売上");
           const profitIndex = indexOfHeader("利益", "粗利益", "利益額");
           const monthMatch = userText.match(/(\d{1,2})月/);
           const now = new Date();
