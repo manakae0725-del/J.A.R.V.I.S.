@@ -707,8 +707,8 @@ module.exports = async function handler(req, res) {
     if (technicalSaleRegisterIntent) {
       try {
         const customerTypeMatch = userText.match(/(指名|フリー)/);
-        const technicalMatch = userText.match(/(?:技術売上|技術料|施術売上)\\s*(?:は|が|[:：])?\\s*([0-9][0-9,]*)\\s*円/);
-        const nominationMatch = userText.match(/指名料\\s*(?:は|が|[:：])?\\s*([0-9][0-9,]*)\\s*円/);
+        const technicalMatch = userText.match(/(?:技術売上|技術料|施術売上)\s*(?:は|が|[:：])?\s*([0-9][0-9,]*)\s*円/);
+        const nominationMatch = userText.match(/指名料\s*(?:は|が|[:：])?\s*([0-9][0-9,]*)\s*円/);
         const technicalSales = technicalMatch ? Number(technicalMatch[1].replace(/,/g, "")) : NaN;
         const nominationFee = nominationMatch ? Number(nominationMatch[1].replace(/,/g, "")) : 0;
         if (!customerTypeMatch || !Number.isSafeInteger(technicalSales) || technicalSales < 0 ||
@@ -718,12 +718,16 @@ module.exports = async function handler(req, res) {
             "顧客区分と技術売上を指定してください。"
           );
         }
-        const dateMatch = userText.match(/(20\\d{2})[年/-](\\d{1,2})[月/-](\\d{1,2})日?/);
+        const dateMatch = userText.match(/(20\d{2})[年/-](\d{1,2})[月/-](\d{1,2})日?/);
         const saleDate = dateMatch
           ? [dateMatch[1], String(Number(dateMatch[2])).padStart(2, "0"), String(Number(dateMatch[3])).padStart(2, "0")].join("-")
           : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-        const parsedDate = new Date(saleDate + "T00:00:00+09:00");
-        if (!Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== saleDate) {
+        const [saleYear, saleMonth, saleDay] = saleDate.split("-").map(Number);
+        const parsedDate = new Date(Date.UTC(saleYear, saleMonth - 1, saleDay));
+        if (!Number.isFinite(parsedDate.getTime()) ||
+            parsedDate.getUTCFullYear() !== saleYear ||
+            parsedDate.getUTCMonth() !== saleMonth - 1 ||
+            parsedDate.getUTCDate() !== saleDay) {
           return calendarDirect(res, "売上日の日付形式が正しくありません。登録は行っていません。", "売上日を確認してください。");
         }
         const connections = await listConnectionsForUser(user.id);
