@@ -494,6 +494,31 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // Canonical field-name schema for the future J.A.R.V.I.S. management workbook.
+    // Source rows remain raw; summaries are calculated from these records.
+    const managementWorkbookSchema = [
+      { title: "Sales", headers: ["sales_id","transaction_date","customer_type","menu_id","menu_name","technical_sales","nomination_fee","retail_sales","service_minutes","staff_id","notes","record_status","created_at","updated_at"] },
+      { title: "RetailSales", headers: ["retail_sale_id","sale_date","product_id","quantity","unit_sale_price","unit_cost","gross_profit","staff_id","notes","record_status","created_at","updated_at"] },
+      { title: "Products", headers: ["product_id","product_name","category","unit_cost","default_sale_price","active_from","active_to","is_active","created_at","updated_at"] },
+      { title: "CompensationRules", headers: ["rule_id","employment_type","effective_from","effective_to","base_salary","nomination_fee","commission_rate","commission_basis","deduction_rules_json","is_active","created_at","updated_at"] },
+      { title: "Settings", headers: ["setting_key","setting_value","description","updated_at"] },
+      { title: "ChangeLog", headers: ["change_id","changed_at","changed_by","target_sheet","target_record_id","field_name","old_value","new_value","reason"] }
+    ];
+    const managementWorkbookSchemaIntent =
+      /(?:管理ブック|管理データ|新しい売上管理|新しい店販管理)/.test(userText) &&
+      /(?:構成|設計|項目|タブ|シート|どんな|確認|表示)/.test(userText);
+    if (managementWorkbookSchemaIntent) {
+      const schemaLines = managementWorkbookSchema.map(sheet =>
+        sheet.title + ": " + sheet.headers.join(", ")
+      );
+      return calendarDirect(res,
+        "J.A.R.V.I.S.管理ブックの標準構成案（まだGoogle Sheetsは作成していません）\n" +
+        schemaLines.join("\n") +
+        "\n\n日付はYYYY-MM-DD、金額・数量・時間は数値、レコードは安定IDで識別します。報酬ルールは適用期間で管理し、社員・業務委託の両方に対応します。集計値は元データから算出し、元データと混在させません。顧客氏名など不要な個人情報は保存しません。",
+        "管理ブックの構成案を表示しました。まだ作成・変更はしていません。"
+      );
+    }
+
     // Spreadsheet agent v3: supports explicit plan creation and registered stable IDs.
     const spreadsheetFollowupPlanIntent =
       /(?:先ほど|さっき|前回).{0,30}(?:監査|調査|結果).{0,30}(?:修正計画|計画|修正案)|(?:監査結果|調査結果).{0,30}(?:修正計画|計画|修正案)|(?:修正計画|計画を作成).{0,20}(?:監査|調査)/.test(userText);
