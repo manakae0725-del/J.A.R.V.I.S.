@@ -646,14 +646,14 @@ module.exports = async function handler(req, res) {
           planLines.push("3. " + summarySheet + "!B11 / 現在: " + b11 + " / 候補: =IFERROR(" + (b11.startsWith("=") ? b11.slice(1) : "既存数式") + ",0)。ゼロ除算時は0表示にする案。");
           planLines.push("4. " + summarySheet + "!B2:B8およびC2 / 現在の数式を個別確認。C2=" + c2 + "。月別の対象行が8月・9月に対応しているか、データ配置を確認するまで変更保留。");
           planLines.push("5. " + salesSheet + "!G列 / 数式パターンの異なるセルを全件比較し、意図的な例外か確認。G2以外は一括置換しない。");
-          const planReport = "スプレッドシート修正計画（読み取り専用・実行前）\\nファイル: " + file.name +
+          const planReport = "スプレッドシート修正計画（読み取り専用・実行前）\nファイル: " + file.name +
             "\n対象: " + salesSheet + " / " + summarySheet +
-            "\n\\n【確認済みの現行数式】\\nG2: " + g2 + "\nG3: " + g3 + "\nB9: " + b9 + "\nB11: " + b11 + "\nC2: " + c2 +
-            "\n\\n【修正計画】\\n" + planLines.join("\n") +
-            "\n\\n【影響範囲】B9・B11は表示セルのみ。G列・月別集計は売上集計値に影響するため、意味確認後に限定セルを変更。\\n【確認方法】変更前の数式を保存し、変更後に対象セルの表示値・月別合計・総合計を照合。\\n\\n今回は計画のみです。Google Sheetsへの変更は一切行っていません。G2のI5参照と月別範囲の意味は、現状のデータだけでは確定できません。";
+            "\n\n【確認済みの現行数式】\nG2: " + g2 + "\nG3: " + g3 + "\nB9: " + b9 + "\nB11: " + b11 + "\nC2: " + c2 +
+            "\n\n【修正計画】\n" + planLines.join("\n") +
+            "\n\n【影響範囲】B9・B11は表示セルのみ。G列・月別集計は売上集計値に影響するため、意味確認後に限定セルを変更。\n【確認方法】変更前の数式を保存し、変更後に対象セルの表示値・月別合計・総合計を照合。\n\n今回は計画のみです。Google Sheetsへの変更は一切行っていません。G2のI5参照と月別範囲の意味は、現状のデータだけでは確定できません。";
           return calendarDirect(res, planReport, "修正計画を作成しました。シートは変更していません。");
         }
-        const report = "スプレッドシート詳細監査（読み取り専用）\\nファイル: " + file.name +
+        const report = "スプレッドシート詳細監査（読み取り専用）\nファイル: " + file.name +
           "\nシート数: " + sheetList.length + "\n調査上限: 各シート最大" + (sheetList.some(s=>/集計|summary|dashboard/i.test(s?.properties?.title||"")) ? "500" : "500") + "行（集計シートは100行）" +
           "\n\n" + (reports.join("\n\n") || "シートが見つかりませんでした。") +
           "\n\n【修正候補】\n" + [...new Set(findings)].map((item,i)=>(i+1)+". "+item).join("\n") +
