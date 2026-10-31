@@ -644,35 +644,58 @@ module.exports = async function handler(req, res) {
         }
 
         const quotedNames = [...userText.matchAll(/[「『“"]([^」』”"]{1,200})[」』”"]/g)].map(match => match[1].trim());
-        const knownSpreadsheetName = userText.includes("個人販売管理表") ? "個人販売管理表" : null;
         const analyticalQuestion = /(?:売上|利益|利益率|販売実績|月別|合計|集計|分析|何件|何個|いくら)/.test(userText);
-        const spreadsheetName = knownSpreadsheetName || quotedNames.find(name => /管理表|スプレッドシート|販売|売上/.test(name)) ||
-          (analyticalQuestion ? "個人販売管理表" : null);
+        const requestedRegisteredName = /店販管理|店販/.test(userText)
+          ? "店販管理"
+          : /売上管理|売上/.test(userText) || analyticalQuestion
+            ? "売上管理"
+            : null;
+        const quotedSpreadsheetName = quotedNames.find(name => /管理表|スプレッドシート|販売|売上|店販/.test(name));
+        const spreadsheetName = requestedRegisteredName || quotedSpreadsheetName;
         if (!spreadsheetName) {
-          return calendarDirect(res, "読み取るスプレッドシート名を指定してください。例：「個人販売管理表」の「売上」シートを読んで。", "読み取るスプレッドシート名を指定してください。");
+          return calendarDirect(res, "読み取るスプレッドシート名を指定してください。例：「売上管理」または「店販管理」を読み取って。", "読み取るスプレッドシート名を指定してください。");
         }
 
-        const escapedName = spreadsheetName.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        const driveQuery = new URLSearchParams({
-          q: "name = '" + escapedName + "' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
-          pageSize: "10",
-          orderBy: "modifiedTime desc",
-          fields: "files(id,name,mimeType,modifiedTime)"
-        });
-        const driveResult = await googleApiRequest(
-          user.id, connection.id,
-          "https://www.googleapis.com/drive/v3/files?" + driveQuery.toString()
-        );
-        const files = Array.isArray(driveResult?.files) ? driveResult.files : [];
-        if (files.length !== 1) {
-          return calendarDirect(
-            res,
-            files.length ? "同じ名前のスプレッドシートが複数あります。ファイル名をより具体的に指定してください。" : "「" + spreadsheetName + "」というスプレッドシートが見つかりませんでした。Driveのファイル名を確認してください。",
-            "対象のスプレッドシートを特定できませんでした。"
+        const registry = await readSpreadsheetRegistry(user.id);
+        const registered = spreadsheetName === "店販管理"
+          ? registry?.spreadsheets?.retail
+          : spreadsheetName === "売上管理"
+            ? registry?.spreadsheets?.sales
+            : null;
+        let spreadsheet = null;
+
+        if (registered?.id && /^[a-zA-Z0-9_-]{10,200}$/.test(registered.id)) {
+          const candidate = await googleApiRequest(
+            user.id, connection.id,
+            "https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(registered.id) + "?" +
+              new URLSearchParams({ fields: "id,name,mimeType,modifiedTime" })
           );
+          if (candidate?.mimeType !== "application/vnd.google-apps.spreadsheet") {
+            return calendarDirect(res, "登録済みIDのファイルがGoogleスプレッドシートではありません。登録情報を確認してください。", "登録済みファイルを確認できませんでした。");
+          }
+          spreadsheet = candidate;
+        } else {
+          const escapedName = spreadsheetName.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+          const driveQuery = new URLSearchParams({
+            q: "name = '" + escapedName + "' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",
+            pageSize: "10",
+            orderBy: "modifiedTime desc",
+            fields: "files(id,name,mimeType,modifiedTime)"
+          });
+          const driveResult = await googleApiRequest(
+            user.id, connection.id,
+            "https://www.googleapis.com/drive/v3/files?" + driveQuery.toString()
+          );
+          const files = Array.isArray(driveResult?.files) ? driveResult.files : [];
+          if (files.length !== 1) {
+            return calendarDirect(
+              res,
+              files.length ? "同じ名前のスプレッドシートが複数あります。ファイル名をより具体的に指定してください。" : "「" + spreadsheetName + "」というスプレッドシートが見つかりませんでした。Driveのファイル名を確認してください。",
+              "対象のスプレッドシートを特定できませんでした。"
+            );
+          }
+          spreadsheet = files[0];
         }
-
-        const spreadsheet = files[0];
         const metadata = await googleApiRequest(
           user.id, connection.id,
           "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(spreadsheet.id) +
