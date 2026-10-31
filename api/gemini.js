@@ -700,6 +700,130 @@ module.exports = async function handler(req, res) {
         return calendarDirect(res, "スタッフ登録に失敗しました。Staffタブを確認してから再依頼してください。", "スタッフ登録に失敗しました。");
       }
     }
+    // Explicit per-customer technical sales registration. Retail details remain in RetailSales.
+    const technicalSaleRegisterIntent =
+      /(?:技術売上|指名料|フリー売上|指名売上).{0,40}(?:登録|記録|追加)|(?:売上を|売上).{0,20}(?:登録して|記録して|追加して)/.test(userText) &&
+      !/(?:店販|商品).{0,20}(?:販売|売れた)/.test(userText);
+    if (technicalSaleRegisterIntent) {
+      try {
+        const customerTypeMatch = userText.match(/(指名|フリー)/);
+        const technicalMatch = userText.match(/(?:技術売上|技術料|施術売上)\\s*(?:は|が|[:：])?\\s*([0-9][0-9,]*)\\s*円/);
+        const nominationMatch = userText.match(/指名料\\s*(?:は|が|[:：])?\\s*([0-9][0-9,]*)\\s*円/);
+        const technicalSales = technicalMatch ? Number(technicalMatch[1].replace(/,/g, "")) : NaN;
+        const nominationFee = nominationMatch ? Number(nominationMatch[1].replace(/,/g, "")) : 0;
+        if (!customerTypeMatch || !Number.isSafeInteger(technicalSales) || technicalSales < 0 ||
+            !Number.isSafeInteger(nominationFee) || nominationFee < 0) {
+          return calendarDirect(res,
+            "売上登録には「指名／フリー」と「技術売上○円」が必要です。指名料は省略時0円です。例：「今日の指名、技術売上8800円、指名料800円を売上登録して」。",
+            "顧客区分と技術売上を指定してください。"
+          );
+        }
+        const dateMatch = userText.match(/(20\\d{2})[年/-](\\d{1,2})[月/-](\\d{1,2})日?/);
+        const saleDate = dateMatch
+          ? [dateMatch[1], String(Number(dateMatch[2])).padStart(2, "0"), String(Number(dateMatch[3])).padStart(2, "0")].join("-")
+          : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+        const parsedDate = new Date(saleDate + "T00:00:00+09:00");
+        if (!Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== saleDate) {
+          return calendarDirect(res, "売上日の日付形式が正しくありません。登録は行っていません。", "売上日を確認してください。");
+        }
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが未登録です。");
+        const base = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id);
+        const [salesResult, staffResult] = await Promise.all([
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Sales'!A1:N1")),
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Staff'!A1:Z1000"))
+        ]);
+        const salesHeaders = (salesResult?.values?.[0] || []).map(value => String(value || "").trim());
+        const staffRows = Array.isArray(staffResult?.values) ? staffResult.values : [];
+        const staffHeaders = (staffRows[0] || []).map(value => String(value || "").trim());
+        const salesIndex = Object.fromEntries(salesHeaders.map((name, index) => [name, index]));
+        const staffIndex = Object.fromEntries(staffHeaders.map((name, index) => [name, index]));
+        const requiredSales = ["sales_id","transaction_date","customer_type","technical_sales","nomination_fee","retail_sales","staff_id","notes","record_status","created_at","updated_at"];
+        const requiredStaff = ["staff_id","is_active","auth_user_id"];
+        if (requiredSales.some(name => salesIndex[name] === undefined) || requiredStaff.some(name => staffIndex[name] === undefined)) {
+          return calendarDirect(res, "SalesまたはStaffのヘッダーが必要な構成と一致しません。書き込みは行っていません。", "シート構造が一致しないため登録を中止しました。");
+        }
+        const linkedStaff = staffRows.slice(1).filter(row =>
+          String(row?.[staffIndex.auth_user_id] ?? "").trim() === user.id &&
+          String(row?.[staffIndex.is_active] ?? "").toLowerCase() !== "false" &&
+          String(row?.[staffIndex.staff_id] ?? "").trim()
+        );
+        if (linkedStaff.length !== 1) {
+          return calendarDirect(res,
+            linkedStaff.length === 0 ? "ログインユーザーに紐付く有効なスタッフ情報がありません。売上登録は行っていません。"
+              : "ログインユーザーに複数の有効スタッフ情報が紐付いています。Staffタブを確認してください。売上登録は行っていません。",
+            "スタッフ情報を確認してください。"
+          );
+        }
+        const now = new Date();
+        const timestamp = now.toISOString();
+        const record = {
+          sales_id: crypto.randomUUID(),
+          transaction_date: saleDate,
+          customer_type: customerTypeMatch[1] === "指名" ? "nomination" : "free",
+          menu_id: "",
+          menu_name: "",
+          technical_sales: technicalSales,
+          nomination_fee: nominationFee,
+          // Product-level retail entries are recorded separately in RetailSales to avoid double counting.
+          retail_sales: 0,
+          service_minutes: "",
+          staff_id: String(linkedStaff[0][staffIndex.staff_id]).trim(),
+          notes: "",
+          record_status: "active",
+          created_at: timestamp,
+          updated_at: timestamp
+        };
+        const row = salesHeaders.map(header => Object.prototype.hasOwnProperty.call(record, header) ? record[header] : "");
+        const appendUrl = base + "/values/" + encodeURIComponent("'Sales'!A:N") +
+          ":append?" + new URLSearchParams({ valueInputOption: "RAW", insertDataOption: "INSERT_ROWS" });
+        const appended = await googleApiRequest(user.id, connection.id, appendUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ majorDimension: "ROWS", values: [row] })
+        });
+        if (!(Number(appended?.updates?.updatedRows) >= 1)) {
+          return calendarDirect(res, "Salesへの追記応答を確認できませんでした。重複登録を避けるため再試行していません。Salesタブを確認してください。", "登録結果を確認できませんでした。");
+        }
+        let verified = false;
+        try {
+          const readBack = await googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Sales'!A1:N10000"));
+          const savedRows = Array.isArray(readBack?.values) ? readBack.values : [];
+          const savedHeaders = (savedRows[0] || []).map(value => String(value || "").trim());
+          const savedIndex = Object.fromEntries(savedHeaders.map((name, index) => [name, index]));
+          const saved = savedRows.slice(1).find(item => String(item?.[savedIndex.sales_id] ?? "").trim() === record.sales_id);
+          verified = Boolean(saved &&
+            String(saved[savedIndex.staff_id] ?? "").trim() === record.staff_id &&
+            String(saved[savedIndex.customer_type] ?? "").trim() === record.customer_type &&
+            Number(saved[savedIndex.technical_sales]) === technicalSales &&
+            Number(saved[savedIndex.nomination_fee]) === nominationFee);
+        } catch (verifyError) {
+          console.error("Technical sales read-back verification failed", { name: verifyError?.name || "Error", status: Number.isInteger(verifyError?.status) ? verifyError.status : undefined });
+        }
+        if (!verified) {
+          return calendarDirect(res,
+            "Salesへの追記応答は成功しましたが、読み戻し照合ができませんでした。重複防止のため再登録しないでください。Salesタブを確認してください。",
+            "追記済み・読み戻し未確認です。",
+            { technicalSale: { registered: true, verified: false, salesId: record.sales_id } }
+          );
+        }
+        return calendarDirect(res,
+          saleDate + "の" + (record.customer_type === "nomination" ? "指名" : "フリー") +
+          "売上を登録しました。技術売上: " + technicalSales.toLocaleString("ja-JP") +
+          "円 / 指名料: " + nominationFee.toLocaleString("ja-JP") + "円。Salesへの記録と読み戻し照合が完了しました。",
+          "技術売上を登録しました。",
+          { technicalSale: { registered: true, verified: true, salesId: record.sales_id, saleDate, customerType: record.customer_type, technicalSales, nominationFee, staffId: record.staff_id } }
+        );
+      } catch (error) {
+        console.error("Technical sales registration failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "技術売上の登録に失敗しました。登録結果が不明な場合はSalesタブを確認してから再依頼してください。", "技術売上の登録に失敗しました。");
+      }
+    }
+
     // Explicit retail-sale registration: write only to the registered J.A.R.V.I.S. workbook.
     const retailSaleRegisterIntent =
       /(?:店販|商品).{0,35}(?:売れた|販売(?:した|しました|して)|売った|売りました|購入された|登録して|記録して)|(?:売れた|販売(?:した|しました|して)|売った|売りました).{0,35}(?:店販|商品)|(?:売れた|販売(?:した|しました)|売った|売りました).{0,30}(?:登録|記録|追加)|(?:登録|記録|追加).{0,25}(?:売れた|販売(?:した|しました)|売った|売りました)/.test(userText);
