@@ -741,7 +741,7 @@ module.exports = async function handler(req, res) {
       /(?:読み取り専用|データ行は変更しない|変更しない|照合|監査)/.test(userText);
     const managementWorkbookUpgradeIntent =
       !managementWorkbookAuditIntent &&
-      /(?:/(?:管理ブック|管理データ).{0,40}(?:拡張|項目を追加|整備|最新(?:の構成|スキーマ|版)|スキーマ(?:更新|v?3|v?4)|v?[34]に更新)/|最新(?:の構成|スキーマ|版)|スキーマ(?:更新|v?3)|v?3に更新)/.test(userText);
+      /(?:管理ブック|管理データ).{0,40}(?:拡張|項目を追加|整備|最新(?:の構成|スキーマ|版)|スキーマ(?:更新|v?3|v?4)|v?[34]に更新)/.test(userText);
     if (managementWorkbookUpgradeIntent) {
       try {
         const connections = await listConnectionsForUser(user.id);
