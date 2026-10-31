@@ -772,6 +772,19 @@ module.exports = async function handler(req, res) {
           const colName = n => { let s=""; for(;n>0;n=Math.floor((n-1)/26)) s=String.fromCharCode(65+(n-1)%26)+s; return s; };
           const start = headers.length + 1;
           const end = start + missing.length - 1;
+          const metadata = await googleApiRequest(user.id, connection.id,
+            base + "?" + new URLSearchParams({fields:"sheets(properties(sheetId,title,gridProperties(columnCount)))"}));
+          const salesSheet = (metadata?.sheets || []).find(sheet => sheet?.properties?.title === "Sales");
+          if (!salesSheet?.properties?.sheetId) throw new Error("Sales sheet metadata unavailable");
+          const currentColumns = Number(salesSheet.properties.gridProperties?.columnCount || 0);
+          if (currentColumns < end) {
+            await googleApiRequest(user.id, connection.id, base + ":batchUpdate", {
+              method:"POST",headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({requests:[{appendDimension:{
+                sheetId:salesSheet.properties.sheetId,dimension:"COLUMNS",length:end-currentColumns
+              }}]})
+            });
+          }
           await googleApiRequest(user.id, connection.id,
             base + "/values/" + encodeURIComponent("'Sales'!" + colName(start) + "1:" + colName(end) + "1") + "?valueInputOption=RAW",
             {method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:[missing]})});
