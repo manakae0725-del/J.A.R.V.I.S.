@@ -501,7 +501,7 @@ module.exports = async function handler(req, res) {
       { title: "RetailSales", headers: ["retail_sale_id","sale_date","customer_id","product_id","quantity","unit_sale_price","unit_cost","gross_profit","staff_id","notes","record_status","created_at","updated_at"] },
       { title: "Products", headers: ["product_id","product_name","category","unit_cost","default_sale_price","active_from","active_to","is_active","created_at","updated_at"] },
       { title: "Menus", headers: ["menu_id","menu_name","category","default_price","standard_minutes","active_from","active_to","is_active","created_at","updated_at"] },
-      { title: "Staff", headers: ["staff_id","display_name","employment_type","active_from","active_to","is_active","created_at","updated_at"] },
+      { title: "Staff", headers: ["staff_id","display_name","employment_type","active_from","active_to","is_active","created_at","updated_at","auth_user_id"] },
       { title: "CompensationRules", headers: ["rule_id","staff_id","employment_type","effective_from","effective_to","base_salary","nomination_fee_per_visit","commission_rate","commission_basis","fixed_allowances_json","deduction_rules_json","payment_cycle","is_active","created_at","updated_at"] },
       { title: "Settings", headers: ["setting_key","setting_value","description","updated_at"] },
       { title: "ChangeLog", headers: ["change_id","changed_at","changed_by","target_sheet","target_record_id","field_name","old_value","new_value","reason"] }
@@ -641,7 +641,7 @@ module.exports = async function handler(req, res) {
       /(?:読み取り専用|データ行は変更しない|変更しない|照合|監査)/.test(userText);
     const managementWorkbookUpgradeIntent =
       !managementWorkbookAuditIntent &&
-      /(?:管理ブック|管理データ).{0,40}(?:拡張|項目を追加|整備|最新(?:の構成|スキーマ|版)|スキーマ(?:更新|v?3)|v?3に更新)/.test(userText);
+      /(?:/(?:管理ブック|管理データ).{0,40}(?:拡張|項目を追加|整備|最新(?:の構成|スキーマ|版)|スキーマ(?:更新|v?3|v?4)|v?[34]に更新)/|最新(?:の構成|スキーマ|版)|スキーマ(?:更新|v?3)|v?3に更新)/.test(userText);
     if (managementWorkbookUpgradeIntent) {
       try {
         const connections = await listConnectionsForUser(user.id);
@@ -666,7 +666,32 @@ module.exports = async function handler(req, res) {
               gridProperties: { rowCount: 1000, columnCount: definition.headers.length }
             } } });
             added.push(definition.title);
-          } else if (["Menus", "Staff"].includes(definition.title)) {
+          } else if (definition.title === "Staff") {
+            const headerData = await googleApiRequest(user.id, connection.id,
+              "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "/values/" + encodeURIComponent("Staff!A1:Z1"));
+            const currentHeader = Array.isArray(headerData?.values?.[0]) ? headerData.values[0].map(value => String(value ?? "").trim()) : [];
+            if (!currentHeader.includes("auth_user_id")) {
+              const lastUsedIndex = currentHeader.reduce((last, value, index) => value ? index : last, -1);
+              const targetColumnIndex = lastUsedIndex + 1;
+              const columnLetter = targetColumnIndex < 26 ? String.fromCharCode(65 + targetColumnIndex) : null;
+              if (!columnLetter) throw new Error("Staff header has no available column for auth_user_id");
+              const oldColumns = Number(existing.gridProperties?.columnCount) || 0;
+              requests.push({
+                updateSheetProperties: {
+                  properties: { sheetId: existing.sheetId, gridProperties: { columnCount: Math.max(oldColumns, targetColumnIndex + 1) } },
+                  fields: "gridProperties.columnCount"
+                }
+              });
+              requests.push({
+                updateCells: {
+                  range: { sheetId: existing.sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: targetColumnIndex, endColumnIndex: targetColumnIndex + 1 },
+                  rows: [{ values: [{ userEnteredValue: { stringValue: "auth_user_id" } }] }],
+                  fields: "userEnteredValue"
+                }
+              });
+              changedHeaders.push("Staff.auth_user_id");
+            }
+          } else if (definition.title === "Menus") {
             const headerRange = definition.title + "!A1:" + String.fromCharCode(64 + definition.headers.length) + "1";
             const headerData = await googleApiRequest(user.id, connection.id,
               "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "/values/" + encodeURIComponent(headerRange));
@@ -711,14 +736,14 @@ module.exports = async function handler(req, res) {
             { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requests }) }
           );
         }
-        const updatedRecord = { ...workbook, schemaVersion: 3, updatedAt: new Date().toISOString() };
+        const updatedRecord = { ...workbook, schemaVersion: 4, updatedAt: new Date().toISOString() };
         await saveSpreadsheetRegistry(user.id, { ...registry, version: 1, managementWorkbook: updatedRecord });
         return calendarDirect(res,
-          "管理ブックをスキーマv3に更新しました。追加タブ: " + (added.join(" / ") || "なし") +
+          "管理ブックをスキーマv4に更新しました。追加タブ: " + (added.join(" / ") || "なし") +
           "。ヘッダー更新: " + (changedHeaders.join(" / ") || "なし") +
           "。既存の売上・店販・商品・設定・変更履歴のデータ行は変更していません。",
           "管理ブックの構造を更新しました。",
-          { managementWorkbook: { schemaVersion: 3, addedSheets: added, updatedHeaders: changedHeaders } }
+          { managementWorkbook: { schemaVersion: 4, addedSheets: added, updatedHeaders: changedHeaders } }
         );
       } catch (error) {
         console.error("Management workbook schema upgrade failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
