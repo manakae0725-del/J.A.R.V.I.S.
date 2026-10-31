@@ -753,9 +753,20 @@ module.exports = async function handler(req, res) {
           String(row?.[productIndex.is_active] ?? "").toLowerCase() !== "false" &&
           String(row?.[productIndex.product_name] ?? "").trim()
         );
-        const matchedProducts = activeProducts.filter(row =>
-          userText.toLowerCase().includes(String(row[productIndex.product_name]).trim().toLowerCase())
-        );
+        const inferredNameMatch = userText.match(/(?:商品名は|商品は)?\s*(.+?)を\s*\d+\s*(?:個|本|点)/);
+        const requestedProductName = String(inferredNameMatch?.[1] || "").trim().replace(/^(?:店販で|店販商品|商品)\s*/, "");
+        const exactNameMatches = requestedProductName
+          ? activeProducts.filter(row =>
+              String(row[productIndex.product_name] ?? "").trim().toLowerCase() === requestedProductName.toLowerCase()
+            )
+          : [];
+        const matchedProducts = exactNameMatches.length
+          ? exactNameMatches
+          : requestedProductName
+            ? []
+            : activeProducts.filter(row =>
+                userText.toLowerCase().includes(String(row[productIndex.product_name]).trim().toLowerCase())
+              );
         const costLabelMatch = userText.match(/(?:仕入原価|仕入れ原価|原価|仕入れ値)\s*(?:は|が|[:：])?\s*([0-9][0-9,]*)\s*円/);
         const labelledPriceMatch = userText.match(/(?:単価|販売価格|売価)\s*([0-9][0-9,]*)\s*円/);
         const allYenAmounts = [...userText.matchAll(/([0-9][0-9,]*)\s*円/g)];
@@ -767,8 +778,7 @@ module.exports = async function handler(req, res) {
           return calendarDirect(res, "商品名が複数一致しました。商品名を正式名称で指定してください。", "商品を特定できないため登録していません。");
         }
         if (matchedProducts.length === 0) {
-          const inferredNameMatch = userText.match(/(?:商品名は|商品は)?\s*(.+?)を\s*\d+\s*(?:個|本|点)/);
-          const inferredName = String(inferredNameMatch?.[1] || "").trim().replace(/^(?:店販で|店販商品|商品)\s*/, "");
+          const inferredName = requestedProductName;
           const costMatch = costLabelMatch;
           const salePriceMatch = resolvedPriceMatch;
           if (!inferredName || !costMatch || !salePriceMatch) {
