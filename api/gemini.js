@@ -720,7 +720,7 @@ module.exports = async function handler(req, res) {
           return calendarDirect(res, planReport, "修正計画を更新しました。シートは変更していません。");
         }
         const report = "スプレッドシート詳細監査（読み取り専用）\nファイル: " + file.name +
-          "\nシート数: " + sheetList.length + "\n調査上限: 各シート最大" + (sheetList.some(s=>/集計|summary|dashboard/i.test(s?.properties?.title||"")) ? "500" : "500") + "行（集計シートは100行）" +
+          "\nシート数: " + sheetList.length + "\n調査範囲: 各シート最大100列・1,000行（実際のシート範囲に応じて制限）" +
           "\n\n【列参照監査】\nI列を参照する数式: " + (iColumnRefs.length ? iColumnRefs.length + "件" : "検出なし") +
           "\n\n" + (reports.join("\n\n") || "シートが見つかりませんでした。") +
           "\n\n【修正候補】\n" + [...new Set(findings)].map((item,i)=>(i+1)+". "+item).join("\n") +
