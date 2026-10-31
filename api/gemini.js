@@ -506,6 +506,57 @@ module.exports = async function handler(req, res) {
       { title: "Settings", headers: ["setting_key","setting_value","description","updated_at"] },
       { title: "ChangeLog", headers: ["change_id","changed_at","changed_by","target_sheet","target_record_id","field_name","old_value","new_value","reason"] }
     ];
+    // Read-only verification of the currently authenticated user's staff mapping.
+    const staffVerificationIntent = /(?:自分|本人|ログインユーザー).{0,20}(?:スタッフ情報|スタッフ登録|スタッフID).{0,12}(?:確認|照合|表示)|(?:スタッフ情報|スタッフ登録|スタッフID).{0,12}(?:確認|照合|表示)/.test(userText) &&
+      !/(?:登録して|登録する|追加して|変更して|更新して|削除して)/.test(userText);
+    if (staffVerificationIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが見つかりません。");
+        const staffResult = await googleApiRequest(
+          user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "/values/" + encodeURIComponent("'Staff'!A1:Z1000")
+        );
+        const rows = Array.isArray(staffResult?.values) ? staffResult.values : [];
+        const headers = (rows[0] || []).map(value => String(value || "").trim());
+        const index = Object.fromEntries(headers.map((name, i) => [name, i]));
+        const required = ["staff_id","display_name","employment_type","is_active","auth_user_id"];
+        if (required.some(name => index[name] === undefined)) {
+          return calendarDirect(res, "Staffタブの必要な列が不足しています。読み取りのみ実施し、変更は行っていません。", "Staffタブの構造を確認してください。");
+        }
+        const matches = rows.slice(1).filter(row => String(row?.[index.auth_user_id] ?? "").trim() === user.id);
+        if (matches.length !== 1) {
+          return calendarDirect(res,
+            matches.length === 0 ? "Staffタブに現在のログインユーザーの登録行が見つかりませんでした。読み取りのみ実施しました。"
+              : "現在のログインユーザーに紐付くStaff行が複数あります。重複状態です。読み取りのみ実施しました。",
+            "スタッフ情報の照合結果を確認してください。"
+          );
+        }
+        const row = matches[0];
+        const result = {
+          staffId: String(row[index.staff_id] ?? ""),
+          displayName: String(row[index.display_name] ?? ""),
+          employmentType: String(row[index.employment_type] ?? ""),
+          isActive: String(row[index.is_active] ?? "").toLowerCase() !== "false"
+        };
+        return calendarDirect(res,
+          "Staffタブの実データを読み取り専用で確認しました。\\n表示名: " + result.displayName +
+          "\\n雇用形態: " + result.employmentType + "\\nスタッフID: " + result.staffId +
+          "\\n有効状態: " + (result.isActive ? "有効" : "無効") +
+          "\\nログインユーザーとの紐付け: 一致。シートへの変更は行っていません。",
+          "スタッフ情報の読み取り照合が完了しました。",
+          { staffVerification: result }
+        );
+      } catch (error) {
+        console.error("Staff verification failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "Staffタブの読み取り照合に失敗しました。データ変更は行っていません。", "スタッフ情報を確認できませんでした。");
+      }
+    }
+
     // Register only the currently authenticated user as a staff member; never accept a client-supplied auth ID.
     const staffRegistrationIntent = /(?:自分を|本人を)?スタッフ登録|スタッフ情報を登録/.test(userText);
     if (staffRegistrationIntent) {
