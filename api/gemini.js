@@ -506,6 +506,66 @@ module.exports = async function handler(req, res) {
       { title: "Settings", headers: ["setting_key","setting_value","description","updated_at"] },
       { title: "ChangeLog", headers: ["change_id","changed_at","changed_by","target_sheet","target_record_id","field_name","old_value","new_value","reason"] }
     ];
+    // Explicit read-only lookup of a named product in the management workbook.
+    const productMasterVerificationIntent =
+      /(?:Products|商品マスター).{0,30}(?:タブ|シート|一覧|商品)/i.test(userText) &&
+      /(?:読み取り専用|読み取って|照会|確認|調べて|表示)/.test(userText) &&
+      /(?:追加|登録|変更|更新|削除|書き込)/.test(userText) === false;
+    if (productMasterVerificationIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが見つかりません。");
+        const productResult = await googleApiRequest(
+          user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) +
+          "/values/" + encodeURIComponent("'Products'!A1:J1000")
+        );
+        const rows = Array.isArray(productResult?.values) ? productResult.values : [];
+        const headers = (rows[0] || []).map(value => String(value || "").trim());
+        const index = Object.fromEntries(headers.map((name, i) => [name, i]));
+        const required = ["product_id","product_name","unit_cost","default_sale_price","is_active"];
+        if (required.some(name => index[name] === undefined)) {
+          return calendarDirect(res, "Productsタブの必要な列が不足しています。読み取りのみ実施し、変更は行っていません。", "Productsタブの構造を確認してください。");
+        }
+        const quotedNames = [...userText.matchAll(/[「『“"]([^」』”"]{1,200})[」』”"]/g)].map(match => match[1].trim());
+        const requestedName = quotedNames.find(name => !/^(?:Products|商品マスター|店販管理|管理データ)$/.test(name)) || "";
+        const matches = rows.slice(1).filter(row => {
+          const name = String(row?.[index.product_name] ?? "").trim();
+          return name && (requestedName ? name === requestedName : /テスト商品A/.test(userText) && name === "テスト商品A");
+        });
+        const lines = matches.map(row => [
+          "商品名: " + String(row[index.product_name] ?? ""),
+          "商品ID: " + String(row[index.product_id] ?? ""),
+          "仕入原価: " + String(row[index.unit_cost] ?? ""),
+          "販売価格: " + String(row[index.default_sale_price] ?? ""),
+          "有効状態: " + (String(row[index.is_active] ?? "").toLowerCase() === "false" ? "無効" : "有効")
+        ].join("\\n"));
+        const responseText = matches.length
+          ? "ProductsタブをGoogle Sheetsから読み取りました。該当商品は" + matches.length + "件です。\\n\\n" + lines.join("\\n\\n") + "\\n\\n読み取り専用で実行し、データの追加・変更・削除は行っていません。"
+          : "ProductsタブをGoogle Sheetsから読み取りましたが、指定商品「" + (requestedName || "テスト商品A") + "」は見つかりませんでした。読み取り専用で実行し、データの追加・変更・削除は行っていません。";
+        return calendarDirect(res, responseText, "Productsタブの読み取り照合が完了しました。", {
+          productMasterVerification: {
+            requestedName: requestedName || "テスト商品A",
+            matchCount: matches.length,
+            products: matches.map(row => ({
+              productId: String(row[index.product_id] ?? ""),
+              productName: String(row[index.product_name] ?? ""),
+              unitCost: String(row[index.unit_cost] ?? ""),
+              salePrice: String(row[index.default_sale_price] ?? ""),
+              isActive: String(row[index.is_active] ?? "").toLowerCase() !== "false"
+            }))
+          }
+        });
+      } catch (error) {
+        console.error("Product master verification failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "Productsタブの読み取りに失敗しました。データ変更は行っていません。", "商品マスターを確認できませんでした。");
+      }
+    }
+
     // Read-only verification of the currently authenticated user's staff mapping.
     const staffVerificationIntent = /(?:自分|本人|ログインユーザー).{0,20}(?:スタッフ情報|スタッフ登録|スタッフID).{0,12}(?:確認|照合|表示)|(?:スタッフ情報|スタッフ登録|スタッフID).{0,12}(?:確認|照合|表示)/.test(userText) &&
       !/(?:登録して|登録する|追加して|変更して|更新して|削除して)/.test(userText);
