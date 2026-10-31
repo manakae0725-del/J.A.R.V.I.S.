@@ -1815,10 +1815,18 @@ module.exports = async function handler(req, res) {
             if ((/今月|先月|\d{1,2}月/.test(userText)) && date.month !== wantedMonth) return false;
             return true;
           };
-          const activeSales = rows.slice(1).filter(row =>
+          const allActiveSales = rows.slice(1).filter(row =>
             String(row[salesCol.record_status] || "active").toLowerCase() === "active" &&
             String(row[salesCol.transaction_date] || "").trim() &&
             matchesPeriod(row[salesCol.transaction_date])
+          );
+          const dailySummaryDates = new Set(allActiveSales
+            .filter(row => String(row[salesCol.record_type] || "") === "daily_summary")
+            .map(row => String(row[salesCol.transaction_date] || "").slice(0, 10)));
+          // For a date with a daily summary, ignore legacy per-customer rows for that same date.
+          const activeSales = allActiveSales.filter(row =>
+            String(row[salesCol.record_type] || "") === "daily_summary" ||
+            !dailySummaryDates.has(String(row[salesCol.transaction_date] || "").slice(0, 10))
           );
           const activeRetail = retailRows.slice(1).filter(row =>
             String(row[retailCol.record_status] || "active").toLowerCase() === "active" &&
@@ -1827,6 +1835,11 @@ module.exports = async function handler(req, res) {
           );
           const technicalTotal = activeSales.reduce((sum, row) => sum + numberValue(row[salesCol.technical_sales]), 0);
           const nominationTotal = activeSales.reduce((sum, row) => sum + numberValue(row[salesCol.nomination_fee]), 0);
+          const legacyCustomerCount = activeSales.filter(row => String(row[salesCol.record_type] || "") !== "daily_summary").length;
+          const dailyCustomerCount = activeSales.reduce((sum, row) =>
+            sum + (String(row[salesCol.record_type] || "") === "daily_summary"
+              ? numberValue(row[salesCol.daily_customer_count]) : 0), 0);
+          const customerCount = legacyCustomerCount + dailyCustomerCount;
           const retailTotal = activeRetail.reduce((sum, row) =>
             sum + numberValue(row[retailCol.unit_sale_price]) * numberValue(row[retailCol.quantity]), 0);
           const profitTotal = activeRetail.reduce((sum, row) => sum + numberValue(row[retailCol.gross_profit]), 0);
@@ -1840,7 +1853,7 @@ module.exports = async function handler(req, res) {
               : "全期間";
           const resultLines = [
             "集計対象：「" + spreadsheet.name + "」/ Sales + RetailSales / " + period,
-            "技術売上件数：" + activeSales.length + "件",
+            "客数：" + customerCount + "人",
             "技術売上：" + yen(technicalTotal),
             "指名料合計：" + yen(nominationTotal),
             "店販売上件数：" + activeRetail.length + "件",
