@@ -1651,10 +1651,16 @@ module.exports = async function handler(req, res) {
           const wantedMonth = monthMatch ? Number(monthMatch[1]) : /先月/.test(userText)
             ? (nowJst.getUTCMonth() || 12)
             : nowJst.getUTCMonth() + 1;
-          const useDateFilter = /今月|先月|今年|去年|昨年|\d{1,2}月|月別/.test(userText);
+          const todayJst = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+          }).format(new Date());
+          const todayRequested = /今日|本日/.test(userText);
+          const useDateFilter = todayRequested || /今月|先月|今年|去年|昨年|\d{1,2}月|月別/.test(userText);
           const matchesPeriod = value => {
+            const rawDate = String(value || "").trim();
+            if (todayRequested) return rawDate.slice(0, 10) === todayJst;
             if (!useDateFilter) return true;
-            const date = monthOf(value);
+            const date = monthOf(rawDate);
             if (!date) return false;
             if (/今年|去年|昨年/.test(userText) && date.year !== wantedYear) return false;
             if ((/今月|先月|\d{1,2}月/.test(userText)) && date.month !== wantedMonth) return false;
@@ -1677,11 +1683,12 @@ module.exports = async function handler(req, res) {
           const profitTotal = activeRetail.reduce((sum, row) => sum + numberValue(row[retailCol.gross_profit]), 0);
           const total = technicalTotal + nominationTotal + retailTotal;
           const yen = value => Math.round(value).toLocaleString("ja-JP") + "円";
-          const period = useDateFilter
-            ? (monthMatch ? wantedYear + "年" + wantedMonth + "月"
-              : /先月/.test(userText) ? wantedYear + "年" + wantedMonth + "月"
-              : /今年|去年|昨年/.test(userText) ? wantedYear + "年" : wantedYear + "年" + wantedMonth + "月")
-            : "全期間";
+          const period = todayRequested ? todayJst
+            : useDateFilter
+              ? (monthMatch ? wantedYear + "年" + wantedMonth + "月"
+                : /先月/.test(userText) ? wantedYear + "年" + wantedMonth + "月"
+                : /今年|去年|昨年/.test(userText) ? wantedYear + "年" : wantedYear + "年" + wantedMonth + "月")
+              : "全期間";
           const resultLines = [
             "集計対象：「" + spreadsheet.name + "」/ Sales + RetailSales / " + period,
             "技術売上件数：" + activeSales.length + "件",
