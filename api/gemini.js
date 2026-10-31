@@ -506,6 +506,100 @@ module.exports = async function handler(req, res) {
       { title: "Settings", headers: ["setting_key","setting_value","description","updated_at"] },
       { title: "ChangeLog", headers: ["change_id","changed_at","changed_by","target_sheet","target_record_id","field_name","old_value","new_value","reason"] }
     ];
+    // Explicit retail-sale registration: write only to the registered J.A.R.V.I.S. workbook.
+    const retailSaleRegisterIntent =
+      /(?:店販|商品).{0,35}(?:売れた|販売した|売った|購入された|登録して|記録して)|(?:売れた|販売した|売った).{0,35}(?:店販|商品)/.test(userText) &&
+      /(?:登録|記録|追加|売れた|販売した|売った)/.test(userText);
+    if (retailSaleRegisterIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。先に管理ブックを作成してください。", "管理ブックが未登録です。");
+        const base = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id);
+        const [productResult, retailHeaderResult] = await Promise.all([
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Products'!A1:J1000")),
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'RetailSales'!A1:M1"))
+        ]);
+        const productRows = Array.isArray(productResult?.values) ? productResult.values : [];
+        const productHeaders = (productRows[0] || []).map(value => String(value || "").trim());
+        const retailHeaders = (retailHeaderResult?.values?.[0] || []).map(value => String(value || "").trim());
+        const productIndex = Object.fromEntries(productHeaders.map((name, index) => [name, index]));
+        const retailIndex = Object.fromEntries(retailHeaders.map((name, index) => [name, index]));
+        const requiredProductFields = ["product_id", "product_name", "unit_cost", "default_sale_price", "is_active"];
+        const requiredRetailFields = ["retail_sale_id", "sale_date", "product_id", "quantity", "unit_sale_price", "unit_cost", "gross_profit", "record_status", "created_at", "updated_at"];
+        if (requiredProductFields.some(name => productIndex[name] === undefined) ||
+            requiredRetailFields.some(name => retailIndex[name] === undefined)) {
+          return calendarDirect(res, "ProductsまたはRetailSalesのヘッダーが現在のスキーマと一致しません。書き込みは行っていません。", "シート構造が一致しないため登録を中止しました。");
+        }
+        const activeProducts = productRows.slice(1).filter(row =>
+          String(row?.[productIndex.is_active] ?? "").toLowerCase() !== "false" &&
+          String(row?.[productIndex.product_name] ?? "").trim()
+        );
+        const matchedProducts = activeProducts.filter(row =>
+          userText.toLowerCase().includes(String(row[productIndex.product_name]).trim().toLowerCase())
+        );
+        if (matchedProducts.length !== 1) {
+          const names = activeProducts.map(row => String(row[productIndex.product_name]).trim()).filter(Boolean).slice(0, 30);
+          return calendarDirect(res,
+            matchedProducts.length > 1
+              ? "商品名が複数一致しました。商品名を正式名称で指定してください。"
+              : "商品を特定できませんでした。Productsタブに商品を登録し、商品名を含めて依頼してください。" +
+                (names.length ? "\\n登録済み商品: " + names.join(" / ") : ""),
+            "商品を特定できないため登録していません。"
+          );
+        }
+        const product = matchedProducts[0];
+        const productName = String(product[productIndex.product_name]).trim();
+        const escapedName = productName.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
+        const quantityMatch = userText.match(new RegExp("(?:"
+          + escapedName + "\\\\s*(?:を)?\\\\s*|"
+          + "(\\\\d+)\\\\s*(?:個|本|点)\\\\s*(?:の)?"
+          + escapedName + ")"));
+        let quantity = quantityMatch ? Number(quantityMatch[1] || (userText.match(new RegExp(escapedName + "\\\\s*(?:を)?\\\\s*(\\\\d+)\\\\s*(?:個|本|点)")) || [])[1]) : NaN;
+        if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) {
+          return calendarDirect(res, productName + "の販売数量を確認してください。例：「" + productName + "を1本販売したので登録して」。", "販売数量を確認してください。");
+        }
+        const priceMatch = userText.match(/(?:単価|販売価格|売価)?\\s*([0-9][0-9,]*)\\s*円/);
+        const defaultPrice = Number(product[productIndex.default_sale_price]);
+        const unitSalePrice = priceMatch ? Number(priceMatch[1].replace(/,/g, "")) : defaultPrice;
+        const unitCost = Number(product[productIndex.unit_cost]);
+        if (!Number.isFinite(unitSalePrice) || unitSalePrice < 0 || !Number.isFinite(unitCost) || unitCost < 0) {
+          return calendarDirect(res, productName + "の販売価格または仕入原価がProductsタブに正しく登録されていません。書き込みは行っていません。", "商品マスターの価格情報を確認してください。");
+        }
+        const now = new Date();
+        const saleDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+        const timestamp = now.toISOString();
+        const record = {
+          retail_sale_id: crypto.randomUUID(), sale_date: saleDate, customer_id: "",
+          product_id: product[productIndex.product_id], quantity, unit_sale_price: unitSalePrice,
+          unit_cost: unitCost, gross_profit: (unitSalePrice - unitCost) * quantity,
+          staff_id: "", notes: "", record_status: "active", created_at: timestamp, updated_at: timestamp
+        };
+        const row = retailHeaders.map(header => Object.prototype.hasOwnProperty.call(record, header) ? record[header] : "");
+        const appendUrl = base + "/values/" + encodeURIComponent("'RetailSales'!A:M") +
+          ":append?" + new URLSearchParams({ valueInputOption: "RAW", insertDataOption: "INSERT_ROWS" });
+        const appended = await googleApiRequest(user.id, connection.id, appendUrl, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ majorDimension: "ROWS", values: [row] })
+        });
+        if (!(Number(appended?.updates?.updatedRows) >= 1)) {
+          return calendarDirect(res, "Google Sheetsへの追記結果を確認できませんでした。重複登録を避けるため、自動再試行はしていません。", "登録結果を確認できませんでした。");
+        }
+        return calendarDirect(res,
+          productName + "の販売を登録しました。\\n数量: " + quantity + " / 販売単価: " + unitSalePrice.toLocaleString("ja-JP") +
+          "円 / 利益: " + record.gross_profit.toLocaleString("ja-JP") + "円。登録先: RetailSales。",
+          productName + "の販売を登録しました。",
+          { retailSale: { registered: true, productId: record.product_id, quantity, unitSalePrice, unitCost, grossProfit: record.gross_profit, saleDate } }
+        );
+      } catch (error) {
+        console.error("Retail sale registration failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "店販登録に失敗しました。登録結果が不明な場合は、RetailSalesを確認してから再依頼してください。", "店販登録に失敗しました。");
+      }
+    }
+
     const managementWorkbookCreateIntent =
       /(?:管理ブック|管理データ).{0,24}(?:作成して|作って|新規作成)|(?:新規|新しい).{0,16}(?:管理ブック|管理データ).{0,12}(?:作成して|作って)/.test(userText);
     const managementWorkbookSchemaIntent =
