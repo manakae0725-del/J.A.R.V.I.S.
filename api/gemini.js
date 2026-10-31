@@ -542,6 +542,27 @@ module.exports = async function handler(req, res) {
               gridProperties: { rowCount: 1000, columnCount: definition.headers.length }
             } } });
             added.push(definition.title);
+          } else if (["Menus", "Staff"].includes(definition.title)) {
+            const headerRange = definition.title + "!A1:" + String.fromCharCode(64 + definition.headers.length) + "1";
+            const headerData = await googleApiRequest(user.id, connection.id,
+              "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "/values/" + encodeURIComponent(headerRange));
+            const currentHeader = Array.isArray(headerData?.values?.[0]) ? headerData.values[0] : [];
+            if (currentHeader.some(value => String(value ?? "").trim() !== "")) continue;
+            const oldColumns = Number(existing.gridProperties?.columnCount) || 0;
+            requests.push({
+              updateSheetProperties: {
+                properties: { sheetId: existing.sheetId, gridProperties: { columnCount: Math.max(oldColumns, definition.headers.length) } },
+                fields: "gridProperties.columnCount"
+              }
+            });
+            requests.push({
+              updateCells: {
+                range: { sheetId: existing.sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: definition.headers.length },
+                rows: [{ values: definition.headers.map(value => ({ userEnteredValue: { stringValue: value } })) }],
+                fields: "userEnteredValue"
+              }
+            });
+            changedHeaders.push(definition.title);
           } else if (["CompensationRules", "RetailSales"].includes(definition.title)) {
             const oldColumns = Number(existing.gridProperties?.columnCount) || 0;
             requests.push({
