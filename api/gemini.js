@@ -1536,13 +1536,17 @@ module.exports = async function handler(req, res) {
         const explicitSales = /(?:売上管理|技術売上|客単価|施術売上|指名売上)/.test(userText);
         const explicitRetail = /(?:店販管理|個人販売管理表|商品販売|販売数量|販売個数|商品名)/.test(userText);
         const registry = await readSpreadsheetRegistry(user.id);
+        const managementWorkbookEntry = !explicitRetail ? registry?.managementWorkbook : null;
+        const usingManagementWorkbook = Boolean(managementWorkbookEntry?.id);
         const registeredEntry = explicitRetail
           ? registry?.spreadsheets?.retail
-          : explicitSales || analyticalQuestion
-            ? registry?.spreadsheets?.sales
-            : null;
+          : usingManagementWorkbook
+            ? managementWorkbookEntry
+            : explicitSales || analyticalQuestion
+              ? registry?.spreadsheets?.sales
+              : null;
         const spreadsheetName = registeredEntry?.name ||
-          (explicitRetail ? "店販管理" : explicitSales || analyticalQuestion ? "売上管理" : null) ||
+          (usingManagementWorkbook ? "J.A.R.V.I.S.管理ブック" : explicitRetail ? "店販管理" : explicitSales || analyticalQuestion ? "売上管理" : null) ||
           quotedNames.find(name => /管理表|スプレッドシート|販売|売上/.test(name));
         if (!spreadsheetName) {
           return calendarDirect(res, "読み取るスプレッドシート名を指定してください。「売上管理」または「店販管理」を指定できます。", "読み取るスプレッドシート名を指定してください。");
@@ -1588,9 +1592,11 @@ module.exports = async function handler(req, res) {
         );
         const availableSheets = Array.isArray(metadata?.sheets) ? metadata.sheets : [];
         const requestedTab = quotedNames.find(name => availableSheets.some(sheet => sheet?.properties?.title === name));
-        const tab = requestedTab || (userText.includes("売上") && availableSheets.some(sheet => sheet?.properties?.title === "売上")
-          ? "売上"
-          : availableSheets[0]?.properties?.title);
+        const tab = usingManagementWorkbook
+          ? (explicitRetail ? "RetailSales" : "Sales")
+          : requestedTab || (userText.includes("売上") && availableSheets.some(sheet => sheet?.properties?.title === "売上")
+            ? "売上"
+            : availableSheets[0]?.properties?.title);
         if (!tab) {
           return calendarDirect(res, "スプレッドシートに読み取れるシートがありません。", "シートが見つかりません。");
         }
@@ -1608,6 +1614,90 @@ module.exports = async function handler(req, res) {
         const rows = Array.isArray(valuesResult?.values) ? valuesResult.values.slice(0, 1000) : [];
         if (!rows.length) {
           return calendarDirect(res, "「" + spreadsheet.name + "」の「" + tab + "」シートは空です。", "指定したシートにデータはありません。");
+        }
+
+        // Canonical management workbook aggregation: Sales + RetailSales are separate source logs.
+        if (usingManagementWorkbook && analyticalQuestion && !explicitRetail) {
+          const retailResult = await googleApiRequest(
+            user.id, connection.id,
+            "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(spreadsheet.id) +
+            "/values/" + encodeURIComponent("'RetailSales'!A1:M1000") + "?" + valuesQuery.toString()
+          );
+          const retailRows = Array.isArray(retailResult?.values) ? retailResult.values : [];
+          const salesHeaders = rows[0].map(value => String(value || "").trim());
+          const retailHeaders = (retailRows[0] || []).map(value => String(value || "").trim());
+          const salesCol = Object.fromEntries(salesHeaders.map((name, index) => [name, index]));
+          const retailCol = Object.fromEntries(retailHeaders.map((name, index) => [name, index]));
+          const requiredSales = ["transaction_date", "customer_type", "technical_sales", "nomination_fee", "record_status"];
+          const requiredRetail = ["sale_date", "quantity", "unit_sale_price", "gross_profit", "record_status"];
+          if (requiredSales.some(name => salesCol[name] === undefined) ||
+              requiredRetail.some(name => retailCol[name] === undefined)) {
+            return calendarDirect(res,
+              "管理ブックのSalesまたはRetailSalesの列構成が一致しないため、集計を中止しました。データ変更は行っていません。",
+              "集計元のシート構造を確認してください。"
+            );
+          }
+          const numberValue = value => {
+            const n = Number(String(value ?? "").replace(/[¥￥,\s]/g, "").replace(/円/g, ""));
+            return Number.isFinite(n) ? n : 0;
+          };
+          const monthOf = value => {
+            const m = String(value || "").trim().match(/(20\d{2})-(\d{1,2})-(\d{1,2})/);
+            return m ? { year: Number(m[1]), month: Number(m[2]) } : null;
+          };
+          const monthMatch = userText.match(/(\d{1,2})月/);
+          const nowJst = new Date(Date.now() + 9 * 3600000);
+          const wantedYear = /去年|昨年/.test(userText) ? nowJst.getUTCFullYear() - 1 : nowJst.getUTCFullYear();
+          const wantedMonth = monthMatch ? Number(monthMatch[1]) : /先月/.test(userText)
+            ? (nowJst.getUTCMonth() || 12)
+            : nowJst.getUTCMonth() + 1;
+          const useDateFilter = /今月|先月|今年|去年|昨年|\d{1,2}月|月別/.test(userText);
+          const matchesPeriod = value => {
+            if (!useDateFilter) return true;
+            const date = monthOf(value);
+            if (!date) return false;
+            if (/今年|去年|昨年/.test(userText) && date.year !== wantedYear) return false;
+            if ((/今月|先月|\d{1,2}月/.test(userText)) && date.month !== wantedMonth) return false;
+            return true;
+          };
+          const activeSales = rows.slice(1).filter(row =>
+            String(row[salesCol.record_status] || "active").toLowerCase() === "active" &&
+            String(row[salesCol.transaction_date] || "").trim() &&
+            matchesPeriod(row[salesCol.transaction_date])
+          );
+          const activeRetail = retailRows.slice(1).filter(row =>
+            String(row[retailCol.record_status] || "active").toLowerCase() === "active" &&
+            String(row[retailCol.sale_date] || "").trim() &&
+            matchesPeriod(row[retailCol.sale_date])
+          );
+          const technicalTotal = activeSales.reduce((sum, row) => sum + numberValue(row[salesCol.technical_sales]), 0);
+          const nominationTotal = activeSales.reduce((sum, row) => sum + numberValue(row[salesCol.nomination_fee]), 0);
+          const retailTotal = activeRetail.reduce((sum, row) =>
+            sum + numberValue(row[retailCol.unit_sale_price]) * numberValue(row[retailCol.quantity]), 0);
+          const profitTotal = activeRetail.reduce((sum, row) => sum + numberValue(row[retailCol.gross_profit]), 0);
+          const total = technicalTotal + nominationTotal + retailTotal;
+          const yen = value => Math.round(value).toLocaleString("ja-JP") + "円";
+          const period = useDateFilter
+            ? (monthMatch ? wantedYear + "年" + wantedMonth + "月"
+              : /先月/.test(userText) ? wantedYear + "年" + wantedMonth + "月"
+              : /今年|去年|昨年/.test(userText) ? wantedYear + "年" : wantedYear + "年" + wantedMonth + "月")
+            : "全期間";
+          const resultLines = [
+            "集計対象：「" + spreadsheet.name + "」/ Sales + RetailSales / " + period,
+            "技術売上件数：" + activeSales.length + "件",
+            "技術売上：" + yen(technicalTotal),
+            "指名料合計：" + yen(nominationTotal),
+            "店販売上件数：" + activeRetail.length + "件",
+            "店販売上：" + yen(retailTotal),
+            "総売上：" + yen(total)
+          ];
+          if (/(?:利益率|利益)/.test(userText)) {
+            resultLines.push("店販粗利益：" + yen(profitTotal));
+            if (/(?:利益率)/.test(userText)) {
+              resultLines.push(retailTotal > 0 ? "店販粗利益率：" + (profitTotal / retailTotal * 100).toFixed(1) + "%" : "店販売上が0円のため利益率は算出できません。");
+            }
+          }
+          return calendarDirect(res, resultLines.join("\n"), "売上を集計しました。");
         }
 
         if (analyticalQuestion && rows.length > 1) {
