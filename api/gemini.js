@@ -550,6 +550,7 @@ module.exports = async function handler(req, res) {
         const findings = [];
         const allFormulaCells = [];
         const allFormulaErrors = [];
+        const allSheetSnapshots = [];
         const colName = n => {
           let out = "";
           while (n >= 0) { out = String.fromCharCode(n % 26 + 65) + out; n = Math.floor(n / 26) - 1; }
@@ -570,6 +571,7 @@ module.exports = async function handler(req, res) {
           ]);
           const formulaRows = Array.isArray(formulaResult?.values) ? formulaResult.values : [];
           const displayRows = Array.isArray(displayResult?.values) ? displayResult.values : [];
+          allSheetSnapshots.push({ sheet: title, formulaRows, displayRows });
           const populated = formulaRows.filter(row => row.some(cell => String(cell ?? "").trim() !== ""));
           const formulaCells = [];
           const formulasByColumn = new Map();
@@ -632,26 +634,70 @@ module.exports = async function handler(req, res) {
           console.error("Spreadsheet audit context save failed", { name: registryError?.name || "Error" });
         }
         if (spreadsheetFollowupPlanIntent) {
-          const getFormula = (sheet, addr) => allFormulaCells.find(item => item.sheet === sheet && item.addr === addr)?.formula || "数式未検出";
-          const planLines = [];
           const salesSheet = sheetList.find(item => item?.properties?.title === "シート1")?.properties?.title || sheetList[0]?.properties?.title || "シート1";
           const summarySheet = sheetList.find(item => /集計|summary|dashboard/i.test(item?.properties?.title || ""))?.properties?.title || "集計";
-          const g2 = getFormula(salesSheet, "G2");
-          const g3 = getFormula(salesSheet, "G3");
-          const b9 = getFormula(summarySheet, "B9");
-          const b11 = getFormula(summarySheet, "B11");
-          const c2 = getFormula(summarySheet, "C2");
-          planLines.push("1. " + salesSheet + "!G2 / 現在: " + g2 + " / 比較: G3=" + g3 + "。G2だけ参照先が異なるため、I5が意図した参照か確認するまで変更保留。");
-          planLines.push("2. " + summarySheet + "!B9 / 現在: " + b9 + " / 候補: =IFERROR(" + (b9.startsWith("=") ? b9.slice(1) : "既存数式") + ",0)。ゼロ除算時は0表示にする案。");
-          planLines.push("3. " + summarySheet + "!B11 / 現在: " + b11 + " / 候補: =IFERROR(" + (b11.startsWith("=") ? b11.slice(1) : "既存数式") + ",0)。ゼロ除算時は0表示にする案。");
-          planLines.push("4. " + summarySheet + "!B2:B8およびC2 / 現在の数式を個別確認。C2=" + c2 + "。月別の対象行が8月・9月に対応しているか、データ配置を確認するまで変更保留。");
-          planLines.push("5. " + salesSheet + "!G列 / 数式パターンの異なるセルを全件比較し、意図的な例外か確認。G2以外は一括置換しない。");
-          const planReport = "スプレッドシート修正計画（読み取り専用・実行前）\nファイル: " + file.name +
-            "\n対象: " + salesSheet + " / " + summarySheet +
-            "\n\n【確認済みの現行数式】\nG2: " + g2 + "\nG3: " + g3 + "\nB9: " + b9 + "\nB11: " + b11 + "\nC2: " + c2 +
-            "\n\n【修正計画】\n" + planLines.join("\n") +
-            "\n\n【影響範囲】B9・B11は表示セルのみ。G列・月別集計は売上集計値に影響するため、意味確認後に限定セルを変更。\n【確認方法】変更前の数式を保存し、変更後に対象セルの表示値・月別合計・総合計を照合。\n\n今回は計画のみです。Google Sheetsへの変更は一切行っていません。G2のI5参照と月別範囲の意味は、現状のデータだけでは確定できません。";
-          return calendarDirect(res, planReport, "修正計画を作成しました。シートは変更していません。");
+          const snapshotFor = name => allSheetSnapshots.find(item => item.sheet === name);
+          const cellAt = (snapshot, address, rowsKey) => {
+            if (!snapshot) return "";
+            const match = address.match(/^([A-Z]+)(\\d+)$/);
+            if (!match) return "";
+            let col = 0;
+            for (const ch of match[1]) col = col * 26 + ch.charCodeAt(0) - 64;
+            return snapshot[rowsKey]?.[Number(match[2]) - 1]?.[col - 1] ?? "";
+          };
+          const salesSnapshot = snapshotFor(salesSheet);
+          const summarySnapshot = snapshotFor(summarySheet);
+          const formulaAt = (snapshot, address) => String(cellAt(snapshot, address, "formulaRows") || "");
+          const displayAt = (snapshot, address) => String(cellAt(snapshot, address, "displayRows") ?? "");
+          const summaryCells = ["B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","C2"];
+          const summaryFormulaLines = summaryCells.map(address =>
+            address + ": " + (formulaAt(summarySnapshot, address) || "数式なし") +
+            " / 表示値: " + (displayAt(summarySnapshot, address) || "空欄")
+          );
+          const gFormulas = allFormulaCells.filter(item => item.sheet === salesSheet && item.col === "G");
+          const gPatterns = new Map();
+          for (const item of gFormulas) {
+            if (!gPatterns.has(item.normalized)) gPatterns.set(item.normalized, []);
+            gPatterns.get(item.normalized).push(item);
+          }
+          const gPatternLines = [...gPatterns.entries()].map(([pattern, items]) =>
+            pattern + " : " + items.length + "セル（例: " +
+            items.slice(0, 8).map(item => item.addr + "=" + item.formula).join(" / ") + "）"
+          );
+          const dateSnapshot = salesSnapshot;
+          const dateRows = [];
+          if (dateSnapshot) {
+            const dateValues = dateSnapshot.displayRows || [];
+            for (let i = 1; i < dateValues.length; i++) {
+              const date = String(dateValues[i]?.[0] ?? "").trim();
+              if (date) dateRows.push("A" + (i + 1) + "=" + date);
+              if (dateRows.length >= 30) break;
+            }
+          }
+          const monthReferences = summaryCells
+            .filter(address => /^B[2-8]$/.test(address) || address === "C2")
+            .map(address => address + " (" + displayAt(summarySnapshot, address) + ") -> " + (formulaAt(summarySnapshot, address) || "数式なし"));
+          const errorLines = allFormulaErrors
+            .filter(item => item.sheet === summarySheet)
+            .map(item => item.value);
+          const planLines = [
+            "1. 集計シートの月別集計は、見出しセルと参照範囲を対で確認します。式の参照先だけでは月の意味を断定できないため、元データの日付列と照合するまで変更しません。",
+            "2. B9・B11は現在の式と表示値を確認済みです。ゼロ除算時に0を表示するか空欄にするかは、未入力状態の意味を決めてから選択します。",
+            "3. " + salesSheet + "!G列は数式パターンごとに分類しました。例外セルは個別確認し、列全体の一括置換は行いません。",
+            "4. " + summarySheet + "!B2:B11・C2の式はセル単位で一覧化しました。式の意味が確定しないセルは修正対象にしません。"
+          ];
+          const planReport = "スプレッドシート修正計画（読み取り専用・実行前）\\nファイル: " + file.name +
+            "\\n対象: " + salesSheet + " / " + summarySheet +
+            "\\n\\n【集計シートの現行数式・表示値】\\n" + summaryFormulaLines.join("\\n") +
+            "\\n\\n【" + salesSheet + " のG列数式パターン】\\n数式セル数: " + gFormulas.length + " / パターン数: " + gPatterns.size +
+            "\\n" + (gPatternLines.join("\\n") || "数式なし") +
+            "\\n\\n【元データの日付列（A列・先頭30件まで）】\\n" + (dateRows.join(" / ") || "日付の入力値なし") +
+            "\\n\\n【集計シートの計算エラー】\\n" + (errorLines.join(", ") || "表示上の計算エラーなし") +
+            "\\n\\n【修正計画】\\n" + planLines.join("\\n") +
+            "\\n\\n【影響範囲】B9・B11は集計表示のみ。B2:B8・C2およびG列は売上集計値に影響するため、月別の行配置と数式の意図が確認できたセルだけを変更します。" +
+            "\\n【実行前の確認】変更対象セル・変更前後の式・表示値・参照範囲・影響する集計項目を一覧化し、バックアップ可能な状態で明示承認を得ます。" +
+            "\\n\\n今回は計画の精度を上げるための再取得のみです。Google Sheetsへの変更は一切行っていません。日付列の実データと月別集計の対応が確認できない箇所は、引き続き保留します。";
+          return calendarDirect(res, planReport, "修正計画を更新しました。シートは変更していません。");
         }
         const report = "スプレッドシート詳細監査（読み取り専用）\nファイル: " + file.name +
           "\nシート数: " + sheetList.length + "\n調査上限: 各シート最大" + (sheetList.some(s=>/集計|summary|dashboard/i.test(s?.properties?.title||"")) ? "500" : "500") + "行（集計シートは100行）" +
