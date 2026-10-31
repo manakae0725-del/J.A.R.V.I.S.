@@ -702,8 +702,8 @@ module.exports = async function handler(req, res) {
     }
     // Explicit per-customer technical sales registration. Retail details remain in RetailSales.
     const technicalSaleRegisterIntent =
-      /(?:技術売上|指名料|フリー売上|指名売上).{0,40}(?:登録|記録|追加)|(?:売上を|売上).{0,20}(?:登録して|記録して|追加して)/.test(userText) &&
-      !/(?:店販|商品).{0,20}(?:販売|売れた)/.test(userText);
+      /(?:技術売上|指名料|フリー売上|指名売上)[\\s\\S]{0,40}(?:登録|記録|追加)|(?:売上を|売上)[\\s\\S]{0,20}(?:登録して|記録して|追加して)/.test(userText) &&
+      !/(?:店販|商品)[\\s\\S]{0,20}(?:販売|売れた)/.test(userText);
     if (technicalSaleRegisterIntent) {
       try {
         const customerTypeMatch = userText.match(/(指名|フリー)/);
