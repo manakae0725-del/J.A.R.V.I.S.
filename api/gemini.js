@@ -551,6 +551,7 @@ module.exports = async function handler(req, res) {
         const allFormulaCells = [];
         const allFormulaErrors = [];
         const allSheetSnapshots = [];
+        const formulaColumnReferences = new Map();
         const colName = n => {
           let out = "";
           while (n >= 0) { out = String.fromCharCode(n % 26 + 65) + out; n = Math.floor(n / 26) - 1; }
@@ -560,9 +561,12 @@ module.exports = async function handler(req, res) {
           const props = sheet?.properties || {};
           const title = props.title;
           if (!title) continue;
-          const isSummary = /集計|summary|dashboard/i.test(title);
-          const lastCol = isSummary ? "C" : "K";
-          const maxRows = Math.max(20, Math.min(Number(props.gridProperties?.rowCount) || 100, isSummary ? 100 : 500));
+          const gridRows = Math.max(1, Number(props.gridProperties?.rowCount) || 100);
+          const gridColumns = Math.max(1, Number(props.gridProperties?.columnCount) || 26);
+          // Audit the full declared grid (bounded for response size), not only A:K/A:C.
+          // This is necessary to detect references to columns such as I and formulas beyond K.
+          const lastCol = colName(Math.min(gridColumns, 100) - 1);
+          const maxRows = Math.max(20, Math.min(gridRows, 1000));
           const range = "'" + title.replace(/'/g, "''") + "'!A1:" + lastCol + maxRows;
           const baseUrl = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(file.id) + "/values/" + encodeURIComponent(range);
           const [formulaResult, displayResult] = await Promise.all([
@@ -586,6 +590,14 @@ module.exports = async function handler(req, res) {
                 formulaCells.push({addr, col:colName(c), row:r+1, formula:value, normalized});
                 if (!formulasByColumn.has(colName(c))) formulasByColumn.set(colName(c), []);
                 formulasByColumn.get(colName(c)).push({row:r+1, formula:value, normalized});
+                // Record cross-cell column references for safe structural-change review.
+                const referencePattern = /(?:'[^']+'!|[A-Za-z0-9_]+!)?\$?([A-Z]{1,3})\$?\d+/g;
+                let referenceMatch;
+                while ((referenceMatch = referencePattern.exec(value)) !== null) {
+                  const referencedColumn = referenceMatch[1];
+                  if (!formulaColumnReferences.has(referencedColumn)) formulaColumnReferences.set(referencedColumn, []);
+                  formulaColumnReferences.get(referencedColumn).push({sheet:title, cell:colName(c)+(r+1), formula:value});
+                }
               }
               const shown = displayRows[r]?.[c];
               if (typeof shown === "string" && /^#(?:REF!|DIV\/0!|VALUE!|N\/A|NAME\?|NUM!|NULL!)/.test(shown)) {
@@ -618,6 +630,13 @@ module.exports = async function handler(req, res) {
             "\n数式分布: " + (colStats.join("、") || "数式なし") +
             "\n数式例: " + (samples || "なし") +
             (formulaErrors.length ? "\n計算エラー: " + formulaErrors.slice(0,8).join(", ") : "\n表示上の計算エラー: なし"));
+        }
+        const iColumnRefs = formulaColumnReferences.get("I") || [];
+        if (iColumnRefs.length) {
+          const examples = iColumnRefs.slice(0, 20).map(item => item.sheet + "!" + item.cell + " (" + item.formula + ")");
+          findings.push("I列を参照する数式が" + iColumnRefs.length + "件あります。列削除・移動前に参照先の意味を確認してください。参照例: " + examples.join(" / "));
+        } else {
+          findings.push("監査範囲内でI列を参照する数式は検出されませんでした。ただし、監査上限外の行・列、名前付き範囲、グラフ等の参照は別途確認が必要です。");
         }
         if (/売上管理/.test(spreadsheetName)) {
           findings.push("集計シートの月別総売上は、8月がG2:G100とF101:F200、9月がG列の別範囲を参照しているように見えます。月別の対象行が意図どおりか確認が必要です。");
@@ -701,6 +720,7 @@ module.exports = async function handler(req, res) {
         }
         const report = "スプレッドシート詳細監査（読み取り専用）\nファイル: " + file.name +
           "\nシート数: " + sheetList.length + "\n調査上限: 各シート最大" + (sheetList.some(s=>/集計|summary|dashboard/i.test(s?.properties?.title||"")) ? "500" : "500") + "行（集計シートは100行）" +
+          "\n\n【列参照監査】\nI列を参照する数式: " + (iColumnRefs.length ? iColumnRefs.length + "件" : "検出なし") +
           "\n\n" + (reports.join("\n\n") || "シートが見つかりませんでした。") +
           "\n\n【修正候補】\n" + [...new Set(findings)].map((item,i)=>(i+1)+". "+item).join("\n") +
           "\n\nこれは監査と修正候補の提示のみです。シートの値・数式は変更していません。次に、変更対象セル・変更前後の数式・影響範囲を明記した計画を作成し、明示的な承認後にのみ実行します。";
