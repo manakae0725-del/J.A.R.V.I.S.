@@ -668,10 +668,12 @@ module.exports = async function handler(req, res) {
     const spreadsheetFollowupPlanIntent =
       /(?:先ほど|さっき|前回).{0,30}(?:監査|調査|結果).{0,30}(?:修正計画|計画|修正案)|(?:監査結果|調査結果).{0,30}(?:修正計画|計画|修正案)|(?:修正計画|計画を作成).{0,20}(?:監査|調査)/.test(userText);
     const sheetAgentIntent =
-      !managementWorkbookAuditIntent &&
       (/(?:スプレッドシート|シート|管理ブック|管理データ|売上管理|店販管理)/.test(userText) ||
         spreadsheetFollowupPlanIntent) &&
-      /(?:完成させて|直して|修正して|修正計画|計画を作成|作成して|作って|構造を調べて|調査して|確認して|確認|数式を確認|未完成|自分で作って|整えて|詳しく)/.test(userText) &&
+      (
+        managementWorkbookAuditIntent ||
+        /(?:完成させて|直して|修正して|修正計画|計画を作成|作成して|作って|構造を調べて|調査して|確認して|確認|数式を確認|未完成|自分で作って|整えて|詳しく)/.test(userText)
+      ) &&
       !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して|実行して)/.test(userText);
     if (sheetAgentIntent) {
       try {
