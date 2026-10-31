@@ -642,8 +642,8 @@ module.exports = async function handler(req, res) {
           const b11 = getFormula(summarySheet, "B11");
           const c2 = getFormula(summarySheet, "C2");
           planLines.push("1. " + salesSheet + "!G2 / 現在: " + g2 + " / 比較: G3=" + g3 + "。G2だけ参照先が異なるため、I5が意図した参照か確認するまで変更保留。");
-          planLines.push("2. " + summarySheet + "!B9 / 現在: " + b9 + " / 候補: =IFERROR(" + (b9.startsWith("=") ? b9.slice(1) : "既存数式") + ",\\"\\"")。ゼロ除算時は空欄表示にする案。");
-          planLines.push("3. " + summarySheet + "!B11 / 現在: " + b11 + " / 候補: =IFERROR(" + (b11.startsWith("=") ? b11.slice(1) : "既存数式") + ",\\"\\"")。ゼロ除算時は空欄表示にする案。");
+          planLines.push("2. " + summarySheet + "!B9 / 現在: " + b9 + " / 候補: =IFERROR(" + (b9.startsWith("=") ? b9.slice(1) : "既存数式") + ",0)。ゼロ除算時は0表示にする案。");
+          planLines.push("3. " + summarySheet + "!B11 / 現在: " + b11 + " / 候補: =IFERROR(" + (b11.startsWith("=") ? b11.slice(1) : "既存数式") + ",0)。ゼロ除算時は0表示にする案。");
           planLines.push("4. " + summarySheet + "!B2:B8およびC2 / 現在の数式を個別確認。C2=" + c2 + "。月別の対象行が8月・9月に対応しているか、データ配置を確認するまで変更保留。");
           planLines.push("5. " + salesSheet + "!G列 / 数式パターンの異なるセルを全件比較し、意図的な例外か確認。G2以外は一括置換しない。");
           const planReport = "スプレッドシート修正計画（読み取り専用・実行前）\\nファイル: " + file.name +
