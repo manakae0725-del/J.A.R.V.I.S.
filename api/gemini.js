@@ -618,6 +618,15 @@ module.exports = async function handler(req, res) {
           findings.push("平均客単価・時間売上は客数や施術時間が0のときに#DIV/0!となる可能性があります。IFERRORまたは分母チェックを検討します。");
           findings.push("シート1のG列（合計売上）はD列（技術売上）+E列（指名料）+F列（店販）の数式パターンが行全体で一貫しているか確認が必要です。");
         }
+        // Persist the last audited workbook so later plan requests can resolve "that audit" without a repeated file name.
+        try {
+          await saveSpreadsheetRegistry(user.id, {
+            ...(registry || { version: 1, spreadsheets: {} }),
+            lastAuditSpreadsheet: spreadsheetName
+          });
+        } catch (registryError) {
+          console.error("Spreadsheet audit context save failed", { name: registryError?.name || "Error" });
+        }
         const report = "スプレッドシート詳細監査（読み取り専用）\nファイル: " + file.name +
           "\nシート数: " + sheetList.length + "\n調査上限: 各シート最大" + (sheetList.some(s=>/集計|summary|dashboard/i.test(s?.properties?.title||"")) ? "500" : "500") + "行（集計シートは100行）" +
           "\n\n" + (reports.join("\n\n") || "シートが見つかりませんでした。") +
