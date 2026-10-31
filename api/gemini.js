@@ -708,11 +708,11 @@ module.exports = async function handler(req, res) {
     if (dailySalesIntent) {
       try {
         const countMatch = label => {
-          const match = userText.match(new RegExp(label + "\\\s*([0-9]+)\\\s*人"));
+          const match = userText.match(new RegExp(label + "\\s*([0-9]+)\\s*人"));
           return match ? Number(match[1]) : 0;
         };
         const amountMatch = label => {
-          const match = userText.match(new RegExp(label + "\\\s*([0-9][0-9,]*)\\\s*円"));
+          const match = userText.match(new RegExp(label + "\\s*([0-9][0-9,]*)\\s*円"));
           return match ? Number(match[1].replace(/,/g, "")) : NaN;
         };
         const freeCount = countMatch("フリー");
