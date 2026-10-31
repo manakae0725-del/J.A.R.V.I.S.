@@ -518,21 +518,43 @@ module.exports = async function handler(req, res) {
         const workbook = registry?.managementWorkbook;
         if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。先に管理ブックを作成してください。", "管理ブックが未登録です。");
         const base = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id);
-        const [productResult, retailHeaderResult] = await Promise.all([
+        const [productResult, retailHeaderResult, staffResult] = await Promise.all([
           googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Products'!A1:J1000")),
-          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'RetailSales'!A1:M1"))
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'RetailSales'!A1:M1")),
+          googleApiRequest(user.id, connection.id, base + "/values/" + encodeURIComponent("'Staff'!A1:Z1000"))
         ]);
         const productRows = Array.isArray(productResult?.values) ? productResult.values : [];
+        const staffRows = Array.isArray(staffResult?.values) ? staffResult.values : [];
         const productHeaders = (productRows[0] || []).map(value => String(value || "").trim());
         const retailHeaders = (retailHeaderResult?.values?.[0] || []).map(value => String(value || "").trim());
+        const staffHeaders = (staffRows[0] || []).map(value => String(value || "").trim());
         const productIndex = Object.fromEntries(productHeaders.map((name, index) => [name, index]));
         const retailIndex = Object.fromEntries(retailHeaders.map((name, index) => [name, index]));
+        const staffIndex = Object.fromEntries(staffHeaders.map((name, index) => [name, index]));
         const requiredProductFields = ["product_id", "product_name", "unit_cost", "default_sale_price", "is_active"];
-        const requiredRetailFields = ["retail_sale_id", "sale_date", "product_id", "quantity", "unit_sale_price", "unit_cost", "gross_profit", "record_status", "created_at", "updated_at"];
+        const requiredRetailFields = ["retail_sale_id", "sale_date", "product_id", "quantity", "unit_sale_price", "unit_cost", "gross_profit", "staff_id", "record_status", "created_at", "updated_at"];
+        const requiredStaffFields = ["staff_id", "display_name", "is_active", "auth_user_id"];
         if (requiredProductFields.some(name => productIndex[name] === undefined) ||
             requiredRetailFields.some(name => retailIndex[name] === undefined)) {
           return calendarDirect(res, "ProductsまたはRetailSalesのヘッダーが現在のスキーマと一致しません。書き込みは行っていません。", "シート構造が一致しないため登録を中止しました。");
         }
+        if (requiredStaffFields.some(name => staffIndex[name] === undefined)) {
+          return calendarDirect(res, "Staffタブにauth_user_id列がありません。先に管理データをスキーマv4へ更新してください。店販データへの書き込みは行っていません。", "スタッフ連携の準備が必要です。");
+        }
+        const linkedStaff = staffRows.slice(1).filter(row =>
+          String(row?.[staffIndex.auth_user_id] ?? "").trim() === user.id &&
+          String(row?.[staffIndex.is_active] ?? "").toLowerCase() !== "false" &&
+          String(row?.[staffIndex.staff_id] ?? "").trim()
+        );
+        if (linkedStaff.length !== 1) {
+          return calendarDirect(res,
+            linkedStaff.length === 0
+              ? "ログインユーザーに紐付くスタッフ情報がありません。先に「スタッフ登録」と表示名・雇用形態を指定してください。店販登録は行っていません。"
+              : "同じログインユーザーに複数の有効スタッフ情報が紐付いています。Staffタブを確認してください。店販登録は行っていません。",
+            "スタッフ情報を確認してください。"
+          );
+        }
+        const currentStaffId = String(linkedStaff[0][staffIndex.staff_id]).trim();
         const activeProducts = productRows.slice(1).filter(row =>
           String(row?.[productIndex.is_active] ?? "").toLowerCase() !== "false" &&
           String(row?.[productIndex.product_name] ?? "").trim()
@@ -606,7 +628,7 @@ module.exports = async function handler(req, res) {
           retail_sale_id: crypto.randomUUID(), sale_date: saleDate, customer_id: "",
           product_id: product[productIndex.product_id], quantity, unit_sale_price: unitSalePrice,
           unit_cost: unitCost, gross_profit: (unitSalePrice - unitCost) * quantity,
-          staff_id: "", notes: "", record_status: "active", created_at: timestamp, updated_at: timestamp
+          staff_id: currentStaffId, notes: "", record_status: "active", created_at: timestamp, updated_at: timestamp
         };
         const row = retailHeaders.map(header => Object.prototype.hasOwnProperty.call(record, header) ? record[header] : "");
         const appendUrl = base + "/values/" + encodeURIComponent("'RetailSales'!A:M") +
