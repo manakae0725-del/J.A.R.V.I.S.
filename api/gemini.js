@@ -540,28 +540,58 @@ module.exports = async function handler(req, res) {
         const matchedProducts = activeProducts.filter(row =>
           userText.toLowerCase().includes(String(row[productIndex.product_name]).trim().toLowerCase())
         );
-        if (matchedProducts.length !== 1) {
-          const names = activeProducts.map(row => String(row[productIndex.product_name]).trim()).filter(Boolean).slice(0, 30);
-          return calendarDirect(res,
-            matchedProducts.length > 1
-              ? "商品名が複数一致しました。商品名を正式名称で指定してください。"
-              : "商品を特定できませんでした。Productsタブに商品を登録し、商品名を含めて依頼してください。" +
-                (names.length ? "\\n登録済み商品: " + names.join(" / ") : ""),
-            "商品を特定できないため登録していません。"
-          );
+        let product = matchedProducts[0];
+        if (matchedProducts.length > 1) {
+          return calendarDirect(res, "商品名が複数一致しました。商品名を正式名称で指定してください。", "商品を特定できないため登録していません。");
         }
-        const product = matchedProducts[0];
+        if (matchedProducts.length === 0) {
+          const inferredNameMatch = userText.match(/(?:商品名は|商品は)?\\s*(.+?)を\\s*\\d+\\s*(?:個|本|点)/);
+          const inferredName = String(inferredNameMatch?.[1] || "").trim().replace(/^(?:店販で|店販商品|商品)\\s*/, "");
+          const costMatch = userText.match(/(?:仕入原価|仕入れ原価|原価|仕入れ値)\\s*([0-9][0-9,]*)\\s*円/);
+          const salePriceMatch = userText.match(/(?:単価|販売価格|売価)?\\s*([0-9][0-9,]*)\\s*円/);
+          if (!inferredName || !costMatch || !salePriceMatch) {
+            return calendarDirect(res,
+              "Productsに未登録の商品です。商品マスターへ追加するため、商品名・仕入原価・販売価格を指定してください。例：「商品名Aを1本、仕入原価1,800円、販売価格3,300円で販売したので登録して」。",
+              "未登録商品のため、商品情報が必要です。"
+            );
+          }
+          const newUnitCost = Number(costMatch[1].replace(/,/g, ""));
+          const newSalePrice = Number(salePriceMatch[1].replace(/,/g, ""));
+          if (!Number.isFinite(newUnitCost) || newUnitCost < 0 || !Number.isFinite(newSalePrice) || newSalePrice < 0) {
+            return calendarDirect(res, "仕入原価と販売価格を確認してください。商品マスターへの追加は行っていません。", "商品価格を確認してください。");
+          }
+          const nowForProduct = new Date();
+          const productDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(nowForProduct);
+          const newProduct = {
+            product_id: crypto.randomUUID(), product_name: inferredName, category: "",
+            unit_cost: newUnitCost, default_sale_price: newSalePrice,
+            active_from: productDate, active_to: "", is_active: true,
+            created_at: nowForProduct.toISOString(), updated_at: nowForProduct.toISOString()
+          };
+          const productRow = productHeaders.map(header => Object.prototype.hasOwnProperty.call(newProduct, header) ? newProduct[header] : "");
+          const productAppendUrl = base + "/values/" + encodeURIComponent("'Products'!A:J") +
+            ":append?" + new URLSearchParams({ valueInputOption: "RAW", insertDataOption: "INSERT_ROWS" });
+          const productAppend = await googleApiRequest(user.id, connection.id, productAppendUrl, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ majorDimension: "ROWS", values: [productRow] })
+          });
+          if (!(Number(productAppend?.updates?.updatedRows) >= 1)) {
+            return calendarDirect(res, "商品マスターへの追加結果を確認できませんでした。重複防止のため自動再試行はしていません。Productsを確認してください。", "商品登録結果を確認できませんでした。");
+          }
+          product = productHeaders.map((header, index) => productRow[index] ?? "");
+          product = Object.fromEntries(productHeaders.map((header, index) => [header, product[index]]));
+        }
         const productName = String(product[productIndex.product_name]).trim();
         const productPosition = userText.toLowerCase().indexOf(productName.toLowerCase());
         const beforeProduct = userText.slice(0, productPosition);
         const afterProduct = userText.slice(productPosition + productName.length);
-        const quantityAfter = afterProduct.match(/^\\s*(?:を)?\\s*(\\d+)\\s*(?:個|本|点)/);
-        const quantityBefore = beforeProduct.match(/(\\d+)\\s*(?:個|本|点)\\s*(?:の)?\\s*$/);
+        const quantityAfter = afterProduct.match(/^\s*(?:を)?\s*(\d+)\s*(?:個|本|点)/);
+        const quantityBefore = beforeProduct.match(/(\d+)\s*(?:個|本|点)\s*(?:の)?\s*$/);
         const quantity = Number(quantityAfter?.[1] || quantityBefore?.[1]);
         if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) {
           return calendarDirect(res, productName + "の販売数量を確認してください。例：「" + productName + "を1本販売したので登録して」。", "販売数量を確認してください。");
         }
-        const priceMatch = userText.match(/(?:単価|販売価格|売価)?\\s*([0-9][0-9,]*)\\s*円/);
+        const priceMatch = userText.match(/(?:単価|販売価格|売価)?\s*([0-9][0-9,]*)\s*円/);
         const defaultPrice = Number(product[productIndex.default_sale_price]);
         const unitSalePrice = priceMatch ? Number(priceMatch[1].replace(/,/g, "")) : defaultPrice;
         const unitCost = Number(product[productIndex.unit_cost]);
