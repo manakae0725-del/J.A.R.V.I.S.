@@ -702,17 +702,17 @@ module.exports = async function handler(req, res) {
     }
     // Daily summary sales registration: one row per staff member per date.
     const dailySalesIntent =
-      /(?:フリー|指名)\\s*[0-9]+\\s*人/.test(userText) &&
+      /(?:フリー|指名)\s*[0-9]+\s*人/.test(userText) &&
       /(?:フリー売上|指名売上)/.test(userText) &&
       /(?:登録|記録|追加)/.test(userText);
     if (dailySalesIntent) {
       try {
         const countMatch = label => {
-          const match = userText.match(new RegExp(label + "\\\\s*([0-9]+)\\\\s*人"));
+          const match = userText.match(new RegExp(label + "\\\s*([0-9]+)\\\s*人"));
           return match ? Number(match[1]) : 0;
         };
         const amountMatch = label => {
-          const match = userText.match(new RegExp(label + "\\\\s*([0-9][0-9,]*)\\\\s*円"));
+          const match = userText.match(new RegExp(label + "\\\s*([0-9][0-9,]*)\\\s*円"));
           return match ? Number(match[1].replace(/,/g, "")) : NaN;
         };
         const freeCount = countMatch("フリー");
@@ -726,7 +726,7 @@ module.exports = async function handler(req, res) {
             "日次登録には「フリー○人、指名○人、フリー売上○円、指名売上○円」が必要です。登録は行っていません。",
             "人数と区分別技術売上を確認してください。");
         }
-        const dateMatch = userText.match(/(20\\d{2})[年/-](\\d{1,2})[月/-](\\d{1,2})日?/);
+        const dateMatch = userText.match(/(20\d{2})[年/-](\d{1,2})[月/-](\d{1,2})日?/);
         const saleDate = dateMatch
           ? [dateMatch[1], String(Number(dateMatch[2])).padStart(2, "0"), String(Number(dateMatch[3])).padStart(2, "0")].join("-")
           : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -827,11 +827,11 @@ module.exports = async function handler(req, res) {
     }
 
     // Update the per-customer nomination fee rate with an effective date.
-    const nominationFeeChangeIntent = /指名料[\\s\\S]{0,20}(?:変更|改定|を).{0,20}([0-9][0-9,]*)\\s*円/.test(userText) && /(?:から|適用|変更|改定)/.test(userText);
+    const nominationFeeChangeIntent = /指名料[\s\\S]{0,20}(?:変更|改定|を).{0,20}([0-9][0-9,]*)\s*円/.test(userText) && /(?:から|適用|変更|改定)/.test(userText);
     if (nominationFeeChangeIntent) {
       try {
-        const feeMatch=userText.match(/指名料[\\s\\S]{0,20}(?:変更|改定|を)[\\s\\S]{0,20}?([0-9][0-9,]*)\\s*円/);
-        const dateMatch=userText.match(/(20\\d{2})[年/-](\\d{1,2})[月/-](\\d{1,2})日?/);
+        const feeMatch=userText.match(/指名料[\s\\S]{0,20}(?:変更|改定|を)[\s\\S]{0,20}?([0-9][0-9,]*)\s*円/);
+        const dateMatch=userText.match(/(20\d{2})[年/-](\d{1,2})[月/-](\d{1,2})日?/);
         if(!feeMatch||!dateMatch) return calendarDirect(res,"指名料の変更には新しい単価と適用開始日が必要です。例：「指名料を900円に変更、2027年1月1日から適用」。","新単価と適用開始日を指定してください。");
         const fee=Number(feeMatch[1].replace(/,/g,""));
         const effective=[dateMatch[1],String(Number(dateMatch[2])).padStart(2,"0"),String(Number(dateMatch[3])).padStart(2,"0")].join("-");
