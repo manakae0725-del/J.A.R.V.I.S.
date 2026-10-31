@@ -769,11 +769,46 @@ module.exports = async function handler(req, res) {
         if (!(Number(appended?.updates?.updatedRows) >= 1)) {
           return calendarDirect(res, "Google Sheetsへの追記結果を確認できませんでした。重複登録を避けるため、自動再試行はしていません。", "登録結果を確認できませんでした。");
         }
+        let readBackVerified = false;
+        try {
+          const readBack = await googleApiRequest(
+            user.id, connection.id,
+            base + "/values/" + encodeURIComponent("'RetailSales'!A1:M10000")
+          );
+          const savedRows = Array.isArray(readBack?.values) ? readBack.values : [];
+          const savedHeaders = (savedRows[0] || []).map(value => String(value || "").trim());
+          const savedIndex = Object.fromEntries(savedHeaders.map((name, index) => [name, index]));
+          const savedRecord = savedRows.slice(1).find(saved =>
+            String(saved?.[savedIndex.retail_sale_id] ?? "").trim() === record.retail_sale_id
+          );
+          if (savedRecord) {
+            const savedStaffId = String(savedRecord[savedIndex.staff_id] ?? "").trim();
+            const savedProductId = String(savedRecord[savedIndex.product_id] ?? "").trim();
+            const savedQuantity = Number(savedRecord[savedIndex.quantity]);
+            if (savedStaffId !== currentStaffId || savedProductId !== String(record.product_id) || savedQuantity !== quantity) {
+              return calendarDirect(res,
+                "店販行は追記されましたが、読み戻し内容が登録値と一致しません。再登録は行わず、RetailSalesを確認してください。",
+                "登録後の照合で不一致を検出しました。",
+                { retailSale: { registered: true, verified: false, retailSaleId: record.retail_sale_id } }
+              );
+            }
+            readBackVerified = true;
+          }
+        } catch (verifyError) {
+          console.error("Retail sale read-back verification failed", { name: verifyError?.name || "Error", status: Number.isInteger(verifyError?.status) ? verifyError.status : undefined });
+        }
+        if (!readBackVerified) {
+          return calendarDirect(res,
+            "店販行の追記応答は成功しましたが、読み戻し確認ができませんでした。重複防止のため再登録しないでください。RetailSalesを確認してください。",
+            "追記済み・読み戻し未確認です。",
+            { retailSale: { registered: true, verified: false, retailSaleId: record.retail_sale_id } }
+          );
+        }
         return calendarDirect(res,
           productName + "の販売を登録しました。\\n数量: " + quantity + " / 販売単価: " + unitSalePrice.toLocaleString("ja-JP") +
           "円 / 利益: " + record.gross_profit.toLocaleString("ja-JP") + "円。登録先: RetailSales。",
           productName + "の販売を登録しました。",
-          { retailSale: { registered: true, productId: record.product_id, quantity, unitSalePrice, unitCost, grossProfit: record.gross_profit, saleDate } }
+          { retailSale: { registered: true, verified: true, retailSaleId: record.retail_sale_id, productId: record.product_id, staffId: currentStaffId, quantity, unitSalePrice, unitCost, grossProfit: record.gross_profit, saleDate } }
         );
       } catch (error) {
         console.error("Retail sale registration failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
