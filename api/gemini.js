@@ -544,10 +544,10 @@ module.exports = async function handler(req, res) {
           isActive: String(row[index.is_active] ?? "").toLowerCase() !== "false"
         };
         return calendarDirect(res,
-          "Staffタブの実データを読み取り専用で確認しました。\\n表示名: " + result.displayName +
-          "\\n雇用形態: " + result.employmentType + "\\nスタッフID: " + result.staffId +
-          "\\n有効状態: " + (result.isActive ? "有効" : "無効") +
-          "\\nログインユーザーとの紐付け: 一致。シートへの変更は行っていません。",
+          "Staffタブの実データを読み取り専用で確認しました。\n表示名: " + result.displayName +
+          "\n雇用形態: " + result.employmentType + "\nスタッフID: " + result.staffId +
+          "\n有効状態: " + (result.isActive ? "有効" : "無効") +
+          "\nログインユーザーとの紐付け: 一致。シートへの変更は行っていません。",
           "スタッフ情報の読み取り照合が完了しました。",
           { staffVerification: result }
         );
@@ -805,7 +805,7 @@ module.exports = async function handler(req, res) {
           );
         }
         return calendarDirect(res,
-          productName + "の販売を登録しました。\\n数量: " + quantity + " / 販売単価: " + unitSalePrice.toLocaleString("ja-JP") +
+          productName + "の販売を登録しました。\n数量: " + quantity + " / 販売単価: " + unitSalePrice.toLocaleString("ja-JP") +
           "円 / 利益: " + record.gross_profit.toLocaleString("ja-JP") + "円。登録先: RetailSales。",
           productName + "の販売を登録しました。",
           { retailSale: { registered: true, verified: true, retailSaleId: record.retail_sale_id, productId: record.product_id, staffId: currentStaffId, quantity, unitSalePrice, unitCost, grossProfit: record.gross_profit, saleDate } }
