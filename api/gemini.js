@@ -553,12 +553,12 @@ module.exports = async function handler(req, res) {
         }
         const product = matchedProducts[0];
         const productName = String(product[productIndex.product_name]).trim();
-        const escapedName = productName.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
-        const quantityMatch = userText.match(new RegExp("(?:"
-          + escapedName + "\\\\s*(?:を)?\\\\s*|"
-          + "(\\\\d+)\\\\s*(?:個|本|点)\\\\s*(?:の)?"
-          + escapedName + ")"));
-        let quantity = quantityMatch ? Number(quantityMatch[1] || (userText.match(new RegExp(escapedName + "\\\\s*(?:を)?\\\\s*(\\\\d+)\\\\s*(?:個|本|点)")) || [])[1]) : NaN;
+        const productPosition = userText.toLowerCase().indexOf(productName.toLowerCase());
+        const beforeProduct = userText.slice(0, productPosition);
+        const afterProduct = userText.slice(productPosition + productName.length);
+        const quantityAfter = afterProduct.match(/^\\s*(?:を)?\\s*(\\d+)\\s*(?:個|本|点)/);
+        const quantityBefore = beforeProduct.match(/(\\d+)\\s*(?:個|本|点)\\s*(?:の)?\\s*$/);
+        const quantity = Number(quantityAfter?.[1] || quantityBefore?.[1]);
         if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) {
           return calendarDirect(res, productName + "の販売数量を確認してください。例：「" + productName + "を1本販売したので登録して」。", "販売数量を確認してください。");
         }
