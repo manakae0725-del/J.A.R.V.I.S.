@@ -510,7 +510,7 @@ module.exports = async function handler(req, res) {
     const productMasterVerificationIntent =
       /(?:Products|商品マスター).{0,30}(?:タブ|シート|一覧|商品)/i.test(userText) &&
       /(?:読み取り専用|読み取って|照会|確認|調べて|表示)/.test(userText) &&
-      /(?:追加|登録|変更|更新|削除|書き込)/.test(userText) === false;
+      !/(?:追加して|登録して|変更して|更新して|削除して|書き込んで|追加する|登録する|変更する|更新する|削除する|書き込む)/.test(userText);
     if (productMasterVerificationIntent) {
       try {
         const connections = await listConnectionsForUser(user.id);
