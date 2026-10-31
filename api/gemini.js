@@ -506,6 +506,84 @@ module.exports = async function handler(req, res) {
       { title: "Settings", headers: ["setting_key","setting_value","description","updated_at"] },
       { title: "ChangeLog", headers: ["change_id","changed_at","changed_by","target_sheet","target_record_id","field_name","old_value","new_value","reason"] }
     ];
+    // Register only the currently authenticated user as a staff member; never accept a client-supplied auth ID.
+    const staffRegistrationIntent = /(?:自分を|本人を)?スタッフ登録|スタッフ情報を登録/.test(userText);
+    if (staffRegistrationIntent) {
+      try {
+        const nameMatch = userText.match(/(?:表示名|スタッフ名|名前)\s*(?:は|を|[:：])?\s*([^\n、,。]+)/);
+        const employmentMatch = userText.match(/(正社員|業務委託|パート|アルバイト)/);
+        const displayName = String(nameMatch?.[1] || "").trim().replace(/(?:で)?スタッフ登録.*$/,"").trim();
+        const employmentType = employmentMatch?.[1] || "";
+        if (!displayName || displayName.length > 80 || !employmentType) {
+          return calendarDirect(res,
+            "スタッフ登録には表示名と雇用形態が必要です。例：「表示名は真人、雇用形態は正社員でスタッフ登録して」。",
+            "表示名と雇用形態を指定してください。"
+          );
+        }
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "J.A.R.V.I.S.管理ブックが未登録です。", "管理ブックが見つかりません。");
+        const staffResult = await googleApiRequest(
+          user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "/values/" + encodeURIComponent("'Staff'!A1:Z1000")
+        );
+        const staffRows = Array.isArray(staffResult?.values) ? staffResult.values : [];
+        const staffHeaders = (staffRows[0] || []).map(value => String(value || "").trim());
+        const staffIndex = Object.fromEntries(staffHeaders.map((name, index) => [name, index]));
+        const required = ["staff_id","display_name","employment_type","active_from","is_active","created_at","updated_at","auth_user_id"];
+        if (required.some(name => staffIndex[name] === undefined)) {
+          return calendarDirect(res, "Staffタブにauth_user_id列がありません。先に「管理データをスキーマv4に更新して」と依頼してください。スタッフ情報はまだ登録していません。", "先に管理データの構造更新が必要です。");
+        }
+        const existingLinks = staffRows.slice(1).filter(row =>
+          String(row?.[staffIndex.auth_user_id] ?? "").trim() === user.id
+        );
+        if (existingLinks.length > 1) {
+          return calendarDirect(res, "このログインユーザーに複数のスタッフ行が紐付いています。Staffタブを確認してください。", "スタッフ情報が重複しています。");
+        }
+        if (existingLinks.length === 1) {
+          return calendarDirect(res,
+            "このログインユーザーは既にスタッフ登録されています。スタッフID: " + String(existingLinks[0][staffIndex.staff_id] || "未設定") + "。重複登録は行っていません。",
+            "スタッフ登録済みです。"
+          );
+        }
+        const now = new Date();
+        const activeFrom = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+        const timestamp = now.toISOString();
+        const staffRecord = {
+          staff_id: crypto.randomUUID(),
+          display_name: displayName,
+          employment_type: employmentType,
+          active_from: activeFrom,
+          active_to: "",
+          is_active: true,
+          created_at: timestamp,
+          updated_at: timestamp,
+          auth_user_id: user.id
+        };
+        const staffRow = staffHeaders.map(header => Object.prototype.hasOwnProperty.call(staffRecord, header) ? staffRecord[header] : "");
+        const appendUrl = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) +
+          "/values/" + encodeURIComponent("'Staff'!A:Z") + ":append?" +
+          new URLSearchParams({ valueInputOption: "RAW", insertDataOption: "INSERT_ROWS" });
+        const appended = await googleApiRequest(user.id, connection.id, appendUrl, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ majorDimension: "ROWS", values: [staffRow] })
+        });
+        if (!(Number(appended?.updates?.updatedRows) >= 1)) {
+          return calendarDirect(res, "スタッフ情報の登録結果を確認できませんでした。重複登録を避けるため再試行していません。Staffタブを確認してください。", "登録結果を確認できませんでした。");
+        }
+        return calendarDirect(res,
+          displayName + "さんをスタッフ登録しました。雇用形態: " + employmentType + "。スタッフIDは自動発行し、ログインユーザーと紐付けました。",
+          "スタッフ登録が完了しました。",
+          { staff: { registered: true, staffId: staffRecord.staff_id, employmentType } }
+        );
+      } catch (error) {
+        console.error("Staff registration failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "スタッフ登録に失敗しました。Staffタブを確認してから再依頼してください。", "スタッフ登録に失敗しました。");
+      }
+    }
     // Explicit retail-sale registration: write only to the registered J.A.R.V.I.S. workbook.
     const retailSaleRegisterIntent =
       /(?:店販|商品).{0,35}(?:売れた|販売した|売った|購入された|登録して|記録して)|(?:売れた|販売した|売った).{0,35}(?:店販|商品)|(?:売れた|販売した|売った).{0,30}(?:登録|記録|追加)|(?:登録|記録|追加).{0,25}(?:売れた|販売した|売った)/.test(userText);
