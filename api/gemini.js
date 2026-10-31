@@ -645,8 +645,8 @@ module.exports = async function handler(req, res) {
 
         const quotedNames = [...userText.matchAll(/[「『“"]([^」』”"]{1,200})[」』”"]/g)].map(match => match[1].trim());
         const analyticalQuestion = /(?:売上|利益|利益率|販売実績|月別|合計|集計|分析|何件|何個|いくら)/.test(userText);
-        const explicitSales = /(?:売上管理|技術売上|客単価|施術売上|指名売上)/.test(userText);
-        const explicitRetail = /(?:店販管理|個人販売管理表|商品販売|販売数量|販売個数|商品名)/.test(userText);
+        const explicitSales = /(?:売上管理|売上|技術売上|客単価|施術売上|指名売上)/.test(userText);
+        const explicitRetail = /(?:店販管理|店販|個人販売管理表|商品販売|販売数量|販売個数|商品名)/.test(userText);
         const registry = await readSpreadsheetRegistry(user.id);
         const registeredEntry = explicitRetail
           ? registry?.spreadsheets?.retail
