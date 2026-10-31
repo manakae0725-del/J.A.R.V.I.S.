@@ -778,7 +778,26 @@ module.exports = async function handler(req, res) {
           }
           allFormulaCells.push(...formulaCells.map(item => ({ sheet: title, ...item })));
           allFormulaErrors.push(...formulaErrors.map(item => ({ sheet: title, value: item })));
-          const header = (formulaRows[0] || []).map((cell, i) => String(cell || "").trim() || "[" + colName(i) + "列]").join(" | ");
+          const headerValues = (formulaRows[0] || []).map(cell => String(cell || "").trim());
+          const header = headerValues.map((cell, i) => cell || "[" + colName(i) + "列]").join(" | ");
+          if (spreadsheetName === "管理ブック") {
+            const expectedSheet = managementWorkbookSchema.find(item => item.title === title);
+            if (!expectedSheet) {
+              findings.push("管理ブックに想定外のタブ「" + title + "」があります。用途を確認してください。");
+            } else {
+              const expectedHeaders = expectedSheet.headers;
+              const missing = expectedHeaders.filter((value, index) => headerValues[index] !== value);
+              const extra = headerValues.slice(expectedHeaders.length).filter(Boolean);
+              const orderMismatch = expectedHeaders.some((value, index) => headerValues[index] !== value);
+              if (orderMismatch || headerValues.length !== expectedHeaders.length) {
+                findings.push("「" + title + "」のヘッダーがスキーマv2と一致しません。期待列数=" +
+                  expectedHeaders.length + " / 実際の列数=" + headerValues.length +
+                  (missing.length ? " / 不一致・不足候補=" + missing.join(", ") : "") +
+                  (extra.length ? " / 余分な列=" + extra.join(", ") : "") +
+                  "。列の自動変更は行っていません。");
+              }
+            }
+          }
           const colStats = [];
           for (const [col, entries] of formulasByColumn.entries()) {
             const patterns = new Map();
@@ -801,6 +820,12 @@ module.exports = async function handler(req, res) {
             "\n数式分布: " + (colStats.join("、") || "数式なし") +
             "\n数式例: " + (samples || "なし") +
             (formulaErrors.length ? "\n計算エラー: " + formulaErrors.slice(0,8).join(", ") : "\n表示上の計算エラー: なし"));
+        }
+        if (spreadsheetName === "管理ブック") {
+          const actualTitles = new Set(sheetList.map(item => item?.properties?.title).filter(Boolean));
+          const missingTabs = managementWorkbookSchema.map(item => item.title).filter(title => !actualTitles.has(title));
+          if (missingTabs.length) findings.push("スキーマv2で必要なタブが不足しています: " + missingTabs.join(", "));
+          else findings.push("スキーマv2の必須8タブはすべて存在します。");
         }
         const iColumnRefs = formulaColumnReferences.get("I") || [];
         if (iColumnRefs.length) {
