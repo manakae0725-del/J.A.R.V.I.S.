@@ -508,7 +508,8 @@ module.exports = async function handler(req, res) {
       /(?:管理ブック|管理データ).{0,24}(?:作成して|作って|新規作成)|(?:新規|新しい).{0,16}(?:管理ブック|管理データ).{0,12}(?:作成して|作って)/.test(userText);
     const managementWorkbookSchemaIntent =
       /(?:管理ブック|管理データ|新しい売上管理|新しい店販管理)/.test(userText) &&
-      /(?:構成|設計|項目|タブ|シート|どんな|確認|表示)/.test(userText);
+      /(?:構成|設計|項目|タブ|シート|どんな|表示)/.test(userText) &&
+      !/(?:調査|監査|詳しく|読み取|中身|データを確認|実際の内容)/.test(userText);
     if (managementWorkbookCreateIntent) {
       try {
         const connections = await listConnectionsForUser(user.id);
