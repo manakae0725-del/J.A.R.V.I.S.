@@ -504,9 +504,83 @@ module.exports = async function handler(req, res) {
       { title: "Settings", headers: ["setting_key","setting_value","description","updated_at"] },
       { title: "ChangeLog", headers: ["change_id","changed_at","changed_by","target_sheet","target_record_id","field_name","old_value","new_value","reason"] }
     ];
+    const managementWorkbookCreateIntent =
+      /(?:管理ブック|管理データ).{0,24}(?:作成して|作って|新規作成)|(?:新規|新しい).{0,16}(?:管理ブック|管理データ).{0,12}(?:作成して|作って)/.test(userText);
     const managementWorkbookSchemaIntent =
       /(?:管理ブック|管理データ|新しい売上管理|新しい店販管理)/.test(userText) &&
       /(?:構成|設計|項目|タブ|シート|どんな|確認|表示)/.test(userText);
+    if (managementWorkbookCreateIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。先にGoogle接続を行ってください。", "Googleが未接続です。");
+        const existingRegistry = await readSpreadsheetRegistry(user.id);
+        const existingWorkbook = existingRegistry?.managementWorkbook;
+        if (existingWorkbook?.id) {
+          return calendarDirect(res,
+            "J.A.R.V.I.S.管理ブックは既に登録されています。重複作成は行いません。\nURL: " + (existingWorkbook.url || "登録済み") ,
+            "管理ブックは既に登録されています。",
+            { managementWorkbook: { created: false, alreadyExists: true, spreadsheetId: existingWorkbook.id, spreadsheetUrl: existingWorkbook.url || null } }
+          );
+        }
+        const createSheets = managementWorkbookSchema.map(sheet => ({
+          properties: {
+            title: sheet.title,
+            gridProperties: { rowCount: 1000, columnCount: sheet.headers.length }
+          },
+          data: [{
+            startRow: 0,
+            startColumn: 0,
+            rowData: [{
+              values: sheet.headers.map(value => ({ userEnteredValue: { stringValue: value } }))
+            }]
+          }]
+        }));
+        const created = await googleApiRequest(
+          user.id,
+          connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              properties: { title: "J.A.R.V.I.S. 管理データ" },
+              sheets: createSheets
+            })
+          }
+        );
+        if (!created?.spreadsheetId) throw new Error("Google Sheets returned no spreadsheetId");
+        const workbookRecord = {
+          id: created.spreadsheetId,
+          name: created?.properties?.title || "J.A.R.V.I.S. 管理データ",
+          url: created?.spreadsheetUrl || null,
+          schemaVersion: 1,
+          createdAt: new Date().toISOString()
+        };
+        await saveSpreadsheetRegistry(user.id, {
+          ...(existingRegistry || { version: 1, spreadsheets: {} }),
+          version: 1,
+          managementWorkbook: workbookRecord
+        });
+        return calendarDirect(res,
+          "J.A.R.V.I.S.管理ブックを作成し、登録しました。\nURL: " + (workbookRecord.url || "Google Sheetsで確認してください") +
+          "\nタブ: " + managementWorkbookSchema.map(sheet => sheet.title).join(" / ") +
+          "\n各タブはfield nameで識別します。元データと計算値を分離し、集計は元データから算出する設計です。既存の売上管理・店販管理ファイルは変更していません。",
+          "J.A.R.V.I.S.管理ブックを作成しました。既存ファイルは変更していません。",
+          { managementWorkbook: { created: true, spreadsheetId: created.spreadsheetId, spreadsheetUrl: workbookRecord.url, schemaVersion: 1 } }
+        );
+      } catch (error) {
+        console.error("Management workbook creation failed", {
+          name: error?.name || "Error",
+          status: Number.isInteger(error?.status) ? error.status : undefined,
+          code: typeof error?.code === "string" ? error.code : undefined
+        });
+        return calendarDirect(res,
+          "J.A.R.V.I.S.管理ブックを作成できませんでした。Google接続状態とSheets APIの権限を確認してください。既存ファイルへの変更は行っていません。",
+          "管理ブックを作成できませんでした。"
+        );
+      }
+    }
     if (managementWorkbookSchemaIntent) {
       const schemaLines = managementWorkbookSchema.map(sheet =>
         sheet.title + ": " + sheet.headers.join(", ")
