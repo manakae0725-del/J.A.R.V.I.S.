@@ -579,7 +579,6 @@ module.exports = async function handler(req, res) {
             return calendarDirect(res, "商品マスターへの追加結果を確認できませんでした。重複防止のため自動再試行はしていません。Productsを確認してください。", "商品登録結果を確認できませんでした。");
           }
           product = productHeaders.map((header, index) => productRow[index] ?? "");
-          product = Object.fromEntries(productHeaders.map((header, index) => [header, product[index]]));
         }
         const productName = String(product[productIndex.product_name]).trim();
         const productPosition = userText.toLowerCase().indexOf(productName.toLowerCase());
