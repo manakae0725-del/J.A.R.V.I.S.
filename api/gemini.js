@@ -645,8 +645,8 @@ module.exports = async function handler(req, res) {
 
         const quotedNames = [...userText.matchAll(/[「『“"]([^」』”"]{1,200})[」』”"]/g)].map(match => match[1].trim());
         const analyticalQuestion = /(?:売上|利益|利益率|販売実績|月別|合計|集計|分析|何件|何個|いくら)/.test(userText);
-        const explicitSales = /(?:売上管理|売上|技術売上|客単価|施術売上|指名売上)/.test(userText);
-        const explicitRetail = /(?:店販管理|店販|個人販売管理表|商品販売|販売数量|販売個数|商品名)/.test(userText);
+        const explicitSales = /(?:売上管理|技術売上|客単価|施術売上|指名売上)/.test(userText);
+        const explicitRetail = /(?:店販管理|個人販売管理表|商品販売|販売数量|販売個数|商品名)/.test(userText);
         const registry = await readSpreadsheetRegistry(user.id);
         const registeredEntry = explicitRetail
           ? registry?.spreadsheets?.retail
@@ -1298,3 +1298,929 @@ Snippet: ${snippet}
             "[DEBUG] Sources count after Serper:",
             sources.length
           );
+        } else {
+          console.error(
+            "[DEBUG] Serper HTTP error:",
+            response.status
+          );
+        }
+      } catch (error) {
+        const serperDuration =
+          Date.now() - serperStart;
+
+        await logApiUsage({
+          provider: "serper",
+          service: isNewsQuestion
+            ? "news"
+            : "search",
+          success: false,
+          statusCode: null,
+          durationMs: serperDuration,
+          metadata: {
+            error: "request_failed"
+          }
+        });
+
+        console.error("[DEBUG] Serper search failed", {
+          name: error?.name || "Error"
+        });
+      }
+    } else {
+      console.log(
+        "[DEBUG] Serper: API key not configured"
+      );
+    }
+
+    // ==========================================
+    // Tavily Fallback
+    // ==========================================
+
+if (
+  (!searchContext || isWeatherQuestion && !searchContext.includes("[Serper Weather]")) &&
+  tavilyKey &&
+  isSearchQuestion
+) {
+
+      console.log(
+        "[DEBUG] Tavily fallback: START"
+      );
+
+      const tavilyStart = Date.now();
+
+      try {
+        const response = await fetch(
+          "https://api.tavily.com/search",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${tavilyKey}`,
+            },
+            body: JSON.stringify({
+              query: searchQuery,
+              topic: "general",
+              search_depth:
+                isWeatherQuestion || isNewsQuestion
+                  ? "advanced"
+                  : "basic",
+              max_results:
+                isWeatherQuestion || isNewsQuestion
+                  ? 8
+                  : 5,
+              include_answer: true,
+              include_raw_content: false,
+            }),
+          }
+        );
+
+        const tavilyDuration =
+          Date.now() - tavilyStart;
+
+        console.log(
+          "[DEBUG] Tavily HTTP status:",
+          response.status
+        );
+
+        await logApiUsage({
+          provider: "tavily",
+          service: "search",
+          success: response.ok,
+          statusCode: response.status,
+          durationMs: tavilyDuration,
+          metadata: {
+            fallback: true
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          const tavilyResultCount =
+            Array.isArray(data.results)
+              ? data.results.length
+              : 0;
+
+          console.log(
+            "[DEBUG] Tavily result count:",
+            tavilyResultCount
+          );
+
+          console.log(
+            "[DEBUG] Tavily answer:",
+            !!data.answer
+          );
+
+          if (data.answer) {
+            searchContext += `
+[Tavily Answer]
+${data.answer}
+`;
+          }
+
+          if (Array.isArray(data.results)) {
+            for (const result of data.results) {
+              if (!result?.url) continue;
+
+              sources.push({
+                title:
+                  result.title ||
+                  result.url,
+                url: result.url,
+                source: "tavily",
+              });
+
+              searchContext += `
+[Tavily Search Result]
+Title: ${result.title || ""}
+URL: ${result.url}
+Content: ${result.content || ""}
+`;
+            }
+          }
+
+          console.log(
+            "[DEBUG] SearchContext length after Tavily:",
+            searchContext.length
+          );
+
+          console.log(
+            "[DEBUG] Sources count after Tavily:",
+            sources.length
+          );
+        } else {
+          console.error(
+            "[DEBUG] Tavily HTTP error:",
+            response.status
+          );
+        }
+      } catch (error) {
+        const tavilyDuration =
+          Date.now() - tavilyStart;
+
+        await logApiUsage({
+          provider: "tavily",
+          service: "search",
+          success: false,
+          statusCode: null,
+          durationMs: tavilyDuration,
+          metadata: {
+            fallback: true,
+            error:
+              error?.message ||
+              "Unknown error"
+          }
+        });
+
+        console.error("[DEBUG] Tavily search failed", {
+          name: error?.name || "Error"
+        });
+      }
+    } else if (!searchContext) {
+      console.log(
+        "[DEBUG] Tavily fallback: NOT USED"
+      );
+    }
+
+    // ==========================================
+    // Final Search Debug
+    // ==========================================
+
+    console.log(
+      "[DEBUG] Final searchContext length:",
+      searchContext.length
+    );
+
+    console.log(
+      "[DEBUG] Final sources count:",
+      sources.length
+    );
+
+    // ==========================================
+    // Google Calendar conversational read
+    // ==========================================
+
+    let calendarContext = "";
+    const isCalendarQuestion = /予定|カレンダー|スケジュール/.test(userText) &&
+      /(教えて|確認|何が|何件|ある|入って|予定は|見せて|一覧|空いて|いつ|今日|明日|あさって|今週|来週|今月|来月|月曜日|火曜日|水曜日|木曜日|金曜日|土曜日|日曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜)/.test(userText);
+
+    if (isCalendarQuestion) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections)
+          ? connections.find(item => item?.status === "connected")
+          : null;
+
+        if (!connection?.id) {
+          calendarContext = "Google Calendar連携は未接続です。ユーザーに接続が必要と伝えてください。";
+        } else {
+          const japanNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+          const today = japanNow.toISOString().slice(0, 10);
+          const dayOffset = userText.includes("あさって") || userText.includes("明後日") ? 2
+            : userText.includes("明日") || userText.includes("あした") ? 1 : 0;
+          const toLocalDate = (date) => date.toISOString().slice(0, 10);
+          let startDate = new Date(Date.parse(today + "T00:00:00Z") + dayOffset * 86400000);
+          let endDate = new Date(startDate.getTime() + 86400000);
+          let rangeLabel = dayOffset === 2 ? "明後日" : dayOffset === 1 ? "明日" : "今日";
+
+          if (userText.includes("今週") || userText.includes("来週")) {
+            const mondayOffset = (japanNow.getUTCDay() + 6) % 7;
+            startDate = new Date(Date.parse(today + "T00:00:00Z") + (userText.includes("来週") ? 7 - mondayOffset : -mondayOffset) * 86400000);
+            endDate = new Date(startDate.getTime() + 7 * 86400000);
+            rangeLabel = userText.includes("来週") ? "来週" : "今週";
+          } else if (userText.includes("今月") || userText.includes("来月")) {
+            const year = japanNow.getUTCFullYear();
+            const month = japanNow.getUTCMonth() + (userText.includes("来月") ? 1 : 0);
+            startDate = new Date(Date.UTC(year, month, 1));
+            endDate = new Date(Date.UTC(year, month + 1, 1));
+            rangeLabel = userText.includes("来月") ? "来月" : "今月";
+          }
+
+          const timeMin = new Date(Date.parse(toLocalDate(startDate) + "T00:00:00+09:00")).toISOString();
+          const timeMax = new Date(Date.parse(toLocalDate(endDate) + "T00:00:00+09:00")).toISOString();
+          const result = await googleApiRequest(
+            user.id,
+            connection.id,
+            "https://www.googleapis.com/calendar/v3/calendars/primary/events?" +
+              new URLSearchParams({ timeMin, timeMax, singleEvents: "true", orderBy: "startTime", maxResults: "100" }).toString()
+          );
+          const events = Array.isArray(result?.items) ? result.items : [];
+          const summarized = events.slice(0, 100).map(event => ({
+            title: typeof event.summary === "string" ? event.summary : "(タイトルなし)",
+            start: event.start?.dateTime || event.start?.date || "",
+            end: event.end?.dateTime || event.end?.date || "",
+            allDay: Boolean(event.start?.date && !event.start?.dateTime)
+          }));
+          calendarContext = "Google Calendarから取得した実データです。期間: " + rangeLabel +
+            " (" + toLocalDate(startDate) + "〜" + toLocalDate(new Date(endDate.getTime() - 86400000)) +
+            ")。予定件数: " + events.length + "。予定一覧: " + JSON.stringify(summarized);
+        }
+      } catch (error) {
+        console.error("Google Calendar conversational read failed", {
+          name: error?.name || "Error",
+          code: typeof error?.code === "string" ? error.code : undefined
+        });
+        calendarContext = "Google Calendarから予定を取得できませんでした。取得に失敗したことをユーザーに伝え、予定を推測しないでください。";
+      }
+    }
+
+    // ==========================================
+    // Gemini Input
+    // ==========================================
+
+    let geminiInput = `
+${calendarContext ? `\n==============================\nGOOGLE CALENDAR RESULTS\n==============================\n${calendarContext}\n\n予定の質問には上記の実データを使い、Asia/Tokyoの日本時間に直して簡潔に答えてください。予定を捏造しないでください。\n` : ""}
+
+あなたはJ.A.R.V.I.S.です。
+
+ユーザー専属の高度なAIアシスタントとして会話してください。
+
+==============================
+J.A.R.V.I.S. CORE STYLE
+==============================
+
+- 知的で落ち着いたAIアシスタントとして振る舞う
+- 丁寧で品のある日本語を使う
+- 人間の友人のような馴れ馴れしい話し方はしない
+- ただし過度に堅苦しい敬語にもならない
+- 冷たすぎず、感情的すぎない
+- 自然だが、明確にAIアシスタントらしい話し方をする
+- 必要な情報を簡潔に伝える
+- 質問された内容を中心に答える
+- 不要な前置きや結論の繰り返しをしない
+- 必要以上に長く説明しない
+- 簡単な質問には短く答える
+- 複雑な質問では必要な範囲で詳しく答える
+
+==============================
+ADDRESSING THE USER
+==============================
+
+- 通常の会話ではユーザーの名前を呼ばない
+- ユーザーの名前を毎回の返答に入れない
+- 文末に名前を付けることを禁止する
+- ユーザーの名前を使った定型的な開始を避ける
+- 「Sir」は必要な場面でのみ使用する
+- 呼びかけ自体が不要な場合は、名前もSirも使用しない
+
+==============================
+LANGUAGE STYLE
+==============================
+
+以下のような過度に人間的・放送的な表現を避ける：
+
+- 「〜となっております」
+- 「〜でございます」
+- 「〜かと存じます」
+- 「お役立ていただければ幸いです」
+- 「どうぞ〜ください」
+- 「お出かけの際は〜」
+- 「少し肌寒く感じられますが〜」
+- 不必要な感想
+- 不必要な気遣い
+- 不必要な励まし
+- ニュースキャスター調
+- 気象キャスター調
+- ナレーター調
+- マニュアル読み上げ調
+
+自然な会話でありながら、
+「人間が雑談している」のではなく、
+「高度なAIアシスタントがユーザーを支援している」
+と感じられる話し方を維持してください。
+
+==============================
+RESPONSE LENGTH
+==============================
+
+- 通常の会話は1〜3文程度を基本とする
+- ユーザーが詳しい説明を求めた場合は必要なだけ説明する
+- 質問されていない情報を勝手に追加しない
+- 同じ内容を別の表現で繰り返さない
+- 回答後に不要な定型文を追加しない
+
+==============================
+SPEECH TEXT
+==============================
+
+回答とは別に、TTSで読み上げるためのspeechTextを作成してください。
+
+- replyとspeechTextの内容は完全に同じ意味にしてください。
+- speechTextでは、読み間違えやすい固有名詞・店名・地名・人名などを、正しい読みになるようにひらがなへ補正してください。
+- 通常の日本語までひらがなに変換しないでください。
+- 表記として重要な漢字はreply側に残してください。
+- speechTextには説明、注釈、括弧、読み方の説明を追加しないでください。
+- replyに存在しない情報をspeechTextへ追加しないでください。
+
+例：
+
+reply:
+麺屋彩未は札幌市豊平区にある人気店です。
+
+speechText:
+麺屋さいみは札幌市豊平区にある人気店です。
+
+speechTextは音声読み上げ専用の文章とする。
+
+・漢字の読み間違いが起きそうな語句は、正しい読み方をひらがなで表記する。
+・地名、人名、施設名は、文脈から正しい読み方を判断する。
+・気温などの数値に付く「℃」は「度」に変換する。
+・文章全体を不自然にひらがなにせず、読み間違いを防ぐ必要がある部分だけ補正する。
+・元の文章の意味や情報を変更・追加しない。
+・画面表示用のreplyは変更せず、speechTextだけを補正する。
+
+==============================
+LONG-TERM MEMORY
+==============================
+
+以下は現在サインインしているユーザーについて保存されている長期記憶です。
+今回の会話に関連する場合のみ自然に利用してください。
+記憶にないことは推測しないでください。
+
+${typeof memoryContext === "string" && memoryContext.trim()
+    ? memoryContext.trim()
+    : "現在、登録されている長期記憶はありません。"
+}
+
+==============================
+LONG-TERM MEMORY RULES
+==============================
+
+今後の会話でも長期的に役立つ情報、またはユーザーが明示的に
+「覚えて」「記憶して」などと求めた情報は保存対象として扱ってください。
+
+一時的な発言、雑談、その場限りの情報は保存しないでください。
+
+保存する場合：
+- memory.shouldSave = true
+- memory.content は簡潔な事実
+- category は personal / preference / work / family / goal のいずれか
+- importance は 1〜5
+
+保存しない場合：
+- memory.shouldSave = false
+- memory.content は空文字列でも構いません
+
+ユーザー:
+${text}
+`;
+
+    // ==========================================
+    // Web Search Instructions
+    // ==========================================
+
+    if (searchContext) {
+      geminiInput += `
+
+==============================
+WEB SEARCH RESULTS
+==============================
+
+以下は、ユーザーの質問に対して取得した最新のWeb検索結果です。
+
+${searchContext}
+
+==============================
+SEARCH INSTRUCTIONS
+==============================
+
+- Web検索結果を確認してください。
+- 質問に検索結果が関係する場合は、その情報を利用してください。
+- 「今日」「現在」「最新」「今」「明日」など時間依存の質問では、検索結果を優先してください。
+- 検索結果に存在しない情報を、検索結果から得た情報として扱わないでください。
+- 複数の検索結果がある場合は内容を比較してください。
+- 情報が不足している場合は、不足していることを明示してください。
+- 検索結果をそのまま読み上げないでください。
+- 必要な情報を整理して、J.A.R.V.I.S.として自然に回答してください。
+- 日本語で回答してください。
+`;
+    }
+
+    // ==========================================
+    // News Response Rules
+    // ==========================================
+
+    if (isNewsQuestion) {
+      geminiInput += `
+
+==============================
+NEWS RESPONSE RULES
+==============================
+
+これはニュース関連の質問です。
+
+- Serper News APIから取得したニュース結果を優先してください。
+- ニュースのタイトル、媒体、日時、内容を確認してください。
+- 質問に関連するニュースだけを使用してください。
+- 複数の記事がある場合は内容を比較してください。
+- ニュース結果に存在しない内容を事実として補完しないでください。
+- 「最新」「今日」など時間依存の質問では、記事の日付を確認してください。
+- ニュース記事をそのまま読み上げないでください。
+- 必要な情報を整理して、J.A.R.V.I.S.として自然に回答してください。
+- ニュースキャスターのような話し方をしないでください。
+- 不要な感想や評価を追加しないでください。
+`;
+    }
+
+    // ==========================================
+    // Weather Response Rules
+    // ==========================================
+
+    if (isWeatherQuestion) {
+      geminiInput += `
+
+==============================
+WEATHER RESPONSE RULES
+==============================
+
+これは天気関連の質問です。
+
+- 検索結果に含まれる天気情報を使用してください。
+- 地域と日付が一致する情報を優先してください。
+- 質問された項目だけを回答してください。
+- 天気、気温、降水確率など必要な情報だけを簡潔に伝えてください。
+- ユーザーが求めていない感想を追加しないでください。
+- ユーザーが求めていない助言を追加しないでください。
+- 服装について話さないでください。
+- 傘について質問されていなければ、傘について話さないでください。
+- 外出について助言しないでください。
+- 体調について言及しないでください。
+- 「少し肌寒く感じますが」などの感想を追加しないでください。
+- 「お出かけの際は」などの定型文を追加しないでください。
+- 気象キャスターのような説明をしないでください。
+- 「〜となっております」を使用しないでください。
+- 自然で簡潔なJ.A.R.V.I.S.の回答にしてください。
+`;
+    }
+
+    geminiInput += `
+
+==============================
+OPTIONAL VISUALIZATION
+==============================
+
+必要な場合だけ、回答内容を補助する visualization を返してください。
+通常の会話・短い回答では type を "none" にしてください。
+比較・推移など複数の数値がある場合は "bar" または "line" を使ってください。
+割合・構成比は "pie" または "donut"、順序や処理の流れは "flowchart"、部品や要素の関係は "structure"、概念的な配置図・簡易図面は "blueprint"、達成率など0〜100の割合は "gauge"、複数項目の数値比較・順位付けは "matrix" を使ってください。
+構造・手順・因果関係を整理すると理解しやすい場合は "diagram" も使えます。
+数値や手順を推測で作らないでください。根拠となるデータがなければ図表を出さないでください。
+labels は短い項目名、values は labels と同じ数の数値、steps は図解の順序を示す短い文字列です。
+bar / line / pie / donut / matrix では labels と values を2〜6個にしてください。diagram / flowchart では steps を2〜6個にしてください。structure / blueprint では labels を3〜6個にしてください。gauge では values の先頭に0〜100の値を1つ入れてください。
+blueprint は寸法精度を保証する設計図ではなく、説明用の概念配置図として使ってください。
+visualization は画面表示専用です。reply と speechText は通常どおり自然な文章にし、図表の説明を読み上げ用文章へ詰め込まないでください。
+`;
+
+    // ==========================================
+    // Commander specialist advisory (after context retrieval)
+    // ==========================================
+
+    // Keep Gemini as the final response composer so the existing interaction ID,
+    // memory-save contract, speechText, and visualization pipeline remain intact.
+    // The specialist receives the actual user request plus retrieved, relevant context.
+    const {
+      taskText: autoTaskText,
+      eligible: autoCommanderEligible,
+      provider: configuredAutoProvider,
+      classification: autoCommanderClassification
+    } = getAutoCommanderConfig({
+      autoCommander: req.body && req.body.autoCommander,
+      text: userText
+    });
+
+    if (autoCommanderEligible && configuredAutoProvider) {
+      if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) return;
+      if (!(await enforceRateLimit(res, user, "auto-commander-day", 5, 86400))) return;
+
+      {
+        try {
+          const specialistContext = [
+            "User request:",
+            autoTaskText,
+            calendarContext ? "\\nRetrieved Google Calendar data:\\n" + calendarContext : "",
+            searchContext ? "\\nRetrieved web search results:\\n" + searchContext : "",
+            typeof memoryContext === "string" && memoryContext.trim()
+              ? "\\nRelevant long-term memory:\\n" + memoryContext.trim()
+              : ""
+          ].filter(Boolean).join("\\n");
+
+          const result = await runAiCouncil({
+            userInput: specialistContext.slice(0, 24000),
+            systemInstruction: "You are J.A.R.V.I.S.'s specialist analyst. Analyze the supplied request using only the supplied context. Do not invent missing data or claim to execute external actions. State uncertainty and provide a concise, actionable analysis.",
+            providers: [configuredAutoProvider],
+            timeoutMs: 20000,
+            maxOutputTokens: 1200
+          });
+
+          const specialistText = result.results
+            .filter(item => item.ok && typeof item.text === "string" && item.text.trim())
+            .map(item => "【専門AIの分析 / " + item.provider + "】\\n" + item.text)
+            .join("\\n\\n");
+
+          if (specialistText) {
+            const geminiInputLengthBeforeAdvisory = geminiInput.length;
+            geminiInput += "\\n\\n==============================\\nSPECIALIST ADVISORY\\n==============================\\n以下は司令官が選択した専門AIの分析です。元の依頼と取得済みデータを照合し、必要なら不確実性や不足情報を明示したうえで、J.A.R.V.I.S.として最終回答を作成してください。専門AIの内容を無条件に正しいものとして扱わず、根拠のない情報は採用しないでください。\\n\\n" + specialistText;
+            console.info("[COMMANDER] Specialist advisory appended to Gemini input", {
+              provider: configuredAutoProvider,
+              advisoryChars: specialistText.length,
+              geminiInputCharsBefore: geminiInputLengthBeforeAdvisory,
+              geminiInputCharsAfter: geminiInput.length,
+              appended: geminiInput.length > geminiInputLengthBeforeAdvisory
+            });
+          } else {
+            console.warn("Automatic commander returned no usable advisory", {
+              provider: configuredAutoProvider,
+              intent: autoCommanderClassification?.intent
+            });
+          }
+        } catch (error) {
+          const code = typeof error?.code === "string" ? error.code : "INTERNAL_ERROR";
+          console.error("Automatic commander advisory failed; continuing with Gemini", { code });
+          // Specialist failure must not prevent the existing Gemini response path.
+        }
+      }
+    }
+
+    // ==========================================
+    // Gemini Request
+    // ==========================================
+
+    const requestBody = {
+      model: "gemini-3.6-flash",
+
+      input: geminiInput,
+
+      response_format: {
+        type: "text",
+        mime_type: "application/json",
+
+        schema: {
+          type: "object",
+
+          properties: {
+            reply: {
+              type: "string",
+            },
+
+            speechText: {
+              type: "string",
+            },
+
+            visualization: {
+              type: "object",
+              properties: {
+                type: { type: "string", enum: ["none", "bar", "line", "diagram", "pie", "donut", "flowchart", "structure", "blueprint", "gauge", "matrix"] },
+                title: { type: "string" },
+                labels: { type: "array", items: { type: "string" } },
+                values: { type: "array", items: { type: "number" } },
+                steps: { type: "array", items: { type: "string" } }
+              },
+              required: ["type", "title", "labels", "values", "steps"]
+            },
+            memory: {
+              type: "object",
+
+              properties: {
+                shouldSave: {
+                  type: "boolean",
+                },
+
+                category: {
+                  type: "string",
+                  enum: [
+                    "personal",
+                    "preference",
+                    "work",
+                    "family",
+                    "goal",
+                  ],
+                },
+
+                content: {
+                  type: "string",
+                },
+
+                importance: {
+                  type: "integer",
+                  minimum: 1,
+                  maximum: 5,
+                },
+              },
+
+              required: [
+                "shouldSave",
+                "category",
+                "content",
+                "importance",
+              ],
+            },
+          },
+
+          required: [
+            "reply",
+            "speechText",
+            "memory",
+            "visualization",
+          ],
+        },
+      },
+    };
+
+    // ==========================================
+    // Conversation Context
+    // ==========================================
+
+    const hasPreviousInteractionId =
+      typeof previousInteractionId === "string" &&
+      previousInteractionId.length > 0;
+
+    if (hasPreviousInteractionId) {
+      requestBody.previous_interaction_id = previousInteractionId;
+    }
+
+    // Diagnostic only: never log or expose the interaction ID itself.
+    console.log("[CONVERSATION] Request continuity", {
+      hasPreviousInteractionId,
+      previousInteractionIdLength: hasPreviousInteractionId ? previousInteractionId.length : 0
+    });
+
+    // ==========================================
+    // Gemini Debug
+    // ==========================================
+
+    console.log(
+      "[DEBUG] Gemini input searchContext length:",
+      searchContext.length
+    );
+
+    console.log(
+      "[DEBUG] Gemini request: START"
+    );
+
+    // ==========================================
+    // Gemini Interactions API
+    // ==========================================
+
+    const controller = new AbortController();
+
+    const geminiTimeout = setTimeout(
+      () => controller.abort(),
+      120000
+    );
+
+    const geminiStart = Date.now();
+
+    let response;
+
+    try {
+      response = await fetch(
+        "https://generativelanguage.googleapis.com/v1/interactions",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": geminiKey,
+          },
+
+          body: JSON.stringify(requestBody),
+
+          signal: controller.signal,
+        }
+      );
+    } catch (error) {
+      const geminiDuration =
+        Date.now() - geminiStart;
+
+      await logApiUsage({
+        provider: "gemini",
+        service: "generation",
+        success: false,
+        statusCode: null,
+        durationMs: geminiDuration,
+        metadata: {
+          error: "request_failed"
+        }
+      });
+
+      if (error.name === "AbortError") {
+        return res.status(504).json({
+          error: "Gemini request timed out",
+        });
+      }
+
+      console.error("Gemini network request failed", {
+        name: error?.name || "Error"
+      });
+
+      return res.status(502).json({
+        error: "Gemini connection failed",
+      });
+    } finally {
+      clearTimeout(geminiTimeout);
+    }
+
+    const geminiDuration =
+      Date.now() - geminiStart;
+
+    await logApiUsage({
+      provider: "gemini",
+      service: "generation",
+      success: response.ok,
+      statusCode: response.status,
+      durationMs: geminiDuration,
+      metadata: {
+        model: "gemini-3.6-flash"
+      }
+    });
+
+    const data = await response.json();
+
+    console.log(
+      "[DEBUG] Gemini HTTP status:",
+      response.status
+    );
+
+    if (!response.ok) {
+      console.error("Gemini API request failed", {
+        status: response.status
+      });
+
+      return res.status(502).json({
+        error: "Gemini request failed",
+      });
+    }
+
+    // ==========================================
+    // Gemini Output
+    // ==========================================
+
+    let outputText = data.output_text;
+
+    if (
+      !outputText &&
+      Array.isArray(data.steps)
+    ) {
+      for (
+        let i = data.steps.length - 1;
+        i >= 0;
+        i--
+      ) {
+        const step = data.steps[i];
+
+        if (
+          step?.type === "model_output" &&
+          Array.isArray(step.content)
+        ) {
+          const textContent =
+            step.content.find(
+              (item) =>
+                item?.type === "text" &&
+                item?.text
+            );
+
+          if (textContent) {
+            outputText = textContent.text;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!outputText) {
+      console.error("Gemini response contained no output text");
+      return res.status(502).json({
+        error: "No valid response from Gemini",
+      });
+    }
+
+    // ==========================================
+    // JSON Parse
+    // ==========================================
+
+    let result;
+
+    try {
+      result = JSON.parse(outputText);
+    } catch (error) {
+      console.error("Gemini returned invalid JSON output");
+
+      return res.status(502).json({
+        error: "Gemini returned an invalid response",
+      });
+    }
+
+    // ==========================================
+    // Validation
+    // ==========================================
+
+    if (
+      !result.reply ||
+      !result.speechText ||
+      !result.memory ||
+      !result.visualization ||
+      !["none", "bar", "line", "diagram", "pie", "donut", "flowchart", "structure", "blueprint", "gauge", "matrix"].includes(result.visualization.type) ||
+      typeof result.memory.shouldSave !==
+        "boolean"
+    ) {
+      console.error("Gemini response structure validation failed");
+      return res.status(502).json({
+        error: "Gemini returned an invalid response",
+      });
+    }
+
+    // ==========================================
+    // Interaction ID
+    // ==========================================
+
+    const interactionId =
+      typeof data.id === "string" && data.id.length > 0
+        ? data.id
+        : null;
+
+    // Diagnostic only: record presence, not the ID value.
+    console.log("[CONVERSATION] Response continuity", {
+      hasInteractionId: Boolean(interactionId),
+      responseStatus: response.status
+    });
+
+    // ==========================================
+    // Response
+    // ==========================================
+
+    return res.status(200).json({
+      text: result.reply,
+      speechText: result.speechText,
+      visualization: result.visualization,
+      interactionId,
+
+  searchPerformed:
+    isSearchQuestion &&
+    searchContext.length > 0,
+
+      memory: {
+        shouldSave:
+          result.memory.shouldSave,
+
+        category:
+          result.memory.category ||
+          "personal",
+
+        content:
+          result.memory.content || "",
+
+        importance:
+          result.memory.importance || 1,
+      },
+
+      sources,
+    });
+  } catch (error) {
+    console.error("Gemini handler failed", {
+      name: error?.name || "Error"
+    });
+
+    return res.status(500).json({
+      error: "Internal Server Error",
+    });
+  }
+};
