@@ -543,9 +543,9 @@ module.exports = async function handler(req, res) {
           "仕入原価: " + String(row[index.unit_cost] ?? ""),
           "販売価格: " + String(row[index.default_sale_price] ?? ""),
           "有効状態: " + (String(row[index.is_active] ?? "").toLowerCase() === "false" ? "無効" : "有効")
-        ].join("\\n"));
+        ].join("\n"));
         const responseText = matches.length
-          ? "ProductsタブをGoogle Sheetsから読み取りました。該当商品は" + matches.length + "件です。\\n\\n" + lines.join("\\n\\n") + "\\n\\n読み取り専用で実行し、データの追加・変更・削除は行っていません。"
+          ? "ProductsタブをGoogle Sheetsから読み取りました。該当商品は" + matches.length + "件です。\n\n" + lines.join("\n\n") + "\n\n読み取り専用で実行し、データの追加・変更・削除は行っていません。"
           : "ProductsタブをGoogle Sheetsから読み取りましたが、指定商品「" + (requestedName || "テスト商品A") + "」は見つかりませんでした。読み取り専用で実行し、データの追加・変更・削除は行っていません。";
         return calendarDirect(res, responseText, "Productsタブの読み取り照合が完了しました。", {
           productMasterVerification: {
