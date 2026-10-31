@@ -545,10 +545,10 @@ module.exports = async function handler(req, res) {
           return calendarDirect(res, "商品名が複数一致しました。商品名を正式名称で指定してください。", "商品を特定できないため登録していません。");
         }
         if (matchedProducts.length === 0) {
-          const inferredNameMatch = userText.match(/(?:商品名は|商品は)?\\s*(.+?)を\\s*\\d+\\s*(?:個|本|点)/);
-          const inferredName = String(inferredNameMatch?.[1] || "").trim().replace(/^(?:店販で|店販商品|商品)\\s*/, "");
-          const costMatch = userText.match(/(?:仕入原価|仕入れ原価|原価|仕入れ値)\\s*([0-9][0-9,]*)\\s*円/);
-          const salePriceMatch = userText.match(/(?:単価|販売価格|売価)?\\s*([0-9][0-9,]*)\\s*円/);
+          const inferredNameMatch = userText.match(/(?:商品名は|商品は)?\s*(.+?)を\s*\d+\s*(?:個|本|点)/);
+          const inferredName = String(inferredNameMatch?.[1] || "").trim().replace(/^(?:店販で|店販商品|商品)\s*/, "");
+          const costMatch = userText.match(/(?:仕入原価|仕入れ原価|原価|仕入れ値)\s*([0-9][0-9,]*)\s*円/);
+          const salePriceMatch = userText.match(/(?:単価|販売価格|売価)?\s*([0-9][0-9,]*)\s*円/);
           if (!inferredName || !costMatch || !salePriceMatch) {
             return calendarDirect(res,
               "Productsに未登録の商品です。商品マスターへ追加するため、商品名・仕入原価・販売価格を指定してください。例：「商品名Aを1本、仕入原価1,800円、販売価格3,300円で販売したので登録して」。",
@@ -1018,7 +1018,7 @@ module.exports = async function handler(req, res) {
           const snapshotFor = name => allSheetSnapshots.find(item => item.sheet === name);
           const cellAt = (snapshot, address, rowsKey) => {
             if (!snapshot) return "";
-            const match = address.match(/^([A-Z]+)(\\d+)$/);
+            const match = address.match(/^([A-Z]+)(\d+)$/);
             if (!match) return "";
             let col = 0;
             for (const ch of match[1]) col = col * 26 + ch.charCodeAt(0) - 64;
