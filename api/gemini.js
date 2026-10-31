@@ -784,8 +784,8 @@ module.exports = async function handler(req, res) {
           const period = useDateFilter ? (monthMatch ? wantedMonth + "月" : /先月/.test(userText) ? "先月" : /今年|去年|昨年/.test(userText) ? wantedYear + "年" : "今月") : "全期間";
           const lines = ["集計対象：「" + spreadsheet.name + "」/「" + tab + "」/ " + period, "対象データ件数：" + dataRows.length + "件"];
           if (/(?:利益率)/.test(userText)) {
-            if (priceIndex < 0 || profitIndex < 0) {
-              lines.push("利益率：必要な列（販売価格・利益）が見つからないため算出できません。");
+            if ((isSalesManagement ? totalSalesIndex : priceIndex) < 0 || profitIndex < 0) {
+              lines.push("利益率：必要な列（売上・利益）が見つからないため算出できません。");
             } else if (totalSales === 0) {
               lines.push("利益率：売上合計が0円のため算出できません。");
             } else {
@@ -794,7 +794,7 @@ module.exports = async function handler(req, res) {
           } else if (/(?:利益)/.test(userText)) {
             lines.push(profitIndex < 0 ? "利益列が見つからないため算出できません。" : "利益合計：" + yen(totalProfit));
           } else if (/(?:売上|いくら|合計)/.test(userText)) {
-            lines.push(priceIndex < 0 ? "販売価格列が見つからないため算出できません。" : "売上合計：" + yen(totalSales));
+            lines.push((isSalesManagement ? totalSalesIndex : priceIndex) < 0 ? "売上列が見つからないため算出できません。" : "売上合計：" + yen(totalSales));
           }
           if (/(?:何個|数量|個数)/.test(userText)) lines.push("数量合計：" + totalQty.toLocaleString("ja-JP") + "個");
           if (/(?:何件|件数)/.test(userText)) lines.push("データ件数：" + dataRows.length + "件");
