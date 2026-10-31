@@ -691,7 +691,7 @@ module.exports = async function handler(req, res) {
         const matchedProducts = activeProducts.filter(row =>
           userText.toLowerCase().includes(String(row[productIndex.product_name]).trim().toLowerCase())
         );
-        const costLabelMatch = userText.match(/(?:仕入原価|仕入れ原価|原価|仕入れ値)\s*([0-9][0-9,]*)\s*円/);
+        const costLabelMatch = userText.match(/(?:仕入原価|仕入れ原価|原価|仕入れ値)\s*(?:は|が|[:：])?\s*([0-9][0-9,]*)\s*円/);
         const labelledPriceMatch = userText.match(/(?:単価|販売価格|売価)\s*([0-9][0-9,]*)\s*円/);
         const allYenAmounts = [...userText.matchAll(/([0-9][0-9,]*)\s*円/g)];
         const costAmountIndex = costLabelMatch ? userText.indexOf(costLabelMatch[1], costLabelMatch.index) : -1;
