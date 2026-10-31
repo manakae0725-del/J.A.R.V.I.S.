@@ -561,6 +561,7 @@ module.exports = async function handler(req, res) {
           const props = sheet?.properties || {};
           const title = props.title;
           if (!title) continue;
+          const isSummary = /集計|summary|dashboard/i.test(title);
           const gridRows = Math.max(1, Number(props.gridProperties?.rowCount) || 100);
           const gridColumns = Math.max(1, Number(props.gridProperties?.columnCount) || 26);
           // Audit the full declared grid (bounded for response size), not only A:K/A:C.
