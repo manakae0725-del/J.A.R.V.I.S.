@@ -513,7 +513,7 @@ module.exports = async function handler(req, res) {
       /(?:構成|設計|項目|タブ|シート|どんな|表示)/.test(userText) &&
       !/(?:調査|監査|詳しく|読み取|中身|データを確認|実際の内容)/.test(userText);
     const managementWorkbookUpgradeIntent =
-      /(?:管理ブック|管理データ).{0,30}(?:拡張|項目を追加|整備|最新の構成に|スキーマ更新)/.test(userText);
+      /(?:管理ブック|管理データ).{0,40}(?:拡張|項目を追加|整備|最新(?:の構成|スキーマ|版)|スキーマ(?:更新|v?3)|v?3に更新)/.test(userText);
     if (managementWorkbookUpgradeIntent) {
       try {
         const connections = await listConnectionsForUser(user.id);
