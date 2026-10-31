@@ -500,7 +500,9 @@ module.exports = async function handler(req, res) {
       { title: "Sales", headers: ["sales_id","transaction_date","customer_type","menu_id","menu_name","technical_sales","nomination_fee","retail_sales","service_minutes","staff_id","notes","record_status","created_at","updated_at"] },
       { title: "RetailSales", headers: ["retail_sale_id","sale_date","product_id","quantity","unit_sale_price","unit_cost","gross_profit","staff_id","notes","record_status","created_at","updated_at"] },
       { title: "Products", headers: ["product_id","product_name","category","unit_cost","default_sale_price","active_from","active_to","is_active","created_at","updated_at"] },
-      { title: "CompensationRules", headers: ["rule_id","employment_type","effective_from","effective_to","base_salary","nomination_fee","commission_rate","commission_basis","deduction_rules_json","is_active","created_at","updated_at"] },
+      { title: "Menus", headers: ["menu_id","menu_name","category","default_price","standard_minutes","active_from","active_to","is_active","created_at","updated_at"] },
+      { title: "Staff", headers: ["staff_id","display_name","employment_type","active_from","active_to","is_active","created_at","updated_at"] },
+      { title: "CompensationRules", headers: ["rule_id","staff_id","employment_type","effective_from","effective_to","base_salary","nomination_fee_per_visit","commission_rate","commission_basis","fixed_allowances_json","deduction_rules_json","payment_cycle","is_active","created_at","updated_at"] },
       { title: "Settings", headers: ["setting_key","setting_value","description","updated_at"] },
       { title: "ChangeLog", headers: ["change_id","changed_at","changed_by","target_sheet","target_record_id","field_name","old_value","new_value","reason"] }
     ];
@@ -510,6 +512,70 @@ module.exports = async function handler(req, res) {
       /(?:管理ブック|管理データ|新しい売上管理|新しい店販管理)/.test(userText) &&
       /(?:構成|設計|項目|タブ|シート|どんな|表示)/.test(userText) &&
       !/(?:調査|監査|詳しく|読み取|中身|データを確認|実際の内容)/.test(userText);
+    const managementWorkbookUpgradeIntent =
+      /(?:管理ブック|管理データ).{0,30}(?:拡張|項目を追加|整備|最新の構成に|スキーマ更新)/.test(userText);
+    if (managementWorkbookUpgradeIntent) {
+      try {
+        const connections = await listConnectionsForUser(user.id);
+        const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
+        if (!connection?.id) return calendarDirect(res, "Googleが未接続です。", "Googleが未接続です。");
+        const registry = await readSpreadsheetRegistry(user.id);
+        const workbook = registry?.managementWorkbook;
+        if (!workbook?.id) return calendarDirect(res, "管理ブックが登録されていません。先に作成してください。", "管理ブックが見つかりません。");
+        const metadata = await googleApiRequest(user.id, connection.id,
+          "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + "?" +
+          new URLSearchParams({ fields: "sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)))" }));
+        const existingSheets = Array.isArray(metadata?.sheets) ? metadata.sheets : [];
+        const byTitle = new Map(existingSheets.map(item => [item?.properties?.title, item?.properties]));
+        const requests = [];
+        const added = [];
+        const changedHeaders = [];
+        for (const definition of managementWorkbookSchema) {
+          const existing = byTitle.get(definition.title);
+          if (!existing) {
+            requests.push({ addSheet: { properties: {
+              title: definition.title,
+              gridProperties: { rowCount: 1000, columnCount: definition.headers.length }
+            } } });
+            added.push(definition.title);
+          } else if (definition.title === "CompensationRules") {
+            const oldColumns = Number(existing.gridProperties?.columnCount) || 0;
+            requests.push({
+              updateSheetProperties: {
+                properties: { sheetId: existing.sheetId, gridProperties: { columnCount: Math.max(oldColumns, definition.headers.length) } },
+                fields: "gridProperties.columnCount"
+              }
+            });
+            requests.push({
+              updateCells: {
+                range: { sheetId: existing.sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: definition.headers.length },
+                rows: [{ values: definition.headers.map(value => ({ userEnteredValue: { stringValue: value } })) }],
+                fields: "userEnteredValue"
+              }
+            });
+            changedHeaders.push(definition.title);
+          }
+        }
+        if (requests.length) {
+          await googleApiRequest(user.id, connection.id,
+            "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(workbook.id) + ":batchUpdate",
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ requests }) }
+          );
+        }
+        const updatedRecord = { ...workbook, schemaVersion: 2, updatedAt: new Date().toISOString() };
+        await saveSpreadsheetRegistry(user.id, { ...registry, version: 1, managementWorkbook: updatedRecord });
+        return calendarDirect(res,
+          "管理ブックをスキーマv2に更新しました。追加タブ: " + (added.join(" / ") || "なし") +
+          "。ヘッダー更新: " + (changedHeaders.join(" / ") || "なし") +
+          "。既存の売上・店販・商品・設定・変更履歴のデータ行は変更していません。",
+          "管理ブックの構造を更新しました。",
+          { managementWorkbook: { schemaVersion: 2, addedSheets: added, updatedHeaders: changedHeaders } }
+        );
+      } catch (error) {
+        console.error("Management workbook schema upgrade failed", { name: error?.name || "Error", status: Number.isInteger(error?.status) ? error.status : undefined });
+        return calendarDirect(res, "管理ブックの構造更新に失敗しました。データ行は変更していません。", "管理ブックの更新に失敗しました。");
+      }
+    }
     if (managementWorkbookCreateIntent) {
       try {
         const connections = await listConnectionsForUser(user.id);
