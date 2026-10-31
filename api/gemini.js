@@ -495,8 +495,11 @@ module.exports = async function handler(req, res) {
     }
 
     // Spreadsheet agent v3: supports explicit plan creation and registered stable IDs.
+    const spreadsheetFollowupPlanIntent =
+      /(?:先ほど|さっき|前回).{0,20}(?:監査|調査|結果)|(?:監査結果|調査結果).{0,30}(?:修正計画|計画|修正案)|(?:修正計画|計画を作成).{0,20}(?:監査|調査)/.test(userText);
     const sheetAgentIntent =
-      /(?:スプレッドシート|シート|売上管理|店販管理)/.test(userText) &&
+      (/(?:スプレッドシート|シート|売上管理|店販管理)/.test(userText) ||
+        spreadsheetFollowupPlanIntent) &&
       /(?:完成させて|直して|修正して|修正計画|計画を作成|作成して|作って|構造を調べて|調査して|数式を確認|未完成|自分で作って|整えて|詳しく)/.test(userText) &&
       !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して|実行して)/.test(userText);
     if (sheetAgentIntent) {
@@ -505,7 +508,13 @@ module.exports = async function handler(req, res) {
         const connection = Array.isArray(connections) ? connections.find(item => item?.status === "connected") : null;
         if (!connection?.id) return calendarDirect(res, "Googleが未接続です。先にGoogle接続を行ってください。", "Googleが未接続です。");
 
-        const spreadsheetName = /店販管理/.test(userText) ? "店販管理" : /売上管理/.test(userText) ? "売上管理" : null;
+        // Follow-up plan requests may refer to the immediately preceding audit without repeating its file name.
+        // In that narrow case, the preceding audit flow is for the registered sales workbook.
+        const spreadsheetName = /店販管理/.test(userText)
+          ? "店販管理"
+          : /売上管理/.test(userText) || spreadsheetFollowupPlanIntent
+            ? "売上管理"
+            : null;
         if (!spreadsheetName) {
           return calendarDirect(res, "調査するファイル名を指定してください。「売上管理を詳しく調査して」と依頼できます。", "調査するスプレッドシート名を指定してください。");
         }
