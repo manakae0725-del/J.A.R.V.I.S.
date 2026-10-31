@@ -609,18 +609,22 @@ module.exports = async function handler(req, res) {
 
         // Follow-up plan requests may refer to the immediately preceding audit without repeating its file name.
         // In that narrow case, the preceding audit flow is for the registered sales workbook.
-        const spreadsheetName = /店販管理/.test(userText)
-          ? "店販管理"
-          : /売上管理/.test(userText) || spreadsheetFollowupPlanIntent
-            ? "売上管理"
-            : null;
+        const spreadsheetName = /管理ブック|管理データ/.test(userText)
+          ? "管理ブック"
+          : /店販管理/.test(userText)
+            ? "店販管理"
+            : /売上管理/.test(userText) || spreadsheetFollowupPlanIntent
+              ? "売上管理"
+              : null;
         if (!spreadsheetName) {
           return calendarDirect(res, "調査するファイル名を指定してください。「売上管理を詳しく調査して」と依頼できます。", "調査するスプレッドシート名を指定してください。");
         }
         const registry = await readSpreadsheetRegistry(user.id);
-        const registered = spreadsheetName === "売上管理"
-          ? registry?.spreadsheets?.sales
-          : registry?.spreadsheets?.retail;
+        const registered = spreadsheetName === "管理ブック"
+          ? registry?.managementWorkbook
+          : spreadsheetName === "売上管理"
+            ? registry?.spreadsheets?.sales
+            : registry?.spreadsheets?.retail;
         let file = null;
         if (registered?.id && /^[a-zA-Z0-9_-]{10,200}$/.test(registered.id)) {
           const candidate = await googleApiRequest(user.id, connection.id,
