@@ -508,8 +508,7 @@ module.exports = async function handler(req, res) {
     ];
     // Explicit retail-sale registration: write only to the registered J.A.R.V.I.S. workbook.
     const retailSaleRegisterIntent =
-      /(?:店販|商品).{0,35}(?:売れた|販売した|売った|購入された|登録して|記録して)|(?:売れた|販売した|売った).{0,35}(?:店販|商品)/.test(userText) &&
-      /(?:登録|記録|追加|売れた|販売した|売った)/.test(userText);
+      /(?:店販|商品).{0,35}(?:売れた|販売した|売った|購入された|登録して|記録して)|(?:売れた|販売した|売った).{0,35}(?:店販|商品)|(?:売れた|販売した|売った).{0,30}(?:登録|記録|追加)|(?:登録|記録|追加).{0,25}(?:売れた|販売した|売った)/.test(userText);
     if (retailSaleRegisterIntent) {
       try {
         const connections = await listConnectionsForUser(user.id);
