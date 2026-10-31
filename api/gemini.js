@@ -548,7 +548,7 @@ module.exports = async function handler(req, res) {
           const inferredNameMatch = userText.match(/(?:商品名は|商品は)?\s*(.+?)を\s*\d+\s*(?:個|本|点)/);
           const inferredName = String(inferredNameMatch?.[1] || "").trim().replace(/^(?:店販で|店販商品|商品)\s*/, "");
           const costMatch = userText.match(/(?:仕入原価|仕入れ原価|原価|仕入れ値)\s*([0-9][0-9,]*)\s*円/);
-          const salePriceMatch = userText.match(/(?:単価|販売価格|売価)?\s*([0-9][0-9,]*)\s*円/);
+          const salePriceMatch = userText.match(/(?:単価|販売価格|売価)\s*([0-9][0-9,]*)\s*円/);
           if (!inferredName || !costMatch || !salePriceMatch) {
             return calendarDirect(res,
               "Productsに未登録の商品です。商品マスターへ追加するため、商品名・仕入原価・販売価格を指定してください。例：「商品名Aを1本、仕入原価1,800円、販売価格3,300円で販売したので登録して」。",
@@ -591,7 +591,9 @@ module.exports = async function handler(req, res) {
         if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) {
           return calendarDirect(res, productName + "の販売数量を確認してください。例：「" + productName + "を1本販売したので登録して」。", "販売数量を確認してください。");
         }
-        const priceMatch = userText.match(/(?:単価|販売価格|売価)?\s*([0-9][0-9,]*)\s*円/);
+        const labelledPriceMatch = userText.match(/(?:単価|販売価格|売価)\s*([0-9][0-9,]*)\s*円/);
+        const allYenAmounts = [...userText.matchAll(/([0-9][0-9,]*)\s*円/g)];
+        const priceMatch = labelledPriceMatch || (allYenAmounts.length === 1 ? allYenAmounts[0] : null);
         const defaultPrice = Number(product[productIndex.default_sale_price]);
         const unitSalePrice = priceMatch ? Number(priceMatch[1].replace(/,/g, "")) : defaultPrice;
         const unitCost = Number(product[productIndex.unit_cost]);
