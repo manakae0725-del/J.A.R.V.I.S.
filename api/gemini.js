@@ -727,7 +727,10 @@ module.exports = async function handler(req, res) {
           const indexOfHeader = (...names) => headers.findIndex(header => names.includes(header));
           const dateIndex = indexOfHeader("販売日", "日付", "購入日");
           const qtyIndex = indexOfHeader("数量", "個数", "販売数量");
-          const priceIndex = indexOfHeader("販売価格", "売上", "売上金額", "合計売上");
+          const priceIndex = indexOfHeader("販売価格", "売上", "売上金額");
+          const totalSalesIndex = indexOfHeader("合計売上", "総売上", "総売上額");
+          const isSalesManagement = totalSalesIndex >= 0 &&
+            (spreadsheetName === "売上管理" || indexOfHeader("技術売上") >= 0 || indexOfHeader("指名料") >= 0);
           const profitIndex = indexOfHeader("利益", "粗利益", "利益額");
           const monthMatch = userText.match(/(\d{1,2})月/);
           const now = new Date();
@@ -749,7 +752,14 @@ module.exports = async function handler(req, res) {
             if (short) return { year: wantedYear, month: Number(short[1]) };
             return null;
           };
-          let dataRows = rows.slice(1).filter(row => row.some(value => String(value ?? "").trim() !== ""));
+          let dataRows = rows.slice(1).filter(row => {
+            const hasInput = row.some((value, index) =>
+              index !== totalSalesIndex && String(value ?? "").trim() !== ""
+            );
+            const hasNonZeroCalculatedSales = totalSalesIndex >= 0 &&
+              parseNumber(row[totalSalesIndex]) !== 0;
+            return hasInput || hasNonZeroCalculatedSales;
+          });
           if (useDateFilter && dateIndex >= 0) {
             dataRows = dataRows.filter(row => {
               const date = parseMonth(row[dateIndex]);
@@ -760,6 +770,9 @@ module.exports = async function handler(req, res) {
             });
           }
           const totalSales = dataRows.reduce((sum, row) => {
+            if (isSalesManagement) {
+              return sum + parseNumber(row[totalSalesIndex]);
+            }
             if (priceIndex < 0) return sum;
             const price = parseNumber(row[priceIndex]);
             const quantity = qtyIndex < 0 ? 1 : parseNumber(row[qtyIndex]);
@@ -785,7 +798,7 @@ module.exports = async function handler(req, res) {
           }
           if (/(?:何個|数量|個数)/.test(userText)) lines.push("数量合計：" + totalQty.toLocaleString("ja-JP") + "個");
           if (/(?:何件|件数)/.test(userText)) lines.push("データ件数：" + dataRows.length + "件");
-          lines.push("注：販売価格×数量を売上として集計しています。日付に年がない行は指定年のデータとみなします。");
+          lines.push("注：" + (isSalesManagement ? "売上管理は「合計売上」列を直接合算しています。" : "店販管理は「販売価格×数量」で売上を集計しています。") + "数式のみの空行は件数から除外しています。日付に年がない行は指定年のデータとみなします。");
           return calendarDirect(res, lines.join("\n"), "スプレッドシートを集計しました。");
         }
 
