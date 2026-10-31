@@ -512,7 +512,11 @@ module.exports = async function handler(req, res) {
       /(?:管理ブック|管理データ|新しい売上管理|新しい店販管理)/.test(userText) &&
       /(?:構成|設計|項目|タブ|シート|どんな|表示)/.test(userText) &&
       !/(?:調査|監査|詳しく|読み取|中身|データを確認|実際の内容)/.test(userText);
+    const managementWorkbookAuditIntent =
+      /(?:管理ブック|管理データ).{0,50}(?:監査|照合|整合性|ヘッダー確認|列名確認)|(?:全8タブ|8タブ).{0,30}(?:監査|照合|確認)/.test(userText) &&
+      /(?:読み取り専用|データ行は変更しない|変更しない|照合|監査)/.test(userText);
     const managementWorkbookUpgradeIntent =
+      !managementWorkbookAuditIntent &&
       /(?:管理ブック|管理データ).{0,40}(?:拡張|項目を追加|整備|最新(?:の構成|スキーマ|版)|スキーマ(?:更新|v?3)|v?3に更新)/.test(userText);
     if (managementWorkbookUpgradeIntent) {
       try {
@@ -664,6 +668,7 @@ module.exports = async function handler(req, res) {
     const spreadsheetFollowupPlanIntent =
       /(?:先ほど|さっき|前回).{0,30}(?:監査|調査|結果).{0,30}(?:修正計画|計画|修正案)|(?:監査結果|調査結果).{0,30}(?:修正計画|計画|修正案)|(?:修正計画|計画を作成).{0,20}(?:監査|調査)/.test(userText);
     const sheetAgentIntent =
+      !managementWorkbookAuditIntent &&
       (/(?:スプレッドシート|シート|管理ブック|管理データ|売上管理|店販管理)/.test(userText) ||
         spreadsheetFollowupPlanIntent) &&
       /(?:完成させて|直して|修正して|修正計画|計画を作成|作成して|作って|構造を調べて|調査して|確認して|確認|数式を確認|未完成|自分で作って|整えて|詳しく)/.test(userText) &&
@@ -790,7 +795,7 @@ module.exports = async function handler(req, res) {
               const extra = headerValues.slice(expectedHeaders.length).filter(Boolean);
               const orderMismatch = expectedHeaders.some((value, index) => headerValues[index] !== value);
               if (orderMismatch || headerValues.length !== expectedHeaders.length) {
-                findings.push("「" + title + "」のヘッダーがスキーマv2と一致しません。期待列数=" +
+                findings.push("「" + title + "」のヘッダーがスキーマv3と一致しません。期待列数=" +
                   expectedHeaders.length + " / 実際の列数=" + headerValues.length +
                   (missing.length ? " / 不一致・不足候補=" + missing.join(", ") : "") +
                   (extra.length ? " / 余分な列=" + extra.join(", ") : "") +
@@ -824,8 +829,8 @@ module.exports = async function handler(req, res) {
         if (spreadsheetName === "管理ブック") {
           const actualTitles = new Set(sheetList.map(item => item?.properties?.title).filter(Boolean));
           const missingTabs = managementWorkbookSchema.map(item => item.title).filter(title => !actualTitles.has(title));
-          if (missingTabs.length) findings.push("スキーマv2で必要なタブが不足しています: " + missingTabs.join(", "));
-          else findings.push("スキーマv2の必須8タブはすべて存在します。");
+          if (missingTabs.length) findings.push("スキーマv3で必要なタブが不足しています: " + missingTabs.join(", "));
+          else findings.push("スキーマv3の必須8タブはすべて存在します。");
         }
         const iColumnRefs = formulaColumnReferences.get("I") || [];
         if (iColumnRefs.length) {
