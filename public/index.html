@@ -1326,6 +1326,72 @@ function setBackgroundPanelVisible(visible) {
     document.body.classList.toggle("background-tasks-open", Boolean(visible));
 }
 
+function backgroundResultText(value) {
+    if (value == null) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object" && typeof value.text === "string") return value.text;
+    try { return JSON.stringify(value, null, 2); }
+    catch (_) { return String(value); }
+}
+
+async function toggleBackgroundTaskResult(card, taskId, button) {
+    const existing = card.querySelector("[data-background-result]");
+    if (existing) {
+        existing.hidden = !existing.hidden;
+        button.textContent = existing.hidden ? "結果を表示" : "結果を閉じる";
+        return;
+    }
+    button.disabled = true;
+    button.textContent = "読み込み中...";
+    const panel = document.createElement("div");
+    panel.dataset.backgroundResult = "true";
+    panel.style.cssText = "margin-top:8px;padding:9px;border-top:1px solid rgba(70,150,210,.28);color:#d9efff;white-space:normal;overflow-wrap:anywhere";
+    panel.textContent = "成果物を取得しています...";
+    card.appendChild(panel);
+    try {
+        const details = await backgroundApiRequest({ mode: "background-task-detail", taskId });
+        const task = details.task || {};
+        const result = task.result && typeof task.result === "object" ? task.result : {};
+        panel.replaceChildren();
+        if (result.summary) {
+            const summary = document.createElement("div");
+            summary.style.cssText = "margin-bottom:9px;color:#bce8ff;font-weight:600";
+            summary.textContent = String(result.summary);
+            panel.appendChild(summary);
+        }
+        const steps = Array.isArray(result.steps) && result.steps.length
+            ? result.steps
+            : (Array.isArray(details.steps) ? details.steps : []);
+        for (const [index, step] of steps.entries()) {
+            const section = document.createElement("section");
+            section.style.cssText = "margin-top:8px;padding-top:7px;border-top:1px solid rgba(70,150,210,.18)";
+            const heading = document.createElement("div");
+            heading.style.cssText = "margin-bottom:5px;color:#8fcfff";
+            heading.textContent = (index + 1) + ". " + String(step.title || ("工程 " + (index + 1)));
+            const body = document.createElement("pre");
+            body.style.cssText = "margin:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font:inherit;font-size:12px;line-height:1.65;color:#d9eaff";
+            body.textContent = backgroundResultText(step.output);
+            section.append(heading, body);
+            panel.appendChild(section);
+        }
+        if (result.verification && typeof result.verification === "object") {
+            const verification = document.createElement("div");
+            verification.style.cssText = "margin-top:8px;color:#8fcfff;font-size:11px";
+            verification.textContent = result.verification.passed === true ? "最終検証：合格" : "最終検証：未合格";
+            panel.appendChild(verification);
+        }
+        if (!result.summary && !steps.length) {
+            panel.textContent = "保存された成果物はありません。";
+        }
+        button.textContent = "結果を閉じる";
+    } catch (error) {
+        panel.textContent = error.message || "成果物を取得できませんでした。";
+        button.textContent = "再読み込み";
+    } finally {
+        button.disabled = false;
+    }
+}
+
 function renderBackgroundTasks(tasks) {
     const list = document.getElementById("backgroundTaskList");
     if (!list) return;
@@ -1362,6 +1428,15 @@ function renderBackgroundTasks(tasks) {
         const stepCount = Array.isArray(task.steps) ? task.steps.length : 0;
         detail.textContent = (Number(task.progress)||0) + "% · " + (Number(task.current_step)||0) + "/" + stepCount + " steps";
         card.appendChild(detail);
+
+        if (task.status === "completed" || task.status === "failed") {
+            const resultButton = document.createElement("button");
+            resultButton.type = "button";
+            resultButton.textContent = "結果を表示";
+            resultButton.style.cssText = "margin-top:7px;background:transparent;color:#9fe0ff;border:1px solid rgba(80,180,255,.5);border-radius:4px;padding:4px 9px;font:inherit;font-size:11px";
+            resultButton.addEventListener("click", () => toggleBackgroundTaskResult(card, task.id, resultButton));
+            card.appendChild(resultButton);
+        }
 
         const previousStatus = previousBackgroundStatuses.get(task.id);
         if (previousStatus && previousStatus !== task.status && ["completed","failed","cancelled"].includes(task.status)) {
