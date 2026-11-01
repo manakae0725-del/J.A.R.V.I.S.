@@ -446,6 +446,17 @@ body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{disp
     <button id="sendButton">
         TRANSMIT
     </button>
+    <div style="display:flex;gap:8px;margin-top:8px;justify-content:center;flex-wrap:wrap">
+      <button id="backgroundModeToggle" type="button" aria-pressed="false" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">BACKGROUND: OFF</button>
+      <button id="backgroundTasksToggle" type="button" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">TASKS</button>
+    </div>
+    <div id="backgroundTaskPanel" hidden style="width:100%;max-height:190px;overflow-y:auto;margin-top:8px;padding:8px;background:rgba(3,15,29,.94);border:1px solid rgba(45,150,220,.45);border-radius:6px;box-sizing:border-box;text-align:left">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <span style="font-size:10px;letter-spacing:1.5px;color:#9bcfff">BACKGROUND TASKS</span>
+        <button id="refreshBackgroundTasks" type="button" style="background:#102b40;color:#e7f7ff;border:1px solid #258bc4;border-radius:4px;padding:4px 8px;font:inherit;font-size:10px">REFRESH</button>
+      </div>
+      <div id="backgroundTaskList" aria-live="polite" style="display:grid;gap:7px;font-size:11px;color:#d9efff">ログイン後にタスクが表示されます。</div>
+    </div>
 
 </div>
 <div id="leftHUD" class="sideHUD">
@@ -1269,6 +1280,178 @@ const textInput =
 const sendButton =
     document.getElementById("sendButton");
 
+
+let backgroundModeEnabled = false;
+let backgroundRefreshRunning = false;
+
+function setBackgroundMode(enabled) {
+    backgroundModeEnabled = Boolean(enabled);
+    const button = document.getElementById("backgroundModeToggle");
+    if (!button) return;
+    button.textContent = backgroundModeEnabled ? "BACKGROUND: ON" : "BACKGROUND: OFF";
+    button.setAttribute("aria-pressed", backgroundModeEnabled ? "true" : "false");
+    button.style.color = backgroundModeEnabled ? "#ffffff" : "#9bcfff";
+    button.style.borderColor = backgroundModeEnabled ? "#56c7ff" : "#258bc4";
+    button.style.boxShadow = backgroundModeEnabled ? "0 0 12px rgba(45,170,255,.35)" : "none";
+}
+
+function backgroundStatusLabel(status) {
+    return ({
+        queued: "待機中",
+        planning: "計画作成中",
+        running: "作業中",
+        verifying: "検証中",
+        retrying: "再試行待ち",
+        paused: "中断",
+        completed: "完了",
+        failed: "エラー",
+        cancelled: "キャンセル"
+    })[status] || status || "状態不明";
+}
+
+function renderBackgroundTasks(tasks) {
+    const list = document.getElementById("backgroundTaskList");
+    if (!list) return;
+    list.replaceChildren();
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+        const empty = document.createElement("div");
+        empty.textContent = "バックグラウンドタスクはありません。";
+        list.appendChild(empty);
+        return;
+    }
+    for (const task of tasks) {
+        const card = document.createElement("div");
+        card.style.cssText = "padding:8px;border:1px solid rgba(70,150,210,.28);border-radius:5px;background:rgba(10,35,58,.55)";
+        const header = document.createElement("div");
+        header.style.cssText = "display:flex;justify-content:space-between;gap:8px;align-items:flex-start";
+        const title = document.createElement("div");
+        title.style.cssText = "color:#e7f7ff;overflow-wrap:anywhere;flex:1";
+        title.textContent = task.title || "バックグラウンドタスク";
+        const status = document.createElement("span");
+        status.style.cssText = "color:#8fcfff;white-space:nowrap";
+        status.textContent = backgroundStatusLabel(task.status);
+        header.append(title,status);
+        card.appendChild(header);
+
+        const progress = document.createElement("div");
+        progress.style.cssText = "height:4px;background:rgba(120,170,210,.18);margin-top:7px;border-radius:4px;overflow:hidden";
+        const fill = document.createElement("div");
+        fill.style.cssText = "height:100%;background:#38aaff;width:" + Math.max(0,Math.min(100,Number(task.progress)||0)) + "%";
+        progress.appendChild(fill);
+        card.appendChild(progress);
+
+        const detail = document.createElement("div");
+        detail.style.cssText = "display:flex;justify-content:space-between;gap:8px;margin-top:5px;color:#8caecb;font-size:10px";
+        const stepCount = Array.isArray(task.steps) ? task.steps.length : 0;
+        detail.textContent = (Number(task.progress)||0) + "% · " + (Number(task.current_step)||0) + "/" + stepCount + " steps";
+        card.appendChild(detail);
+
+        if (["queued","planning","running","verifying","retrying","paused"].includes(task.status)) {
+            const cancel = document.createElement("button");
+            cancel.type = "button";
+            cancel.textContent = "CANCEL";
+            cancel.style.cssText = "margin-top:6px;background:transparent;color:#ffb2b2;border:1px solid rgba(255,120,120,.45);border-radius:4px;padding:3px 8px;font:inherit;font-size:10px";
+            cancel.addEventListener("click", () => cancelBackgroundTask(task.id));
+            card.appendChild(cancel);
+        }
+        if (task.error_message) {
+            const error = document.createElement("div");
+            error.style.cssText = "margin-top:5px;color:#ffb2b2;overflow-wrap:anywhere";
+            error.textContent = task.error_message;
+            card.appendChild(error);
+        }
+        list.appendChild(card);
+    }
+}
+
+async function backgroundApiRequest(payload) {
+    const userId = window.jarvisCurrentUserId || null;
+    if (!userId) throw new Error("ログイン状態を確認できません。");
+    const accessToken = await window.jarvisGetAccessToken();
+    if (!accessToken) throw new Error("認証トークンを取得できません。");
+    const response = await fetch("/api/gemini", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + accessToken
+        },
+        body: JSON.stringify(payload)
+    });
+    let data = {};
+    try { data = await response.json(); } catch (_) {}
+    if (userId !== window.jarvisCurrentUserId) throw new Error("ログインアカウントが切り替わりました。");
+    if (!response.ok) throw new Error(data.error || "バックグラウンドAPI " + response.status);
+    return data;
+}
+
+async function createBackgroundTask(text) {
+    const response = document.getElementById("voiceResponse");
+    const panel = document.getElementById("jarvisHoloPanel");
+    if (response) {
+        response.hidden = false;
+        response.setAttribute("aria-hidden", "false");
+        response.textContent = "バックグラウンド作業を登録しています...";
+    }
+    if (panel) panel.classList.add("show");
+    const data = await backgroundApiRequest({
+        mode: "background-task-create",
+        text,
+        idempotencyKey: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "task-" + Date.now() + "-" + Math.random().toString(36).slice(2)
+    });
+    const taskPanel = document.getElementById("backgroundTaskPanel");
+    if (taskPanel) taskPanel.hidden = false;
+    if (response) response.textContent = "バックグラウンド作業を受け付けました。会話はそのまま続けられます。";
+    await refreshBackgroundTasks();
+    return { backgroundTaskCreated: true, task: data.task };
+}
+
+async function refreshBackgroundTasks() {
+    if (backgroundRefreshRunning || !window.jarvisCurrentUserId) return;
+    backgroundRefreshRunning = true;
+    try {
+        const data = await backgroundApiRequest({ mode: "background-task-list" });
+        renderBackgroundTasks(data.tasks || []);
+    } catch (error) {
+        const list = document.getElementById("backgroundTaskList");
+        if (list && !list.children.length) list.textContent = error.message || "タスク一覧を取得できません。";
+        console.warn("[BACKGROUND TASK] Refresh failed:", error.message || error);
+    } finally {
+        backgroundRefreshRunning = false;
+    }
+}
+
+async function cancelBackgroundTask(taskId) {
+    try {
+        await backgroundApiRequest({ mode: "background-task-cancel", taskId });
+        await refreshBackgroundTasks();
+    } catch (error) {
+        const response = document.getElementById("voiceResponse");
+        if (response) {
+            response.hidden = false;
+            response.textContent = error.message || "タスクをキャンセルできませんでした。";
+        }
+    }
+}
+
+document.getElementById("backgroundModeToggle")?.addEventListener("click", () => {
+    setBackgroundMode(!backgroundModeEnabled);
+});
+document.getElementById("backgroundTasksToggle")?.addEventListener("click", () => {
+    const panel = document.getElementById("backgroundTaskPanel");
+    if (!panel) return;
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) refreshBackgroundTasks();
+});
+document.getElementById("refreshBackgroundTasks")?.addEventListener("click", refreshBackgroundTasks);
+setInterval(() => {
+    const panel = document.getElementById("backgroundTaskPanel");
+    if (panel && !panel.hidden) refreshBackgroundTasks();
+}, 12000);
+window.addEventListener("jarvis-auth-change", () => {
+    renderBackgroundTasks([]);
+    setBackgroundMode(false);
+});
+
 sendButton.addEventListener(
     "click",
     async function(){
@@ -1288,7 +1471,8 @@ sendButton.addEventListener(
         if (initialPanel) initialPanel.classList.add("show");
 
         try {
-            await sendToGemini(text);
+            const sendResult = await sendToGemini(text, { background: backgroundModeEnabled });
+            if (sendResult && sendResult.backgroundTaskCreated) setBackgroundMode(false);
         } catch (error) {
             console.error("[CONVERSATION] Send handler failed:", error);
             const voiceResponse = document.getElementById("voiceResponse");
@@ -2505,7 +2689,7 @@ async function readJarvisApiResponse(response, onPartialText) {
     return { data: completeData, streamed: true, streamedText: extractPartialJsonString(jsonText, "reply") };
 }
 
-async function sendToGemini(text) {
+async function sendToGemini(text, options = {}) {
 
     const requestUserId = window.jarvisCurrentUserId || null;
     const cleanText =
@@ -2514,6 +2698,9 @@ async function sendToGemini(text) {
             : "";
 
     if (!cleanText) return;
+    if (options && options.background === true) {
+        return createBackgroundTask(cleanText);
+    }
 
     const voiceResponse = document.getElementById("voiceResponse");
     const holoPanel = document.getElementById("jarvisHoloPanel");
