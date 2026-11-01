@@ -321,11 +321,12 @@ async function handleBackgroundWorkerTick(req, res) {
     task = await backgroundTasks.claim(workerId, 120);
     if (!task) return res.status(200).json({ ok: true, claimed: false });
 
-    const classification = getAutoCommanderConfig({
+    const commanderRoute = getAutoCommanderConfig({
       autoCommander: true,
       text: task.request,
       env: process.env
-    }).classification;
+    });
+    const classification = commanderRoute.classification;
 
     if (task.status === "planning") {
       const plannerPrompt = [
@@ -369,23 +370,52 @@ async function handleBackgroundWorkerTick(req, res) {
         "Do not claim external actions, account access, file changes, or data retrieval that did not occur.",
         "State assumptions and missing information. Return a concise but sufficiently detailed result."
       ].join("\n");
-      const output = await callBackgroundGemini(
-        stepPrompt,
-        JSON.stringify({
-          originalRequest: task.request,
-          commanderClassification: classification,
-          step: { title: step.title, instruction: step.instruction },
-          previousStepResults: previous
-        }),
-        1200,
-        classification.complexity === "high" ? "medium" : "low"
-      );
+      const stepInput = JSON.stringify({
+        originalRequest: task.request,
+        commanderClassification: classification,
+        step: { title: step.title, instruction: step.instruction },
+        previousStepResults: previous
+      });
+      let output = "";
+      let providersUsed = ["gemini"];
+      // Reuse the existing Commander/AI Council only for the first substantive step.
+      // Paid providers remain gated by the same existing Preview flags and credentials.
+      if (currentStep === 0 && commanderRoute.eligible && commanderRoute.providers.length > 0) {
+        try {
+          const council = await runAiCouncil({
+            userInput: stepInput,
+            systemInstruction: stepPrompt,
+            providers: commanderRoute.providers,
+            timeoutMs: 20000,
+            maxOutputTokens: 1200
+          });
+          const successful = council.results.filter(item => item.ok && typeof item.text === "string" && item.text.trim());
+          if (successful.length) {
+            providersUsed = successful.map(item => item.provider);
+            output = successful.map(item => "【" + item.provider + "】\\n" + item.text).join("\\n\\n");
+          }
+        } catch (councilError) {
+          console.warn("[BACKGROUND TASK] Commander delegation unavailable; using Gemini", {
+            taskId: task.id,
+            code: typeof councilError?.code === "string" ? councilError.code : "COUNCIL_ERROR"
+          });
+        }
+      }
+      if (!output) {
+        output = await callBackgroundGemini(
+          stepPrompt,
+          stepInput,
+          1200,
+          classification.complexity === "high" ? "medium" : "low"
+        );
+        providersUsed = ["gemini"];
+      }
       const progress = Math.min(90, Math.floor(((currentStep + 1) / Math.max(1, steps.length)) * 90));
       const saved = await backgroundTasks.saveStep(
         task.id,
         workerId,
         currentStep,
-        { text: output, provider: "gemini", model: "gemini-3.6-flash" },
+        { text: output, providers: providersUsed, model: "Gemini 3.6 Flash / configured Commander providers" },
         progress,
         "queued"
       );
