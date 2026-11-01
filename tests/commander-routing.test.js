@@ -35,12 +35,16 @@ test("length alone never triggers paid-provider routing", () => {
   assert.equal(getAutoCommanderConfig({ autoCommander: true, text: "通常の依頼です。" + "文章".repeat(620), env: enabledEnv }).eligible, false);
 });
 
-test("selects one configured paid provider, preferring OpenAI and falling back to Anthropic", () => {
+test("selects OpenAI only; Anthropic is deliberately not used as a fallback", () => {
   assert.equal(getAutoCommanderConfig({ autoCommander: true, text: complexTask, env: enabledEnv }).provider, "openai");
-  const anthropicOnly = { ...enabledEnv, OPENAI_API_KEY: "", JARVIS_OPENAI_MODEL: "" };
-  assert.equal(getAutoCommanderConfig({ autoCommander: true, text: complexTask, env: anthropicOnly }).provider, "anthropic");
-  const none = { ...enabledEnv, OPENAI_API_KEY: "", JARVIS_OPENAI_MODEL: "", ANTHROPIC_API_KEY: "", JARVIS_ANTHROPIC_MODEL: "" };
-  assert.equal(getAutoCommanderConfig({ autoCommander: true, text: complexTask, env: none }).provider, null);
+  const openaiUnavailable = {
+    ...enabledEnv,
+    OPENAI_API_KEY: "",
+    JARVIS_OPENAI_MODEL: "",
+    ANTHROPIC_API_KEY: "must-not-be-used",
+    JARVIS_ANTHROPIC_MODEL: "must-not-be-used"
+  };
+  assert.equal(getAutoCommanderConfig({ autoCommander: true, text: complexTask, env: openaiUnavailable }).provider, null);
 });
 
 
