@@ -2233,12 +2233,57 @@ module.exports = async function handler(req, res) {
     let searchQuery = userText;
 
     if (isWeatherQuestion) {
-      geminiInput += `
+      let location = "札幌市";
 
-【天気回答】
-検索結果のうち地域・日付が一致する情報を使い、質問された項目だけを簡潔に回答してください。求められていない服装・傘・外出・体調の助言や感想、気象キャスター調の定型文は加えないでください。
-`;
+      const locationPatterns = [
+        /([一-龯ぁ-んァ-ヶ]+市)/,
+        /([一-龯ぁ-んァ-ヶ]+区)/,
+        /(東京|大阪|京都|名古屋|福岡|仙台|横浜|川崎|神戸|広島|千葉|埼玉|札幌|旭川|函館|帯広|釧路|小樽)/,
+      ];
+
+      for (const pattern of locationPatterns) {
+        const match = userText.match(pattern);
+
+        if (match?.[1]) {
+          location = match[1];
+
+          if (
+            !location.endsWith("市") &&
+            !location.endsWith("区")
+          ) {
+            location += "市";
+          }
+
+          break;
+        }
+      }
+
+      let day = "今日";
+
+      if (
+        userText.includes("明後日") ||
+        userText.includes("あさって")
+      ) {
+        day = "明後日";
+      } else if (
+        userText.includes("明日") ||
+        userText.includes("あした")
+      ) {
+        day = "明日";
+      } else if (userText.includes("今週")) {
+        day = "今週";
+      } else if (
+        userText.includes("現在") ||
+        userText.includes("今")
+      ) {
+        day = "現在";
+      }
+
+      searchQuery = `${location} 天気 ${day}`;
+
     }
+
+
     geminiInput += `
 
 ==============================
@@ -2298,30 +2343,10 @@ NEWS RESPONSE RULES
     if (isWeatherQuestion) {
       geminiInput += `
 
-==============================
-WEATHER RESPONSE RULES
-==============================
-
-これは天気関連の質問です。
-
-- 検索結果に含まれる天気情報を使用してください。
-- 地域と日付が一致する情報を優先してください。
-- 質問された項目だけを回答してください。
-- 天気、気温、降水確率など必要な情報だけを簡潔に伝えてください。
-- ユーザーが求めていない感想を追加しないでください。
-- ユーザーが求めていない助言を追加しないでください。
-- 服装について話さないでください。
-- 傘について質問されていなければ、傘について話さないでください。
-- 外出について助言しないでください。
-- 体調について言及しないでください。
-- 「少し肌寒く感じますが」などの感想を追加しないでください。
-- 「お出かけの際は」などの定型文を追加しないでください。
-- 気象キャスターのような説明をしないでください。
-- 「〜となっております」を使用しないでください。
-- 自然で簡潔なJ.A.R.V.I.S.の回答にしてください。
+【天気回答】
+地域・日付が一致する検索情報を使い、質問された項目だけを簡潔に回答してください。求められていない服装・傘・外出・体調の助言や感想、気象キャスター調の定型文は加えないでください。
 `;
     }
-
     geminiInput += `
 
 ==============================
