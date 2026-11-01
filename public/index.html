@@ -1943,7 +1943,7 @@ ${text}
 `;
 }
 
-async function saveMemory(memory, expectedUserId) {
+async function saveMemory(memory, expectedUserId, options = {}) {
     if (!memory || !memory.shouldSave || !expectedUserId || expectedUserId !== window.jarvisCurrentUserId) return false;
     const content = typeof memory.content === "string" ? memory.content.trim() : "";
     if (!content) return false;
@@ -1954,6 +1954,11 @@ async function saveMemory(memory, expectedUserId) {
     if (action === "replace" && (!Number.isSafeInteger(memoryId) || !memories.some(item => Number(item.id) === memoryId && ["personal", "preference", "work", "family", "goal"].includes(item.category)))) {
         console.warn("Memory replacement skipped: target is not in the current user's loaded memory context");
         return false;
+    }
+    const normalize = value => String(value || "").normalize("NFKC").replace(/[\\s。、，．.!！?？「」『』（）()]/g, "").toLowerCase();
+    if (action === "save" && memories.some(item => item.category === category && normalize(item.content) === normalize(content))) {
+        console.info("Memory save skipped: duplicate content");
+        return true;
     }
     try {
         const accessToken = await window.jarvisGetAccessToken();
@@ -1968,14 +1973,32 @@ async function saveMemory(memory, expectedUserId) {
         const data = await response.json();
         if (expectedUserId !== window.jarvisCurrentUserId) return false;
         if (!response.ok || !data.ok) throw new Error(getErrorMessage(data.error) || "Memory save error");
-        // Invalidate the per-user cache so a successful save/replacement is reflected immediately.
         memoryLoadedForUserId = null;
-        await loadMemories();
+        if (!options.deferReload) await loadMemories();
         return true;
     } catch (error) {
         console.error("Memory save error:", error);
         return false;
     }
+}
+
+async function saveMemoriesBatch(items, expectedUserId) {
+    if (!Array.isArray(items) || !expectedUserId || expectedUserId !== window.jarvisCurrentUserId) return { saved: 0, failed: 0 };
+    let saved = 0;
+    let failed = 0;
+    for (const item of items.slice(0, 12)) {
+        if (expectedUserId !== window.jarvisCurrentUserId) break;
+        if (!item || item.shouldSave !== true) continue;
+        const ok = await saveMemory(item, expectedUserId, { deferReload: true });
+        if (ok) saved++;
+        else failed++;
+    }
+    if (saved > 0 && expectedUserId === window.jarvisCurrentUserId) {
+        memoryLoadedForUserId = null;
+        await loadMemories();
+    }
+    console.info("[MEMORY] Batch save finished", { requested: items.length, saved, failed });
+    return { saved, failed };
 }
 function setMode(mode) {
 
@@ -2995,12 +3018,12 @@ async function sendToGemini(text, options = {}) {
             storedInteractionId: Boolean(previousInteractionId)
         });
 
-        if (
-            data.memory &&
-            data.memory.shouldSave === true &&
-            requestUserId === window.jarvisCurrentUserId
-        ) {
-            await saveMemory(data.memory, requestUserId);
+        if (requestUserId === window.jarvisCurrentUserId) {
+            if (Array.isArray(data.memories) && data.memories.length > 0) {
+                await saveMemoriesBatch(data.memories, requestUserId);
+            } else if (data.memory && data.memory.shouldSave === true) {
+                await saveMemory(data.memory, requestUserId);
+            }
         }
 
         // 保存処理の待機中にアカウントが変わった場合も、表示・読み上げしない。
