@@ -3038,6 +3038,18 @@ visualization は画面表示専用です。reply と speechText は通常どお
             maxOutputTokens: 1200
           });
 
+          const successfulProviders = result.results
+            .filter(item => item.ok && typeof item.text === "string" && item.text.trim())
+            .map(item => item.provider);
+          const failedProviders = result.results
+            .filter(item => !item.ok)
+            .map(item => item.provider);
+          const executionSummary = [
+            "実行方式: " + (autoCommanderParallelEnabled && configuredAutoProviders.length > 1 ? "複数AIへの並列リクエスト" : "単独AIリクエスト"),
+            "実際に回答を取得したAI: " + (successfulProviders.length ? successfulProviders.join(", ") : "なし"),
+            failedProviders.length ? "応答を取得できなかったAI: " + failedProviders.join(", ") : "失敗したAI: なし",
+            "最終回答の統合担当: Gemini（このリクエストの最終応答生成）"
+          ].join("\\n");
           const specialistText = result.results
             .filter(item => item.ok && typeof item.text === "string" && item.text.trim())
             .map(item => "【専門AIの分析 / " + item.provider + "・役割: " + (item.role || "独立分析") + "】\\n" + item.text)
@@ -3045,7 +3057,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
 
           if (specialistText) {
             const geminiInputLengthBeforeAdvisory = geminiInput.length;
-            geminiInput += "\n\\n==============================\\nSPECIALIST ADVISORY\\n==============================\\n以下は司令官が選択した専門AIの分析です。元の依頼と取得済みデータを照合し、必要なら不確実性や不足情報を明示したうえで、J.A.R.V.I.S.として最終回答を作成してください。専門AIの内容を無条件に正しいものとして扱わず、根拠のない情報は採用しないでください。\\n\\n" + specialistText;
+            geminiInput += "\n\\n==============================\\nCOMMANDER EXECUTION FACTS\\n==============================\\n以下はサーバー側の実行結果に基づく事実です。画面表示・最終回答ではこの事実を正確に説明してください。実際に複数AIの回答が渡されている場合、「複数AIへの並列リクエスト機能はない」「内部で役割を分けただけ」などと否定してはいけません。一方、応答に失敗したAIを成功したと表現してはいけません。実行方式と成功・失敗したAIを区別し、未確認の処理を実行済みと主張しないでください。\\n" + executionSummary + "\\n\\n==============================\\nSPECIALIST ADVISORY\\n==============================\\n以下は専門AIから実際に返された分析です。元の依頼と取得済みデータを照合し、必要なら不確実性や不足情報を明示したうえで、J.A.R.V.I.S.として最終回答を作成してください。専門AIの内容を無条件に正しいものとして扱わず、根拠のない情報は採用しないでください。\\n\\n" + specialistText;
             console.info("[COMMANDER] Specialist advisory appended to Gemini input", {
               providers: configuredAutoProviders,
               parallelEnabled: autoCommanderParallelEnabled,
