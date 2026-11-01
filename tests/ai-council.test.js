@@ -9,7 +9,9 @@ const originalEnv = {
   openaiKey: process.env.OPENAI_API_KEY,
   openaiModel: process.env.JARVIS_OPENAI_MODEL,
   anthropicKey: process.env.ANTHROPIC_API_KEY,
-  anthropicModel: process.env.JARVIS_ANTHROPIC_MODEL
+  anthropicModel: process.env.JARVIS_ANTHROPIC_MODEL,
+  supabaseUrl: process.env.SUPABASE_URL,
+  supabaseKey: process.env.SUPABASE_SECRET_KEY
 };
 
 function restoreEnv(name, value) {
@@ -25,6 +27,8 @@ test.afterEach(() => {
   restoreEnv("JARVIS_OPENAI_MODEL", originalEnv.openaiModel);
   restoreEnv("ANTHROPIC_API_KEY", originalEnv.anthropicKey);
   restoreEnv("JARVIS_ANTHROPIC_MODEL", originalEnv.anthropicModel);
+  restoreEnv("SUPABASE_URL", originalEnv.supabaseUrl);
+  restoreEnv("SUPABASE_SECRET_KEY", originalEnv.supabaseKey);
 });
 
 test("council is disabled unless explicitly enabled", async () => {
@@ -123,4 +127,75 @@ test("normalizes request timeout and rejects oversized input before network acce
     error => error.code === "INVALID_INPUT"
   );
   assert.equal(calls, 1);
+});
+
+
+test("continues with OpenAI when the parallel Gemini analyst fails", async () => {
+  process.env.JARVIS_AI_COUNCIL_ENABLED = "true";
+  process.env.GEMINI_API_KEY = "test-key-not-real";
+  process.env.OPENAI_API_KEY = "test-key-not-real";
+  process.env.JARVIS_OPENAI_MODEL = "test-model";
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_SECRET_KEY;
+  global.fetch = async url => {
+    if (String(url).includes("generativelanguage.googleapis.com")) {
+      return { ok: false, status: 503, text: async () => JSON.stringify({ error: { message: "simulated Gemini outage" } }) };
+    }
+    if (String(url).includes("api.openai.com")) {
+      return { ok: true, status: 200, text: async () => JSON.stringify({ output_text: "OpenAI analysis survived" }) };
+    }
+    throw new Error("Unexpected network target");
+  };
+  const result = await runAiCouncil({ userInput: "test", providers: ["gemini", "openai"] });
+  assert.equal(result.results[0].ok, false);
+  assert.equal(result.results[0].provider, "gemini");
+  assert.equal(result.results[0].error, "PROVIDER_UNAVAILABLE");
+  assert.equal(result.results[1].ok, true);
+  assert.equal(result.results[1].provider, "openai");
+  assert.equal(result.results[1].text, "OpenAI analysis survived");
+});
+
+test("continues with Gemini when the parallel OpenAI analyst fails", async () => {
+  process.env.JARVIS_AI_COUNCIL_ENABLED = "true";
+  process.env.GEMINI_API_KEY = "test-key-not-real";
+  process.env.OPENAI_API_KEY = "test-key-not-real";
+  process.env.JARVIS_OPENAI_MODEL = "test-model";
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_SECRET_KEY;
+  global.fetch = async url => {
+    if (String(url).includes("generativelanguage.googleapis.com")) {
+      return { ok: true, status: 200, text: async () => JSON.stringify({ output_text: "Gemini analysis survived" }) };
+    }
+    if (String(url).includes("api.openai.com")) {
+      return { ok: false, status: 503, text: async () => JSON.stringify({ error: { message: "simulated OpenAI outage" } }) };
+    }
+    throw new Error("Unexpected network target");
+  };
+  const result = await runAiCouncil({ userInput: "test", providers: ["gemini", "openai"] });
+  assert.equal(result.results[0].ok, true);
+  assert.equal(result.results[0].provider, "gemini");
+  assert.equal(result.results[0].text, "Gemini analysis survived");
+  assert.equal(result.results[1].ok, false);
+  assert.equal(result.results[1].provider, "openai");
+  assert.equal(result.results[1].error, "PROVIDER_UNAVAILABLE");
+});
+
+test("returns both provider failures without rejecting the entire council request", async () => {
+  process.env.JARVIS_AI_COUNCIL_ENABLED = "true";
+  process.env.GEMINI_API_KEY = "test-key-not-real";
+  process.env.OPENAI_API_KEY = "test-key-not-real";
+  process.env.JARVIS_OPENAI_MODEL = "test-model";
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_SECRET_KEY;
+  global.fetch = async () => ({
+    ok: false,
+    status: 503,
+    text: async () => JSON.stringify({ error: { message: "simulated provider outage" } })
+  });
+  const result = await runAiCouncil({ userInput: "test", providers: ["gemini", "openai"] });
+  assert.equal(result.providerCount, 2);
+  assert.equal(result.results.length, 2);
+  assert.equal(result.results.every(item => item.ok === false), true);
+  assert.deepEqual(result.results.map(item => item.provider), ["gemini", "openai"]);
+  assert.equal(result.results.every(item => item.error === "PROVIDER_UNAVAILABLE"), true);
 });
