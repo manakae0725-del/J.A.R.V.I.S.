@@ -351,6 +351,7 @@ async function handleBackgroundWorkerTick(req, res) {
       }));
       if (normalizedPlan.some(item => !item.title || !item.instruction)) throw new Error("BACKGROUND_PLAN_INVALID");
       const saved = await backgroundTasks.savePlan(task.id, workerId, normalizedPlan);
+      if (!saved) await backgroundTasks.releaseLease(task.id, workerId);
       return res.status(saved ? 200 : 409).json({ ok: Boolean(saved), taskId: task.id, stage: "planned" });
     }
 
@@ -388,6 +389,7 @@ async function handleBackgroundWorkerTick(req, res) {
         progress,
         "queued"
       );
+      if (!saved) await backgroundTasks.releaseLease(task.id, workerId);
       return res.status(saved ? 200 : 409).json({ ok: Boolean(saved), taskId: task.id, stage: "step_completed", step: currentStep + 1, totalSteps: steps.length, progress });
     }
 
@@ -412,6 +414,7 @@ async function handleBackgroundWorkerTick(req, res) {
         verification: { passed: true, issues: Array.isArray(verification.issues) ? verification.issues.slice(0, 5) : [] },
         commanderClassification: classification
       });
+      if (!finished) await backgroundTasks.releaseLease(task.id, workerId);
       return res.status(finished ? 200 : 409).json({ ok: Boolean(finished), taskId: task.id, stage: "completed" });
     }
 
@@ -427,6 +430,7 @@ async function handleBackgroundWorkerTick(req, res) {
       steps: completedSteps,
       verification: { passed: false, issues: Array.isArray(verification?.issues) ? verification.issues.slice(0, 8) : [] }
     }, "VERIFICATION_FAILED", "検証で未解決の問題が残りました。");
+    if (!failed) await backgroundTasks.releaseLease(task.id, workerId);
     return res.status(failed ? 200 : 409).json({ ok: Boolean(failed), taskId: task.id, stage: "verification_failed" });
   } catch (error) {
     console.error("[BACKGROUND TASK] Worker execution failed", {
