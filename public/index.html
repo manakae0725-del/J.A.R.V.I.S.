@@ -1988,7 +1988,7 @@ async function saveMemoriesBatch(items, expectedUserId) {
     }
     const batch = items.slice(0, 12);
     const result = { requested: items.length, saved: 0, updated: 0, duplicate: 0, skipped: 0, failed: 0, truncated: Math.max(0, items.length - batch.length) };
-    const normalize = value => String(value || "").normalize("NFKC").replace(/[\\s。、，．.!！?？「」『』（）()]/g, "").toLowerCase();
+    const normalize = value => String(value || "").normalize("NFKC").replace(/[\s。、，．.!！?？「」『』（）()]/g, "").toLowerCase();
     for (const item of batch) {
         if (expectedUserId !== window.jarvisCurrentUserId) {
             result.skipped += batch.length - (result.saved + result.updated + result.duplicate + result.skipped + result.failed);
