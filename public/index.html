@@ -368,6 +368,13 @@ color: #61a6ff;
 .jarvis-visualization .viz-arrow{stroke:#00d2ff;stroke-width:1.5;fill:none}
 
 @media(max-width:480px){.jarvis-holo-panel{top:30%;width:calc(100% - 24px);padding:10px 12px}}
+/* Keep the response card and task console in separate vertical zones on phones. */
+body.background-tasks-open .jarvis-holo-panel{top:17%;max-height:27vh;overflow-y:auto}
+body.background-tasks-open #textArea{top:66%;max-height:88vh;overflow-y:auto;overscroll-behavior:contain}
+@media(max-width:480px){
+ body.background-tasks-open .jarvis-holo-panel{top:17%;max-height:25vh}
+ body.background-tasks-open #textArea{top:65%;max-height:88vh}
+}
 
 #authScreen{position:fixed;inset:0;z-index:100000;display:block;padding:0;background:rgba(1,7,18,.10);color:#d8efff;font-family:"Courier New",Courier,monospace;opacity:1;transition:opacity .85s ease,background .7s ease;pointer-events:none}
 #authScreen[hidden]{display:none!important}
@@ -447,9 +454,10 @@ body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{disp
         TRANSMIT
     </button>
     <div style="display:flex;gap:8px;margin-top:8px;justify-content:center;flex-wrap:wrap">
-      <button id="backgroundModeToggle" type="button" aria-pressed="false" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">BACKGROUND: OFF</button>
-      <button id="backgroundTasksToggle" type="button" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">TASKS</button>
+      <button id="backgroundModeToggle" type="button" aria-pressed="false" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">RUN AS TASK: OFF</button>
+      <button id="backgroundTasksToggle" type="button" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">TASK LIST</button>
     </div>
+    <div style="margin-top:6px;color:#8ebbdc;font:10px/1.5 monospace;text-align:center">ONにしてから依頼を送信すると、会話とは別に作業します。OFFは通常会話です。</div>
     <div id="backgroundTaskPanel" hidden style="width:100%;max-height:190px;overflow-y:auto;margin-top:8px;padding:8px;background:rgba(3,15,29,.94);border:1px solid rgba(45,150,220,.45);border-radius:6px;box-sizing:border-box;text-align:left">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
         <span style="font-size:10px;letter-spacing:1.5px;color:#9bcfff">BACKGROUND TASKS</span>
@@ -1291,7 +1299,7 @@ function setBackgroundMode(enabled) {
     backgroundModeEnabled = Boolean(enabled);
     const button = document.getElementById("backgroundModeToggle");
     if (!button) return;
-    button.textContent = backgroundModeEnabled ? "BACKGROUND: ON" : "BACKGROUND: OFF";
+    button.textContent = backgroundModeEnabled ? "RUN AS TASK: ON" : "RUN AS TASK: OFF";
     button.setAttribute("aria-pressed", backgroundModeEnabled ? "true" : "false");
     button.style.color = backgroundModeEnabled ? "#ffffff" : "#9bcfff";
     button.style.borderColor = backgroundModeEnabled ? "#56c7ff" : "#258bc4";
@@ -1314,9 +1322,8 @@ function backgroundStatusLabel(status) {
 
 function setBackgroundPanelVisible(visible) {
     const panel = document.getElementById("backgroundTaskPanel");
-    const area = document.getElementById("textArea");
     if (panel) panel.hidden = !visible;
-    if (area) area.style.top = visible ? "50%" : "";
+    document.body.classList.toggle("background-tasks-open", Boolean(visible));
 }
 
 function renderBackgroundTasks(tasks) {
