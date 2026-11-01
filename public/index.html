@@ -1533,6 +1533,8 @@ async function createBackgroundTask(text) {
 }
 
 async function refreshBackgroundTasks() {
+    const taskList = document.getElementById("backgroundTaskList");
+    if (taskList && taskList.querySelector('[data-background-result]:not([hidden])')) return;
     if (backgroundRefreshRunning || !window.jarvisCurrentUserId) return;
     backgroundRefreshRunning = true;
     try {
