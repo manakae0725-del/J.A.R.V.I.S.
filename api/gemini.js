@@ -1683,6 +1683,11 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // Explicit multi-AI requests must reach Auto Commander before keyword-based
+    // Google Sheets shortcuts (for example, a request asking two AIs to analyze sales).
+    const explicitMultiAiRequestIntent =
+      /(?:複数の?AI|2つのAI|二つのAI|Gemini.{0,20}OpenAI|OpenAI.{0,20}Gemini|並列(?:処理|実行|分析|リクエスト)|AI.{0,12}(?:同時に|それぞれ|独立して).{0,12}(?:分析|依頼|処理)|(?:同時に|それぞれ|独立して).{0,12}AI.{0,12}(?:分析|依頼|処理))/.test(userText);
+
     // Visualization creation requests must reach the normal Gemini visualization flow,
     // even when they mention sales/revenue. Do not accidentally route them into Drive lookup.
     const visualizationCreationIntent =
@@ -1691,6 +1696,7 @@ module.exports = async function handler(req, res) {
 
     // Google Sheets read and basic sales analysis. All operations here are read-only.
     const sheetsReadIntent =
+      !explicitMultiAiRequestIntent &&
       !visualizationCreationIntent &&
       /(?:スプレッドシート|シート|店販管理|店販|表|売上表|売上|利益|利益率|販売実績)/.test(userText) &&
       /(?:読んで|読み取って|見せて|表示して|確認して|調べて|取得して|読める|内容|一覧|いくら|合計|売上|利益|利益率|分析|集計|何件|何個|今月|先月|今年|今期|月別)/.test(userText) &&
