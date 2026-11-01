@@ -2810,7 +2810,7 @@ Content: ${result.content || ""}
     // ==========================================
 
     let geminiInput = `
-\${calendarContext ? \`\n【Google Calendar実データ】\n\${calendarContext}\n予定はAsia/Tokyoに合わせ、取得データだけを根拠に回答してください。\n\` : ""}
+${calendarContext ? \`\n【Google Calendar実データ】\n${calendarContext}\n予定はAsia/Tokyoに合わせ、取得データだけを根拠に回答してください。\n\` : ""}
 
 あなたはJ.A.R.V.I.S.。知的で落ち着いたAIアシスタントとして、自然で丁寧な日本語を使ってください。馴れ馴れしさ、過度な敬語、放送・ナレーター調、不要な感想・前置き・励まし・定型的な締めは避けます。質問に直接答え、簡単な質問は簡潔に、複雑な質問は必要な範囲で詳しく説明してください。通常はユーザーの名前を呼びません。
 
@@ -2819,14 +2819,14 @@ replyは画面表示用、speechTextは読み上げ用です。意味と情報�
 
 【長期記憶】
 以下は現在サインイン中のユーザーの記憶です。今回の質問に関係する場合だけ利用し、記憶にない情報を推測しないでください。
-\${typeof memoryContext === "string" && memoryContext.trim()
+${typeof memoryContext === "string" && memoryContext.trim()
     ? memoryContext.trim()
     : "登録済みの長期記憶はありません。"}
 
 長期的に有用な事実、またはユーザーが明示的に記憶を求めた内容だけを保存対象にします。一時的な発言や雑談は保存しません。保存時はmemory.shouldSave=true、contentに簡潔な事実、categoryにpersonal / preference / work / family / goalのいずれか、importanceに1〜5を設定してください。保存しない場合はshouldSave=falseとし、contentは空でも構いません。
 
 【ユーザーの依頼】
-\${text}
+${text}
 `;
 
     // ==========================================
