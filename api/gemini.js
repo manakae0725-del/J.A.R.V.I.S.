@@ -159,66 +159,30 @@ async function respondWithOpenAIFallback(res, geminiInput, sources, searchPerfor
   try {
     const fallback = await runAiCouncil({
       userInput: [
-        "Gemini final response generation is unavailable. Produce the user-facing final response from the supplied complete context.",
-        "Return ONLY valid JSON with keys: reply, speechText, visualization, memory.",
-        "visualization must contain type,title,labels,values,steps. Allowed type: none,bar,line,diagram,pie,donut,flowchart,structure,blueprint,gauge,matrix.",
-        "memory must contain shouldSave,category,content,importance. For safety, set shouldSave=false, category=personal, content='', importance=1.",
-        "Do not claim that Gemini succeeded. Do not invent facts. Reply and speechText must be natural Japanese.",
+        "Gemini final response generation is unavailable. Produce the complete user-facing final response from the supplied context.",
+        "Return plain natural Japanese text only. Do not return JSON, XML, markdown code fences, or metadata.",
+        "Answer the user's request directly. Be accurate, concise, and distinguish confirmed facts from uncertainty.",
+        "Do not claim that Gemini succeeded. Do not invent facts or claim external actions.",
         "Context:\\n" + geminiInput
       ].join("\\n"),
-      systemInstruction: "You are the emergency final-response composer for J.A.R.V.I.S. Gemini is unavailable. Return strictly valid JSON only. Do not use tools or claim external actions.",
+      systemInstruction: "You are the emergency final-response composer for J.A.R.V.I.S. Gemini is unavailable. Return only the user-facing answer as plain Japanese text. Do not use tools or claim external actions.",
       providers: ["openai"],
-      responseFormat: "json_object",
       timeoutMs: 20000,
       maxOutputTokens: 1200
     });
     const item = fallback.results.find(result => result.ok && result.provider === "openai" && typeof result.text === "string");
-    if (!item) {
-      console.error("[FALLBACK] OpenAI final composer unavailable", {
-        error: fallback.results.find(result => result.provider === "openai")?.error || "NO_RESULT"
+    const reply = item?.text?.trim();
+    if (!reply || reply.length < 20) {
+      console.error("[FALLBACK] OpenAI final composer returned no usable text", {
+        outputLength: typeof item?.text === "string" ? item.text.length : 0
       });
       return res.status(502).json({ error: "Gemini unavailable and OpenAI fallback failed" });
     }
-    let parsed;
-    try {
-      const raw = item.text.trim()
-        .replace(/^\`\`\`(?:json)?\\s*/i, "")
-        .replace(/\\s*\`\`\`$/, "");
-      try {
-        parsed = JSON.parse(raw);
-      } catch (_) {
-        // Some models add a short preamble despite the JSON-only instruction.
-        // Recover only a complete JSON object; never attempt partial repair.
-        const firstBrace = raw.indexOf("{");
-        const lastBrace = raw.lastIndexOf("}");
-        if (firstBrace < 0 || lastBrace <= firstBrace) throw new Error("JSON_OBJECT_NOT_FOUND");
-        parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));
-      }
-    } catch (error) {
-      console.error("[FALLBACK] OpenAI returned invalid JSON", {
-        outputLength: item.text.length,
-        parseError: error?.name || "SyntaxError"
-      });
-      return res.status(502).json({ error: "Gemini unavailable and OpenAI fallback returned invalid response" });
-    }
-    const visualization = parsed?.visualization;
-    const valid =
-      typeof parsed.reply === "string" && parsed.reply.trim() &&
-      typeof parsed.speechText === "string" && parsed.speechText.trim() &&
-      visualization && FALLBACK_VISUALIZATION_TYPES.has(visualization.type) &&
-      typeof visualization.title === "string" &&
-      Array.isArray(visualization.labels) && visualization.labels.every(value => typeof value === "string") &&
-      Array.isArray(visualization.values) && visualization.values.every(value => typeof value === "number" && Number.isFinite(value)) &&
-      Array.isArray(visualization.steps) && visualization.steps.every(value => typeof value === "string");
-    if (!valid) {
-      console.error("[FALLBACK] OpenAI response structure validation failed");
-      return res.status(502).json({ error: "Gemini unavailable and OpenAI fallback returned invalid response" });
-    }
     console.warn("[FALLBACK] OpenAI generated final response because Gemini was unavailable");
     return res.status(200).json({
-      text: parsed.reply,
-      speechText: parsed.speechText,
-      visualization,
+      text: reply,
+      speechText: reply,
+      visualization: { type: "none", title: "", labels: [], values: [], steps: [] },
       interactionId: null,
       searchPerformed,
       memory: { shouldSave: false, category: "personal", content: "", importance: 1 },
