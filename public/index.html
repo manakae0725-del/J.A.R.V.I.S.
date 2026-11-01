@@ -1284,6 +1284,8 @@ const sendButton =
 let backgroundModeEnabled = false;
 let backgroundRefreshRunning = false;
 let previousBackgroundStatuses = new Map();
+let pendingBackgroundIdempotencyKey = null;
+let pendingBackgroundIdempotencyText = null;
 
 function setBackgroundMode(enabled) {
     backgroundModeEnabled = Boolean(enabled);
@@ -1422,11 +1424,19 @@ async function createBackgroundTask(text) {
         response.textContent = "バックグラウンド作業を登録しています...";
     }
     if (panel) panel.classList.add("show");
+    if (!pendingBackgroundIdempotencyKey || pendingBackgroundIdempotencyText !== text) {
+        pendingBackgroundIdempotencyKey = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : "task-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+        pendingBackgroundIdempotencyText = text;
+    }
     const data = await backgroundApiRequest({
         mode: "background-task-create",
         text,
-        idempotencyKey: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "task-" + Date.now() + "-" + Math.random().toString(36).slice(2)
+        idempotencyKey: pendingBackgroundIdempotencyKey
     });
+    pendingBackgroundIdempotencyKey = null;
+    pendingBackgroundIdempotencyText = null;
     const taskPanel = document.getElementById("backgroundTaskPanel");
     if (taskPanel) taskPanel.hidden = false;
     if (response) response.textContent = "バックグラウンド作業を受け付けました。会話はそのまま続けられます。";
@@ -1498,6 +1508,8 @@ setInterval(() => {
 }, 12000);
 window.addEventListener("jarvis-auth-change", () => {
     previousBackgroundStatuses.clear();
+    pendingBackgroundIdempotencyKey = null;
+    pendingBackgroundIdempotencyText = null;
     renderBackgroundTasks([]);
     setBackgroundMode(false);
 });
