@@ -1850,17 +1850,19 @@ async function loadMemories() {
 }
 
 function buildMemoryContext() {
+    // Operational records (for example, spreadsheet registries) share the
+    // memories table but must not be injected as conversational memory.
+    const conversationalMemories = memories.filter(memory =>
+        typeof memory?.category === "string" &&
+        !memory.category.startsWith("jarvis_")
+    );
 
-    if (!memories.length) {
+    if (!conversationalMemories.length) {
         return "現在、登録されている長期記憶はありません。";
     }
 
-    return memories
-        .map(
-            (memory, index) => {
-                return `${index + 1}. [${memory.category}] ${memory.content}`;
-            }
-        )
+    return conversationalMemories
+        .map((memory, index) => `${index + 1}. [${memory.category}] ${memory.content}`)
         .join("\n");
 }
 
