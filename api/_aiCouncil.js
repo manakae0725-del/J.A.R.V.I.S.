@@ -86,7 +86,7 @@ async function callGemini({ systemInstruction, userInput, maxOutputTokens, timeo
   return { provider: "gemini", model, text };
 }
 
-async function callOpenAI({ systemInstruction, userInput, maxOutputTokens, timeoutMs }) {
+async function callOpenAI({ systemInstruction, userInput, maxOutputTokens, timeoutMs, responseFormat }) {
   // Controlled outage simulation is available only on Preview deployments.
   // Never activate this path in Production, even if the test variable is misconfigured.
   if (process.env.VERCEL_ENV === "preview" && process.env.JARVIS_TEST_OPENAI_FAILURE === "true") {
@@ -103,6 +103,7 @@ async function callOpenAI({ systemInstruction, userInput, maxOutputTokens, timeo
       instructions: systemInstruction,
       input: userInput,
       max_output_tokens: maxOutputTokens,
+      ...(responseFormat === "json_object" ? { text: { format: { type: "json_object" } } } : {}),
       store: false
     },
     timeoutMs,
@@ -245,7 +246,8 @@ async function runAiCouncil(options = {}) {
         systemInstruction: instructionForProvider(systemInstruction, provider),
         userInput,
         maxOutputTokens,
-        timeoutMs
+        timeoutMs,
+        responseFormat: provider === "openai" && options.responseFormat === "json_object" ? "json_object" : undefined
       });
       const durationMs = Date.now() - startedAt;
       await logUsage(provider, true, 200, durationMs);
