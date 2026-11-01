@@ -98,7 +98,7 @@ test("OpenAI 503 does not block the real /api/gemini handler from returning Gemi
 });
 
 
-test("Gemini 503 triggers a validated OpenAI final-response fallback", async () => {
+test("Gemini 503 triggers a plain-text OpenAI final-response fallback", async () => {
   const root = process.cwd();
   const originalEnv = { ...process.env };
   const originalFetch = global.fetch;
@@ -137,14 +137,7 @@ test("Gemini 503 triggers a validated OpenAI final-response fallback", async () 
       calls.openai += 1;
       const body = calls.openai === 1
         ? { output_text: "専門分析: 入力された構成を確認しました。Geminiが最終回答を担当します。" }
-        : {
-            output_text: JSON.stringify({
-              reply: "Gemini障害を検知したため、OpenAIが最終回答を生成しました。",
-              speechText: "OpenAIによる代替回答です。",
-              visualization: { type: "none", title: "", labels: [], values: [], steps: [] },
-              memory: { shouldSave: true, category: "personal", content: "must not be saved in fallback", importance: 3 }
-            })
-          };
+        : { output_text: "Gemini障害を検知しました。OpenAIが代替回答を生成しています。これは緊急フォールバック経路の検証結果です。" };
       return { ok: true, status: 200, text: async () => JSON.stringify(body) };
     }
     if (target.includes("generativelanguage.googleapis.com/v1/interactions")) {
@@ -177,8 +170,8 @@ test("Gemini 503 triggers a validated OpenAI final-response fallback", async () 
     assert.equal(calls.openai, 2, "OpenAI should be called once for specialist analysis and once for final fallback");
     assert.equal(calls.gemini, 1, "Gemini should be attempted once");
     assert.equal(res.statusCode, 200, "OpenAI fallback should preserve a successful response");
-    assert.equal(res.body.text, "Gemini障害を検知したため、OpenAIが最終回答を生成しました。");
-    assert.equal(res.body.speechText, "OpenAIによる代替回答です。");
+    assert.equal(res.body.text, "Gemini障害を検知しました。OpenAIが代替回答を生成しています。これは緊急フォールバック経路の検証結果です。");
+    assert.equal(res.body.speechText, res.body.text);
     assert.equal(res.body.interactionId, null, "Gemini interaction continuity is unavailable during fallback");
     assert.equal(res.body.memory.shouldSave, false, "fallback must not save unvalidated memory");
     assert.deepEqual(res.body.fallback, { provider: "openai", reason: "gemini_unavailable" });
