@@ -160,3 +160,10 @@ test("explicit multi-AI routing selects both configured providers in parallel mo
 test("routine questions mentioning AI providers do not trigger paid routing", () => {
   assert.equal(classifyCommanderTask("GeminiとOpenAIの違いは何ですか？").shouldDelegate, false);
 });
+
+
+test("explicit multi-AI explanation requests bypass the single-provider definition shortcut", () => {
+  const result = classifyCommanderTask("GeminiとOpenAIの両方で、この仕組みの違いをそれぞれ説明してください。");
+  assert.equal(result.shouldDelegate, true);
+  assert.equal(result.reason, "explicit_multi_ai_request");
+});
