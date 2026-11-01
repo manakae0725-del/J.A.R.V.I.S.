@@ -1456,79 +1456,52 @@ window.addEventListener("jarvis-auth-change", (event) => {
 
 function getErrorMessage(error) {
     if (typeof error === "string") return error;
-
     if (error && typeof error === "object") {
-   async function loadMemories() {
-    const requestUserId = window.jarvisCurrentUserId || null;
+        if (error.message) return error.message;
+        try { return JSON.stringify(error); }
+        catch (e) { return "不明なエラー"; }
+    }
+    return String(error);
+}
 
+async function loadMemories() {
+    const requestUserId = window.jarvisCurrentUserId || null;
     if (!requestUserId) {
         memories = [];
         memoryLoadedForUserId = null;
         return [];
     }
-
-    if (memoryLoadedForUserId === requestUserId) {
-        return memories;
-    }
-
-    if (memoryLoadPromise && memoryLoadPromiseUserId === requestUserId) {
-        return memoryLoadPromise;
-    }
+    if (memoryLoadedForUserId === requestUserId) return memories;
+    if (memoryLoadPromise && memoryLoadPromiseUserId === requestUserId) return memoryLoadPromise;
 
     const generation = ++memoryLoadGeneration;
     const loadPromise = (async () => {
         try {
             const accessToken = await window.jarvisGetAccessToken();
-            if (!accessToken || requestUserId !== window.jarvisCurrentUserId) {
-                return [];
-            }
-
-            const response = await fetch(
-                "/api/memory",
-                {
-                    method: "GET",
-                    headers: { Authorization: "Bearer " + accessToken }
-                }
-            );
-
+            if (!accessToken || requestUserId !== window.jarvisCurrentUserId) return [];
+            const response = await fetch("/api/memory", {
+                method: "GET",
+                headers: { Authorization: "Bearer " + accessToken }
+            });
             const data = await response.json();
-
             if (!response.ok || !data.ok) {
-                throw new Error(
-                    getErrorMessage(data.error) ||
-                    "Memory GET error"
-                );
+                throw new Error(getErrorMessage(data.error) || "Memory GET error");
             }
-
-            if (
-                generation !== memoryLoadGeneration ||
-                requestUserId !== window.jarvisCurrentUserId
-            ) {
-                return [];
-            }
-
-            memories = Array.isArray(data.memories)
-                ? data.memories.slice(0, 30)
-                : [];
+            if (generation !== memoryLoadGeneration || requestUserId !== window.jarvisCurrentUserId) return [];
+            memories = Array.isArray(data.memories) ? data.memories.slice(0, 30) : [];
             memoryLoadedForUserId = requestUserId;
-
             return memories;
         } catch (error) {
-            if (
-                generation === memoryLoadGeneration &&
-                requestUserId === window.jarvisCurrentUserId
-            ) {
+            if (generation === memoryLoadGeneration && requestUserId === window.jarvisCurrentUserId) {
                 console.error("Memory load error:", error);
                 memories = [];
             }
-
             return [];
         }
     })();
 
     memoryLoadPromise = loadPromise;
     memoryLoadPromiseUserId = requestUserId;
-
     try {
         return await loadPromise;
     } finally {
@@ -1538,6 +1511,7 @@ function getErrorMessage(error) {
         }
     }
 }
+
 function buildMemoryContext() {
 
     if (!memories.length) {
