@@ -1955,7 +1955,7 @@ async function saveMemory(memory, expectedUserId, options = {}) {
         console.warn("Memory replacement skipped: target is not in the current user's loaded memory context");
         return false;
     }
-    const normalize = value => String(value || "").normalize("NFKC").replace(/[\\s。、，．.!！?？「」『』（）()]/g, "").toLowerCase();
+    const normalize = value => String(value || "").normalize("NFKC").replace(/[\s。、，．.!！?？「」『』（）()]/g, "").toLowerCase();
     if (action === "save" && memories.some(item => item.category === category && normalize(item.content) === normalize(content))) {
         console.info("Memory save skipped: duplicate content");
         return true;
