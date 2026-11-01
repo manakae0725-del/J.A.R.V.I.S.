@@ -3220,7 +3220,14 @@ ${typeof memoryContext === "string" && memoryContext.trim()
     ? memoryContext.trim()
     : "登録済みの長期記憶はありません。"}
 
-長期的に有用な事実、またはユーザーが明示的に記憶を求めた内容だけを保存対象にします。一時的な発言や雑談は保存しません。保存時はmemory.shouldSave=true、contentに簡潔な事実、categoryにpersonal / preference / work / family / goalのいずれか、importanceに1〜5を設定してください。保存しない場合はshouldSave=falseとし、contentは空でも構いません。
+長期記憶の保存・更新ルール：
+- 長期的に有用な事実、またはユーザーが明示的に記憶を求めた内容だけを保存します。一時的な発言や雑談は保存しません。
+- 保存時はmemory.shouldSave=true、contentに一つの簡潔な事実、categoryにpersonal / preference / work / family / goal、importanceに1〜5を設定します。
+- 通常の新規保存ではmemory.action="save"を設定します。
+- 既存記憶の内容をユーザーが明確に訂正・変更し、更新する意図が明らかな場合だけmemory.action="replace"を設定し、該当する既存記憶の[ID:n]をmemory.supersedesIdに指定します。置換対象は今回提示された記憶IDに限ります。
+- 既存記憶と新情報が矛盾していても、ユーザーの訂正・更新意図が明確でなければ上書きも追加保存もしません。矛盾点を簡潔に示して確認してください。
+- 記憶のないIDを作らないでください。複数の記憶をまとめて置換しないでください。明示的な更新指示がない限りaction="replace"を使わないでください。
+- 保存しない場合はshouldSave=false、contentは空、action="save"としてください。
 
 【ユーザーの依頼】
 ${text}
@@ -3513,6 +3520,14 @@ visualization は画面表示専用です。reply と speechText は通常どお
                   type: "integer",
                   minimum: 1,
                   maximum: 5,
+                },
+                action: {
+                  type: "string",
+                  enum: ["save", "replace"],
+                },
+                supersedesId: {
+                  type: "integer",
+                  minimum: 1,
                 },
               },
 
@@ -3830,6 +3845,12 @@ visualization は画面表示専用です。reply と speechText は通常どお
 
         importance:
           result.memory.importance || 1,
+
+        action:
+          result.memory.action === "replace" ? "replace" : "save",
+
+        supersedesId:
+          Number.isSafeInteger(result.memory.supersedesId) ? result.memory.supersedesId : null,
       },
 
       sources,
