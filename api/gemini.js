@@ -3038,10 +3038,29 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // Gemini Request
     // ==========================================
 
+    const generationClassification = getAutoCommanderConfig({
+      autoCommander: true,
+      text: userText,
+      env: {
+        ...process.env,
+        JARVIS_AUTO_COMMANDER_ENABLED: "true",
+        JARVIS_AI_COUNCIL_ENABLED: "true",
+        JARVIS_AI_COUNCIL_PAID_PROVIDERS_ENABLED: "true"
+      }
+    }).classification;
+    // Keep the model's default medium reasoning for complex work.
+    // Use low reasoning only for routine/general requests to reduce latency.
+    const thinkingLevel = generationClassification.complexity === "high" ? "medium" : "low";
+    perf.thinkingLevel = thinkingLevel;
+
     const requestBody = {
       model: "gemini-3.6-flash",
 
       input: geminiInput,
+
+      generation_config: {
+        thinking_level: thinkingLevel
+      },
 
       response_format: {
         type: "text",
