@@ -1279,6 +1279,13 @@ sendButton.addEventListener(
         textInput.value = "";
         sendButton.disabled = true;
         sendButton.textContent = "PROCESSING...";
+        const initialResponse = document.getElementById("voiceResponse");
+        const initialPanel = document.getElementById("jarvisHoloPanel");
+        if (initialResponse) {
+            initialResponse.hidden = false;
+            initialResponse.textContent = "送信を受け付けました。認証状態を確認しています。";
+        }
+        if (initialPanel) initialPanel.classList.add("show");
 
         try {
             await sendToGemini(text);
@@ -2424,13 +2431,16 @@ async function sendToGemini(text) {
 
     const voiceResponse = document.getElementById("voiceResponse");
     const holoPanel = document.getElementById("jarvisHoloPanel");
-    const showClientError = (message) => {
+    const showClientStatus = (message) => {
         if (voiceResponse) {
             voiceResponse.hidden = false;
             voiceResponse.setAttribute("aria-hidden", "false");
             voiceResponse.textContent = message;
         }
         if (holoPanel) holoPanel.classList.add("show");
+    };
+    const showClientError = (message) => {
+        showClientStatus(message);
         status.textContent = "INPUT ERROR";
         console.warn("[CONVERSATION] Request stopped before API call:", message);
     };
@@ -2448,6 +2458,7 @@ async function sendToGemini(text) {
         textLength: cleanText.length
     });
     status.textContent = "LOADING MEMORY...";
+    showClientStatus("送信を受け付けました。記憶データを確認しています...");
 
     await loadMemories();
 
@@ -2464,6 +2475,7 @@ async function sendToGemini(text) {
 
     window.setJarvisCoreState("thinking");
     status.textContent = "GETTING AUTH TOKEN...";
+    showClientStatus("記憶データを確認しました。認証トークンを取得しています...");
 
     updateHudStatus(
         "ONLINE",
@@ -2509,6 +2521,7 @@ async function sendToGemini(text) {
             endpoint: "/api/gemini",
             autoCommander: true
         });
+        showClientStatus("認証確認完了。Gemini APIへ送信しています...");
 
         const response = await fetch(
             "/api/gemini",
