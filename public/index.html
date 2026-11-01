@@ -2443,15 +2443,27 @@ async function sendToGemini(text) {
     window.setJarvisCoreState("thinking");
     status.textContent = "LOADING MEMORY...";
 
+    console.info("[CONVERSATION] Send started", {
+        hasUserId: Boolean(requestUserId),
+        textLength: cleanText.length
+    });
+    status.textContent = "LOADING MEMORY...";
+
     await loadMemories();
+
+    console.info("[CONVERSATION] Memory load finished", {
+        sameUser: requestUserId === window.jarvisCurrentUserId,
+        memoryCount: Array.isArray(memories) ? memories.length : 0
+    });
 
     // メモリ読み込み中にアカウントが変わった場合、古い会話を開始しない。
     if (requestUserId !== window.jarvisCurrentUserId) {
+        showClientError("ログイン状態が切り替わりました。ページを再読み込みして、もう一度お試しください。");
         return;
     }
 
     window.setJarvisCoreState("thinking");
-    status.textContent = "PROCESSING...";
+    status.textContent = "GETTING AUTH TOKEN...";
 
     updateHudStatus(
         "ONLINE",
@@ -2467,6 +2479,11 @@ async function sendToGemini(text) {
 
     try {
         const accessToken = await window.jarvisGetAccessToken();
+
+        console.info("[CONVERSATION] Access token result", {
+            hasAccessToken: Boolean(accessToken),
+            sameUser: requestUserId === window.jarvisCurrentUserId
+        });
 
         // トークン取得中のアカウント切り替えを検出する。
         if (!accessToken) {
@@ -2487,6 +2504,11 @@ async function sendToGemini(text) {
             memoryContext: buildMemoryContext(),
             pendingCalendarAction: pendingCalendarAction
         };
+
+        console.info("[CONVERSATION] Calling Gemini API", {
+            endpoint: "/api/gemini",
+            autoCommander: true
+        });
 
         const response = await fetch(
             "/api/gemini",
