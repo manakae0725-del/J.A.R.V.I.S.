@@ -32,11 +32,14 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method === "GET") {
       console.info("Memory GET diagnostic: request authorized");
+      // Conversation context only: exclude internal registries from browser memory ranking.
       const params = new URLSearchParams({
-        select: "*",
+        select: "id,category,content,importance,created_at,updated_at",
         user_id: `eq.${user.id}`,
         is_active: "eq.true",
-        order: "importance.desc,updated_at.desc"
+        category: "in.(personal,preference,work,family,goal)",
+        order: "importance.desc,updated_at.desc",
+        limit: "200"
       });
 
       const response = await fetch(`${baseUrl}?${params}`, { headers });
