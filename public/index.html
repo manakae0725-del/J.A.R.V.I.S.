@@ -1312,6 +1312,13 @@ function backgroundStatusLabel(status) {
     })[status] || status || "状態不明";
 }
 
+function setBackgroundPanelVisible(visible) {
+    const panel = document.getElementById("backgroundTaskPanel");
+    const area = document.getElementById("textArea");
+    if (panel) panel.hidden = !visible;
+    if (area) area.style.top = visible ? "50%" : "";
+}
+
 function renderBackgroundTasks(tasks) {
     const list = document.getElementById("backgroundTaskList");
     if (!list) return;
@@ -1437,8 +1444,7 @@ async function createBackgroundTask(text) {
     });
     pendingBackgroundIdempotencyKey = null;
     pendingBackgroundIdempotencyText = null;
-    const taskPanel = document.getElementById("backgroundTaskPanel");
-    if (taskPanel) taskPanel.hidden = false;
+    setBackgroundPanelVisible(true);
     if (response) response.textContent = "バックグラウンド作業を受け付けました。会話はそのまま続けられます。";
     await refreshBackgroundTasks();
     return { backgroundTaskCreated: true, task: data.task };
@@ -1498,8 +1504,9 @@ document.getElementById("backgroundModeToggle")?.addEventListener("click", () =>
 document.getElementById("backgroundTasksToggle")?.addEventListener("click", () => {
     const panel = document.getElementById("backgroundTaskPanel");
     if (!panel) return;
-    panel.hidden = !panel.hidden;
-    if (!panel.hidden) refreshBackgroundTasks();
+    const shouldOpen = panel.hidden;
+    setBackgroundPanelVisible(shouldOpen);
+    if (shouldOpen) refreshBackgroundTasks();
 });
 document.getElementById("refreshBackgroundTasks")?.addEventListener("click", refreshBackgroundTasks);
 setInterval(() => {
