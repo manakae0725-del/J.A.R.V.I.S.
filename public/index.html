@@ -1483,17 +1483,7 @@ async function loadMemories() {
                 method: "GET",
                 headers: { Authorization: "Bearer " + accessToken }
             });
-            let streamedReplyShown = false;
-        const parsedResponse = await readJarvisApiResponse(response, partialText => {
-            if (requestUserId !== window.jarvisCurrentUserId) return;
-            if (currentMode !== "voice" && voiceResponse) {
-                voiceResponse.hidden = false;
-                voiceResponse.setAttribute("aria-hidden", "false");
-                voiceResponse.textContent = partialText;
-                streamedReplyShown = true;
-            }
-        });
-        const data = parsedResponse.data;
+            const data = await response.json();
             if (!response.ok || !data.ok) {
                 throw new Error(getErrorMessage(data.error) || "Memory GET error");
             }
@@ -2632,7 +2622,17 @@ async function sendToGemini(text) {
             }
         );
 
-        const data = await response.json();
+        let streamedReplyShown = false;
+        const parsedResponse = await readJarvisApiResponse(response, partialText => {
+            if (requestUserId !== window.jarvisCurrentUserId) return;
+            if (currentMode !== "voice" && voiceResponse) {
+                voiceResponse.hidden = false;
+                voiceResponse.setAttribute("aria-hidden", "false");
+                voiceResponse.textContent = partialText;
+                streamedReplyShown = true;
+            }
+        });
+        const data = parsedResponse.data;
 
         // 自動司令官が返した結果は、既存の回答パネル・音声出力へそのまま渡す。
         // 失敗時はサーバーが通常Gemini経路へフォールバックする。
