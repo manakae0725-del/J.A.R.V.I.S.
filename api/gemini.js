@@ -3021,8 +3021,12 @@ visualization は画面表示専用です。reply と speechText は通常どお
     });
 
     if (autoCommanderEligible && configuredAutoProvider) {
-      if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) return;
-      if (!(await enforceRateLimit(res, user, "auto-commander-day", 5, 86400))) return;
+      // Preview development must not be blocked by the production Auto Commander quotas.
+      // Keep both limits enabled in Production to protect paid-provider usage.
+      if (process.env.VERCEL_ENV !== "preview") {
+        if (!(await enforceRateLimit(res, user, "auto-commander-minute", 1, 60))) return;
+        if (!(await enforceRateLimit(res, user, "auto-commander-day", 5, 86400))) return;
+      }
 
       {
         try {
