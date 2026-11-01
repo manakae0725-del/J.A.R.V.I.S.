@@ -3487,9 +3487,8 @@ visualization は画面表示専用です。reply と speechText は通常どお
         "boolean"
     ) {
       console.error("Gemini response structure validation failed");
-      return res.status(502).json({
-        error: "Gemini returned an invalid response",
-      });
+      sendClientEvent("error", { message: "Geminiの回答形式が不正です。" });
+      return res.end();
     }
 
     // ==========================================
