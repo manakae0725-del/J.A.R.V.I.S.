@@ -180,7 +180,7 @@ async function respondWithOpenAIFallback(res, geminiInput, sources, searchPerfor
     }
     let parsed;
     try {
-      parsed = JSON.parse(item.text.trim().replace(/^\`\`\`(?:json)?\\s*/i, "").replace(/\\s*\`\`\`$/, ""));
+      parsed = JSON.parse(item.text.trim());
     } catch (_) {
       console.error("[FALLBACK] OpenAI returned invalid JSON");
       return res.status(502).json({ error: "Gemini unavailable and OpenAI fallback returned invalid response" });
