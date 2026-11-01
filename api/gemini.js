@@ -259,14 +259,37 @@ function parseBackgroundJson(value) {
   if (typeof value !== "string") throw new Error("BACKGROUND_AI_INVALID_JSON");
   const cleaned = value.trim().replace(/^\x60\x60\x60(?:json)?\s*/i, "").replace(/\s*\x60\x60\x60$/, "");
   try { return JSON.parse(cleaned); } catch (_) {}
-  const firstArray = cleaned.indexOf("[");
-  const firstObject = cleaned.indexOf("{");
-  const start = firstArray < 0 ? firstObject : firstObject < 0 ? firstArray : Math.min(firstArray, firstObject);
-  if (start >= 0) {
-    const end = Math.max(cleaned.lastIndexOf("]"), cleaned.lastIndexOf("}"));
-    if (end > start) return JSON.parse(cleaned.slice(start, end + 1));
+
+  // Extract the first complete JSON object/array while respecting nested
+  // delimiters, quoted strings, and escaped quotes.
+  for (let start = 0; start < cleaned.length; start++) {
+    const opening = cleaned[start];
+    if (opening !== "{" && opening !== "[") continue;
+    const stack = [];
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < cleaned.length; i++) {
+      const ch = cleaned[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\\\") escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') { inString = true; continue; }
+      if (ch === "{" || ch === "[") stack.push(ch);
+      else if (ch === "}" || ch === "]") {
+        const expected = ch === "}" ? "{" : "[";
+        if (stack.pop() !== expected) break;
+        if (stack.length === 0) {
+          try { return JSON.parse(cleaned.slice(start, i + 1)); } catch (_) { break; }
+        }
+      }
+    }
   }
-  throw new Error("BACKGROUND_AI_INVALID_JSON");
+  const error = new Error("BACKGROUND_AI_INVALID_JSON");
+  error.code = "BACKGROUND_AI_INVALID_JSON";
+  throw error;
 }
 
 async function callBackgroundGemini(systemInstruction, userInput, maxOutputTokens = 1200, thinkingLevel = "low") {
@@ -298,6 +321,32 @@ async function callBackgroundGemini(systemInstruction, userInput, maxOutputToken
   }
   if (!text.trim()) throw new Error("BACKGROUND_GEMINI_EMPTY_RESPONSE");
   return text;
+}
+
+async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens, thinkingLevel, expectedShape) {
+  const raw = await callBackgroundGemini(systemInstruction, userInput, maxOutputTokens, thinkingLevel);
+  try {
+    return parseBackgroundJson(raw);
+  } catch (error) {
+    if (error?.code !== "BACKGROUND_AI_INVALID_JSON" && error?.message !== "BACKGROUND_AI_INVALID_JSON") throw error;
+    console.warn("[BACKGROUND TASK] Invalid JSON response; requesting one structured retry", {
+      expectedShape,
+      responseLength: raw.length
+    });
+    const repairPrompt = [
+      "Return one valid JSON value only. Do not use Markdown fences or explanatory text.",
+      "The required structure is: " + expectedShape + ".",
+      "Preserve the meaning of the supplied model response. Do not add facts or fields.",
+      "If the source is incomplete, return the safest valid structure and make uncertainty explicit in string fields."
+    ].join("\\n");
+    const repaired = await callBackgroundGemini(
+      repairPrompt,
+      JSON.stringify({ originalInput: userInput, malformedResponse: raw.slice(0, 12000) }),
+      Math.max(900, maxOutputTokens),
+      thinkingLevel
+    );
+    return parseBackgroundJson(repaired);
+  }
 }
 
 function isBackgroundWorkerAuthorized(req) {
@@ -337,13 +386,13 @@ async function handleBackgroundWorkerTick(req, res) {
         "Do not invent missing facts. If the request requires unavailable data, make the missing data explicit in the plan.",
         "Keep the plan ordered and avoid redundant steps."
       ].join("\n");
-      const rawPlan = await callBackgroundGemini(
+      const parsedPlan = await callBackgroundJson(
         plannerPrompt,
         JSON.stringify({ request: task.request, commanderClassification: classification }),
         900,
-        classification.complexity === "high" ? "medium" : "low"
+        classification.complexity === "high" ? "medium" : "low",
+        "an array of 1 to 5 {title, instruction} objects"
       );
-      const parsedPlan = parseBackgroundJson(rawPlan);
       const plan = Array.isArray(parsedPlan) ? parsedPlan : parsedPlan?.steps;
       if (!Array.isArray(plan) || plan.length < 1 || plan.length > 5) throw new Error("BACKGROUND_PLAN_INVALID");
       const normalizedPlan = plan.map(item => ({
@@ -430,13 +479,13 @@ async function handleBackgroundWorkerTick(req, res) {
       "Set passed=true only when the answer is complete, internally consistent, and does not claim unsupported facts or actions.",
       "If passed=false, specify one focused corrective step. Do not invent facts."
     ].join("\n");
-    const rawVerification = await callBackgroundGemini(
+    const verification = await callBackgroundJson(
       verifierPrompt,
       JSON.stringify({ originalRequest: task.request, completedSteps }),
-      700,
-      "medium"
+      900,
+      "medium",
+      "an object with passed, summary, issues, correction_title, correction_instruction"
     );
-    const verification = parseBackgroundJson(rawVerification);
     if (verification?.passed === true) {
       const finished = await backgroundTasks.finish(task.id, workerId, "completed", {
         summary: String(verification.summary || "作業が完了しました。"),
@@ -463,11 +512,39 @@ async function handleBackgroundWorkerTick(req, res) {
     if (!failed) await backgroundTasks.releaseLease(task.id, workerId);
     return res.status(failed ? 200 : 409).json({ ok: Boolean(failed), taskId: task.id, stage: "verification_failed" });
   } catch (error) {
+    const errorCode = typeof error?.code === "string"
+      ? error.code
+      : String(error?.message || "UNKNOWN").slice(0, 80);
     console.error("[BACKGROUND TASK] Worker execution failed", {
       taskId: task?.id || null,
-      code: typeof error?.code === "string" ? error.code : String(error?.message || "UNKNOWN").slice(0, 80)
+      code: errorCode
     });
-    // Keep the lease so an interrupted/failed worker can be reclaimed after expiry.
+    if (task?.id) {
+      try {
+        const retryStatus = await backgroundTasks.retryTask(
+          task.id,
+          workerId,
+          errorCode,
+          "一時的な処理エラーが発生したため、自動再試行します。"
+        );
+        console.warn("[BACKGROUND TASK] Error recovery scheduled", {
+          taskId: task.id,
+          status: retryStatus || "lease_not_owned"
+        });
+        return res.status(503).json({
+          ok: false,
+          retryScheduled: retryStatus === "retrying",
+          terminal: retryStatus === "failed",
+          error: "BACKGROUND_TASK_EXECUTION_FAILED"
+        });
+      } catch (retryError) {
+        console.error("[BACKGROUND TASK] Could not schedule recovery", {
+          taskId: task.id,
+          code: typeof retryError?.code === "string" ? retryError.code : "RETRY_SCHEDULE_FAILED"
+        });
+      }
+    }
+    // If recovery persistence itself fails, retain the lease for safe expiry-based reclamation.
     return res.status(500).json({ ok: false, error: "BACKGROUND_TASK_EXECUTION_FAILED" });
   }
 }
