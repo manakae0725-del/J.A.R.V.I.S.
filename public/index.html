@@ -1825,7 +1825,7 @@ async function loadMemories() {
                 throw new Error(getErrorMessage(data.error) || "Memory GET error");
             }
             if (generation !== memoryLoadGeneration || requestUserId !== window.jarvisCurrentUserId) return [];
-            memories = Array.isArray(data.memories) ? data.memories.slice(0, 30) : [];
+            memories = Array.isArray(data.memories) ? data.memories : [];
             memoryLoadedForUserId = requestUserId;
             return memories;
         } catch (error) {
@@ -1983,22 +1983,38 @@ async function saveMemory(memory, expectedUserId, options = {}) {
 }
 
 async function saveMemoriesBatch(items, expectedUserId) {
-    if (!Array.isArray(items) || !expectedUserId || expectedUserId !== window.jarvisCurrentUserId) return { saved: 0, failed: 0 };
-    let saved = 0;
-    let failed = 0;
-    for (const item of items.slice(0, 12)) {
-        if (expectedUserId !== window.jarvisCurrentUserId) break;
-        if (!item || item.shouldSave !== true) continue;
-        const ok = await saveMemory(item, expectedUserId, { deferReload: true });
-        if (ok) saved++;
-        else failed++;
+    if (!Array.isArray(items) || !expectedUserId || expectedUserId !== window.jarvisCurrentUserId) {
+        return { requested: Array.isArray(items) ? items.length : 0, saved: 0, updated: 0, duplicate: 0, skipped: 0, failed: 0, truncated: 0 };
     }
-    if (saved > 0 && expectedUserId === window.jarvisCurrentUserId) {
+    const batch = items.slice(0, 12);
+    const result = { requested: items.length, saved: 0, updated: 0, duplicate: 0, skipped: 0, failed: 0, truncated: Math.max(0, items.length - batch.length) };
+    const normalize = value => String(value || "").normalize("NFKC").replace(/[\\s。、，．.!！?？「」『』（）()]/g, "").toLowerCase();
+    for (const item of batch) {
+        if (expectedUserId !== window.jarvisCurrentUserId) {
+            result.skipped += batch.length - (result.saved + result.updated + result.duplicate + result.skipped + result.failed);
+            break;
+        }
+        if (!item || item.shouldSave !== true || typeof item.content !== "string" || !item.content.trim()) {
+            result.skipped++;
+            continue;
+        }
+        const category = ["personal", "preference", "work", "family", "goal"].includes(item.category) ? item.category : "personal";
+        const action = item.action === "replace" ? "replace" : "save";
+        if (action === "save" && memories.some(existing => existing.category === category && normalize(existing.content) === normalize(item.content))) {
+            result.duplicate++;
+            continue;
+        }
+        const ok = await saveMemory(item, expectedUserId, { deferReload: true });
+        if (!ok) result.failed++;
+        else if (action === "replace") result.updated++;
+        else result.saved++;
+    }
+    if ((result.saved > 0 || result.updated > 0) && expectedUserId === window.jarvisCurrentUserId) {
         memoryLoadedForUserId = null;
         await loadMemories();
     }
-    console.info("[MEMORY] Batch save finished", { requested: items.length, saved, failed });
-    return { saved, failed };
+    console.info("[MEMORY] Batch save finished", result);
+    return result;
 }
 function setMode(mode) {
 
