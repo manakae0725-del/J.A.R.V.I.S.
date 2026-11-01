@@ -3300,10 +3300,9 @@ visualization は画面表示専用です。reply と speechText は通常どお
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Accept": "text/event-stream",
               "x-goog-api-key": geminiKey,
             },
-            body: JSON.stringify({ ...requestBody, stream: true }),
+            body: JSON.stringify(requestBody),
             signal: controller.signal,
           }
         );
