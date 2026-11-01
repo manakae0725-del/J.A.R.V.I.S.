@@ -454,7 +454,7 @@ module.exports = async function handler(req, res) {
   if (!user) return;
 
   const backgroundMode = req.body && req.body.mode;
-  if (backgroundMode && backgroundMode.startsWith("background-task-")) {
+  if (typeof backgroundMode === "string" && backgroundMode.startsWith("background-task-")) {
     if (process.env.VERCEL_ENV !== "preview") {
       return res.status(403).json({ ok: false, error: "PREVIEW_ONLY_FEATURE" });
     }
@@ -500,6 +500,28 @@ module.exports = async function handler(req, res) {
         const details = await backgroundTasks.getForUser(user.id, taskId);
         if (!details) return res.status(404).json({ ok: false, error: "TASK_NOT_FOUND" });
         return res.status(200).json({ ok: true, ...details });
+      }
+      if (backgroundMode === "background-task-pause") {
+        if (!(await enforceRateLimit(res, user, "background-task-pause-minute", 5, 60))) return;
+        const taskId = req.body.taskId;
+        if (typeof taskId !== "string" || !/^[0-9a-f-]{36}$/i.test(taskId)) {
+          return res.status(400).json({ ok: false, error: "INVALID_TASK_ID" });
+        }
+        const paused = await backgroundTasks.pause(user.id, taskId);
+        return paused
+          ? res.status(200).json({ ok: true, paused: true })
+          : res.status(409).json({ ok: false, error: "TASK_NOT_PAUSABLE" });
+      }
+      if (backgroundMode === "background-task-resume") {
+        if (!(await enforceRateLimit(res, user, "background-task-resume-minute", 5, 60))) return;
+        const taskId = req.body.taskId;
+        if (typeof taskId !== "string" || !/^[0-9a-f-]{36}$/i.test(taskId)) {
+          return res.status(400).json({ ok: false, error: "INVALID_TASK_ID" });
+        }
+        const resumed = await backgroundTasks.resume(user.id, taskId);
+        return resumed
+          ? res.status(200).json({ ok: true, resumed: true })
+          : res.status(409).json({ ok: false, error: "TASK_NOT_RESUMABLE" });
       }
       if (backgroundMode === "background-task-cancel") {
         if (!(await enforceRateLimit(res, user, "background-task-cancel-minute", 5, 60))) return;
