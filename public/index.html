@@ -2251,14 +2251,16 @@ function animateJarvisResponse(text) {
         container.textContent = content;
         return Promise.resolve(token);
     }
-    const chunks = content.match(/[\s\S]{1,5}/gu) || [];
+    // Reveal larger chunks at a shorter interval to avoid making long answers
+    // feel slower than the network/model response itself.
+    const chunks = content.match(/[\s\S]{1,24}/gu) || [];
     let index = 0;
     return new Promise(resolve => {
         function revealNext() {
             if (token !== jarvisAnimationToken) { resolve(null); return; }
             if (index >= chunks.length) { resolve(token); return; }
             container.textContent += chunks[index++];
-            window.setTimeout(revealNext, 26);
+            window.setTimeout(revealNext, 8);
         }
         revealNext();
     });
