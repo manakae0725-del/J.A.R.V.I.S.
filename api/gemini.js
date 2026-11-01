@@ -168,6 +168,7 @@ async function respondWithOpenAIFallback(res, geminiInput, sources, searchPerfor
       ].join("\\n"),
       systemInstruction: "You are the emergency final-response composer for J.A.R.V.I.S. Gemini is unavailable. Return strictly valid JSON only. Do not use tools or claim external actions.",
       providers: ["openai"],
+      responseFormat: "json_object",
       timeoutMs: 20000,
       maxOutputTokens: 1200
     });
