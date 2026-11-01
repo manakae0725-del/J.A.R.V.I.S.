@@ -3006,6 +3006,8 @@ visualization は画面表示専用です。reply と speechText は通常どお
       taskText: autoTaskText,
       eligible: autoCommanderEligible,
       provider: configuredAutoProvider,
+      providers: configuredAutoProviders,
+      parallelEnabled: autoCommanderParallelEnabled,
       classification: autoCommanderClassification
     } = getAutoCommanderConfig({
       autoCommander: req.body && req.body.autoCommander,
@@ -3031,7 +3033,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
           const result = await runAiCouncil({
             userInput: specialistContext.slice(0, 24000),
             systemInstruction: "You are J.A.R.V.I.S.'s specialist analyst. Analyze the supplied request using only the supplied context. Do not invent missing data or claim to execute external actions. State uncertainty and provide a concise, actionable analysis.",
-            providers: [configuredAutoProvider],
+            providers: configuredAutoProviders,
             timeoutMs: 20000,
             maxOutputTokens: 1200
           });
@@ -3045,7 +3047,8 @@ visualization は画面表示専用です。reply と speechText は通常どお
             const geminiInputLengthBeforeAdvisory = geminiInput.length;
             geminiInput += "\n\\n==============================\\nSPECIALIST ADVISORY\\n==============================\\n以下は司令官が選択した専門AIの分析です。元の依頼と取得済みデータを照合し、必要なら不確実性や不足情報を明示したうえで、J.A.R.V.I.S.として最終回答を作成してください。専門AIの内容を無条件に正しいものとして扱わず、根拠のない情報は採用しないでください。\\n\\n" + specialistText;
             console.info("[COMMANDER] Specialist advisory appended to Gemini input", {
-              provider: configuredAutoProvider,
+              providers: configuredAutoProviders,
+              parallelEnabled: autoCommanderParallelEnabled,
               advisoryChars: specialistText.length,
               geminiInputCharsBefore: geminiInputLengthBeforeAdvisory,
               geminiInputCharsAfter: geminiInput.length,
@@ -3053,13 +3056,18 @@ visualization は画面表示専用です。reply と speechText は通常どお
             });
           } else {
             console.warn("Automatic commander returned no usable advisory", {
-              provider: configuredAutoProvider,
+              providers: configuredAutoProviders,
+              parallelEnabled: autoCommanderParallelEnabled,
               intent: autoCommanderClassification?.intent
             });
           }
         } catch (error) {
           const code = typeof error?.code === "string" ? error.code : "INTERNAL_ERROR";
-          console.error("Automatic commander advisory failed; continuing with Gemini", { code });
+          console.error("Automatic commander advisory failed; continuing with Gemini", {
+            code,
+            providers: configuredAutoProviders,
+            parallelEnabled: autoCommanderParallelEnabled
+          });
           // Specialist failure must not prevent the existing Gemini response path.
         }
       }
