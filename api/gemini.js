@@ -153,6 +153,70 @@ function calendarTime(text,date) {
 function calendarQuotedTitle(text){return text.match(/[「『"“](.{1,200}?)[」』"”]/)?.[1]?.trim()||null}
 function calendarDirect(res,text,speechText,extra={}){return res.status(200).json({text,speechText,visualization:{type:"none",title:"",labels:[],values:[],steps:[]},interactionId:null,memory:{shouldSave:false,category:"personal",content:"",importance:1},sources:[],...extra})}
 
+const FALLBACK_VISUALIZATION_TYPES = new Set(["none", "bar", "line", "diagram", "pie", "donut", "flowchart", "structure", "blueprint", "gauge", "matrix"]);
+
+async function respondWithOpenAIFallback(res, geminiInput, sources, searchPerformed) {
+  try {
+    const fallback = await runAiCouncil({
+      userInput: [
+        "Gemini final response generation is unavailable. Produce the user-facing final response from the supplied complete context.",
+        "Return ONLY valid JSON with keys: reply, speechText, visualization, memory.",
+        "visualization must contain type,title,labels,values,steps. Allowed type: none,bar,line,diagram,pie,donut,flowchart,structure,blueprint,gauge,matrix.",
+        "memory must contain shouldSave,category,content,importance. For safety, set shouldSave=false, category=personal, content='', importance=1.",
+        "Do not claim that Gemini succeeded. Do not invent facts. Reply and speechText must be natural Japanese.",
+        "Context:\\n" + geminiInput
+      ].join("\\n"),
+      systemInstruction: "You are the emergency final-response composer for J.A.R.V.I.S. Gemini is unavailable. Return strictly valid JSON only. Do not use tools or claim external actions.",
+      providers: ["openai"],
+      timeoutMs: 20000,
+      maxOutputTokens: 1200
+    });
+    const item = fallback.results.find(result => result.ok && result.provider === "openai" && typeof result.text === "string");
+    if (!item) {
+      console.error("[FALLBACK] OpenAI final composer unavailable", {
+        error: fallback.results.find(result => result.provider === "openai")?.error || "NO_RESULT"
+      });
+      return res.status(502).json({ error: "Gemini unavailable and OpenAI fallback failed" });
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(item.text.trim().replace(/^\`\`\`(?:json)?\\s*/i, "").replace(/\\s*\`\`\`$/, ""));
+    } catch (_) {
+      console.error("[FALLBACK] OpenAI returned invalid JSON");
+      return res.status(502).json({ error: "Gemini unavailable and OpenAI fallback returned invalid response" });
+    }
+    const visualization = parsed?.visualization;
+    const valid =
+      typeof parsed.reply === "string" && parsed.reply.trim() &&
+      typeof parsed.speechText === "string" && parsed.speechText.trim() &&
+      visualization && FALLBACK_VISUALIZATION_TYPES.has(visualization.type) &&
+      typeof visualization.title === "string" &&
+      Array.isArray(visualization.labels) && visualization.labels.every(value => typeof value === "string") &&
+      Array.isArray(visualization.values) && visualization.values.every(value => typeof value === "number" && Number.isFinite(value)) &&
+      Array.isArray(visualization.steps) && visualization.steps.every(value => typeof value === "string");
+    if (!valid) {
+      console.error("[FALLBACK] OpenAI response structure validation failed");
+      return res.status(502).json({ error: "Gemini unavailable and OpenAI fallback returned invalid response" });
+    }
+    console.warn("[FALLBACK] OpenAI generated final response because Gemini was unavailable");
+    return res.status(200).json({
+      text: parsed.reply,
+      speechText: parsed.speechText,
+      visualization,
+      interactionId: null,
+      searchPerformed,
+      memory: { shouldSave: false, category: "personal", content: "", importance: 1 },
+      sources,
+      fallback: { provider: "openai", reason: "gemini_unavailable" }
+    });
+  } catch (error) {
+    console.error("[FALLBACK] OpenAI final response failed", {
+      code: typeof error?.code === "string" ? error.code : "INTERNAL_ERROR"
+    });
+    return res.status(502).json({ error: "Gemini unavailable and OpenAI fallback failed" });
+  }
+}
+
 async function classifyCalendarIntent(apiKey, reply, pendingAction) {
   const action = pendingAction?.action || "unknown";
   const input = [
@@ -3305,13 +3369,8 @@ visualization は画面表示専用です。reply と speechText は通常どお
     );
 
     if (!response.ok) {
-      console.error("Gemini API request failed", {
-        status: response.status
-      });
-
-      return res.status(502).json({
-        error: "Gemini request failed",
-      });
+      console.error("Gemini API request failed", { status: response.status });
+      return await respondWithOpenAIFallback(res, geminiInput, sources, isSearchQuestion && searchContext.length > 0);
     }
 
     // ==========================================
