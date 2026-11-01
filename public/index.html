@@ -2664,11 +2664,12 @@ async function sendToGemini(text) {
         // 通信・JSON解析などの失敗で処理が中断しても、画面状態と音声会話を復旧する。
         if (requestUserId === window.jarvisCurrentUserId) {
             console.error("Gemini conversation failed:", error);
-            document.getElementById("voiceResponse").textContent =
-                "処理に失敗しました。通信状態を確認して、もう一度お試しください。";
+            const errorDetail = error && error.message
+                ? String(error.message).slice(0, 180)
+                : "原因不明の通信エラー";
+            showClientError("Gemini API通信に失敗しました: " + errorDetail);
             renderJarvisVisualization(null);
-            document.getElementById("jarvisHoloPanel").classList.add("show");
-            status.textContent = "処理に失敗しました";
+            status.textContent = "API COMMUNICATION ERROR";
             window.setJarvisCoreState("standby");
             updateHudStatus("ONLINE", "STANDBY", "ERROR", "RECOVERY");
 
