@@ -338,7 +338,7 @@ async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens,
       "The required structure is: " + expectedShape + ".",
       "Preserve the meaning of the supplied model response. Do not add facts or fields.",
       "If the source is incomplete, return the safest valid structure and make uncertainty explicit in string fields."
-    ].join("\\n");
+    ].join("\n");
     const repaired = await callBackgroundGemini(
       repairPrompt,
       JSON.stringify({ originalInput: userInput, malformedResponse: raw.slice(0, 12000) }),
