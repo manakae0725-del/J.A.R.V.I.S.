@@ -3295,14 +3295,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
         );
       } else {
         response = await fetch(
-          "https://generativelanguage.googleapis.com/v1/interactions",
+          "https://generativelanguage.googleapis.com/v1beta/interactions",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "Accept": "text/event-stream",
               "x-goog-api-key": geminiKey,
             },
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify({ ...requestBody, stream: true }),
             signal: controller.signal,
           }
         );
@@ -3336,74 +3337,125 @@ visualization は画面表示専用です。reply と speechText は通常どお
       clearTimeout(geminiTimeout);
     }
 
-    const geminiDuration =
-      Date.now() - geminiStart;
-
-    await logApiUsage({
-      provider: "gemini",
-      service: "generation",
-      success: response.ok,
-      statusCode: response.status,
-      durationMs: geminiDuration,
-      metadata: {
-        model: "gemini-3.6-flash"
-      }
-    });
-    perf.geminiHttpMs = geminiDuration;
-
-    const data = await response.json();
-
-    console.log(
-      "[DEBUG] Gemini HTTP status:",
-      response.status
-    );
+    const geminiHeadersDuration = Date.now() - geminiStart;
+    perf.geminiHttpMs = geminiHeadersDuration;
+    console.log("[DEBUG] Gemini HTTP status:", response.status);
 
     if (!response.ok) {
+      await logApiUsage({
+        provider: "gemini",
+        service: "generation",
+        success: false,
+        statusCode: response.status,
+        durationMs: Date.now() - geminiStart,
+        metadata: { model: "gemini-3.6-flash" }
+      });
       console.error("Gemini API request failed", { status: response.status });
       return await respondWithOpenAIFallback(res, geminiInput, sources, isSearchQuestion && searchContext.length > 0);
     }
 
-    // ==========================================
-    // Gemini Output
-    // ==========================================
+    const streamStartedAt = Date.now();
+    let firstTokenMs = null;
+    let outputText = "";
+    let interactionId = null;
+    let activeStepType = null;
+    let activeStepIndex = null;
+    let sseBuffer = "";
+    let streamCompleted = false;
+    const sendClientEvent = (name, payload) => {
+      res.write("event: " + name + "\ndata: " + JSON.stringify(payload) + "\n\n");
+    };
 
-    let outputText = data.output_text;
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    if (typeof res.flushHeaders === "function") res.flushHeaders();
 
-    if (
-      !outputText &&
-      Array.isArray(data.steps)
-    ) {
-      for (
-        let i = data.steps.length - 1;
-        i >= 0;
-        i--
-      ) {
-        const step = data.steps[i];
+    const processGeminiSseEvent = (rawEvent) => {
+      const dataLines = rawEvent.split(/\r?\n/).filter(line => line.startsWith("data:"));
+      if (!dataLines.length) return;
+      const rawData = dataLines.map(line => line.slice(5).trimStart()).join("\n");
+      if (!rawData || rawData === "[DONE]") return;
+      const eventData = JSON.parse(rawData);
+      const eventType = eventData.event_type || "";
 
-        if (
-          step?.type === "model_output" &&
-          Array.isArray(step.content)
-        ) {
-          const textContent =
-            step.content.find(
-              (item) =>
-                item?.type === "text" &&
-                item?.text
-            );
-
-          if (textContent) {
-            outputText = textContent.text;
-            break;
+      if (eventType === "interaction.created") {
+        if (typeof eventData.interaction?.id === "string") interactionId = eventData.interaction.id;
+      } else if (eventType === "step.start") {
+        activeStepType = eventData.step?.type || null;
+        activeStepIndex = eventData.index;
+      } else if (eventType === "step.delta") {
+        if (activeStepType === "model_output" && eventData.index === activeStepIndex && eventData.delta?.type === "text" && typeof eventData.delta.text === "string") {
+          const chunk = eventData.delta.text;
+          if (chunk) {
+            if (firstTokenMs === null) firstTokenMs = Date.now() - streamStartedAt;
+            outputText += chunk;
+            sendClientEvent("delta", { text: chunk });
           }
         }
+      } else if (eventType === "step.stop") {
+        if (eventData.index === activeStepIndex) {
+          activeStepType = null;
+          activeStepIndex = null;
+        }
+      } else if (eventType === "interaction.completed") {
+        if (typeof eventData.interaction?.id === "string") interactionId = eventData.interaction.id;
+        if (eventData.interaction?.status && eventData.interaction.status !== "completed") throw new Error("Gemini interaction did not complete");
+        streamCompleted = true;
+      } else if (eventType === "error") {
+        throw new Error("Gemini stream returned an error");
       }
+    };
+
+    try {
+      if (!response.body) throw new Error("Gemini stream body unavailable");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        sseBuffer += decoder.decode(value, { stream: true });
+        let separatorMatch;
+        while ((separatorMatch = /\r?\n\r?\n/.exec(sseBuffer))) {
+          const eventBlock = sseBuffer.slice(0, separatorMatch.index);
+          sseBuffer = sseBuffer.slice(separatorMatch.index + separatorMatch[0].length);
+          processGeminiSseEvent(eventBlock);
+        }
+      }
+      sseBuffer += decoder.decode();
+      if (sseBuffer.trim()) processGeminiSseEvent(sseBuffer);
+      if (!streamCompleted) throw new Error("Gemini stream ended before completion");
+    } catch (streamError) {
+      await logApiUsage({
+        provider: "gemini",
+        service: "generation",
+        success: false,
+        statusCode: response.status,
+        durationMs: Date.now() - geminiStart,
+        metadata: { model: "gemini-3.6-flash", error: "stream_failed" }
+      });
+      console.error("Gemini response stream failed", { name: streamError?.name || "Error" });
+      sendClientEvent("error", { message: "Geminiのストリーミング応答を完了できませんでした。もう一度お試しください。" });
+      return res.end();
     }
 
+    await logApiUsage({
+      provider: "gemini",
+      service: "generation",
+      success: true,
+      statusCode: response.status,
+      durationMs: Date.now() - geminiStart,
+      metadata: { model: "gemini-3.6-flash", streamed: true }
+    });
+    const data = { id: interactionId };
+
+    // Streamed text is the complete JSON document returned by the model.
     if (!outputText) {
       console.error("Gemini response contained no output text");
-      return res.status(502).json({
-        error: "No valid response from Gemini",
-      });
+      sendClientEvent("error", { message: "Geminiから有効な回答を取得できませんでした。" });
+      return res.end();
     }
 
     // ==========================================
@@ -3417,9 +3469,8 @@ visualization は画面表示専用です。reply と speechText は通常どお
     } catch (error) {
       console.error("Gemini returned invalid JSON output");
 
-      return res.status(502).json({
-        error: "Gemini returned an invalid response",
-      });
+      sendClientEvent("error", { message: "Geminiの回答形式が不正です。" });
+      return res.end();
     }
 
     // ==========================================
@@ -3460,8 +3511,8 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // Response
     // ==========================================
 
-    console.info("[PERF] Request completed", { ...perf, totalMs: Date.now() - perfStartedAt, replyChars: result.reply.length, speechChars: result.speechText.length, visualizationType: result.visualization.type });
-    return res.status(200).json({
+    console.info("[PERF] Request completed", { ...perf, totalMs: Date.now() - perfStartedAt, geminiFirstTokenMs: firstTokenMs, replyChars: result.reply.length, speechChars: result.speechText.length, visualizationType: result.visualization.type });
+    sendClientEvent("complete", {
       text: result.reply,
       speechText: result.speechText,
       visualization: result.visualization,
@@ -3488,6 +3539,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
 
       sources,
     });
+    return res.end();
   } catch (error) {
     console.error("Gemini handler failed", {
       name: error?.name || "Error"
