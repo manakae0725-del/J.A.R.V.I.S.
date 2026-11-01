@@ -3232,12 +3232,13 @@ ${typeof memoryContext === "string" && memoryContext.trim()
 
 長期記憶の保存・更新ルール：
 - 長期的に有用な事実、またはユーザーが明示的に記憶を求めた内容だけを保存します。一時的な発言や雑談は保存しません。
-- 保存時はmemory.shouldSave=true、contentに一つの簡潔な事実、categoryにpersonal / preference / work / family / goal、importanceに1〜5を設定します。
-- 通常の新規保存ではmemory.action="save"を設定します。
-- 既存記憶の内容をユーザーが明確に訂正・変更し、更新する意図が明らかな場合だけmemory.action="replace"を設定し、該当する既存記憶の[ID:n]をmemory.supersedesIdに指定します。置換対象は今回提示された記憶IDに限ります。
-- 既存記憶と新情報が矛盾していても、ユーザーの訂正・更新意図が明確でなければ上書きも追加保存もしません。矛盾点を簡潔に示して確認してください。
-- 記憶のないIDを作らないでください。複数の記憶をまとめて置換しないでください。明示的な更新指示がない限りaction="replace"を使わないでください。
-- 保存しない場合はshouldSave=false、contentは空、action="save"としてください。
+- 保存候補はmemoryItems配列に最大12件まで返してください。各要素は一つの独立した事実だけを含め、複数の事実を一つのcontentに詰め込まないでください。
+- 各要素はshouldSave、category、content、importance、action、supersedesIdを持たせます。新規保存はaction="save"、categoryはpersonal / preference / work / family / goal、importanceは1〜5です。
+- 既存記憶と同じ内容は重複して返さないでください。今回提示された既存記憶を確認し、同じ事実が既に登録されていれば新規保存しません。
+- 既存記憶の訂正・変更意図が明確な場合だけaction="replace"を使い、今回提示された実在する[ID:n]をsupersedesIdに指定します。曖昧な矛盾は保存せず確認してください。
+- 記憶のないIDを作らず、複数の既存記憶を一度に置換しないでください。
+- 保存対象がない場合はmemoryItemsを空配列にしてください。従来互換のmemoryオブジェクトはshouldSave=false、content=""にしてください。
+- プロフィールや初期情報を明示的に登録する依頼では、提供された長期的事実をカテゴリ別に分割して漏れなく候補化してください。
 
 【ユーザーの依頼】
 ${text}
@@ -3548,12 +3549,29 @@ visualization は画面表示専用です。reply と speechText は通常どお
                 "importance",
               ],
             },
+            memoryItems: {
+              type: "array",
+              maxItems: 12,
+              items: {
+                type: "object",
+                properties: {
+                  shouldSave: { type: "boolean" },
+                  category: { type: "string", enum: ["personal", "preference", "work", "family", "goal"] },
+                  content: { type: "string" },
+                  importance: { type: "integer", minimum: 1, maximum: 5 },
+                  action: { type: "string", enum: ["save", "replace"] },
+                  supersedesId: { type: "integer", minimum: 1 }
+                },
+                required: ["shouldSave", "category", "content", "importance", "action"]
+              }
+            },
           },
 
           required: [
             "reply",
             "speechText",
             "memory",
+            "memoryItems",
             "visualization",
           ],
         },
@@ -3807,8 +3825,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
       !result.memory ||
       !result.visualization ||
       !["none", "bar", "line", "diagram", "pie", "donut", "flowchart", "structure", "blueprint", "gauge", "matrix"].includes(result.visualization.type) ||
-      typeof result.memory.shouldSave !==
-        "boolean"
+      typeof result.memory.shouldSave !== "boolean" ||
+      !Array.isArray(result.memoryItems) ||
+      result.memoryItems.length > 12 ||
+      result.memoryItems.some(item => !item || typeof item.shouldSave !== "boolean" ||
+        !["personal", "preference", "work", "family", "goal"].includes(item.category) ||
+        typeof item.content !== "string" || !Number.isInteger(item.importance) ||
+        item.importance < 1 || item.importance > 5 ||
+        !["save", "replace"].includes(item.action) ||
+        (item.action === "replace" && (!Number.isSafeInteger(item.supersedesId) || item.supersedesId < 1)))
     ) {
       console.error("Gemini response structure validation failed");
       sendClientEvent("error", { message: "Geminiの回答形式が不正です。" });
@@ -3862,6 +3887,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
         supersedesId:
           Number.isSafeInteger(result.memory.supersedesId) ? result.memory.supersedesId : null,
       },
+
+      memories: result.memoryItems.map(item => ({
+        shouldSave: item.shouldSave,
+        category: item.category,
+        content: item.content || "",
+        importance: item.importance,
+        action: item.action === "replace" ? "replace" : "save",
+        supersedesId: Number.isSafeInteger(item.supersedesId) ? item.supersedesId : null
+      })),
 
       sources,
     });
