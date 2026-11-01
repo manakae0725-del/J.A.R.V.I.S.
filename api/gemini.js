@@ -3227,21 +3227,30 @@ visualization は画面表示専用です。reply と speechText は通常どお
     let response;
 
     try {
-      response = await fetch(
-        "https://generativelanguage.googleapis.com/v1/interactions",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": geminiKey,
-          },
-
-          body: JSON.stringify(requestBody),
-
-          signal: controller.signal,
-        }
-      );
+      // Controlled Gemini outage simulation is Preview-only and skips the paid Gemini request.
+      // Production can never activate this branch, even if the test variable is misconfigured.
+      if (
+        process.env.VERCEL_ENV === "preview" &&
+        process.env.JARVIS_TEST_GEMINI_FAILURE === "true"
+      ) {
+        response = new Response(
+          JSON.stringify({ error: { message: "Simulated Gemini outage" } }),
+          { status: 503, headers: { "Content-Type": "application/json" } }
+        );
+      } else {
+        response = await fetch(
+          "https://generativelanguage.googleapis.com/v1/interactions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": geminiKey,
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+          }
+        );
+      }
     } catch (error) {
       const geminiDuration =
         Date.now() - geminiStart;
