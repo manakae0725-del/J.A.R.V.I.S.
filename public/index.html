@@ -1273,18 +1273,25 @@ sendButton.addEventListener(
     "click",
     async function(){
 
-        const text =
-            textInput.value.trim();
+        const text = textInput.value.trim();
+        if(!text) return;
 
-        if(!text){
-            return;
+        textInput.value = "";
+        sendButton.disabled = true;
+        sendButton.textContent = "PROCESSING...";
+
+        try {
+            await sendToGemini(text);
+        } catch (error) {
+            console.error("[CONVERSATION] Send handler failed:", error);
+            const voiceResponse = document.getElementById("voiceResponse");
+            const holoPanel = document.getElementById("jarvisHoloPanel");
+            if (voiceResponse) voiceResponse.textContent = "送信処理に失敗しました。画面を再読み込みして、もう一度お試しください。";
+            if (holoPanel) holoPanel.classList.add("show");
+        } finally {
+            sendButton.disabled = false;
+            sendButton.innerHTML = "TRANSMIT";
         }
-
-        textInput.value="";
-
-        await sendToGemini(
-            text
-        );
     }
 );
 
@@ -2413,9 +2420,28 @@ async function sendToGemini(text) {
             ? text.trim()
             : "";
 
-    if (!cleanText || !requestUserId) {
+    if (!cleanText) return;
+
+    const voiceResponse = document.getElementById("voiceResponse");
+    const holoPanel = document.getElementById("jarvisHoloPanel");
+    const showClientError = (message) => {
+        if (voiceResponse) {
+            voiceResponse.hidden = false;
+            voiceResponse.setAttribute("aria-hidden", "false");
+            voiceResponse.textContent = message;
+        }
+        if (holoPanel) holoPanel.classList.add("show");
+        status.textContent = "INPUT ERROR";
+        console.warn("[CONVERSATION] Request stopped before API call:", message);
+    };
+
+    if (!requestUserId) {
+        showClientError("ログイン状態を確認できません。再読み込みしてログインし直してください。");
         return;
     }
+
+    window.setJarvisCoreState("thinking");
+    status.textContent = "LOADING MEMORY...";
 
     await loadMemories();
 
@@ -2443,10 +2469,12 @@ async function sendToGemini(text) {
         const accessToken = await window.jarvisGetAccessToken();
 
         // トークン取得中のアカウント切り替えを検出する。
-        if (
-            !accessToken ||
-            requestUserId !== window.jarvisCurrentUserId
-        ) {
+        if (!accessToken) {
+            showClientError("認証トークンを取得できません。再読み込みしてログインし直してください。");
+            return;
+        }
+        if (requestUserId !== window.jarvisCurrentUserId) {
+            showClientError("送信中にログインアカウントが切り替わりました。もう一度お試しください。");
             return;
         }
 
