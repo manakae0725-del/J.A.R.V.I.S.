@@ -391,7 +391,11 @@ module.exports = async function handler(req, res) {
         timeoutMs: 20000,
         maxOutputTokens: 600
       });
-      return res.status(200).json({ results: result.results, providerCount: result.providerCount });
+      return res.status(200).json({
+        results: result.results,
+        providerCount: result.providerCount,
+        executionMode: result.executionMode || "parallel"
+      });
     } catch (error) {
       const code = typeof error?.code === "string" ? error.code : "INTERNAL_ERROR";
       if (code === "INVALID_INPUT" || code === "INVALID_PROVIDER_SELECTION") {
@@ -3034,7 +3038,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
 
           const specialistText = result.results
             .filter(item => item.ok && typeof item.text === "string" && item.text.trim())
-            .map(item => "【専門AIの分析 / " + item.provider + "】\\n" + item.text)
+            .map(item => "【専門AIの分析 / " + item.provider + "・役割: " + (item.role || "独立分析") + "】\\n" + item.text)
             .join("\n\\n");
 
           if (specialistText) {
