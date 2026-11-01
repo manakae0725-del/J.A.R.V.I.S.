@@ -117,3 +117,46 @@ test("classification is exposed even when routing flags are disabled", () => {
   assert.equal(result.eligible, false);
   assert.equal(result.provider, null);
 });
+
+
+test("professional hair-product selection is routed to a specialist", () => {
+  const result = classifyCommanderTask("縮毛矯正の薬剤選定の基準を教えてください。");
+  assert.equal(result.shouldDelegate, true);
+  assert.equal(result.intent, "specialist_analysis");
+});
+
+test("simple beauty terminology questions stay on Gemini", () => {
+  assert.equal(classifyCommanderTask("縮毛矯正とは何ですか？").shouldDelegate, false);
+  assert.equal(classifyCommanderTask("酸性ストレートの意味を教えてください。").shouldDelegate, false);
+});
+
+test("explicit Gemini and OpenAI requests trigger specialist routing", () => {
+  const result = classifyCommanderTask("GeminiとOpenAIの両方を使って、このAPI設計を分析してください。");
+  assert.equal(result.shouldDelegate, true);
+  assert.equal(result.reason, "explicit_multi_ai_request");
+});
+
+test("generic explicit multi-AI requests trigger specialist routing", () => {
+  const result = classifyCommanderTask("複数AIでこの設計を比較してください。");
+  assert.equal(result.shouldDelegate, true);
+  assert.equal(result.reason, "explicit_multi_ai_request");
+});
+
+test("explicit multi-AI routing selects both configured providers in parallel mode", () => {
+  const parallelEnv = {
+    ...enabledEnv,
+    GEMINI_API_KEY: "test-key-not-real",
+    JARVIS_AUTO_COMMANDER_PARALLEL_ENABLED: "true"
+  };
+  const result = getAutoCommanderConfig({
+    autoCommander: true,
+    text: "GeminiとOpenAIの両方を使って、このAPI設計を分析してください。",
+    env: parallelEnv
+  });
+  assert.equal(result.eligible, true);
+  assert.deepEqual(result.providers, ["gemini", "openai"]);
+});
+
+test("routine questions mentioning AI providers do not trigger paid routing", () => {
+  assert.equal(classifyCommanderTask("GeminiとOpenAIの違いは何ですか？").shouldDelegate, false);
+});
