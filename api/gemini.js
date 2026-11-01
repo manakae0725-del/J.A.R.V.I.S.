@@ -3331,18 +3331,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
       });
 
       if (error.name === "AbortError") {
-        return res.status(504).json({
-          error: "Gemini request timed out",
-        });
+        console.warn("Gemini request timed out; attempting OpenAI fallback");
+        return await respondWithOpenAIFallback(res, geminiInput, sources, isSearchQuestion && searchContext.length > 0);
       }
 
       console.error("Gemini network request failed", {
         name: error?.name || "Error"
       });
 
-      return res.status(502).json({
-        error: "Gemini connection failed",
-      });
+      return await respondWithOpenAIFallback(res, geminiInput, sources, isSearchQuestion && searchContext.length > 0);
     } finally {
       clearTimeout(geminiTimeout);
     }
