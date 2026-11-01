@@ -1283,6 +1283,7 @@ const sendButton =
 
 let backgroundModeEnabled = false;
 let backgroundRefreshRunning = false;
+let previousBackgroundStatuses = new Map();
 
 function setBackgroundMode(enabled) {
     backgroundModeEnabled = Boolean(enabled);
@@ -1346,6 +1347,34 @@ function renderBackgroundTasks(tasks) {
         detail.textContent = (Number(task.progress)||0) + "% · " + (Number(task.current_step)||0) + "/" + stepCount + " steps";
         card.appendChild(detail);
 
+        const previousStatus = previousBackgroundStatuses.get(task.id);
+        if (previousStatus && previousStatus !== task.status && ["completed","failed","cancelled"].includes(task.status)) {
+            const notice = document.getElementById("voiceResponse");
+            const holo = document.getElementById("jarvisHoloPanel");
+            if (notice) {
+                notice.hidden = false;
+                notice.setAttribute("aria-hidden", "false");
+                notice.textContent = task.title + (task.status === "completed" ? " が完了しました。" : task.status === "failed" ? " でエラーが発生しました。" : " はキャンセルされました。");
+            }
+            if (holo) holo.classList.add("show");
+        }
+        previousBackgroundStatuses.set(task.id, task.status);
+
+        if (task.status === "paused") {
+            const resume = document.createElement("button");
+            resume.type = "button";
+            resume.textContent = "RESUME";
+            resume.style.cssText = "margin-top:6px;background:transparent;color:#9fe0ff;border:1px solid rgba(80,180,255,.5);border-radius:4px;padding:3px 8px;font:inherit;font-size:10px";
+            resume.addEventListener("click", () => resumeBackgroundTask(task.id));
+            card.appendChild(resume);
+        } else if (["queued","planning","running","verifying","retrying"].includes(task.status)) {
+            const pause = document.createElement("button");
+            pause.type = "button";
+            pause.textContent = "PAUSE";
+            pause.style.cssText = "margin-top:6px;margin-right:6px;background:transparent;color:#9fe0ff;border:1px solid rgba(80,180,255,.5);border-radius:4px;padding:3px 8px;font:inherit;font-size:10px";
+            pause.addEventListener("click", () => pauseBackgroundTask(task.id));
+            card.appendChild(pause);
+        }
         if (["queued","planning","running","verifying","retrying","paused"].includes(task.status)) {
             const cancel = document.createElement("button");
             cancel.type = "button";
@@ -1433,6 +1462,26 @@ async function cancelBackgroundTask(taskId) {
     }
 }
 
+async function pauseBackgroundTask(taskId) {
+    try {
+        await backgroundApiRequest({ mode: "background-task-pause", taskId });
+        await refreshBackgroundTasks();
+    } catch (error) {
+        const response = document.getElementById("voiceResponse");
+        if (response) response.textContent = error.message || "タスクを一時停止できませんでした。";
+    }
+}
+
+async function resumeBackgroundTask(taskId) {
+    try {
+        await backgroundApiRequest({ mode: "background-task-resume", taskId });
+        await refreshBackgroundTasks();
+    } catch (error) {
+        const response = document.getElementById("voiceResponse");
+        if (response) response.textContent = error.message || "タスクを再開できませんでした。";
+    }
+}
+
 document.getElementById("backgroundModeToggle")?.addEventListener("click", () => {
     setBackgroundMode(!backgroundModeEnabled);
 });
@@ -1448,6 +1497,7 @@ setInterval(() => {
     if (panel && !panel.hidden) refreshBackgroundTasks();
 }, 12000);
 window.addEventListener("jarvis-auth-change", () => {
+    previousBackgroundStatuses.clear();
     renderBackgroundTasks([]);
     setBackgroundMode(false);
 });
