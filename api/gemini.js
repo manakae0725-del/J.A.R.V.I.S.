@@ -3545,6 +3545,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
       name: error?.name || "Error"
     });
 
+    if (res.headersSent) {
+      try {
+        res.write("event: error\\ndata: " + JSON.stringify({ message: "回答処理中にエラーが発生しました。" }) + "\\n\\n");
+        return res.end();
+      } catch (_) {
+        return;
+      }
+    }
+
     return res.status(500).json({
       error: "Internal Server Error",
     });
