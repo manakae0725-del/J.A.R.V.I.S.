@@ -2810,7 +2810,7 @@ Content: ${result.content || ""}
     // ==========================================
 
     let geminiInput = `
-${calendarContext ? \`\n【Google Calendar実データ】\n${calendarContext}\n予定はAsia/Tokyoに合わせ、取得データだけを根拠に回答してください。\n\` : ""}
+${calendarContext ? `\n【Google Calendar実データ】\n${calendarContext}\n予定はAsia/Tokyoに合わせ、取得データだけを根拠に回答してください。\n` : ""}
 
 あなたはJ.A.R.V.I.S.。知的で落ち着いたAIアシスタントとして、自然で丁寧な日本語を使ってください。馴れ馴れしさ、過度な敬語、放送・ナレーター調、不要な感想・前置き・励まし・定型的な締めは避けます。質問に直接答え、簡単な質問は簡潔に、複雑な質問は必要な範囲で詳しく説明してください。通常はユーザーの名前を呼びません。
 
