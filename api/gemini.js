@@ -180,9 +180,24 @@ async function respondWithOpenAIFallback(res, geminiInput, sources, searchPerfor
     }
     let parsed;
     try {
-      parsed = JSON.parse(item.text.trim());
-    } catch (_) {
-      console.error("[FALLBACK] OpenAI returned invalid JSON");
+      const raw = item.text.trim()
+        .replace(/^\`\`\`(?:json)?\\s*/i, "")
+        .replace(/\\s*\`\`\`$/, "");
+      try {
+        parsed = JSON.parse(raw);
+      } catch (_) {
+        // Some models add a short preamble despite the JSON-only instruction.
+        // Recover only a complete JSON object; never attempt partial repair.
+        const firstBrace = raw.indexOf("{");
+        const lastBrace = raw.lastIndexOf("}");
+        if (firstBrace < 0 || lastBrace <= firstBrace) throw new Error("JSON_OBJECT_NOT_FOUND");
+        parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));
+      }
+    } catch (error) {
+      console.error("[FALLBACK] OpenAI returned invalid JSON", {
+        outputLength: item.text.length,
+        parseError: error?.name || "SyntaxError"
+      });
       return res.status(502).json({ error: "Gemini unavailable and OpenAI fallback returned invalid response" });
     }
     const visualization = parsed?.visualization;
