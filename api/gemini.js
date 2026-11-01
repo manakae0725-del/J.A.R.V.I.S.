@@ -485,7 +485,10 @@ module.exports = async function handler(req, res) {
 
     let searchContext = "";
     const sources = [];
+    const searchStartedAt = Date.now();
 
+    const perfStartedAt = Date.now();
+    const perf = {};
     const rawText = String(text || "").trim();
 
     const userMarker = rawText.match(
@@ -2730,6 +2733,8 @@ Content: ${result.content || ""}
       sources.length
     );
 
+    perf.searchMs = Date.now() - searchStartedAt;
+
     // ==========================================
     // Google Calendar conversational read
     // ==========================================
@@ -2797,6 +2802,8 @@ Content: ${result.content || ""}
         calendarContext = "Google Calendarから予定を取得できませんでした。取得に失敗したことをユーザーに伝え、予定を推測しないでください。";
       }
     }
+
+    perf.contextRetrievalMs = Date.now() - perfStartedAt;
 
     // ==========================================
     // Gemini Input
@@ -3064,6 +3071,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
       text: userText
     });
 
+    const commanderStartedAt = Date.now();
     if (autoCommanderEligible && configuredAutoProvider) {
       // Preview development must not be blocked by the production Auto Commander quotas.
       // Keep both limits enabled in Production to protect paid-provider usage.
@@ -3138,6 +3146,10 @@ visualization は画面表示専用です。reply と speechText は通常どお
         }
       }
     }
+
+    perf.commanderMs = Date.now() - commanderStartedAt;
+    perf.promptChars = geminiInput.length;
+    console.info("[PERF] Pre-generation stages", { ...perf, commanderEligible: autoCommanderEligible, commanderProviders: autoCommanderEligible ? configuredAutoProviders : [] });
 
     // ==========================================
     // Gemini Request
@@ -3337,6 +3349,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
         model: "gemini-3.6-flash"
       }
     });
+    perf.geminiHttpMs = geminiDuration;
 
     const data = await response.json();
 
@@ -3447,6 +3460,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // Response
     // ==========================================
 
+    console.info("[PERF] Request completed", { ...perf, totalMs: Date.now() - perfStartedAt, replyChars: result.reply.length, speechChars: result.speechText.length, visualizationType: result.visualization.type });
     return res.status(200).json({
       text: result.reply,
       speechText: result.speechText,
