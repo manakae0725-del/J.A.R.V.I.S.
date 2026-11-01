@@ -123,7 +123,7 @@ test("normalizes request timeout and rejects oversized input before network acce
   const timeoutResult = await runAiCouncil({ userInput: "test", providers: ["gemini"] });
   assert.equal(timeoutResult.results[0].error, "TIMEOUT");
   await assert.rejects(
-    runAiCouncil({ userInput: "x".repeat(12001), providers: ["gemini"] }),
+    runAiCouncil({ userInput: "x".repeat(24001), providers: ["gemini"] }),
     error => error.code === "INVALID_INPUT"
   );
   assert.equal(calls, 1);
