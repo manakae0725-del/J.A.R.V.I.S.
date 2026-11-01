@@ -1,5 +1,5 @@
 const DEFAULT_TIMEOUT_MS = 20000;
-const MAX_INPUT_CHARS = 12000;
+const MAX_INPUT_CHARS = 24000;
 const MAX_OUTPUT_TOKENS = 1200;
 const ALLOWED_PROVIDERS = new Set(["gemini", "openai", "anthropic"]);
 
