@@ -2347,20 +2347,31 @@ function renderJarvisVisualization(viz) {
         addText(160, 112, labels[0] || "達成率", "viz-label");
     } else if (viz.type === "structure") {
         if (labels.length < 3) { container.hidden = true; return; }
-        svg.setAttribute("viewBox", "0 0 320 180");
-        svg.appendChild(el("rect", {x:95,y:10,width:130,height:38,rx:5,class:"viz-node"}));
-        addText(160, 33, (viz.title || "中心要素").slice(0,18), "viz-label");
-        const count = Math.min(labels.length, 5), left = 8, gap = 5, w = (304 - gap * (count - 1)) / count;
-        svg.appendChild(el("path", {d:"M 160 48 V 65 H 160", class:"viz-arrow"}));
-        svg.appendChild(el("line", {x1:left+w/2,y1:65,x2:left+(count-1)*(w+gap)+w/2,y2:65,class:"viz-arrow"}));
+        const count = Math.min(labels.length, 6);
+        const cols = count <= 3 ? 1 : 2;
+        const rows = Math.ceil(count / cols);
+        const cardW = cols === 1 ? 280 : 136;
+        const cardH = 48;
+        const gapX = 8;
+        const gapY = 10;
+        const top = 82;
+        const totalH = top + rows * cardH + (rows - 1) * gapY + 12;
+        svg.setAttribute("viewBox", "0 0 320 " + totalH);
+        svg.appendChild(el("rect", {x:75,y:8,width:170,height:38,rx:5,class:"viz-node"}));
+        addText(160, 32, (viz.title || "中心要素").slice(0,20), "viz-label");
+        svg.appendChild(el("path", {d:"M 160 46 V 62", class:"viz-arrow"}));
+        svg.appendChild(el("line", {x1:160,y1:62,x2:160,y2:72,class:"viz-arrow"}));
         for (let i=0;i<count;i++) {
-            const x=left+i*(w+gap);
-            svg.appendChild(el("line",{x1:x+w/2,y1:65,x2:x+w/2,y2:79,class:"viz-arrow"}));
-            svg.appendChild(el("rect",{x,y:79,width:w,height:52,rx:3,class:"viz-node"}));
-            const txt=el("text",{x:x+w/2,y:100,"text-anchor":"middle",class:"viz-step-text"});
-            const s=labels[i];
-            txt.appendChild(el("tspan",{x:x+w/2,dy:0},s.slice(0,9)));
-            if(s.length>9)txt.appendChild(el("tspan",{x:x+w/2,dy:13},s.slice(9,18)));
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = cols === 1 ? 20 : 20 + col * (cardW + gapX);
+            const y = top + row * (cardH + gapY);
+            svg.appendChild(el("line",{x1:160,y1:72,x2:160,y2:y,class:"viz-arrow"}));
+            svg.appendChild(el("rect",{x,y,width:cardW,height:cardH,rx:4,class:"viz-node"}));
+            const txt=el("text",{x:x+cardW/2,y:y+19,"text-anchor":"middle",class:"viz-step-text"});
+            const label=labels[i].slice(0,32);
+            txt.appendChild(el("tspan",{x:x+cardW/2,dy:0},label.slice(0, cols === 1 ? 24 : 17)));
+            if(label.length>(cols === 1 ? 24 : 17)) txt.appendChild(el("tspan",{x:x+cardW/2,dy:15},label.slice(cols === 1 ? 24 : 17,32)));
             svg.appendChild(txt);
         }
     } else if (viz.type === "blueprint") {
