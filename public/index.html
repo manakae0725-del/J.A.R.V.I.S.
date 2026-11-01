@@ -1424,6 +1424,9 @@ previousInteractionId = loadConversationInteractionId(window.jarvisCurrentUserId
 let memories = [];
 let memoryLoadGeneration = 0;
 let memoryOwnerId = window.jarvisCurrentUserId || null;
+let memoryLoadedForUserId = null;
+let memoryLoadPromise = null;
+let memoryLoadPromiseUserId = null;
 
 window.addEventListener("jarvis-auth-change", (event) => {
     const nextUserId = event && event.detail && typeof event.detail.userId === "string"
@@ -1436,6 +1439,9 @@ window.addEventListener("jarvis-auth-change", (event) => {
     memoryOwnerId = nextUserId;
     memoryLoadGeneration++;
     memories = [];
+    memoryLoadedForUserId = null;
+    memoryLoadPromise = null;
+    memoryLoadPromiseUserId = null;
     previousInteractionId = null;
     pendingCalendarAction = null;
 
@@ -1452,67 +1458,87 @@ function getErrorMessage(error) {
     if (typeof error === "string") return error;
 
     if (error && typeof error === "object") {
-        if (error.message) return error.message;
-
-        try {
-            return JSON.stringify(error);
-        } catch (e) {
-            return "不明なエラー";
-        }
-    }
-
-    return String(error);
-}
-
-async function loadMemories() {
-    const generation = ++memoryLoadGeneration;
+   async function loadMemories() {
     const requestUserId = window.jarvisCurrentUserId || null;
 
     if (!requestUserId) {
         memories = [];
+        memoryLoadedForUserId = null;
         return [];
     }
 
-    try {
-        const accessToken = await window.jarvisGetAccessToken();
-        if (!accessToken || requestUserId !== window.jarvisCurrentUserId) {
-            return [];
-        }
+    if (memoryLoadedForUserId === requestUserId) {
+        return memories;
+    }
 
-        const response = await fetch(
-            "/api/memory",
-            {
-                method: "GET",
-                headers: { Authorization: "Bearer " + accessToken }
+    if (memoryLoadPromise && memoryLoadPromiseUserId === requestUserId) {
+        return memoryLoadPromise;
+    }
+
+    const generation = ++memoryLoadGeneration;
+    const loadPromise = (async () => {
+        try {
+            const accessToken = await window.jarvisGetAccessToken();
+            if (!accessToken || requestUserId !== window.jarvisCurrentUserId) {
+                return [];
             }
-        );
 
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            throw new Error(
-                getErrorMessage(data.error) ||
-                "Memory GET error"
+            const response = await fetch(
+                "/api/memory",
+                {
+                    method: "GET",
+                    headers: { Authorization: "Bearer " + accessToken }
+                }
             );
-        }
 
-        if (
-            generation !== memoryLoadGeneration ||
-            requestUserId !== window.jarvisCurrentUserId
-        ) {
-            return [];
-        }
+            const data = await response.json();
 
-        memories =
-            Array.isArray(data.memories)
+            if (!response.ok || !data.ok) {
+                throw new Error(
+                    getErrorMessage(data.error) ||
+                    "Memory GET error"
+                );
+            }
+
+            if (
+                generation !== memoryLoadGeneration ||
+                requestUserId !== window.jarvisCurrentUserId
+            ) {
+                return [];
+            }
+
+            memories = Array.isArray(data.memories)
                 ? data.memories.slice(0, 30)
                 : [];
+            memoryLoadedForUserId = requestUserId;
 
-        return memories;
+            return memories;
+        } catch (error) {
+            if (
+                generation === memoryLoadGeneration &&
+                requestUserId === window.jarvisCurrentUserId
+            ) {
+                console.error("Memory load error:", error);
+                memories = [];
+            }
 
-    } catch (error) {
-        if (
-            generation === memoryLoadGeneration &&
+            return [];
+        }
+    })();
+
+    memoryLoadPromise = loadPromise;
+    memoryLoadPromiseUserId = requestUserId;
+
+    try {
+        return await loadPromise;
+    } finally {
+        if (memoryLoadPromise === loadPromise) {
+            memoryLoadPromise = null;
+            memoryLoadPromiseUserId = null;
+        }
+    }
+}
+ration &&
             requestUserId === window.jarvisCurrentUserId
         ) {
             console.error("Memory load error:", error);
