@@ -1849,23 +1849,57 @@ async function loadMemories() {
     }
 }
 
-function buildMemoryContext() {
-    // Operational records (for example, spreadsheet registries) share the
-    // memories table but must not be injected as conversational memory.
+function buildMemoryContext(userText = "") {
     const conversationalMemories = memories.filter(memory =>
         typeof memory?.category === "string" &&
-        !memory.category.startsWith("jarvis_")
+        ["personal", "preference", "work", "family", "goal"].includes(memory.category)
     );
+    if (!conversationalMemories.length) return "現在、登録されている長期記憶はありません。";
 
-    if (!conversationalMemories.length) {
-        return "現在、登録されている長期記憶はありません。";
+    const text = String(userText || "").toLowerCase();
+    const broadMemoryRequest = /(?:覚えていること|覚えてること|記憶していること|登録されている記憶|保存されている記憶|記憶一覧|記憶を見せて)/.test(text);
+    const categorySignals = {
+        family: /家族|妻|夫|子ども|子供|娘|息子|母|父|家庭|妊娠|育児/,
+        work: /仕事|職場|美容|サロン|売上|顧客|予約|業務|スタッフ|経営|店販|施術/,
+        preference: /好み|好き|嫌い|苦手|希望|方針|設定|話し方|優先/,
+        goal: /目標|計画|予定|達成|将来|ロードマップ|開発/,
+        personal: /自分|本人|性格|生活|住まい|経歴|資格/
+    };
+    const categoryHints = Object.entries(categorySignals)
+        .filter(([, pattern]) => pattern.test(text))
+        .map(([category]) => category);
+    const japaneseRuns = text.match(/[一-龯々ぁ-んァ-ヶー]{2,}/g) || [];
+    const terms = new Set((text.match(/[a-z0-9_+-]{3,}/g) || []).filter(term => term.length >= 3));
+    for (const run of japaneseRuns) {
+        if (run.length <= 8) terms.add(run);
+        for (let size = 2; size <= Math.min(4, run.length); size++) {
+            for (let index = 0; index <= run.length - size; index++) terms.add(run.slice(index, index + size));
+        }
     }
-
-    return conversationalMemories
-        .map((memory, index) => `${index + 1}. [${memory.category}] ${memory.content}`)
-        .join("\n");
+    const now = Date.now();
+    const ranked = conversationalMemories.map(memory => {
+        const content = String(memory.content || "").toLowerCase();
+        let relevance = 0;
+        for (const term of terms) {
+            if (term.length >= 3 && content.includes(term)) relevance += Math.min(term.length, 6) * 1.5;
+            else if (term.length === 2 && content.includes(term)) relevance += 1;
+        }
+        if (categoryHints.includes(memory.category)) relevance += 5;
+        const importance = Math.max(1, Math.min(5, Number(memory.importance) || 1));
+        const updatedAt = Date.parse(memory.updated_at || memory.created_at || "");
+        const ageDays = Number.isFinite(updatedAt) ? Math.max(0, (now - updatedAt) / 86400000) : 365;
+        const recency = Math.max(0, 1.5 - Math.log1p(ageDays) / 5);
+        return { memory, score: relevance + importance * 0.35 + recency };
+    });
+    ranked.sort((a, b) => b.score - a.score);
+    const selected = broadMemoryRequest
+        ? ranked.slice(0, 12)
+        : ranked.filter(item => item.score >= 3.5).slice(0, 8);
+    if (!selected.length) return "今回の依頼に直接関連する長期記憶は見つかりませんでした。記憶にない情報を推測しないでください。";
+    return selected.map(({ memory }, index) =>
+        `${index + 1}. [ID:${memory.id}] [${memory.category}] ${memory.content}`
+    ).join("\n");
 }
-
 function buildGeminiPrompt(text) {
 
     const memoryContext =
@@ -1905,97 +1939,39 @@ ${text}
 }
 
 async function saveMemory(memory, expectedUserId) {
-
-    if (
-        !memory ||
-        !memory.shouldSave ||
-        !expectedUserId ||
-        expectedUserId !== window.jarvisCurrentUserId
-    ) {
+    if (!memory || !memory.shouldSave || !expectedUserId || expectedUserId !== window.jarvisCurrentUserId) return false;
+    const content = typeof memory.content === "string" ? memory.content.trim() : "";
+    if (!content) return false;
+    const category = ["personal", "preference", "work", "family", "goal"].includes(memory.category) ? memory.category : "personal";
+    const importance = Number.isInteger(memory.importance) ? Math.min(5, Math.max(1, memory.importance)) : 1;
+    const action = memory.action === "replace" ? "replace" : "save";
+    const memoryId = Number(memory.supersedesId);
+    if (action === "replace" && (!Number.isSafeInteger(memoryId) || !memories.some(item => Number(item.id) === memoryId && ["personal", "preference", "work", "family", "goal"].includes(item.category)))) {
+        console.warn("Memory replacement skipped: target is not in the current user's loaded memory context");
         return false;
     }
-
-    const content =
-        typeof memory.content === "string"
-            ? memory.content.trim()
-            : "";
-
-    if (!content) {
-        return false;
-    }
-
-    const category =
-        [
-            "personal",
-            "preference",
-            "work",
-            "family",
-            "goal"
-        ].includes(memory.category)
-            ? memory.category
-            : "personal";
-
-    const importance =
-        Number.isInteger(memory.importance)
-            ? Math.min(
-                5,
-                Math.max(
-                    1,
-                    memory.importance
-                )
-            )
-            : 1;
-
     try {
         const accessToken = await window.jarvisGetAccessToken();
-
-        // アクセストークン取得中にアカウントが変わっていたら保存しない。
-        if (
-            !accessToken ||
-            expectedUserId !== window.jarvisCurrentUserId
-        ) {
-            return false;
-        }
-
-        const response = await fetch(
-            "/api/memory",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + accessToken
-                },
-                body: JSON.stringify({
-                    category,
-                    content,
-                    importance
-                })
-            }
-        );
-
+        if (!accessToken || expectedUserId !== window.jarvisCurrentUserId) return false;
+        const payload = { category, content, importance };
+        if (action === "replace") { payload.action = "replace"; payload.memoryId = memoryId; }
+        const response = await fetch("/api/memory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + accessToken },
+            body: JSON.stringify(payload)
+        });
         const data = await response.json();
-
-        // 保存リクエストの応答後も、別ユーザーの画面を更新しない。
-        if (expectedUserId !== window.jarvisCurrentUserId) {
-            return false;
-        }
-
-        if (!response.ok || !data.ok) {
-            throw new Error(
-                getErrorMessage(data.error) ||
-                "Memory save error"
-            );
-        }
-
+        if (expectedUserId !== window.jarvisCurrentUserId) return false;
+        if (!response.ok || !data.ok) throw new Error(getErrorMessage(data.error) || "Memory save error");
+        // Invalidate the per-user cache so a successful save/replacement is reflected immediately.
+        memoryLoadedForUserId = null;
         await loadMemories();
         return true;
-
     } catch (error) {
         console.error("Memory save error:", error);
         return false;
     }
 }
-
 function setMode(mode) {
 
     if (
@@ -2941,7 +2917,7 @@ async function sendToGemini(text, options = {}) {
             text: cleanText,
             autoCommander: true,
             previousInteractionId: previousInteractionId,
-            memoryContext: buildMemoryContext(),
+            memoryContext: buildMemoryContext(cleanText),
             pendingCalendarAction: pendingCalendarAction
         };
 
