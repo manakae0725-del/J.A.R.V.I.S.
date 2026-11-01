@@ -3495,10 +3495,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // Interaction ID
     // ==========================================
 
-    const interactionId =
-      typeof data.id === "string" && data.id.length > 0
-        ? data.id
-        : null;
+    // interactionId was captured from the streamed interaction.created/completed events.
 
     // Diagnostic only: record presence, not the ID value.
     console.log("[CONVERSATION] Response continuity", {
