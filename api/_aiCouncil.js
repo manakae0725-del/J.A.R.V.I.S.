@@ -184,6 +184,20 @@ const PROVIDERS = {
   anthropic: callAnthropic
 };
 
+// Each provider receives a distinct, bounded responsibility.
+// Gemini remains the final response composer in the main chat pipeline.
+const PROVIDER_ROLES = {
+  gemini: "Independent analyst: identify the key facts, explain the reasoning, and distinguish evidence from assumptions.",
+  openai: "Problem-solving strategist: develop practical options, compare trade-offs, and recommend an actionable approach.",
+  anthropic: "Critical reviewer: challenge assumptions, identify omissions, edge cases, safety concerns, and failure modes."
+};
+
+function instructionForProvider(systemInstruction, provider) {
+  const role = PROVIDER_ROLES[provider];
+  return systemInstruction + "\\n\\nAssigned role: " + role +
+    "\\nDo not impersonate another provider. State uncertainty and do not invent facts.";
+}
+
 /**
  * Server-only, advisory AI council helper.
  * Not wired to a public endpoint by this commit. Callers must authenticate,
@@ -217,15 +231,20 @@ async function runAiCouncil(options = {}) {
     ? Math.max(64, Math.min(options.maxOutputTokens, MAX_OUTPUT_TOKENS))
     : 600;
 
-  // Deliberately sequential: prevents accidental burst fan-out and simplifies cost controls.
-  const results = [];
-  for (const provider of providers) {
+  // Run only the explicitly selected providers concurrently. Each provider failure
+  // is isolated so one unavailable service cannot discard successful peer results.
+  const results = await Promise.all(providers.map(async provider => {
     const startedAt = Date.now();
     try {
-      const result = await PROVIDERS[provider]({ systemInstruction, userInput, maxOutputTokens, timeoutMs });
+      const result = await PROVIDERS[provider]({
+        systemInstruction: instructionForProvider(systemInstruction, provider),
+        userInput,
+        maxOutputTokens,
+        timeoutMs
+      });
       const durationMs = Date.now() - startedAt;
       await logUsage(provider, true, 200, durationMs);
-      results.push({ ok: true, ...result, durationMs });
+      return { ok: true, ...result, role: PROVIDER_ROLES[provider], durationMs };
     } catch (error) {
       const durationMs = Date.now() - startedAt;
       const errorCode = typeof error?.code === "string" ? error.code : "PROVIDER_UNAVAILABLE";
@@ -235,10 +254,17 @@ async function runAiCouncil(options = {}) {
       if (typeof error?.incompleteReason === "string") diagnostics.incomplete_reason = error.incompleteReason;
       await logUsage(provider, false, statusCode, durationMs, errorCode, diagnostics);
       console.warn("[AI COUNCIL] Provider returned no usable response", { provider, error: errorCode, statusCode, ...diagnostics });
-      results.push({ ok: false, provider, error: errorCode, statusCode, durationMs });
+      return {
+        ok: false,
+        provider,
+        role: PROVIDER_ROLES[provider],
+        error: errorCode,
+        statusCode,
+        durationMs
+      };
     }
-  }
-  return { results, providerCount: providers.length };
+  }));
+  return { results, providerCount: providers.length, executionMode: "parallel" };
 }
 
 async function testOpenAIConnection(options = {}) {
