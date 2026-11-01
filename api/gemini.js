@@ -1741,12 +1741,17 @@ module.exports = async function handler(req, res) {
       /(?:グラフ|棒グラフ|円グラフ|折れ線グラフ|チャート|図表|可視化)/.test(userText) &&
       /(?:作成|作って|作成して|生成|描いて|表示して|出して)/.test(userText);
 
-    // Google Sheets read and basic sales analysis. All operations here are read-only.
+    // Google Sheets read is opt-in by a clear source reference or a concrete data lookup.
+    // Business-planning questions that merely mention sales/profit must stay on the Gemini path.
+    const explicitSpreadsheetReference =
+      /(?:スプレッドシート|Google\\s*Sheets|Google\\s*スプレッドシート|管理ブック|売上管理|店販管理|売上表|店販表|販売実績表)/i.test(userText);
+    const explicitMetricLookupIntent =
+      /(?:今月|先月|今日|本日|今年|昨年|去年|月別|全期間|期間別).{0,16}(?:売上|利益|客数|店販|販売|件数|数量)|(?:売上|利益|客数|店販|販売).{0,12}(?:いくら|合計|集計|実績|データ|推移|内訳|何件|何個|数量|利益率)/.test(userText);
     const sheetsReadIntent =
       !explicitMultiAiRequestIntent &&
       !visualizationCreationIntent &&
-      /(?:スプレッドシート|シート|店販管理|店販|表|売上表|売上|利益|利益率|販売実績)/.test(userText) &&
-      /(?:読んで|読み取って|見せて|表示して|確認して|調べて|取得して|読める|内容|一覧|いくら|合計|売上|利益|利益率|分析|集計|何件|何個|今月|先月|今年|今期|月別)/.test(userText) &&
+      (explicitSpreadsheetReference || explicitMetricLookupIntent) &&
+      /(?:読んで|読み取って|見せて|表示して|確認して|調べて|取得して|読める|内容|一覧|いくら|合計|集計|何件|何個|今月|先月|今年|今期|月別|利益率|実績)/.test(userText) &&
       !/(?:書き込んで|書いて|更新して|追記して|追加して|変更して|削除して)/.test(userText);
     if (sheetsReadIntent) {
       try {
