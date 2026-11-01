@@ -87,6 +87,11 @@ async function callGemini({ systemInstruction, userInput, maxOutputTokens, timeo
 }
 
 async function callOpenAI({ systemInstruction, userInput, maxOutputTokens, timeoutMs }) {
+  // Controlled outage simulation is available only on Preview deployments.
+  // Never activate this path in Production, even if the test variable is misconfigured.
+  if (process.env.VERCEL_ENV === "preview" && process.env.JARVIS_TEST_OPENAI_FAILURE === "true") {
+    throw safeError("PROVIDER_UNAVAILABLE", "openai", 503);
+  }
   const key = process.env.OPENAI_API_KEY;
   const model = process.env.JARVIS_OPENAI_MODEL;
   if (!key || !model) throw safeError("CONFIGURATION_MISSING", "openai");
