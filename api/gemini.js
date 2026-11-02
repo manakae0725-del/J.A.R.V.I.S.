@@ -574,7 +574,7 @@ module.exports = async function handler(req, res) {
     }
     if (!paths.length) return res.status(200).json({ ok: true });
     try {
-      const cleanupResponse = await fetch(supabaseUrl.replace(/\\/+$/, "") + "/storage/v1/object/jarvis-chat-temp", {
+      const cleanupResponse = await fetch(supabaseUrl.replace(/\/+$/, "") + "/storage/v1/object/jarvis-chat-temp", {
         method: "DELETE",
         headers: { apikey: storageKey, Authorization: "Bearer " + storageKey, "Content-Type": "application/json" },
         body: JSON.stringify({ prefixes: paths }),
