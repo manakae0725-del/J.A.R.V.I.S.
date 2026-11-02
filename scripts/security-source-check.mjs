@@ -11,7 +11,7 @@ const background = read("../lib/backgroundTasks.js");
 const taskMigration = read("../supabase/migrations/20261101154218_create_jarvis_background_task_system.sql");
 
 const keyGuard = tts.indexOf("if (!apiKey)");
-const settingsCall = tts.indexOf("const settingsResponse");
+const providerCall = tts.indexOf("https://api.elevenlabs.io");
 
 const checks = [
   ["auth validates bearer sessions against Supabase", /\/auth\/v1\/user/.test(auth) && /Bearer\\s\+/.test(auth)],
@@ -20,7 +20,7 @@ const checks = [
   ["Gemini requires authentication", /requireAuth\(req, res\)/.test(gemini)],
   ["Gemini applies per-user rate limits", /enforceRateLimit\(res, user, "gemini-minute"/.test(gemini) && /enforceRateLimit\(res, user, "gemini-day"/.test(gemini)],
   ["TTS requires authentication and rate limits", /requireAuth\(req, res\)/.test(tts) && /enforceRateLimit\(res, user, "tts-minute"/.test(tts)],
-  ["TTS checks API key before voice-settings request", keyGuard >= 0 && settingsCall > keyGuard],
+  ["TTS checks API key before external provider request", keyGuard >= 0 && providerCall > keyGuard],
   ["memory requires authentication and rate limits", /requireAuth\(req, res\)/.test(memory) && /enforceRateLimit\(res, user, "memory-minute"/.test(memory)],
   ["memory reads and writes use authenticated user ID", /user_id: `eq\.\$\{user\.id\}`/.test(memory) && /p_user_id: user\.id/.test(memory)],
   ["rate limiter uses the current atomic RPC and fails closed", /jarvis_check_rate_limit/.test(limiter) && /status\(503\)/.test(limiter) && /typeof decision\.allowed !== "boolean"/.test(limiter)],
