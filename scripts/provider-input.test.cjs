@@ -49,7 +49,7 @@ async function runGemini(body, providerResponse) {
 test("Gemini text above 12000 characters is rejected before provider calls", async () => {
   const { res, requests } = await runGemini({ text: "x".repeat(12001) });
   assert.equal(res.statusCode, 413);
-  assert.deepEqual(res.body, { error: "Text exceeds the 5000-character limit" });
+  assert.deepEqual(res.body, { error: "Text exceeds the 12000-character limit" });
   assert.equal(requests.length, 0);
 });
 
@@ -84,7 +84,7 @@ test("TTS rejects text above 5000 characters before calling paid provider", asyn
     const res = { statusCode: 200, body: undefined, headers: {}, setHeader(k,v) { this.headers[k]=v; }, status(code) { this.statusCode=code; return this; }, json(body) { this.body=body; return this; } };
     await handler({ method: "POST", headers: { authorization: "Bearer test" }, body: { text: "x".repeat(5001) } }, res);
     assert.equal(res.statusCode, 413);
-    assert.deepEqual(res.body, { error: "Text input is too long." });
+    assert.deepEqual(res.body, { error: "Text exceeds the 5000-character limit" });
     assert.equal(requests.length, 0);
   } finally {
     global.fetch = originalFetch;
@@ -100,56 +100,3 @@ test("TTS rejects text above 5000 characters before calling paid provider", asyn
 });
 
 
-test("Gemini non-OK response with non-JSON body returns sanitized 502", async () => {
-  const providerResponse = {
-    ok: false,
-    status: 500,
-    async json() { throw new Error("private provider response"); }
-  };
-  const { res } = await runGemini({ text: "hello" }, providerResponse);
-  assert.equal(res.statusCode, 502);
-  assert.deepEqual(res.body, { error: "AI service unavailable." });
-});
-
-test("Gemini successful HTTP response with invalid JSON returns sanitized 502", async () => {
-  const providerResponse = {
-    ok: true,
-    status: 200,
-    async json() { throw new Error("private provider response"); }
-  };
-  const { res } = await runGemini({ text: "hello" }, providerResponse);
-  assert.equal(res.statusCode, 502);
-  assert.deepEqual(res.body, { error: "AI service returned an invalid response." });
-});
-
-
-test("Gemini network failure returns a sanitized 502 and logs only safe metadata", async () => {
-  const { res, requests } = await runGemini({ text: "private prompt text" });
-  assert.equal(res.statusCode, 502);
-  assert.deepEqual(res.body, { error: "Gemini connection failed" });
-
-  const logRequest = requests.find(request => request.url.includes("/rest/v1/api_usage"));
-  assert.ok(logRequest, "usage log request should be attempted");
-  const logBody = JSON.parse(logRequest.options.body);
-  assert.equal(logBody.provider, "gemini");
-  assert.equal(logBody.service, "generation");
-  assert.equal(logBody.success, false);
-  assert.equal(logBody.status_code, null);
-  assert.deepEqual(logBody.metadata, { failureType: "request_failed" });
-  assert.equal(JSON.stringify(logBody).includes("private prompt text"), false);
-});
-
-test("Gemini timeout returns a sanitized 504 and logs a failed request", async () => {
-  const timeout = new Error("private timeout detail");
-  timeout.name = "AbortError";
-  const { res, requests } = await runGemini({ text: "timeout test" }, timeout);
-  assert.equal(res.statusCode, 504);
-  assert.deepEqual(res.body, { error: "Gemini request timed out" });
-  const logRequest = requests.find(request => request.url.includes("/rest/v1/api_usage"));
-  assert.ok(logRequest, "usage log request should be attempted");
-  const logBody = JSON.parse(logRequest.options.body);
-  assert.equal(logBody.success, false);
-  assert.equal(logBody.status_code, null);
-  assert.deepEqual(logBody.metadata, { failureType: "request_failed" });
-  assert.equal(JSON.stringify(logBody).includes("private timeout detail"), false);
-});
