@@ -101,18 +101,21 @@ test("TTS success returns audio and does not expose provider credentials", async
   assert.equal(providerRequest.options.headers["xi-api-key"], "test-elevenlabs");
 });
 
-test("TTS empty audio payload returns a sanitized server error", async () => {
-  const { res } = await runTts(async () => ({
+test("TTS empty audio payload returns a sanitized provider error and failed usage log", async () => {
+  const { res, requests } = await runTts(async () => ({
     ok: true,
     status: 200,
     async arrayBuffer() { return new ArrayBuffer(0); }
   }));
-  assert.equal(res.statusCode, 500);
-  assert.deepEqual(res.body, { error: "Audio data was not returned." });
+  assert.equal(res.statusCode, 502);
+  assert.deepEqual(res.body, { error: "Speech synthesis failed" });
+  const usage = requests.filter(request => request.url.includes("/rest/v1/api_usage"));
+  assert.equal(usage.length, 1);
+  assert.equal(JSON.parse(usage[0].options.body).success, false);
 });
 
-test("TTS malformed audio response is sanitized as provider failure", async () => {
-  const { res } = await runTts(async () => ({
+test("TTS malformed audio response logs one failed usage record", async () => {
+  const { res, requests } = await runTts(async () => ({
     ok: true,
     status: 200,
     async arrayBuffer() { throw new Error("private audio response detail"); }
@@ -120,6 +123,11 @@ test("TTS malformed audio response is sanitized as provider failure", async () =
   assert.equal(res.statusCode, 502);
   assert.deepEqual(res.body, { error: "Speech synthesis failed" });
   assert.equal(JSON.stringify(res.body).includes("private audio response detail"), false);
+  const usage = requests.filter(request => request.url.includes("/rest/v1/api_usage"));
+  assert.equal(usage.length, 1);
+  const usageBody = JSON.parse(usage[0].options.body);
+  assert.equal(usageBody.success, false);
+  assert.equal(JSON.stringify(usageBody).includes("private audio response detail"), false);
 });
 
 test("TTS missing API key returns before any provider request", async () => {
