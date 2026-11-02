@@ -22,7 +22,7 @@ async function runGemini(body, providerResponse) {
   global.fetch = async (url, options = {}) => {
     requests.push({ url: String(url), options });
     if (String(url).includes("/rest/v1/api_usage")) return { ok: true, status: 201, async json() { return {}; } };
-    if (String(url).includes("/v1/interactions") && providerResponse) {
+    if (String(url).includes("/interactions") && providerResponse) {
       if (providerResponse instanceof Error) throw providerResponse;
       return providerResponse;
     }
@@ -30,7 +30,7 @@ async function runGemini(body, providerResponse) {
   };
   try {
     const handler = require("../api/gemini");
-    const res = { statusCode: 200, body: undefined, headers: {}, setHeader(k,v) { this.headers[k]=v; }, status(code) { this.statusCode=code; return this; }, json(body) { this.body=body; return this; } };
+    const res = { statusCode: 200, body: undefined, headers: {}, streamed: "", ended: false, setHeader(k,v) { this.headers[k]=v; }, status(code) { this.statusCode=code; return this; }, json(body) { this.body=body; return this; }, write(chunk) { this.streamed += chunk; }, end() { this.ended = true; } };
     await handler({ method: "POST", headers: { authorization: "Bearer test" }, body }, res);
     return { res, requests };
   } finally {
@@ -65,6 +65,22 @@ test("Gemini previous interaction ID above 200 characters is rejected before pro
   assert.equal(res.statusCode, 400);
   assert.deepEqual(res.body, { error: "Invalid conversation state." });
   assert.equal(requests.length, 0);
+});
+
+test("Gemini null previous interaction ID is treated as a new conversation", async () => {
+  const providerResponse = new Response(
+    'data: {"event_type":"interaction.created","interaction":{"id":"test-interaction"}}\\n\\n' +
+    'data: {"event_type":"interaction.completed","interaction":{"id":"test-interaction","status":"completed"}}\\n\\n',
+    { status: 200, headers: { "Content-Type": "text/event-stream" } }
+  );
+  const { res, requests } = await runGemini(
+    { text: "valid", previousInteractionId: null },
+    providerResponse
+  );
+  assert.equal(res.statusCode, 200);
+  assert.equal(requests.some(item => item.url.includes("/v1beta/interactions")), true);
+  assert.equal(res.ended, true);
+  assert.match(res.streamed, /有効な回答を取得できませんでした/);
 });
 
 test("TTS rejects text above 5000 characters before calling paid provider", async () => {
