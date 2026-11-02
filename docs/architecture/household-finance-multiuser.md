@@ -54,8 +54,8 @@ Each user connects their own Google Drive account. J.A.R.V.I.S. may read only fi
 
 - Enable RLS on every household finance table.
 - Do not grant broad `authenticated` access without household membership checks.
-- Use a carefully reviewed `SECURITY DEFINER` membership predicate with a fixed `search_path` to avoid recursive RLS policy evaluation.
-- Revoke direct table access from `anon`; authenticated policies must check active membership and visibility.
+- Prefer non-recursive RLS predicates and `SECURITY INVOKER` wherever practical. If a membership lookup helper is genuinely required to avoid recursive policy evaluation, place it in a non-exposed schema, use `SECURITY DEFINER` only after review, set a fixed minimal `search_path`, explicitly check `auth.uid()` inside the function, and revoke default `PUBLIC`/`anon` execution before granting only the required role. Never use user-editable `user_metadata` as an authorization source.
+- Revoke direct table access from `anon`; authenticated policies must check active membership and visibility. RLS must be paired with explicit least-privilege table grants; RLS alone does not grant Data API access.
 - Writes must set `created_by = auth.uid()` and validate household membership/role server-side or through database constraints/triggers.
 - Owner-only salary rows must additionally check `owner_id = auth.uid()`.
 - Membership creation, invitation acceptance, role changes, and revocation must be explicit, audited actions.
