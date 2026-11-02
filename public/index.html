@@ -2975,7 +2975,9 @@ async function sendToGemini(text, options = {}) {
         const requestBody = {
             text: cleanText,
             autoCommander: true,
-            previousInteractionId: previousInteractionId,
+            ...(typeof previousInteractionId === "string" && previousInteractionId.length > 0
+                ? { previousInteractionId }
+                : {}),
             memoryContext: buildMemoryContext(cleanText),
             pendingCalendarAction: pendingCalendarAction
         };
