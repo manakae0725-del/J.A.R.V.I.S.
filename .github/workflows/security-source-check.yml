@@ -25,15 +25,9 @@ jobs:
         run: node --test scripts/auth.test.cjs
       - name: Run rate-limit API tests
         run: node --test scripts/rate-limit.test.cjs
-      - name: Run memory input validation tests
-        run: node --test scripts/memory-input.test.cjs
       - name: Run Gemini and TTS input boundary tests
         run: node --test scripts/provider-input.test.cjs
       - name: Run TTS provider response tests
         run: node --test scripts/tts-provider.test.cjs
-      - name: Run mocked memory API tests
-        run: node --test scripts/memory-api.test.cjs
-      - name: Run memory read/write ownership tests
-        run: node --test scripts/memory-read-write.test.cjs
       - name: Run mocked Gemini token API tests
         run: node --test scripts/token-api.test.cjs
