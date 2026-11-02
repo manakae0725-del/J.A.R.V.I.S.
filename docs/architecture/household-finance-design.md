@@ -24,14 +24,17 @@ Small differences from real-world balances are acceptable. Safety, explicit prov
 - Edit, void, and search entries with ownership checks and an audit trail.
 - Prevent duplicate entries using explicit idempotency keys and source references.
 
-### Phase 3 — Payslip PDF import from Google Drive
-- Search only a user-designated Drive folder or an explicitly selected file.
+### Phase 3 — Payslip PDF import from Manato's Google Drive
+- Manato's connected Google Drive is the household's designated payslip document source. Kaede does not need to connect her own Drive.
+- Kaede gives her payslip PDF to Manato; Manato stores both his own and Kaede's payslip PDFs in his designated Drive folder.
+- Search only that designated folder or an explicitly selected file. Do not search unrelated Drive files.
 - Extract PDF text; use OCR only when the PDF is image-only.
 - Parse gross pay, itemized deductions, net pay, pay period, pay date, and any displayed deposit destination.
-- Treat parsed fields as unverified until user confirmation.
+- Identify whose payslip it is separately from who owns the Drive file. Treat parsed fields as unverified until checked/confirmed.
 - Store normalized fields and Drive file ID/link metadata; do not duplicate the PDF into the database.
 - Do not infer a bank account when the payslip does not explicitly identify one.
-- Keep access to salary documents limited to the authenticated household user(s).
+- Both Manato's and Kaede's confirmed salary data are household-shared finance data, visible to both active household members. Do not classify household salary figures as private by default.
+- Keep the original PDF accessible only through Manato's authorized Drive connection; sharing parsed household data does not copy the file or change Drive permissions.
 
 ### Phase 4 — Balance snapshots and cash-flow forecast
 - User reports each account's real balance after the relevant withdrawals; that report becomes a dated baseline snapshot.
@@ -69,7 +72,7 @@ Small differences from real-world balances are acceptable. Safety, explicit prov
 3. `finance_transactions`: income, expense, transfer, refund, adjustment; amount, date, category, person, account/card label, status, source, idempotency key.
 4. `finance_recurring_items`: recurring income and obligations.
 5. `finance_balance_snapshots`: manually reported account balance and as-of timestamp.
-6. `finance_documents`: Drive file ID, owner, document type, parse status, confirmation metadata; no PDF binary.
+6. `finance_documents`: Drive file ID, Drive owner, payslip subject/person, document type, parse status, confirmation metadata; no PDF binary.
 7. `finance_audit_log`: append-only record of creation, confirmation, correction, and voiding.
 
 Final schema must be reconciled with existing auth/user model and current Supabase RLS patterns before any migration.
@@ -79,6 +82,7 @@ Final schema must be reconciled with existing auth/user model and current Supaba
 - A transfer between household accounts is not income or expense.
 - Credit-card purchase is counted once as an expense; card repayment is a settlement/transfer.
 - Salary is counted as household income using the confirmed net deposit amount for cash-flow; gross and deductions remain available for analysis.
+- Both household members' confirmed salary figures are shared with both active members.
 - Planned and confirmed amounts are never mixed without labels.
 - A balance forecast is an estimate, not a bank balance.
 - Every answer involving balances states the last user-reported baseline date.
@@ -87,8 +91,8 @@ Final schema must be reconciled with existing auth/user model and current Supaba
 
 Before coding:
 1. Inspect the full current branch source and current auth/user model.
-2. Inspect existing Google Drive scopes and file-download implementation.
-3. Confirm whether two household people use one J.A.R.V.I.S. account or separate authenticated accounts.
+2. Inspect Manato's existing Google Drive scopes and file-download implementation.
+3. Confirm separate authenticated accounts and shared household access (decision confirmed).
 4. Design RLS policies and tests.
 5. Check Vercel function count before adding endpoints.
 
