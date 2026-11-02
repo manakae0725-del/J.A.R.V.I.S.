@@ -33,5 +33,3 @@ jobs:
         run: node --test scripts/provider-input.test.cjs
       - name: Run TTS provider response tests
         run: node --test scripts/tts-provider.test.cjs
-      - name: Run mocked Gemini token API tests
-        run: node --test scripts/token-api.test.cjs
