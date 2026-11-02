@@ -125,6 +125,7 @@ test("publishable key is used when anon key is not configured", async () => {
   process.env.SUPABASE_URL = "https://example.supabase.co";
   delete process.env.SUPABASE_ANON_KEY;
   process.env.SUPABASE_PUBLISHABLE_KEY = "test-publishable-key";
+  process.env.JARVIS_ALLOWED_USER_IDS = "user-A";
   delete require.cache[authPath];
   global.fetch = async (url, options) => {
     requests.push({ url: String(url), options });
