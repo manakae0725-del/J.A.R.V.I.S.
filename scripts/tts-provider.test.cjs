@@ -25,7 +25,7 @@ async function getHandler() {
   return handlerPromise;
 }
 
-async function runTts(providerFetch) {
+async function runTts(providerFetch, { apiKey = "test-elevenlabs" } = {}) {
   const originalFetch = global.fetch;
   const keys = ["SUPABASE_URL", "SUPABASE_SECRET_KEY", "ELEVENLABS_API_KEY"];
   const originalEnv = Object.fromEntries(keys.map(key => [key, process.env[key]]));
@@ -33,7 +33,8 @@ async function runTts(providerFetch) {
 
   process.env.SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_SECRET_KEY = "test-secret";
-  process.env.ELEVENLABS_API_KEY = "test-elevenlabs";
+  if (apiKey === null) delete process.env.ELEVENLABS_API_KEY;
+  else process.env.ELEVENLABS_API_KEY = apiKey;
 
   global.fetch = async (url, options = {}) => {
     requests.push({ url: String(url), options });
@@ -119,4 +120,13 @@ test("TTS malformed audio response is sanitized as provider failure", async () =
   assert.equal(res.statusCode, 502);
   assert.deepEqual(res.body, { error: "Speech synthesis failed" });
   assert.equal(JSON.stringify(res.body).includes("private audio response detail"), false);
+});
+
+test("TTS missing API key returns before any provider request", async () => {
+  const { res, requests } = await runTts(async () => {
+    throw new Error("Provider must not be called without an API key");
+  }, { apiKey: null });
+  assert.equal(res.statusCode, 500);
+  assert.deepEqual(res.body, { error: "ELEVENLABS_API_KEY is not configured." });
+  assert.equal(requests.some(request => request.url.includes("api.elevenlabs.io")), false);
 });
