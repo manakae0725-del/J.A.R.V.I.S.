@@ -8,7 +8,7 @@ This document extends `household-finance-design.md`. It is a design specificatio
 
 - Each person authenticates with their own J.A.R.V.I.S. account.
 - Both accounts can access one explicitly shared household finance space after an invitation/acceptance flow.
-- A user's private memories, conversations, and unrelated data must never become visible to the other household member. Manato's designated payslip folder is a narrowly scoped exception for household finance processing; it does not grant Kaede general Drive access.
+- A user's private memories, conversations, file attachments, and unrelated data must never become visible to the other household member. Each person uploads their own payslip or receipt directly from their device through their own authenticated J.A.R.V.I.S. account. Neither member receives access to the other's Google Drive.
 - Household finance data is shared only within the household boundary.
 - Each write records the authenticated actor (`created_by`) and the household (`household_id`).
 - Removing a member revokes future access immediately; historical audit records remain attributable to the actor.
@@ -46,9 +46,9 @@ Use explicit visibility on sensitive records:
 - `household`: visible to active household members.
 - `owner_only`: visible only to the record owner.
 
-Salary records and payslip metadata should default to `owner_only`. The person whose payslip it is must explicitly confirm sharing the parsed salary details with the household before they become household-visible. A Drive PDF itself is never shared by copying it or changing Drive permissions automatically.
+Salary records and payslip metadata should default to `owner_only`. The person whose payslip it is must explicitly confirm sharing the parsed salary details with the household before they become household-visible. An uploaded PDF or image is never shared automatically; only explicitly approved normalized finance data becomes household-visible.
 
-Each user connects their own Google Drive account. J.A.R.V.I.S. may read only files that the connected user has authorized and selected/designated. The file owner confirms the extracted fields. Sharing parsed salary figures with the household is a separate explicit action.
+Household document intake uses the chat attachment feature, not Google Drive. Temporary attachments remain private to the uploader and are not automatically shared with the household. The salary owner confirms extracted fields and separately approves sharing the confirmed salary figures. Original attachment bytes are deleted after processing unless the user explicitly saves the document.
 
 ## RLS and authorization requirements
 
@@ -69,7 +69,7 @@ Each user connects their own Google Drive account. J.A.R.V.I.S. may read only fi
 
 ## Implementation gates
 
-- Inspect the current auth identity and Manato's Google Drive connection ownership model in source.
+- Inspect the current auth identity and chat attachment upload/retention design in source.
 - Design migrations and RLS policies locally first.
 - Test with two distinct test users and at least two households.
 - Do not modify the live Supabase project until the user explicitly approves the exact migration.
