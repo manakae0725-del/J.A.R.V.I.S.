@@ -882,7 +882,7 @@ module.exports = async function handler(req, res) {
   if (!(await enforceRateLimit(res, user, "gemini-day", 200, 86400))) return;
 
   try {
- const {
+ let {
   text = "",
   previousInteractionId,
   memoryContext,
@@ -895,6 +895,7 @@ module.exports = async function handler(req, res) {
     if (!Array.isArray(attachments) || attachments.length > 5 || (!text.trim() && attachments.length === 0)) {
       return res.status(400).json({ error: "テキストまたは添付ファイルが必要です。" });
     }
+    if (!text.trim() && attachments.length) text = "添付ファイルの内容を確認し、要点と重要な情報を説明してください。";
     const allowedAttachmentTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf", "text/plain"]);
     let attachmentTotalBytes = 0;
     for (const item of attachments) {
@@ -3537,6 +3538,17 @@ visualization は画面表示専用です。reply と speechText は通常どお
         const fileResponse = await fetch(downloadUrl, { headers: { apikey: storageKey, Authorization: "Bearer " + storageKey }, signal: AbortSignal.timeout(20000) });
         if (!fileResponse.ok) return res.status(400).json({ error: "添付ファイルを読み込めませんでした。再度添付してください。" });
         const bytes = Buffer.from(await fileResponse.arrayBuffer());
+        // Remove the private temporary object as soon as its bytes are safely in memory.
+        try {
+          await fetch(storageUrl.replace(/\\/+$/, "") + "/storage/v1/object/jarvis-chat-temp", {
+            method: "DELETE",
+            headers: { apikey: storageKey, Authorization: "Bearer " + storageKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ prefixes: [item.path] }),
+            signal: AbortSignal.timeout(10000)
+          });
+        } catch (cleanupError) {
+          console.warn("[ATTACHMENT] Temporary object cleanup failed", { name: cleanupError?.name || "Error" });
+        }
         if (bytes.length !== item.size || bytes.length > 20 * 1024 * 1024) return res.status(400).json({ error: "添付ファイルのサイズ検証に失敗しました。" });
         const signatureOk =
           item.mimeType === "image/jpeg" ? bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff :
