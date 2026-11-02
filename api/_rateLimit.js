@@ -23,7 +23,8 @@ async function enforceRateLimit(res, user, bucket, limit, windowSeconds) {
           p_bucket: bucket,
           p_limit: limit,
           p_window_seconds: windowSeconds
-        })
+        }),
+        signal: AbortSignal.timeout(3000)
       }
     );
 
