@@ -4,60 +4,59 @@ Audit date: 2026-11-02
 Project: `cykqyrlgepzzgktrxhcx` (Tokyo)  
 Application branch audited: `perf/response-speed-memory-cache`
 
-## Scope and safety
+## Safety
 
-This document records a read-only comparison of the repository migration directory and the linked database migration ledger/catalog. No SQL was applied and no database objects, rows, cron jobs, or Vault secrets were changed during this audit.
+All Supabase inspection in this reconciliation was read-only. No SQL was applied to the linked database. No rows, grants, extensions, cron jobs, Vault secrets, or production deployment were changed.
 
-Do not run `supabase db reset`, re-apply the listed historical migrations, or mark migrations applied based only on this document. Reconcile each migration against its original SQL and the target database before any deployment.
+Do not run `supabase db reset` against the linked project or replay its applied migrations. Validate the restored chain in an isolated environment first.
 
-## Repository files observed
+## Result: migration filenames now align with the live ledger
 
-The application branch contains these five files:
+The linked database reports ten applied versions. The development branch now contains ten SQL files with matching version prefixes and names:
 
-- `20261101154218_create_jarvis_background_task_system.sql`
-- `20261101155000_add_background_task_pause_resume.sql`
-- `20261101155500_harden_background_task_pause_leases.sql`
-- `20261101160000_enable_background_task_scheduler.sql`
-- `20261101163000_background_task_immediate_dispatch.sql`
-
-## Database migration ledger observed
-
-The linked database reports these ten applied versions:
-
-| Version | Name | Repository status |
+| Applied version | Migration | Source status |
 |---|---|---|
-| 20261025124528 | add_memories_user_id_index | SQL file absent |
-| 20261028045343 | create_google_oauth_tables | SQL file absent |
-| 20261101154218 | create_jarvis_background_task_system | Exact version file present |
-| 20261101154349 | enable_background_task_scheduler | Version differs from tracked 20261101160000 file |
-| 20261101154912 | add_background_task_pause_resume | Version differs from tracked 20261101155000 file |
-| 20261101155011 | harden_background_task_pause_leases | Version differs from tracked 20261101155500 file |
-| 20261101162504 | background_task_immediate_dispatch | Version differs from tracked 20261101163000 file |
-| 20261101164406 | background_task_fast_bounded_retry | SQL file absent |
-| 20261101164448 | background_task_zero_delay_recovery | SQL file absent |
-| 20261101175018 | add_conversation_memory_lookup_index | SQL file absent |
+| 20261025124528 | add_memories_user_id_index | Reconstructed from live index definition |
+| 20261028045343 | create_google_oauth_tables | Reconstructed from live table/constraint/index catalog |
+| 20261101154218 | create_jarvis_background_task_system | Existing tracked migration |
+| 20261101154349 | enable_background_task_scheduler | Existing tracked SQL aligned to ledger version; cron job definition supplemented from live catalog |
+| 20261101154912 | add_background_task_pause_resume | Existing tracked SQL moved to the applied ledger version |
+| 20261101155011 | harden_background_task_pause_leases | Existing tracked SQL moved to the applied ledger version |
+| 20261101162504 | background_task_immediate_dispatch | Existing tracked SQL moved to the applied ledger version |
+| 20261101164406 | background_task_fast_bounded_retry | Deliberate no-op reconciliation marker; original intermediate SQL unavailable |
+| 20261101164448 | background_task_zero_delay_recovery | Final retry function reconstructed from live `pg_proc` definition |
+| 20261101175018 | add_conversation_memory_lookup_index | Reconstructed from live index definition |
 
-A timestamp/name mismatch is not proof that two SQL files are equivalent. In particular, the four later tracked files must not simply be renamed to match the ledger until their full SQL is compared with the original applied migration content.
+The four provisional files whose timestamps did not match the database ledger were replaced by files using the applied version identifiers. Their old filenames were removed to prevent duplicate future migrations.
 
-## Live catalog observations
+## Important provenance limits
 
-- Public schema has nine application tables; RLS is enabled on all nine.
-- The OAuth tables exist with server-encrypted token columns and state-hash storage.
-- Background task tables exist, including `verification_attempts`.
-- Background task functions, immediate-dispatch triggers, and the one-minute `jarvis-background-worker` cron job exist.
-- The live `jarvis_retry_background_task` function has bounded retry delay (0–60 seconds) and a retry-attempt cap.
-- The catalog contains `memories_user_id_idx` and `memories_user_active_category_rank_idx`. The exact relationship of these indexes to the two memory-index migration names still needs original SQL confirmation.
-- The database currently records the cron target as the Preview deployment URL for `perf/response-speed-memory-cache`. This must remain pointed at Preview while the worker implementation is not yet integrated into Production. After a verified main-branch deployment, the cron target and its Vault-backed protection configuration need an explicit cutover plan.
+The original SQL for several applied versions was not found in Git history or retained branches. The restored files are therefore not represented as exact historical copies:
 
-## Required reconciliation before main integration
+- The memory and Google OAuth migrations recreate the observed catalog objects.
+- The scheduler migration retains the tracked function/table changes and restores the current one-minute Preview worker job using Vault secret names only. It schedules the job only when both required secret entries exist. The linked project currently has both entries configured; secret values were not read or exposed.
+- The 20261101164406 file is intentionally comment-only. The original intermediate retry implementation could not be recovered, so no speculative retry policy was invented.
+- The 20261101164448 migration recreates the current retry function, including the 0–60 second delay clamp and zero-second default.
 
-1. Recover the exact original SQL for all absent ledger versions from commit history, branches, backups, or migration artifacts.
-2. Compare each historical SQL file with the live catalog, including function definitions, grants, triggers, indexes, extensions, and cron configuration.
-3. Restore the original versioned files without changing their version identifiers. Where exact source cannot be recovered, document the migration as an adopted baseline with evidence; do not fabricate historical SQL.
-4. Check whether the five tracked files duplicate, supersede, or diverge from already-applied versions. Do not leave duplicate future migration versions that would replay the same DDL.
-5. Verify a clean database can be built from the complete baseline plus ordered migrations in an isolated environment. Do not test by resetting the linked project.
-6. Only after migration reconciliation and application tests pass, open/refresh a Draft PR to `main`. Keep Production unchanged until review and explicit deployment cutover.
+This restores a coherent versioned chain and its final observed database behavior, but it does not prove byte-for-byte historical fidelity. The comment-only intermediate migration also means a clean replay will reproduce the final state, not the unknown intermediate behavior that once existed between those versions.
 
-## Separate code correction in this branch
+## Live catalog facts used
 
-`api/tts.js` now checks `ELEVENLABS_API_KEY` before making the voice-settings request. Previously, a missing key could cause an unnecessary unauthenticated request before the intended configuration error was returned. No provider call is made by this code edit itself.
+- `memories_user_id_idx`: btree on `memories(user_id)`.
+- `memories_user_active_category_rank_idx`: btree on `(user_id, category, importance DESC, updated_at DESC)`, partial predicate `is_active = true`.
+- Google OAuth tables have server-only grants, RLS enabled, and no client policies. Token values are stored in ciphertext columns.
+- Background task tables, pause/resume/lease functions, retry/correction functions, immediate-dispatch triggers, and the one-minute `jarvis-background-worker` cron job exist.
+- The current cron job calls the Preview worker URL. Keep it Preview-only until a reviewed Production cutover is performed.
+- The retry function currently clamps requested delay to 0–60 seconds and defaults to zero.
+
+## Validation still required
+
+1. Run a clean migration replay in an isolated Supabase/Postgres environment with the Supabase-managed schemas/extensions required by the migrations.
+2. Compare resulting columns, constraints, indexes, function definitions, grants, triggers, and cron configuration with the linked database catalog.
+3. Verify the cron job is created only when the two Vault secret names are provisioned, and verify its target remains Preview.
+4. Run application CI and Preview smoke tests, including memory ownership, rate-limit failure paths, TTS provider failures, and background-task enqueue/claim/retry/recovery.
+5. Only then prepare the consolidated Draft PR from the development branch to `main`.
+
+## No linked-database migration was executed
+
+The files in this branch are source-control reconciliation only. They have not been applied to Supabase and do not change the live migration ledger.
