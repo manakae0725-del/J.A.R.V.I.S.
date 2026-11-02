@@ -21,6 +21,15 @@ jobs:
           node-version: 22
       - name: Run static security source checks
         run: node scripts/security-source-check.mjs
+      - name: Check server JavaScript syntax
+        run: |
+          node --check api/gemini.js
+          node --check api/_aiCouncil.js
+          node --check api/_google/oauth.js
+          node --check api/_google/tokenStore.js
+          node --check api/_google/client.js
+          node --check lib/commanderRouting.js
+          node --check lib/backgroundTasks.js
       - name: Verify Supabase migration source ledger
         run: node scripts/migration-ledger-check.mjs
       - name: Run authentication API tests
