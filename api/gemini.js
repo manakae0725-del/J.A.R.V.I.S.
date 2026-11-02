@@ -564,6 +564,30 @@ module.exports = async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
+  if (req.body && req.body.mode === "attachment-delete") {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const storageKey = process.env.SUPABASE_SECRET_KEY;
+    const paths = Array.isArray(req.body.paths) ? req.body.paths : [];
+    if (!supabaseUrl || !storageKey || paths.length > 5 ||
+        paths.some(path => typeof path !== "string" || !path.startsWith(user.id + "/") || path.length > 300)) {
+      return res.status(400).json({ error: "削除対象が不正です。" });
+    }
+    if (!paths.length) return res.status(200).json({ ok: true });
+    try {
+      const cleanupResponse = await fetch(supabaseUrl.replace(/\\/+$/, "") + "/storage/v1/object/jarvis-chat-temp", {
+        method: "DELETE",
+        headers: { apikey: storageKey, Authorization: "Bearer " + storageKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ prefixes: paths }),
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!cleanupResponse.ok) return res.status(502).json({ error: "一時ファイルを削除できませんでした。" });
+      return res.status(200).json({ ok: true });
+    } catch (error) {
+      console.warn("[ATTACHMENT] Client cleanup request failed", { name: error?.name || "Error" });
+      return res.status(502).json({ error: "一時ファイルを削除できませんでした。" });
+    }
+  }
+
   if (req.body && req.body.mode === "attachment-upload-url") {
     const supabaseUrl = process.env.SUPABASE_URL;
     const storageKey = process.env.SUPABASE_SECRET_KEY;
