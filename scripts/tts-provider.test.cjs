@@ -83,7 +83,7 @@ test("TTS provider network failure returns a sanitized 502", async () => {
     throw new Error("private network/provider details");
   });
   assert.equal(res.statusCode, 502);
-  assert.deepEqual(res.body, { error: "TTS service unavailable." });
+  assert.deepEqual(res.body, { error: "Speech synthesis failed" });
 });
 
 test("TTS success returns audio and does not expose provider credentials", async () => {
@@ -117,6 +117,6 @@ test("TTS malformed audio response is sanitized as provider failure", async () =
     async arrayBuffer() { throw new Error("private audio response detail"); }
   }));
   assert.equal(res.statusCode, 502);
-  assert.deepEqual(res.body, { error: "TTS service unavailable." });
+  assert.deepEqual(res.body, { error: "Speech synthesis failed" });
   assert.equal(JSON.stringify(res.body).includes("private audio response detail"), false);
 });
