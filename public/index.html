@@ -1859,7 +1859,7 @@ function buildMemoryContext(userText = "") {
     const text = String(userText || "").toLowerCase();
     const broadMemoryRequest = /(?:覚えていること|覚えてること|記憶していること|登録されている記憶|保存されている記憶|記憶一覧|記憶を見せて)/.test(text);
     const categorySignals = {
-        family: /家族|妻|夫|子ども|子供|娘|息子|母|父|家庭|妊娠|育児/,
+        family: /家族|妻|夫|奥様|奥さん|旦那様|旦那さん|配偶者|パートナー|子ども|子供|娘|息子|母|父|家庭|妊娠|育児|年齢|何歳|生年月日|誕生日|何年生まれ|何月何日生まれ/,
         work: /仕事|職場|美容|サロン|売上|顧客|予約|業務|スタッフ|経営|店販|施術/,
         preference: /好み|好き|嫌い|苦手|希望|方針|設定|話し方|優先/,
         goal: /目標|計画|予定|達成|将来|ロードマップ|開発/,
