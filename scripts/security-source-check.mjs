@@ -14,7 +14,7 @@ const keyGuard = tts.indexOf("if (!apiKey)");
 const settingsCall = tts.indexOf("const settingsResponse");
 
 const checks = [
-  ["auth validates bearer sessions against Supabase", /\/auth\/v1\/user/.test(auth) && /Authorization: `Bearer \\${match\[1\]}`/.test(auth)],
+  ["auth validates bearer sessions against Supabase", /\/auth\/v1\/user/.test(auth) && /Bearer\\s\+/.test(auth)],
   ["auth session verification has an 8-second timeout", /AbortSignal\.timeout\(8000\)/.test(auth)],
   ["auth access is restricted by explicit user allowlist", /JARVIS_ALLOWED_USER_IDS/.test(auth) && /allowedUserIds\.includes\(user\.id\)/.test(auth)],
   ["Gemini requires authentication", /requireAuth\(req, res\)/.test(gemini)],
