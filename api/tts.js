@@ -82,28 +82,24 @@ export default async function handler(req, res) {
       return res.status(413).json({ error: "Text exceeds the 5000-character limit" });
     }
 
-    const apiKey =
-      process.env.ELEVENLABS_API_KEY;
-
-  const settingsResponse = await fetch(
-    "https://api.elevenlabs.io/v1/voices/XrrS5KddqXY8b3ulN2uu/settings",
-    { headers: { "xi-api-key": apiKey } }
-  );
-
-  if (settingsResponse.ok) {
-    // Voice settings are intentionally not logged.
-  } else {
-    console.error(
-      "[JARVIS VOICE SETTINGS] Failed:",
-      settingsResponse.status
-    );
-  }
+    const apiKey = process.env.ELEVENLABS_API_KEY;
 
     if (!apiKey) {
       return res.status(500).json({
-        error:
-          "ELEVENLABS_API_KEY is not configured."
+        error: "ELEVENLABS_API_KEY is not configured."
       });
+    }
+
+    const settingsResponse = await fetch(
+      "https://api.elevenlabs.io/v1/voices/XrrS5KddqXY8b3ulN2uu/settings",
+      { headers: { "xi-api-key": apiKey } }
+    );
+
+    if (!settingsResponse.ok) {
+      console.error(
+        "[JARVIS VOICE SETTINGS] Failed:",
+        settingsResponse.status
+      );
     }
 
    
