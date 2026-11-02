@@ -171,3 +171,10 @@ test("explicit multi-AI explanation requests bypass the single-provider definiti
   assert.equal(result.shouldDelegate, true);
   assert.equal(result.reason, "explicit_multi_ai_request");
 });
+
+test("development status review with prioritized improvement proposals routes to a specialist", () => {
+  const request = "現在のシステム開発・運用状況における実装状況を整理した上で、優先すべき改善案を3点提示してください。";
+  const result = classifyCommanderTask(request);
+  assert.equal(result.shouldDelegate, true);
+  assert.equal(result.intent, "specialist_analysis");
+});
