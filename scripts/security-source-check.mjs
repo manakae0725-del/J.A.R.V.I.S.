@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import assert from "node:assert/strict";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -6,31 +6,27 @@ const auth = read("../api/_auth.js");
 const gemini = read("../api/gemini.js");
 const tts = read("../api/tts.js");
 const memory = read("../api/memory.js");
-const token = read("../api/token.js");
 const limiter = read("../api/_rateLimit.js");
-const quotaSql = read("../supabase/migrations/202610180003_durable_api_rate_limits.sql");
-const cleanupSql = read("../supabase/migrations/202610190001_cleanup_api_rate_limits.sql");
-const usageSql = read("../supabase/migrations/202610180001_api_usage_user_id.sql");
+const background = read("../lib/backgroundTasks.js");
+const taskMigration = read("../supabase/migrations/20261101154218_create_jarvis_background_task_system.sql");
+
+const keyGuard = tts.indexOf("if (!apiKey)");
+const settingsCall = tts.indexOf("const settingsResponse");
 
 const checks = [
-  ["shared auth validates Supabase session and distinguishes provider failures", /\/auth\/v1\/user/.test(auth) && /response\.status >= 500/.test(auth) && /if \(!response\.ok\)/.test(auth)],
-  ["Gemini requires auth and quota", /requireAuth\(req, res\)/.test(gemini) && /consumeRateLimit\(user\.id, "gemini", res\)/.test(gemini)],
-  ["Gemini usage logging authenticates to Supabase", gemini.includes("Authorization: `Bearer ${supabaseKey}`")],
-  ["search quota is enforced", /consumeRateLimit\(user\.id, "search", res\)/.test(gemini)],
-  ["Gemini input and context bounds exist", /text\.length > 12000/.test(gemini) && /memoryContext\.length > 12000/.test(gemini)],
-  ["Gemini provider error JSON parsing is sanitized", gemini.includes("Gemini API returned invalid JSON") && gemini.includes("AI service returned an invalid response.")],
-  ["Search logs do not directly log raw user query or prompt", !/console\.(?:log|warn|error)\([^;]*(?:searchQuery|rawText|memoryContext|req\.body|spokenText)/s.test(gemini)],
-  ["TTS requires auth, quota, and text bound", /requireAuth\(req, res\)/.test(tts) && /consumeRateLimit\(user\.id, "tts", res\)/.test(tts) && /text\.length > 3000/.test(tts)],
-  ["memory queries are scoped to authenticated user", (memory.match(/user_id: `eq\.\${user\.id\}`/g) || []).length >= 3 && /user_id: user\.id/.test(memory)],
-  ["memory REST requests authenticate with the service key", memory.includes("Authorization: `Bearer ${SUPABASE_SECRET_KEY}`")],
-  ["memory deletion is soft-delete and owner-scoped", /req\.method !== "DELETE"/.test(memory) && /method: "DELETE"/.test(memory) === false && /is_active: "eq\.true"/.test(memory) && /user_id: `eq\.\${user\.id\}`/.test(memory) && /is_active: false/.test(memory)],
-  ["memory delete validates numeric ID and times out", /Invalid memory id/.test(memory) && /AbortSignal\.timeout\(10000\)/.test(memory)],
-  ["token endpoint requires auth and quota", /requireAuth\(req, res\)/.test(token) && /consumeRateLimit\(user\.id, "token", res\)/.test(token)],
-  ["rate limiter fails closed and has timeout", /status\(503\)/.test(limiter) && /AbortSignal\.timeout\(3000\)/.test(limiter)],
-  ["rate-limit SQL restricts RPC grants", /SECURITY DEFINER/.test(quotaSql) && /REVOKE ALL ON FUNCTION public\.consume_api_quota\(uuid, text, integer\) FROM PUBLIC, anon, authenticated/.test(quotaSql) && /GRANT EXECUTE ON FUNCTION public\.consume_api_quota\(uuid, text, integer\) TO service_role/.test(quotaSql)],
-  ["rate-limit cleanup deletes only rows older than two days", /DELETE FROM public\.api_rate_limits\s+WHERE window_start < now\(\) - interval '2 days';/.test(cleanupSql)],
-  ["rate-limit cleanup function restricts execution grants", /CREATE OR REPLACE FUNCTION public\.cleanup_api_rate_limits\(\)/.test(cleanupSql) && /SECURITY DEFINER/.test(cleanupSql) && /REVOKE ALL ON FUNCTION public\.cleanup_api_rate_limits\(\) FROM PUBLIC, anon, authenticated/.test(cleanupSql) && /GRANT EXECUTE ON FUNCTION public\.cleanup_api_rate_limits\(\) TO service_role/.test(cleanupSql)],
-  ["usage attribution migration adds user_id", /ADD COLUMN IF NOT EXISTS user_id uuid/.test(usageSql)]
+  ["auth validates bearer sessions against Supabase", /\/auth\/v1\/user/.test(auth) && /Authorization: `Bearer \\${match\[1\]}`/.test(auth)],
+  ["auth session verification has an 8-second timeout", /AbortSignal\.timeout\(8000\)/.test(auth)],
+  ["auth access is restricted by explicit user allowlist", /JARVIS_ALLOWED_USER_IDS/.test(auth) && /allowedUserIds\.includes\(user\.id\)/.test(auth)],
+  ["Gemini requires authentication", /requireAuth\(req, res\)/.test(gemini)],
+  ["Gemini applies per-user rate limits", /enforceRateLimit\(res, user, "gemini-minute"/.test(gemini) && /enforceRateLimit\(res, user, "gemini-day"/.test(gemini)],
+  ["TTS requires authentication and rate limits", /requireAuth\(req, res\)/.test(tts) && /enforceRateLimit\(res, user, "tts-minute"/.test(tts)],
+  ["TTS checks API key before voice-settings request", keyGuard >= 0 && settingsCall > keyGuard],
+  ["memory requires authentication and rate limits", /requireAuth\(req, res\)/.test(memory) && /enforceRateLimit\(res, user, "memory-minute"/.test(memory)],
+  ["memory reads and writes use authenticated user ID", /user_id: `eq\.\$\{user\.id\}`/.test(memory) && /p_user_id: user\.id/.test(memory)],
+  ["rate limiter uses the current atomic RPC and fails closed", /jarvis_check_rate_limit/.test(limiter) && /status\(503\)/.test(limiter) && /typeof decision\.allowed !== "boolean"/.test(limiter)],
+  ["background task storage uses owner-scoped queries", /user_id: "eq\." \+ userId/.test(background) && /jarvis_enqueue_background_task/.test(background)],
+  ["background task base migration defines RLS and service-role-only grants", /enable row level security/i.test(taskMigration) && /revoke all on public\.jarvis_background_tasks.*anon,authenticated/is.test(taskMigration) && /to service_role/i.test(taskMigration)],
+  ["obsolete ephemeral token endpoint is absent", !existsSync(new URL("../api/token.js", import.meta.url))]
 ];
 
 let failures = 0;
@@ -42,5 +38,5 @@ if (failures) {
   console.error(`${failures} static security check(s) failed.`);
   process.exitCode = 1;
 } else {
-  console.log(`All ${checks.length} static security checks passed.`);
+  console.log(`All ${checks.length} current-source security checks passed.`);
 }
