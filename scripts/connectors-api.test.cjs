@@ -3,7 +3,8 @@ const assert = require("node:assert/strict");
 
 const authPath = require.resolve("../api/_auth");
 const limiterPath = require.resolve("../api/_rateLimit");
-const handlerPath = require.resolve("../api/_connectors");
+const tokenStorePath = require.resolve("../api/_google/tokenStore");
+const routePath = require.resolve("../api/google/status");
 
 function makeRes() {
   return {
@@ -17,18 +18,19 @@ function makeRes() {
 }
 
 async function invoke({ method = "GET", query = {}, auth = true } = {}) {
-  const originals = [require.cache[authPath], require.cache[limiterPath], require.cache[handlerPath]];
-  require.cache[authPath] = { id: authPath, filename: authPath, loaded: true, exports: { requireAuth: async (_req, res) => auth ? { id: "user-A" } : null } };
+  const paths = [authPath, limiterPath, tokenStorePath, routePath];
+  const originals = paths.map(path => require.cache[path]);
+  require.cache[authPath] = { id: authPath, filename: authPath, loaded: true, exports: { requireAuth: async () => auth ? { id: "user-A" } : null } };
   require.cache[limiterPath] = { id: limiterPath, filename: limiterPath, loaded: true, exports: { enforceRateLimit: async () => true } };
-  delete require.cache[handlerPath];
+  require.cache[tokenStorePath] = { id: tokenStorePath, filename: tokenStorePath, loaded: true, exports: { listConnectionsForUser: async () => [] } };
+  delete require.cache[routePath];
   try {
-    const { handleConnectorRequest } = require("../api/_connectors");
+    const handler = require("../api/google/status");
     const res = makeRes();
-    if (method !== "GET") { res.status(405).json({ ok: false, error: "Method not allowed" }); }
-    else await handleConnectorRequest({ method, query }, res);
+    await handler({ method, query, headers: {}, url: "/api/google/status" }, res);
     return res;
   } finally {
-    for (const [i, path] of [authPath, limiterPath, handlerPath].entries()) {
+    for (const [i, path] of paths.entries()) {
       delete require.cache[path];
       if (originals[i]) require.cache[path] = originals[i];
     }
@@ -40,7 +42,7 @@ test("connector status exposes configuration booleans but no credential values",
   const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
   for (const key of keys) delete process.env[key];
   try {
-    const res = await invoke();
+    const res = await invoke({ query: { provider: "status" } });
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.ok, true);
     assert.equal(res.body.connections.github.configured, false);
@@ -55,19 +57,19 @@ test("connector status exposes configuration booleans but no credential values",
   }
 });
 
-test("connector endpoint rejects non-GET methods", async () => {
-  const res = await invoke({ method: "POST" });
+test("existing status route rejects non-GET methods", async () => {
+  const res = await invoke({ method: "POST", query: { provider: "status" } });
   assert.equal(res.statusCode, 405);
   assert.equal(res.headers.Allow, "GET");
 });
 
-test("connector endpoint rejects unknown providers without upstream calls", async () => {
+test("connector route rejects unknown providers without upstream calls", async () => {
   const res = await invoke({ query: { provider: "arbitrary-url", action: "overview" } });
   assert.equal(res.statusCode, 400);
   assert.deepEqual(res.body, { ok: false, error: "Unsupported connector" });
 });
 
-test("connector endpoint rejects unknown provider actions", async () => {
+test("connector route rejects unknown provider actions", async () => {
   const res = await invoke({ query: { provider: "github", action: "delete" } });
   assert.equal(res.statusCode, 400);
   assert.deepEqual(res.body, { ok: false, error: "Invalid connector action" });
