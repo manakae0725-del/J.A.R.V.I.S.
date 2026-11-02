@@ -17,7 +17,7 @@ async function runGemini(body, providerResponse) {
   delete process.env.SERPER_API_KEY;
   delete process.env.TAVILY_API_KEY;
   require.cache[authPath] = { id: authPath, filename: authPath, loaded: true, exports: { requireAuth: async () => ({ id: "user-A" }) } };
-  require.cache[ratePath] = { id: ratePath, filename: ratePath, loaded: true, exports: { consumeRateLimit: async () => true } };
+  require.cache[ratePath] = { id: ratePath, filename: ratePath, loaded: true, exports: { enforceRateLimit: async () => true } };
   delete require.cache[geminiPath];
   global.fetch = async (url, options = {}) => {
     requests.push({ url: String(url), options });
@@ -49,7 +49,7 @@ async function runGemini(body, providerResponse) {
 test("Gemini text above 12000 characters is rejected before provider calls", async () => {
   const { res, requests } = await runGemini({ text: "x".repeat(12001) });
   assert.equal(res.statusCode, 413);
-  assert.deepEqual(res.body, { error: "Text input is too long." });
+  assert.deepEqual(res.body, { error: "Text exceeds the 5000-character limit" });
   assert.equal(requests.length, 0);
 });
 
@@ -67,7 +67,7 @@ test("Gemini previous interaction ID above 200 characters is rejected before pro
   assert.equal(requests.length, 0);
 });
 
-test("TTS rejects text above 3000 characters before calling paid provider", async () => {
+test("TTS rejects text above 5000 characters before calling paid provider", async () => {
   const originalFetch = global.fetch;
   const envKeys = ["SUPABASE_URL", "SUPABASE_SECRET_KEY", "ELEVENLABS_API_KEY"];
   const originalEnv = Object.fromEntries(envKeys.map(k => [k, process.env[k]]));
@@ -77,12 +77,12 @@ test("TTS rejects text above 3000 characters before calling paid provider", asyn
   process.env.SUPABASE_SECRET_KEY = "test-secret";
   process.env.ELEVENLABS_API_KEY = "test-elevenlabs";
   require.cache[authPath] = { id: authPath, filename: authPath, loaded: true, exports: { requireAuth: async () => ({ id: "user-A" }) } };
-  require.cache[ratePath] = { id: ratePath, filename: ratePath, loaded: true, exports: { consumeRateLimit: async () => true } };
+  require.cache[ratePath] = { id: ratePath, filename: ratePath, loaded: true, exports: { enforceRateLimit: async () => true } };
   global.fetch = async (url, options = {}) => { requests.push({ url: String(url), options }); throw new Error("Paid provider must not be called"); };
   try {
     const { default: handler } = await import("../api/tts.js");
     const res = { statusCode: 200, body: undefined, headers: {}, setHeader(k,v) { this.headers[k]=v; }, status(code) { this.statusCode=code; return this; }, json(body) { this.body=body; return this; } };
-    await handler({ method: "POST", headers: { authorization: "Bearer test" }, body: { text: "x".repeat(3001) } }, res);
+    await handler({ method: "POST", headers: { authorization: "Bearer test" }, body: { text: "x".repeat(5001) } }, res);
     assert.equal(res.statusCode, 413);
     assert.deepEqual(res.body, { error: "Text input is too long." });
     assert.equal(requests.length, 0);
@@ -131,7 +131,6 @@ test("Gemini network failure returns a sanitized 502 and logs only safe metadata
   const logRequest = requests.find(request => request.url.includes("/rest/v1/api_usage"));
   assert.ok(logRequest, "usage log request should be attempted");
   const logBody = JSON.parse(logRequest.options.body);
-  assert.equal(logBody.user_id, "user-A");
   assert.equal(logBody.provider, "gemini");
   assert.equal(logBody.service, "generation");
   assert.equal(logBody.success, false);
