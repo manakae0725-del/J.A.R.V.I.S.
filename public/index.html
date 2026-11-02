@@ -3075,9 +3075,11 @@ async function sendToGemini(text, options = {}) {
             voiceResponse.hidden = visualVoiceMode;
             voiceResponse.setAttribute("aria-hidden", visualVoiceMode ? "true" : "false");
         }
-        holoPanel.classList.remove("show");
-        void holoPanel.offsetWidth;
-        holoPanel.classList.add("show");
+        // Keep an already-visible response panel mounted; restarting its
+        // entrance animation here causes a visible fade-out/fade-in flicker.
+        if (!holoPanel.classList.contains("show")) {
+            holoPanel.classList.add("show");
+        }
         if (visualVoiceMode) {
             renderJarvisVisualization(data.visualization);
         } else if (streamedReplyShown && voiceResponse && voiceResponse.textContent === data.text) {
