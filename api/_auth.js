@@ -4,12 +4,15 @@ const SUPABASE_ANON_KEY =
   process.env.SUPABASE_PUBLISHABLE_KEY;
 
 async function requireAuth(req, res) {
+  const requestPath = typeof req.url === "string"
+    ? req.url.split("?")[0].slice(0, 200)
+    : "";
   const authorization = req.headers.authorization || "";
   const match = authorization.match(/^Bearer\s+(\S+)$/i);
 
   if (!match) {
     console.warn("Auth check failed: bearer token missing", {
-      path: req.url || "",
+      path: requestPath,
       method: req.method || ""
     });
     res.status(401).json({ error: "Authentication required" });
@@ -45,8 +48,6 @@ async function requireAuth(req, res) {
         const body = await response.json();
         upstreamError = {
           code: typeof body.code === "string" ? body.code : undefined,
-          error: typeof body.error === "string" ? body.error : undefined,
-          message: typeof body.message === "string" ? body.message : undefined
         };
       } catch (_) {}
 
@@ -90,7 +91,7 @@ async function requireAuth(req, res) {
   } catch (error) {
     console.error("Supabase auth verification failed", {
       name: error && typeof error.name === "string" ? error.name : "Error",
-      message: error && typeof error.message === "string" ? error.message : "Unknown error"
+      message: "Authentication request failed"
     });
     res.status(503).json({ error: "Authentication service unavailable" });
     return null;
