@@ -45,11 +45,10 @@ grant execute on function public.jarvis_append_background_task_correction(uuid,t
 -- The job calls the Preview worker only; secrets are read from Supabase Vault.
 do $migration$
 begin
-  if exists (
-    select 1 from vault.decrypted_secrets
+  if (
+    select count(distinct name) = 2
+    from vault.decrypted_secrets
     where name in ('jarvis_background_worker_secret', 'jarvis_vercel_protection_bypass')
-    group by 1
-    having count(distinct name) = 2
   ) and not exists (
     select 1 from cron.job where jobname = 'jarvis-background-worker'
   ) then
