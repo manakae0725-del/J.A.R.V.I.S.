@@ -61,12 +61,63 @@ module.exports = async function handler(req, res) {
   if (typeof connectionId !== "string" || !UUID_PATTERN.test(connectionId)) {
     return res.status(400).json({ error: "Valid connectionId is required" });
   }
-  if (!validSpreadsheetId(spreadsheetId)) {
-    return res.status(400).json({ error: "Valid spreadsheetId is required" });
-  }
-  if (!validRange(range)) return res.status(400).json({ error: "Valid A1 range is required" });
 
   try {
+    // Creates a new spreadsheet only; this path never edits an existing file.
+    if (req.method === "POST" && input.action === "create") {
+      const title = typeof input.title === "string" ? input.title.trim() : "";
+      const sheets = input.sheets;
+      if (!title || title.length > 120 || /[\\u0000-\\u001f]/.test(title)) {
+        return res.status(400).json({ error: "A valid spreadsheet title is required" });
+      }
+      if (!Array.isArray(sheets) || sheets.length < 1 || sheets.length > 20) {
+        return res.status(400).json({ error: "1 to 20 sheet definitions are required" });
+      }
+      const seenTitles = new Set();
+      const normalizedSheets = [];
+      for (const sheet of sheets) {
+        if (!isObject(sheet) || typeof sheet.title !== "string") {
+          return res.status(400).json({ error: "Each sheet requires a title and headers" });
+        }
+        const sheetTitle = sheet.title.trim();
+        if (!sheetTitle || sheetTitle.length > 100 || /[\\[\\]:*?\\/\\\\]/.test(sheetTitle) ||
+            /[\\u0000-\\u001f]/.test(sheetTitle) || seenTitles.has(sheetTitle.toLowerCase())) {
+          return res.status(400).json({ error: "Sheet titles must be valid and unique" });
+        }
+        if (!Array.isArray(sheet.headers) || sheet.headers.length < 1 || sheet.headers.length > 100) {
+          return res.status(400).json({ error: "Each sheet requires 1 to 100 headers" });
+        }
+        const headers = sheet.headers.map(value => typeof value === "string" ? value.trim() : "");
+        if (headers.some(value => !value || value.length > 100) ||
+            new Set(headers.map(value => value.toLowerCase())).size !== headers.length) {
+          return res.status(400).json({ error: "Headers must be non-empty and unique (max 100 characters)" });
+        }
+        seenTitles.add(sheetTitle.toLowerCase());
+        normalizedSheets.push({
+          properties: { title: sheetTitle, gridProperties: { rowCount: 1000, columnCount: headers.length } },
+          data: [{ startRow: 0, startColumn: 0, rowData: [{ values: headers.map(value => ({ userEnteredValue: { stringValue: value } })) }] }]
+        });
+      }
+      const created = await googleApiRequest(user.id, connectionId, GOOGLE_SHEETS_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ properties: { title }, sheets: normalizedSheets })
+      });
+      return res.status(201).json({
+        ok: true, action: "create", spreadsheetId: created?.spreadsheetId || null,
+        title: created?.properties?.title || title, spreadsheetUrl: created?.spreadsheetUrl || null,
+        sheets: Array.isArray(created?.sheets) ? created.sheets.map(item => ({
+          sheetId: item.properties?.sheetId, title: item.properties?.title,
+          rowCount: item.properties?.gridProperties?.rowCount,
+          columnCount: item.properties?.gridProperties?.columnCount
+        })) : []
+      });
+    }
+    if (!validSpreadsheetId(spreadsheetId)) {
+      return res.status(400).json({ error: "Valid spreadsheetId is required" });
+    }
+    if (!validRange(range)) return res.status(400).json({ error: "Valid A1 range is required" });
+
     const valuesUrl = `${GOOGLE_SHEETS_API}/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}`;
     if (req.method === "GET") {
       const params = new URLSearchParams({ valueRenderOption: "FORMATTED_VALUE", dateTimeRenderOption: "FORMATTED_STRING" });

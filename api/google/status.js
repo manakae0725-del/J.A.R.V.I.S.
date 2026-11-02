@@ -1,6 +1,7 @@
 const { requireAuth } = require("../_auth");
 const { enforceRateLimit } = require("../_rateLimit");
 const { listConnectionsForUser } = require("../_google/tokenStore");
+const { handleConnectorRequest } = require("../_connectors");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -12,6 +13,11 @@ module.exports = async function handler(req, res) {
 
   const user = await requireAuth(req, res);
   if (!user) return;
+
+  if (req.query?.provider) {
+    if (!(await enforceRateLimit(res, user, "connectors-read-minute", 30, 60))) return;
+    return handleConnectorRequest(req, res);
+  }
 
   if (!(await enforceRateLimit(res, user, "google-status-minute", 60, 60))) return;
 

@@ -32,11 +32,14 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method === "GET") {
       console.info("Memory GET diagnostic: request authorized");
+      // Conversation context only: exclude internal registries from browser memory ranking.
       const params = new URLSearchParams({
-        select: "*",
+        select: "id,category,content,importance,created_at,updated_at",
         user_id: `eq.${user.id}`,
         is_active: "eq.true",
-        order: "importance.desc,updated_at.desc"
+        category: "in.(personal,preference,work,family,goal)",
+        order: "importance.desc,updated_at.desc",
+        limit: "200"
       });
 
       const response = await fetch(`${baseUrl}?${params}`, { headers });
@@ -52,7 +55,15 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, memories: loadedMemories });
     }
 
-    const { category, content, importance } = req.body || {};
+    const { action = "save", memoryId, category, content, importance } = req.body || {};
+
+    if (action !== "save" && action !== "replace") {
+      return res.status(400).json({ error: "Invalid memory action" });
+    }
+
+    if (action === "replace" && (!Number.isSafeInteger(memoryId) || memoryId <= 0)) {
+      return res.status(400).json({ error: "Invalid memory replacement target" });
+    }
 
     if (
       typeof category !== "string" ||
@@ -73,16 +84,27 @@ module.exports = async function handler(req, res) {
       return res.status(413).json({ error: "Memory category or content exceeds the allowed size" });
     }
 
-    // Use the database function so duplicate detection and insert/update happen atomically.
-    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/save_memory_atomic`, {
+    // Use database transactions so a replacement cannot deactivate the old
+    // memory unless the new, user-scoped record is inserted successfully.
+    const rpcName = action === "replace" ? "replace_memory_atomic" : "save_memory_atomic";
+    const rpcPayload = action === "replace"
+      ? {
+          p_user_id: user.id,
+          p_memory_id: memoryId,
+          p_category: normalizedCategory,
+          p_content: normalizedContent,
+          p_importance: importance
+        }
+      : {
+          p_user_id: user.id,
+          p_category: normalizedCategory,
+          p_content: normalizedContent,
+          p_importance: importance
+        };
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${rpcName}`, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        p_user_id: user.id,
-        p_category: normalizedCategory,
-        p_content: normalizedContent,
-        p_importance: importance
-      })
+      body: JSON.stringify(rpcPayload)
     });
 
     if (!response.ok) {

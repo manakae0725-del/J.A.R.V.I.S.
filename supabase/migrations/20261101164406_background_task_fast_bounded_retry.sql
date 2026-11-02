@@ -1,0 +1,5 @@
+-- Historical migration SQL for this version could not be recovered.
+-- The final bounded-retry implementation is restored by the immediately
+-- following 20261101164448 migration from the live pg_proc definition.
+-- This intentionally empty migration preserves the applied version ledger
+-- without inventing an unverified intermediate retry policy.

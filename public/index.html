@@ -318,7 +318,7 @@ color: #61a6ff;
 #textArea.is-closing{opacity:0;visibility:hidden;transform:translate(-50%,-46%);pointer-events:none;}
 #textArea:before{content:"INPUT CONSOLE // J.A.R.V.I.S.";display:block;color:rgba(135,220,255,.8);font:10px/1.4 monospace;letter-spacing:2px;padding:2px 4px 8px;border-bottom:1px solid rgba(0,153,255,.22);margin-bottom:8px;}
 #textInput{
- display:block;width:100%;height:42px;min-height:42px;max-height:24vh;padding:9px 10px;
+ display:block;width:100%;height:calc(1.45em * 3 + 18px);min-height:calc(1.45em * 3 + 18px);max-height:24vh;padding:9px 10px;
  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;
  border:1px solid rgba(0,153,255,.28);border-radius:2px;
  background:rgba(0,8,20,.66);color:#e8f7ff;font:13px/1.45 monospace;
@@ -338,7 +338,7 @@ color: #61a6ff;
 }
 #sendButton:before{content:"";display:inline-block;width:6px;height:6px;margin-right:9px;background:#00d4ff;box-shadow:0 0 8px #00d4ff;vertical-align:middle;}
 #sendButton:active{background:rgba(0,130,220,.4);border-color:#00d4ff;box-shadow:0 0 18px rgba(0,153,255,.35);}
-@media(max-width:480px){#textArea{width:calc(100% - 24px);padding:3px;}#textArea:before{padding:0 4px 3px;margin-bottom:3px;font-size:9px;}#textInput{height:32px;min-height:32px;padding:5px 9px;}#sendButton{height:28px;margin-top:4px;min-width:100px;padding:0 12px;font-size:11px;}}
+@media(max-width:480px){#textArea{width:calc(100% - 24px);padding:3px;}#textArea:before{padding:0 4px 3px;margin-bottom:3px;font-size:9px;}#textInput{height:calc(1.45em * 3 + 10px);min-height:calc(1.45em * 3 + 10px);padding:5px 9px;}#sendButton{height:28px;margin-top:4px;min-width:100px;padding:0 12px;font-size:11px;}}
 
 .jarvis-holo-panel{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 40px));max-height:52vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:rgba(0,153,255,.45) transparent;padding:12px 15px;z-index:30;pointer-events:auto;background:rgba(1,12,25,.82);border:1px solid rgba(0,153,255,.45);box-shadow:0 0 25px rgba(0,119,255,.25),inset 0 0 15px rgba(0,153,255,.12);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;clip-path:polygon(0 10px,10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))}
 .jarvis-holo-panel.show{animation:jarvisPanelOpen .85s cubic-bezier(.2,.75,.25,1) both}
@@ -368,6 +368,13 @@ color: #61a6ff;
 .jarvis-visualization .viz-arrow{stroke:#00d2ff;stroke-width:1.5;fill:none}
 
 @media(max-width:480px){.jarvis-holo-panel{top:30%;width:calc(100% - 24px);padding:10px 12px}}
+/* Keep the response card and task console in separate vertical zones on phones. */
+body.background-tasks-open .jarvis-holo-panel{top:17%;max-height:27vh;overflow-y:auto}
+body.background-tasks-open #textArea{top:66%;max-height:88vh;overflow-y:auto;overscroll-behavior:contain}
+@media(max-width:480px){
+ body.background-tasks-open .jarvis-holo-panel{top:17%;max-height:25vh}
+ body.background-tasks-open #textArea{top:65%;max-height:88vh}
+}
 
 #authScreen{position:fixed;inset:0;z-index:100000;display:block;padding:0;background:rgba(1,7,18,.10);color:#d8efff;font-family:"Courier New",Courier,monospace;opacity:1;transition:opacity .85s ease,background .7s ease;pointer-events:none}
 #authScreen[hidden]{display:none!important}
@@ -418,6 +425,8 @@ body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity 
 #googleCalendarTest button,#googleCalendarToggle{background:#102b40;color:#e7f7ff;border:1px solid #258bc4;border-radius:4px;padding:8px 10px;font:inherit}
 #googleCalendarToggle{position:fixed;right:12px;bottom:12px;z-index:12001;box-shadow:0 0 14px rgba(22,139,209,.22)}
 #googleCalendarToggle[hidden]{display:none!important}
+/* Google app test/connect panel is intentionally hidden from the home screen. OAuth logic remains available for a later Settings entry point. */
+#googleCalendarToggle{display:none!important}
 body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{display:none!important}
 @media(max-width:480px){#googleCalendarTest{left:10px!important;right:10px!important;bottom:60px!important;max-height:42vh!important}#googleCalendarToggle{right:10px;bottom:10px}}
 </style>
@@ -439,11 +448,30 @@ body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{disp
         placeholder="AWAITING INPUT"
     ></textarea>
 
+    <div id="attachmentControls" style="display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap">
+      <button id="attachFileButton" type="button" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px">＋ 添付</button>
+      <span style="font-size:10px;color:#8ebbdc">画像・PDF・TXT / 最大5件・合計20MB</span>
+      <input id="attachmentInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" multiple hidden>
+    </div>
+    <div id="attachmentPreview" aria-live="polite" style="display:grid;gap:5px;margin:6px 0"></div>
+
     <br>
 
     <button id="sendButton">
         TRANSMIT
     </button>
+    <div style="display:flex;gap:8px;margin-top:8px;justify-content:center;flex-wrap:wrap">
+      <button id="backgroundModeToggle" type="button" aria-pressed="false" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">RUN AS TASK: OFF</button>
+      <button id="backgroundTasksToggle" type="button" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">TASK LIST</button>
+    </div>
+    <div style="margin-top:6px;color:#8ebbdc;font:10px/1.5 monospace;text-align:center">ONにしてから依頼を送信すると、会話とは別に作業します。OFFは通常会話です。</div>
+    <div id="backgroundTaskPanel" hidden style="width:100%;max-height:190px;overflow-y:auto;margin-top:8px;padding:8px;background:rgba(3,15,29,.94);border:1px solid rgba(45,150,220,.45);border-radius:6px;box-sizing:border-box;text-align:left">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <span style="font-size:10px;letter-spacing:1.5px;color:#9bcfff">BACKGROUND TASKS</span>
+        <button id="refreshBackgroundTasks" type="button" style="background:#102b40;color:#e7f7ff;border:1px solid #258bc4;border-radius:4px;padding:4px 8px;font:inherit;font-size:10px">REFRESH</button>
+      </div>
+      <div id="backgroundTaskList" aria-live="polite" style="display:grid;gap:7px;font-size:11px;color:#d9efff">ログイン後にタスクが表示されます。</div>
+    </div>
 
 </div>
 <div id="leftHUD" class="sideHUD">
@@ -1266,23 +1294,420 @@ const textInput =
 
 const sendButton =
     document.getElementById("sendButton");
+const attachmentInput = document.getElementById("attachmentInput");
+const attachFileButton = document.getElementById("attachFileButton");
+const attachmentPreview = document.getElementById("attachmentPreview");
+let jarvisPendingAttachments = [];
+const JARVIS_ATTACHMENT_RULES = {
+  "image/jpeg": 10 * 1024 * 1024,
+  "image/png": 10 * 1024 * 1024,
+  "image/webp": 10 * 1024 * 1024,
+  "application/pdf": 15 * 1024 * 1024,
+  "text/plain": 1 * 1024 * 1024
+};
+function renderJarvisAttachments() {
+  if (!attachmentPreview) return;
+  attachmentPreview.replaceChildren();
+  jarvisPendingAttachments.forEach((file, index) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 9px;background:rgba(4,25,43,.85);border:1px solid rgba(45,150,220,.35);border-radius:4px;color:#d9efff;font-size:11px";
+    const label = document.createElement("span");
+    label.textContent = file.name + " · " + (file.size / 1024 / 1024).toFixed(2) + "MB";
+    label.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "削除";
+    remove.setAttribute("aria-label", file.name + "を添付から削除");
+    remove.style.cssText = "background:#102b40;color:#e7f7ff;border:1px solid #258bc4;border-radius:4px;padding:3px 7px;font:inherit;font-size:10px;flex:none";
+    remove.addEventListener("click", () => {
+      jarvisPendingAttachments.splice(index, 1);
+      renderJarvisAttachments();
+    });
+    row.append(label, remove);
+    attachmentPreview.appendChild(row);
+  });
+}
+if (attachFileButton && attachmentInput) {
+  attachFileButton.addEventListener("click", () => attachmentInput.click());
+  attachmentInput.addEventListener("change", () => {
+    const incoming = Array.from(attachmentInput.files || []);
+    const next = [...jarvisPendingAttachments];
+    for (const file of incoming) {
+      const limit = JARVIS_ATTACHMENT_RULES[file.type];
+      if (!limit) { alert("対応していないファイル形式です: " + file.name); continue; }
+      if (file.size < 1 || file.size > limit) { alert("ファイルサイズ上限を超えています: " + file.name); continue; }
+      if (next.length >= 5) { alert("添付できるファイルは最大5件です。"); break; }
+      if (next.some(item => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified)) continue;
+      next.push(file);
+    }
+    if (next.reduce((sum, file) => sum + file.size, 0) > 20 * 1024 * 1024) {
+      alert("添付ファイルの合計は20MBまでです。");
+    } else {
+      jarvisPendingAttachments = next;
+      renderJarvisAttachments();
+    }
+    attachmentInput.value = "";
+  });
+}
+
+
+
+let backgroundModeEnabled = false;
+let backgroundRefreshRunning = false;
+let previousBackgroundStatuses = new Map();
+let pendingBackgroundIdempotencyKey = null;
+let pendingBackgroundIdempotencyText = null;
+
+function setBackgroundMode(enabled) {
+    backgroundModeEnabled = Boolean(enabled);
+    const button = document.getElementById("backgroundModeToggle");
+    if (!button) return;
+    button.textContent = backgroundModeEnabled ? "RUN AS TASK: ON" : "RUN AS TASK: OFF";
+    button.setAttribute("aria-pressed", backgroundModeEnabled ? "true" : "false");
+    button.style.color = backgroundModeEnabled ? "#ffffff" : "#9bcfff";
+    button.style.borderColor = backgroundModeEnabled ? "#56c7ff" : "#258bc4";
+    button.style.boxShadow = backgroundModeEnabled ? "0 0 12px rgba(45,170,255,.35)" : "none";
+}
+
+function backgroundStatusLabel(status) {
+    return ({
+        queued: "待機中",
+        planning: "計画作成中",
+        running: "作業中",
+        verifying: "検証中",
+        retrying: "再試行待ち",
+        paused: "中断",
+        completed: "完了",
+        failed: "エラー",
+        cancelled: "キャンセル"
+    })[status] || status || "状態不明";
+}
+
+function setBackgroundPanelVisible(visible) {
+    const panel = document.getElementById("backgroundTaskPanel");
+    if (panel) panel.hidden = !visible;
+    document.body.classList.toggle("background-tasks-open", Boolean(visible));
+}
+
+function backgroundResultText(value) {
+    if (value == null) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object" && typeof value.text === "string") return value.text;
+    try { return JSON.stringify(value, null, 2); }
+    catch (_) { return String(value); }
+}
+
+async function toggleBackgroundTaskResult(card, taskId, button) {
+    const existing = card.querySelector("[data-background-result]");
+    if (existing) {
+        existing.hidden = !existing.hidden;
+        button.textContent = existing.hidden ? "結果を表示" : "結果を閉じる";
+        return;
+    }
+    button.disabled = true;
+    button.textContent = "読み込み中...";
+    const panel = document.createElement("div");
+    panel.dataset.backgroundResult = "true";
+    panel.style.cssText = "margin-top:8px;padding:9px;border-top:1px solid rgba(70,150,210,.28);color:#d9efff;white-space:normal;overflow-wrap:anywhere";
+    panel.textContent = "成果物を取得しています...";
+    card.appendChild(panel);
+    try {
+        const details = await backgroundApiRequest({ mode: "background-task-detail", taskId });
+        const task = details.task || {};
+        const result = task.result && typeof task.result === "object" ? task.result : {};
+        panel.replaceChildren();
+        if (result.summary) {
+            const summary = document.createElement("div");
+            summary.style.cssText = "margin-bottom:9px;color:#bce8ff;font-weight:600";
+            summary.textContent = String(result.summary);
+            panel.appendChild(summary);
+        }
+        const steps = Array.isArray(result.steps) && result.steps.length
+            ? result.steps
+            : (Array.isArray(details.steps) ? details.steps : []);
+        for (const [index, step] of steps.entries()) {
+            const section = document.createElement("section");
+            section.style.cssText = "margin-top:8px;padding-top:7px;border-top:1px solid rgba(70,150,210,.18)";
+            const heading = document.createElement("div");
+            heading.style.cssText = "margin-bottom:5px;color:#8fcfff";
+            heading.textContent = (index + 1) + ". " + String(step.title || ("工程 " + (index + 1)));
+            const body = document.createElement("pre");
+            body.style.cssText = "margin:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font:inherit;font-size:12px;line-height:1.65;color:#d9eaff";
+            body.textContent = backgroundResultText(step.output);
+            section.append(heading, body);
+            panel.appendChild(section);
+        }
+        if (result.verification && typeof result.verification === "object") {
+            const verification = document.createElement("div");
+            verification.style.cssText = "margin-top:8px;color:#8fcfff;font-size:11px";
+            verification.textContent = result.verification.passed === true ? "最終検証：合格" : "最終検証：未合格";
+            panel.appendChild(verification);
+        }
+        if (!result.summary && !steps.length) {
+            panel.textContent = "保存された成果物はありません。";
+        }
+        button.textContent = "結果を閉じる";
+    } catch (error) {
+        panel.textContent = error.message || "成果物を取得できませんでした。";
+        button.textContent = "再読み込み";
+    } finally {
+        button.disabled = false;
+    }
+}
+
+function renderBackgroundTasks(tasks) {
+    const list = document.getElementById("backgroundTaskList");
+    if (!list) return;
+    list.replaceChildren();
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+        const empty = document.createElement("div");
+        empty.textContent = "バックグラウンドタスクはありません。";
+        list.appendChild(empty);
+        return;
+    }
+    for (const task of tasks) {
+        const card = document.createElement("div");
+        card.style.cssText = "padding:8px;border:1px solid rgba(70,150,210,.28);border-radius:5px;background:rgba(10,35,58,.55)";
+        const header = document.createElement("div");
+        header.style.cssText = "display:flex;justify-content:space-between;gap:8px;align-items:flex-start";
+        const title = document.createElement("div");
+        title.style.cssText = "color:#e7f7ff;overflow-wrap:anywhere;flex:1";
+        title.textContent = task.title || "バックグラウンドタスク";
+        const status = document.createElement("span");
+        status.style.cssText = "color:#8fcfff;white-space:nowrap";
+        status.textContent = backgroundStatusLabel(task.status);
+        header.append(title,status);
+        card.appendChild(header);
+
+        const progress = document.createElement("div");
+        progress.style.cssText = "height:4px;background:rgba(120,170,210,.18);margin-top:7px;border-radius:4px;overflow:hidden";
+        const fill = document.createElement("div");
+        fill.style.cssText = "height:100%;background:#38aaff;width:" + Math.max(0,Math.min(100,Number(task.progress)||0)) + "%";
+        progress.appendChild(fill);
+        card.appendChild(progress);
+
+        const detail = document.createElement("div");
+        detail.style.cssText = "display:flex;justify-content:space-between;gap:8px;margin-top:5px;color:#8caecb;font-size:10px";
+        const stepCount = Array.isArray(task.steps) ? task.steps.length : 0;
+        detail.textContent = (Number(task.progress)||0) + "% · " + (Number(task.current_step)||0) + "/" + stepCount + " steps";
+        card.appendChild(detail);
+
+        if (task.status === "completed" || task.status === "failed") {
+            const resultButton = document.createElement("button");
+            resultButton.type = "button";
+            resultButton.textContent = "結果を表示";
+            resultButton.style.cssText = "margin-top:7px;background:transparent;color:#9fe0ff;border:1px solid rgba(80,180,255,.5);border-radius:4px;padding:4px 9px;font:inherit;font-size:11px";
+            resultButton.addEventListener("click", () => toggleBackgroundTaskResult(card, task.id, resultButton));
+            card.appendChild(resultButton);
+        }
+
+        const previousStatus = previousBackgroundStatuses.get(task.id);
+        if (previousStatus && previousStatus !== task.status && ["completed","failed","cancelled"].includes(task.status)) {
+            const notice = document.getElementById("voiceResponse");
+            const holo = document.getElementById("jarvisHoloPanel");
+            if (notice) {
+                notice.hidden = false;
+                notice.setAttribute("aria-hidden", "false");
+                notice.textContent = task.title + (task.status === "completed" ? " が完了しました。" : task.status === "failed" ? " でエラーが発生しました。" : " はキャンセルされました。");
+            }
+            if (holo) holo.classList.add("show");
+        }
+        previousBackgroundStatuses.set(task.id, task.status);
+
+        if (task.status === "paused") {
+            const resume = document.createElement("button");
+            resume.type = "button";
+            resume.textContent = "RESUME";
+            resume.style.cssText = "margin-top:6px;background:transparent;color:#9fe0ff;border:1px solid rgba(80,180,255,.5);border-radius:4px;padding:3px 8px;font:inherit;font-size:10px";
+            resume.addEventListener("click", () => resumeBackgroundTask(task.id));
+            card.appendChild(resume);
+        } else if (["queued","planning","running","verifying","retrying"].includes(task.status)) {
+            const pause = document.createElement("button");
+            pause.type = "button";
+            pause.textContent = "PAUSE";
+            pause.style.cssText = "margin-top:6px;margin-right:6px;background:transparent;color:#9fe0ff;border:1px solid rgba(80,180,255,.5);border-radius:4px;padding:3px 8px;font:inherit;font-size:10px";
+            pause.addEventListener("click", () => pauseBackgroundTask(task.id));
+            card.appendChild(pause);
+        }
+        if (["queued","planning","running","verifying","retrying","paused"].includes(task.status)) {
+            const cancel = document.createElement("button");
+            cancel.type = "button";
+            cancel.textContent = "CANCEL";
+            cancel.style.cssText = "margin-top:6px;background:transparent;color:#ffb2b2;border:1px solid rgba(255,120,120,.45);border-radius:4px;padding:3px 8px;font:inherit;font-size:10px";
+            cancel.addEventListener("click", () => cancelBackgroundTask(task.id));
+            card.appendChild(cancel);
+        }
+        if (task.error_message) {
+            const error = document.createElement("div");
+            error.style.cssText = "margin-top:5px;color:#ffb2b2;overflow-wrap:anywhere";
+            error.textContent = task.error_message;
+            card.appendChild(error);
+        }
+        list.appendChild(card);
+    }
+}
+
+async function backgroundApiRequest(payload) {
+    const userId = window.jarvisCurrentUserId || null;
+    if (!userId) throw new Error("ログイン状態を確認できません。");
+    const accessToken = await window.jarvisGetAccessToken();
+    if (!accessToken) throw new Error("認証トークンを取得できません。");
+    const response = await fetch("/api/gemini", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + accessToken
+        },
+        body: JSON.stringify(payload)
+    });
+    let data = {};
+    try { data = await response.json(); } catch (_) {}
+    if (userId !== window.jarvisCurrentUserId) throw new Error("ログインアカウントが切り替わりました。");
+    if (!response.ok) throw new Error(data.error || "バックグラウンドAPI " + response.status);
+    return data;
+}
+
+async function createBackgroundTask(text) {
+    const response = document.getElementById("voiceResponse");
+    const panel = document.getElementById("jarvisHoloPanel");
+    if (response) {
+        response.hidden = false;
+        response.setAttribute("aria-hidden", "false");
+        response.textContent = "バックグラウンド作業を登録しています...";
+    }
+    if (panel) panel.classList.add("show");
+    if (!pendingBackgroundIdempotencyKey || pendingBackgroundIdempotencyText !== text) {
+        pendingBackgroundIdempotencyKey = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : "task-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+        pendingBackgroundIdempotencyText = text;
+    }
+    const data = await backgroundApiRequest({
+        mode: "background-task-create",
+        text,
+        idempotencyKey: pendingBackgroundIdempotencyKey
+    });
+    pendingBackgroundIdempotencyKey = null;
+    pendingBackgroundIdempotencyText = null;
+    setBackgroundPanelVisible(true);
+    if (response) response.textContent = "バックグラウンド作業を受け付けました。会話はそのまま続けられます。";
+    await refreshBackgroundTasks();
+    return { backgroundTaskCreated: true, task: data.task };
+}
+
+async function refreshBackgroundTasks() {
+    const taskList = document.getElementById("backgroundTaskList");
+    if (taskList && taskList.querySelector('[data-background-result]:not([hidden])')) return;
+    if (backgroundRefreshRunning || !window.jarvisCurrentUserId) return;
+    backgroundRefreshRunning = true;
+    try {
+        const data = await backgroundApiRequest({ mode: "background-task-list" });
+        renderBackgroundTasks(data.tasks || []);
+    } catch (error) {
+        const list = document.getElementById("backgroundTaskList");
+        if (list && !list.children.length) list.textContent = error.message || "タスク一覧を取得できません。";
+        console.warn("[BACKGROUND TASK] Refresh failed:", error.message || error);
+    } finally {
+        backgroundRefreshRunning = false;
+    }
+}
+
+async function cancelBackgroundTask(taskId) {
+    try {
+        await backgroundApiRequest({ mode: "background-task-cancel", taskId });
+        await refreshBackgroundTasks();
+    } catch (error) {
+        const response = document.getElementById("voiceResponse");
+        if (response) {
+            response.hidden = false;
+            response.textContent = error.message || "タスクをキャンセルできませんでした。";
+        }
+    }
+}
+
+async function pauseBackgroundTask(taskId) {
+    try {
+        await backgroundApiRequest({ mode: "background-task-pause", taskId });
+        await refreshBackgroundTasks();
+    } catch (error) {
+        const response = document.getElementById("voiceResponse");
+        if (response) response.textContent = error.message || "タスクを一時停止できませんでした。";
+    }
+}
+
+async function resumeBackgroundTask(taskId) {
+    try {
+        await backgroundApiRequest({ mode: "background-task-resume", taskId });
+        await refreshBackgroundTasks();
+    } catch (error) {
+        const response = document.getElementById("voiceResponse");
+        if (response) response.textContent = error.message || "タスクを再開できませんでした。";
+    }
+}
+
+document.getElementById("backgroundModeToggle")?.addEventListener("click", () => {
+    setBackgroundMode(!backgroundModeEnabled);
+});
+document.getElementById("backgroundTasksToggle")?.addEventListener("click", () => {
+    const panel = document.getElementById("backgroundTaskPanel");
+    if (!panel) return;
+    const shouldOpen = panel.hidden;
+    setBackgroundPanelVisible(shouldOpen);
+    if (shouldOpen) refreshBackgroundTasks();
+});
+document.getElementById("refreshBackgroundTasks")?.addEventListener("click", refreshBackgroundTasks);
+setInterval(() => {
+    const panel = document.getElementById("backgroundTaskPanel");
+    if (panel && !panel.hidden) refreshBackgroundTasks();
+}, 12000);
+window.addEventListener("jarvis-auth-change", () => {
+    previousBackgroundStatuses.clear();
+    pendingBackgroundIdempotencyKey = null;
+    pendingBackgroundIdempotencyText = null;
+    renderBackgroundTasks([]);
+    setBackgroundMode(false);
+});
 
 sendButton.addEventListener(
     "click",
     async function(){
 
-        const text =
-            textInput.value.trim();
-
-        if(!text){
+        const text = textInput.value.trim();
+        if(!text && jarvisPendingAttachments.length === 0) return;
+        const attachmentsToSend = jarvisPendingAttachments.slice();
+        if (backgroundModeEnabled && attachmentsToSend.length) {
+            alert("添付ファイルは通常チャットで送信してください。");
             return;
         }
 
-        textInput.value="";
+        textInput.value = "";
+        sendButton.disabled = true;
+        sendButton.textContent = "PROCESSING...";
+        const initialResponse = document.getElementById("voiceResponse");
+        const initialPanel = document.getElementById("jarvisHoloPanel");
+        if (initialResponse) {
+            initialResponse.hidden = false;
+            initialResponse.textContent = "送信を受け付けました。認証状態を確認しています。";
+        }
+        if (initialPanel) initialPanel.classList.add("show");
 
-        await sendToGemini(
-            text
-        );
+        try {
+            const sendResult = await sendToGemini(text, { background: backgroundModeEnabled, attachments: attachmentsToSend });
+            if (sendResult && sendResult.backgroundTaskCreated) setBackgroundMode(false);
+            if (jarvisPendingAttachments.length === attachmentsToSend.length) {
+                jarvisPendingAttachments = [];
+                renderJarvisAttachments();
+            }
+        } catch (error) {
+            console.error("[CONVERSATION] Send handler failed:", error);
+            const voiceResponse = document.getElementById("voiceResponse");
+            const holoPanel = document.getElementById("jarvisHoloPanel");
+            if (voiceResponse) voiceResponse.textContent = "送信処理に失敗しました。画面を再読み込みして、もう一度お試しください。";
+            if (holoPanel) holoPanel.classList.add("show");
+        } finally {
+            sendButton.disabled = false;
+            sendButton.innerHTML = "TRANSMIT";
+        }
     }
 );
 
@@ -1372,6 +1797,35 @@ var previousInteractionId=null;
 var pendingCalendarAction=null;
 var currentMode="voice";
 
+function getConversationStorageKey(userId) {
+    return userId ? "jarvis_interaction_id_" + userId : null;
+}
+
+function loadConversationInteractionId(userId) {
+    const key = getConversationStorageKey(userId);
+    if (!key) return null;
+    try {
+        const value = sessionStorage.getItem(key);
+        return typeof value === "string" && value.length > 0 ? value : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function saveConversationInteractionId(userId, interactionId) {
+    const key = getConversationStorageKey(userId);
+    if (!key) return;
+    try {
+        if (interactionId) sessionStorage.setItem(key, interactionId);
+        else sessionStorage.removeItem(key);
+    } catch (_) {
+        // Session storage may be unavailable; in-memory continuity still works.
+    }
+}
+
+// Restore only within this browser tab and the currently authenticated user.
+previousInteractionId = loadConversationInteractionId(window.jarvisCurrentUserId || null);
+
 /* =========================================================
    LONG-TERM MEMORY SYSTEM (PORTED)
    ========================================================= */
@@ -1379,6 +1833,9 @@ var currentMode="voice";
 let memories = [];
 let memoryLoadGeneration = 0;
 let memoryOwnerId = window.jarvisCurrentUserId || null;
+let memoryLoadedForUserId = null;
+let memoryLoadPromise = null;
+let memoryLoadPromiseUserId = null;
 
 window.addEventListener("jarvis-auth-change", (event) => {
     const nextUserId = event && event.detail && typeof event.detail.userId === "string"
@@ -1387,11 +1844,19 @@ window.addEventListener("jarvis-auth-change", (event) => {
 
     if (nextUserId === memoryOwnerId) return;
 
+    const previousUserId = memoryOwnerId;
     memoryOwnerId = nextUserId;
     memoryLoadGeneration++;
     memories = [];
+    memoryLoadedForUserId = null;
+    memoryLoadPromise = null;
+    memoryLoadPromiseUserId = null;
     previousInteractionId = null;
     pendingCalendarAction = null;
+
+    // Never carry a conversation ID across account changes.
+    saveConversationInteractionId(previousUserId, null);
+    previousInteractionId = loadConversationInteractionId(nextUserId);
 
     if (nextUserId) {
         void loadMemories();
@@ -1400,94 +1865,118 @@ window.addEventListener("jarvis-auth-change", (event) => {
 
 function getErrorMessage(error) {
     if (typeof error === "string") return error;
-
     if (error && typeof error === "object") {
         if (error.message) return error.message;
-
-        try {
-            return JSON.stringify(error);
-        } catch (e) {
-            return "不明なエラー";
-        }
+        try { return JSON.stringify(error); }
+        catch (e) { return "不明なエラー"; }
     }
-
     return String(error);
 }
 
 async function loadMemories() {
-    const generation = ++memoryLoadGeneration;
     const requestUserId = window.jarvisCurrentUserId || null;
-
     if (!requestUserId) {
         memories = [];
+        memoryLoadedForUserId = null;
         return [];
     }
+    if (memoryLoadedForUserId === requestUserId) return memories;
+    if (memoryLoadPromise && memoryLoadPromiseUserId === requestUserId) return memoryLoadPromise;
 
-    try {
-        const accessToken = await window.jarvisGetAccessToken();
-        if (!accessToken || requestUserId !== window.jarvisCurrentUserId) {
-            return [];
-        }
-
-        const response = await fetch(
-            "/api/memory",
-            {
+    const generation = ++memoryLoadGeneration;
+    const loadPromise = (async () => {
+        try {
+            const accessToken = await window.jarvisGetAccessToken();
+            if (!accessToken || requestUserId !== window.jarvisCurrentUserId) return [];
+            const response = await fetch("/api/memory", {
                 method: "GET",
                 headers: { Authorization: "Bearer " + accessToken }
+            });
+            const data = await response.json();
+            if (!response.ok || !data.ok) {
+                throw new Error(getErrorMessage(data.error) || "Memory GET error");
             }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-            throw new Error(
-                getErrorMessage(data.error) ||
-                "Memory GET error"
-            );
-        }
-
-        if (
-            generation !== memoryLoadGeneration ||
-            requestUserId !== window.jarvisCurrentUserId
-        ) {
+            if (generation !== memoryLoadGeneration || requestUserId !== window.jarvisCurrentUserId) return [];
+            memories = Array.isArray(data.memories) ? data.memories : [];
+            memoryLoadedForUserId = requestUserId;
+            return memories;
+        } catch (error) {
+            if (generation === memoryLoadGeneration && requestUserId === window.jarvisCurrentUserId) {
+                console.error("Memory load error:", error);
+                memories = [];
+            }
             return [];
         }
+    })();
 
-        memories =
-            Array.isArray(data.memories)
-                ? data.memories.slice(0, 30)
-                : [];
-
-        return memories;
-
-    } catch (error) {
-        if (
-            generation === memoryLoadGeneration &&
-            requestUserId === window.jarvisCurrentUserId
-        ) {
-            console.error("Memory load error:", error);
-            memories = [];
+    memoryLoadPromise = loadPromise;
+    memoryLoadPromiseUserId = requestUserId;
+    try {
+        return await loadPromise;
+    } finally {
+        if (memoryLoadPromise === loadPromise) {
+            memoryLoadPromise = null;
+            memoryLoadPromiseUserId = null;
         }
-
-        return [];
     }
 }
 
-function buildMemoryContext() {
+function buildMemoryContext(userText = "") {
+    const conversationalMemories = memories.filter(memory =>
+        typeof memory?.category === "string" &&
+        ["personal", "preference", "work", "family", "goal"].includes(memory.category)
+    );
+    if (!conversationalMemories.length) return "現在、登録されている長期記憶はありません。";
 
-    if (!memories.length) {
-        return "現在、登録されている長期記憶はありません。";
-    }
-
-    return memories
-        .map(
-            (memory, index) => {
-                return `${index + 1}. [${memory.category}] ${memory.content}`;
+    const text = String(userText || "").toLowerCase();
+    const broadMemoryRequest = /(?:覚えていること|覚えてること|記憶していること|登録されている記憶|保存されている記憶|記憶一覧|記憶を見せて)/.test(text);
+    const categorySignals = {
+        family: /家族|妻|夫|奥様|奥さん|旦那様|旦那さん|配偶者|パートナー|子ども|子供|娘|息子|母|父|家庭|妊娠|育児|年齢|何歳|生年月日|誕生日|何年生まれ|何月何日生まれ/,
+        work: /仕事|職場|美容|サロン|売上|顧客|予約|業務|スタッフ|経営|店販|施術/,
+        preference: /好み|好き|嫌い|苦手|希望|方針|設定|話し方|優先/,
+        goal: /目標|計画|予定|達成|将来|ロードマップ|開発/,
+        personal: /自分|本人|性格|生活|住まい|経歴|資格/
+    };
+    const categoryHints = Object.entries(categorySignals)
+        .filter(([, pattern]) => pattern.test(text))
+        .map(([category]) => category);
+    const japaneseRuns = text.match(/[一-龯々ぁ-んァ-ヶー]{2,}/g) || [];
+    const stopTerms = new Set(["です", "ます", "して", "ください", "お願い", "今回", "こと", "もの", "それ", "これ", "など", "について", "教えて", "確認", "できます", "でしょう", "ですか", "ますか", "という", "ために", "したい"]);
+    const terms = new Set((text.match(/[a-z0-9_+-]{3,}/g) || []).filter(term => term.length >= 3));
+    for (const run of japaneseRuns) {
+        if (run.length <= 8 && !stopTerms.has(run)) terms.add(run);
+        for (let size = 2; size <= Math.min(4, run.length); size++) {
+            for (let index = 0; index <= run.length - size; index++) {
+                const term = run.slice(index, index + size);
+                if (!stopTerms.has(term)) terms.add(term);
             }
-        )
-        .join("\n");
+        }
+    }
+    const now = Date.now();
+    const ranked = conversationalMemories.map(memory => {
+        const content = String(memory.content || "").toLowerCase();
+        let relevance = 0;
+        for (const term of terms) {
+            if (term.length >= 3 && content.includes(term)) relevance += Math.min(term.length, 6) * 1.5;
+            else if (term.length === 2 && content.includes(term)) relevance += 1.5;
+        }
+        const categoryMatch = categoryHints.includes(memory.category);
+        if (categoryMatch) relevance += 5;
+        const importance = Math.max(1, Math.min(5, Number(memory.importance) || 1));
+        const updatedAt = Date.parse(memory.updated_at || memory.created_at || "");
+        const ageDays = Number.isFinite(updatedAt) ? Math.max(0, (now - updatedAt) / 86400000) : 365;
+        const recency = Math.max(0, 1.5 - Math.log1p(ageDays) / 5);
+        return { memory, relevance, score: relevance + importance * 0.35 + recency };
+    });
+    ranked.sort((a, b) => b.score - a.score);
+    const selected = broadMemoryRequest
+        ? ranked.slice(0, 12)
+        : ranked.filter(item => item.relevance >= 2.5).slice(0, 8);
+    if (!selected.length) return "今回の依頼に直接関連する長期記憶は見つかりませんでした。記憶にない情報を推測しないでください。";
+    return selected.map(({ memory }, index) =>
+        `${index + 1}. [ID:${memory.id}] [${memory.category}] ${memory.content}`
+    ).join("\n");
 }
-
 function buildGeminiPrompt(text) {
 
     const memoryContext =
@@ -1526,98 +2015,79 @@ ${text}
 `;
 }
 
-async function saveMemory(memory, expectedUserId) {
-
-    if (
-        !memory ||
-        !memory.shouldSave ||
-        !expectedUserId ||
-        expectedUserId !== window.jarvisCurrentUserId
-    ) {
+async function saveMemory(memory, expectedUserId, options = {}) {
+    if (!memory || !memory.shouldSave || !expectedUserId || expectedUserId !== window.jarvisCurrentUserId) return false;
+    const content = typeof memory.content === "string" ? memory.content.trim() : "";
+    if (!content) return false;
+    const category = ["personal", "preference", "work", "family", "goal"].includes(memory.category) ? memory.category : "personal";
+    const importance = Number.isInteger(memory.importance) ? Math.min(5, Math.max(1, memory.importance)) : 1;
+    const action = memory.action === "replace" ? "replace" : "save";
+    const memoryId = Number(memory.supersedesId);
+    if (action === "replace" && (!Number.isSafeInteger(memoryId) || !memories.some(item => Number(item.id) === memoryId && ["personal", "preference", "work", "family", "goal"].includes(item.category)))) {
+        console.warn("Memory replacement skipped: target is not in the current user's loaded memory context");
         return false;
     }
-
-    const content =
-        typeof memory.content === "string"
-            ? memory.content.trim()
-            : "";
-
-    if (!content) {
-        return false;
+    const normalize = value => String(value || "").normalize("NFKC").replace(/[\s。、，．.!！?？「」『』（）()]/g, "").toLowerCase();
+    if (action === "save" && memories.some(item => item.category === category && normalize(item.content) === normalize(content))) {
+        console.info("Memory save skipped: duplicate content");
+        return true;
     }
-
-    const category =
-        [
-            "personal",
-            "preference",
-            "work",
-            "family",
-            "goal"
-        ].includes(memory.category)
-            ? memory.category
-            : "personal";
-
-    const importance =
-        Number.isInteger(memory.importance)
-            ? Math.min(
-                5,
-                Math.max(
-                    1,
-                    memory.importance
-                )
-            )
-            : 1;
-
     try {
         const accessToken = await window.jarvisGetAccessToken();
-
-        // アクセストークン取得中にアカウントが変わっていたら保存しない。
-        if (
-            !accessToken ||
-            expectedUserId !== window.jarvisCurrentUserId
-        ) {
-            return false;
-        }
-
-        const response = await fetch(
-            "/api/memory",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + accessToken
-                },
-                body: JSON.stringify({
-                    category,
-                    content,
-                    importance
-                })
-            }
-        );
-
+        if (!accessToken || expectedUserId !== window.jarvisCurrentUserId) return false;
+        const payload = { category, content, importance };
+        if (action === "replace") { payload.action = "replace"; payload.memoryId = memoryId; }
+        const response = await fetch("/api/memory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + accessToken },
+            body: JSON.stringify(payload)
+        });
         const data = await response.json();
-
-        // 保存リクエストの応答後も、別ユーザーの画面を更新しない。
-        if (expectedUserId !== window.jarvisCurrentUserId) {
-            return false;
-        }
-
-        if (!response.ok || !data.ok) {
-            throw new Error(
-                getErrorMessage(data.error) ||
-                "Memory save error"
-            );
-        }
-
-        await loadMemories();
+        if (expectedUserId !== window.jarvisCurrentUserId) return false;
+        if (!response.ok || !data.ok) throw new Error(getErrorMessage(data.error) || "Memory save error");
+        memoryLoadedForUserId = null;
+        if (!options.deferReload) await loadMemories();
         return true;
-
     } catch (error) {
         console.error("Memory save error:", error);
         return false;
     }
 }
 
+async function saveMemoriesBatch(items, expectedUserId) {
+    if (!Array.isArray(items) || !expectedUserId || expectedUserId !== window.jarvisCurrentUserId) {
+        return { requested: Array.isArray(items) ? items.length : 0, saved: 0, updated: 0, duplicate: 0, skipped: 0, failed: 0, truncated: 0 };
+    }
+    const batch = items.slice(0, 12);
+    const result = { requested: items.length, saved: 0, updated: 0, duplicate: 0, skipped: 0, failed: 0, truncated: Math.max(0, items.length - batch.length) };
+    const normalize = value => String(value || "").normalize("NFKC").replace(/[\s。、，．.!！?？「」『』（）()]/g, "").toLowerCase();
+    for (const item of batch) {
+        if (expectedUserId !== window.jarvisCurrentUserId) {
+            result.skipped += batch.length - (result.saved + result.updated + result.duplicate + result.skipped + result.failed);
+            break;
+        }
+        if (!item || item.shouldSave !== true || typeof item.content !== "string" || !item.content.trim()) {
+            result.skipped++;
+            continue;
+        }
+        const category = ["personal", "preference", "work", "family", "goal"].includes(item.category) ? item.category : "personal";
+        const action = item.action === "replace" ? "replace" : "save";
+        if (action === "save" && memories.some(existing => existing.category === category && normalize(existing.content) === normalize(item.content))) {
+            result.duplicate++;
+            continue;
+        }
+        const ok = await saveMemory(item, expectedUserId, { deferReload: true });
+        if (!ok) result.failed++;
+        else if (action === "replace") result.updated++;
+        else result.saved++;
+    }
+    if ((result.saved > 0 || result.updated > 0) && expectedUserId === window.jarvisCurrentUserId) {
+        memoryLoadedForUserId = null;
+        await loadMemories();
+    }
+    console.info("[MEMORY] Batch save finished", result);
+    return result;
+}
 function setMode(mode) {
 
     if (
@@ -2203,23 +2673,40 @@ return true;
 }
 
 let jarvisAnimationToken = 0;
-function animateJarvisResponse(text) {
+function animateJarvisResponse(text, streamedText = "") {
     const container = document.getElementById("voiceResponse");
     const token = ++jarvisAnimationToken;
     const content = typeof text === "string" ? text : String(text || "");
-    container.textContent = "";
+    const streamed = typeof streamedText === "string" ? streamedText : "";
+    const canContinueStream = streamed.length > 0 && content.startsWith(streamed);
+
+    // Continue from the text already shown during streaming instead of clearing
+    // the response panel and replaying the answer from the beginning.
+    if (canContinueStream) {
+        container.textContent = streamed;
+    } else if (streamed.length > 0) {
+        // If the final answer differs from the streamed text, replace it in one
+        // paint rather than briefly showing an empty panel.
+        container.textContent = content;
+        return Promise.resolve(token);
+    } else {
+        container.textContent = "";
+    }
+
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         container.textContent = content;
         return Promise.resolve(token);
     }
-    const chunks = content.match(/[\s\S]{1,5}/gu) || [];
+
+    const remaining = canContinueStream ? content.slice(streamed.length) : content;
+    const chunks = remaining.match(/[\s\S]{1,24}/gu) || [];
     let index = 0;
     return new Promise(resolve => {
         function revealNext() {
             if (token !== jarvisAnimationToken) { resolve(null); return; }
             if (index >= chunks.length) { resolve(token); return; }
             container.textContent += chunks[index++];
-            window.setTimeout(revealNext, 26);
+            window.setTimeout(revealNext, 8);
         }
         revealNext();
     });
@@ -2306,20 +2793,31 @@ function renderJarvisVisualization(viz) {
         addText(160, 112, labels[0] || "達成率", "viz-label");
     } else if (viz.type === "structure") {
         if (labels.length < 3) { container.hidden = true; return; }
-        svg.setAttribute("viewBox", "0 0 320 180");
-        svg.appendChild(el("rect", {x:95,y:10,width:130,height:38,rx:5,class:"viz-node"}));
-        addText(160, 33, (viz.title || "中心要素").slice(0,18), "viz-label");
-        const count = Math.min(labels.length, 5), left = 8, gap = 5, w = (304 - gap * (count - 1)) / count;
-        svg.appendChild(el("path", {d:"M 160 48 V 65 H 160", class:"viz-arrow"}));
-        svg.appendChild(el("line", {x1:left+w/2,y1:65,x2:left+(count-1)*(w+gap)+w/2,y2:65,class:"viz-arrow"}));
+        const count = Math.min(labels.length, 6);
+        const cols = count <= 3 ? 1 : 2;
+        const rows = Math.ceil(count / cols);
+        const cardW = cols === 1 ? 280 : 136;
+        const cardH = 48;
+        const gapX = 8;
+        const gapY = 10;
+        const top = 82;
+        const totalH = top + rows * cardH + (rows - 1) * gapY + 12;
+        svg.setAttribute("viewBox", "0 0 320 " + totalH);
+        svg.appendChild(el("rect", {x:75,y:8,width:170,height:38,rx:5,class:"viz-node"}));
+        addText(160, 32, (viz.title || "中心要素").slice(0,20), "viz-label");
+        svg.appendChild(el("path", {d:"M 160 46 V 62", class:"viz-arrow"}));
+        svg.appendChild(el("line", {x1:160,y1:62,x2:160,y2:72,class:"viz-arrow"}));
         for (let i=0;i<count;i++) {
-            const x=left+i*(w+gap);
-            svg.appendChild(el("line",{x1:x+w/2,y1:65,x2:x+w/2,y2:79,class:"viz-arrow"}));
-            svg.appendChild(el("rect",{x,y:79,width:w,height:52,rx:3,class:"viz-node"}));
-            const txt=el("text",{x:x+w/2,y:100,"text-anchor":"middle",class:"viz-step-text"});
-            const s=labels[i];
-            txt.appendChild(el("tspan",{x:x+w/2,dy:0},s.slice(0,9)));
-            if(s.length>9)txt.appendChild(el("tspan",{x:x+w/2,dy:13},s.slice(9,18)));
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = cols === 1 ? 20 : 20 + col * (cardW + gapX);
+            const y = top + row * (cardH + gapY);
+            svg.appendChild(el("line",{x1:160,y1:72,x2:160,y2:y,class:"viz-arrow"}));
+            svg.appendChild(el("rect",{x,y,width:cardW,height:cardH,rx:4,class:"viz-node"}));
+            const txt=el("text",{x:x+cardW/2,y:y+19,"text-anchor":"middle",class:"viz-step-text"});
+            const label=labels[i].slice(0,32);
+            txt.appendChild(el("tspan",{x:x+cardW/2,dy:0},label.slice(0, cols === 1 ? 24 : 17)));
+            if(label.length>(cols === 1 ? 24 : 17)) txt.appendChild(el("tspan",{x:x+cardW/2,dy:15},label.slice(cols === 1 ? 24 : 17,32)));
             svg.appendChild(txt);
         }
     } else if (viz.type === "blueprint") {
@@ -2369,7 +2867,91 @@ function renderJarvisVisualization(viz) {
     container.hidden = false;
 }
 
-async function sendToGemini(text) {
+function extractPartialJsonString(jsonText, propertyName) {
+    const marker = new RegExp('"' + propertyName + '"\\s*:\\s*"');
+    const match = marker.exec(jsonText);
+    if (!match) return "";
+    let output = "";
+    let i = match.index + match[0].length;
+    while (i < jsonText.length) {
+        const ch = jsonText[i++];
+        if (ch === '"') break;
+        if (ch !== "\\") {
+            output += ch;
+            continue;
+        }
+        if (i >= jsonText.length) break;
+        const escaped = jsonText[i++];
+        const simple = { '"': '"', "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" };
+        if (Object.prototype.hasOwnProperty.call(simple, escaped)) {
+            output += simple[escaped];
+        } else if (escaped === "u") {
+            const hex = jsonText.slice(i, i + 4);
+            if (hex.length < 4 || !/^[0-9a-fA-F]{4}$/.test(hex)) break;
+            output += String.fromCharCode(parseInt(hex, 16));
+            i += 4;
+        } else {
+            break;
+        }
+    }
+    return output;
+}
+
+async function readJarvisApiResponse(response, onPartialText) {
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("text/event-stream")) {
+        const data = await response.json();
+        return { data, streamed: false };
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("ストリーミング応答を読み取れません。");
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let jsonText = "";
+    let completeData = null;
+    let streamError = null;
+
+    const processEvent = (block) => {
+        const eventLine = block.split(/\r?\n/).find(line => line.startsWith("event:"));
+        const eventName = eventLine ? eventLine.slice(6).trim() : "message";
+        const dataLines = block.split(/\r?\n/).filter(line => line.startsWith("data:"));
+        if (!dataLines.length) return;
+        const raw = dataLines.map(line => line.slice(5).trimStart()).join("\n");
+        if (raw === "[DONE]") return;
+        let payload;
+        try { payload = JSON.parse(raw); } catch (_) { throw new Error("ストリーミング応答の形式が不正です。"); }
+
+        if (eventName === "delta" && typeof payload.text === "string") {
+            jsonText += payload.text;
+            const partial = extractPartialJsonString(jsonText, "reply");
+            if (partial) onPartialText(partial);
+        } else if (eventName === "complete") {
+            completeData = payload;
+        } else if (eventName === "error") {
+            streamError = payload.message || "ストリーミング応答に失敗しました。";
+        }
+    };
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let match;
+        while ((match = /\r?\n\r?\n/.exec(buffer))) {
+            const block = buffer.slice(0, match.index);
+            buffer = buffer.slice(match.index + match[0].length);
+            processEvent(block);
+        }
+    }
+    buffer += decoder.decode();
+    if (buffer.trim()) processEvent(buffer);
+    if (streamError) throw new Error(streamError);
+    if (!completeData) throw new Error("ストリーミング応答が途中で終了しました。");
+    return { data: completeData, streamed: true, streamedText: extractPartialJsonString(jsonText, "reply") };
+}
+
+async function sendToGemini(text, options = {}) {
 
     const requestUserId = window.jarvisCurrentUserId || null;
     const cleanText =
@@ -2377,19 +2959,60 @@ async function sendToGemini(text) {
             ? text.trim()
             : "";
 
-    if (!cleanText || !requestUserId) {
-        return;
+    const selectedAttachments = Array.isArray(options.attachments) ? options.attachments : [];
+    if (!cleanText && selectedAttachments.length === 0) return;
+    if (options && options.background === true) {
+        if (selectedAttachments.length) throw new Error("添付ファイルはバックグラウンドタスクでは送信できません。");
+        return createBackgroundTask(cleanText);
     }
 
-    await loadMemories();
+    const voiceResponse = document.getElementById("voiceResponse");
+    const holoPanel = document.getElementById("jarvisHoloPanel");
+    const showClientStatus = (message) => {
+        if (voiceResponse) {
+            voiceResponse.hidden = false;
+            voiceResponse.setAttribute("aria-hidden", "false");
+            voiceResponse.textContent = message;
+        }
+        if (holoPanel) holoPanel.classList.add("show");
+    };
+    const showClientError = (message) => {
+        showClientStatus(message);
+        status.textContent = "INPUT ERROR";
+        console.warn("[CONVERSATION] Request stopped before API call:", message);
+    };
 
-    // メモリ読み込み中にアカウントが変わった場合、古い会話を開始しない。
-    if (requestUserId !== window.jarvisCurrentUserId) {
+    if (!requestUserId) {
+        showClientError("ログイン状態を確認できません。再読み込みしてログインし直してください。");
         return;
     }
 
     window.setJarvisCoreState("thinking");
-    status.textContent = "PROCESSING...";
+    status.textContent = "LOADING MEMORY...";
+
+    console.info("[CONVERSATION] Send started", {
+        hasUserId: Boolean(requestUserId),
+        textLength: cleanText.length
+    });
+    status.textContent = "LOADING MEMORY...";
+    showClientStatus("送信を受け付けました。記憶データを確認しています...");
+
+    await loadMemories();
+
+    console.info("[CONVERSATION] Memory load finished", {
+        sameUser: requestUserId === window.jarvisCurrentUserId,
+        memoryCount: Array.isArray(memories) ? memories.length : 0
+    });
+
+    // メモリ読み込み中にアカウントが変わった場合、古い会話を開始しない。
+    if (requestUserId !== window.jarvisCurrentUserId) {
+        showClientError("ログイン状態が切り替わりました。ページを再読み込みして、もう一度お試しください。");
+        return;
+    }
+
+    window.setJarvisCoreState("thinking");
+    status.textContent = "GETTING AUTH TOKEN...";
+    showClientStatus("記憶データを確認しました。認証トークンを取得しています...");
 
     updateHudStatus(
         "ONLINE",
@@ -2402,17 +3025,68 @@ async function sendToGemini(text) {
     const timeout = setTimeout(() => {
         controller.abort();
     }, 240000);
+    const uploadedAttachmentsForCleanup = [];
 
     try {
         const accessToken = await window.jarvisGetAccessToken();
 
+        console.info("[CONVERSATION] Access token result", {
+            hasAccessToken: Boolean(accessToken),
+            sameUser: requestUserId === window.jarvisCurrentUserId
+        });
+
         // トークン取得中のアカウント切り替えを検出する。
-        if (
-            !accessToken ||
-            requestUserId !== window.jarvisCurrentUserId
-        ) {
+        if (!accessToken) {
+            showClientError("認証トークンを取得できません。再読み込みしてログインし直してください。");
             return;
         }
+        if (requestUserId !== window.jarvisCurrentUserId) {
+            showClientError("送信中にログインアカウントが切り替わりました。もう一度お試しください。");
+            return;
+        }
+
+        // J.A.R.V.I.S.が通常の依頼文から自動判断できるよう、毎回の合言葉は要求しない。
+        // サーバー側の自動司令官機能が無効・未設定なら、従来のGemini処理をそのまま使う。
+        const uploadedAttachments = [];
+        for (const file of selectedAttachments) {
+            const signResponse = await fetch("/api/gemini", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: "Bearer " + accessToken },
+                body: JSON.stringify({ mode: "attachment-upload-url", mimeType: file.type, size: file.size })
+            });
+            const signData = await signResponse.json().catch(() => ({}));
+            if (!signResponse.ok || !signData.uploadUrl || !signData.objectPath) {
+                throw new Error(signData.error || "添付ファイルのアップロード準備に失敗しました。");
+            }
+            // Register the owner-scoped path before uploading so a partial/failed upload can be cleaned up.
+            uploadedAttachmentsForCleanup.push(signData.objectPath);
+            const uploadResponse = await fetch(signData.uploadUrl, {
+                method: "PUT",
+                headers: { "Content-Type": file.type, "x-upsert": "false" },
+                body: file
+            });
+            if (!uploadResponse.ok) {
+                throw new Error("添付ファイルをアップロードできませんでした: " + file.name);
+            }
+            uploadedAttachments.push({ path: signData.objectPath, name: file.name, mimeType: file.type, size: file.size });
+        }
+
+        const requestBody = {
+            text: cleanText,
+            attachments: uploadedAttachments,
+            autoCommander: true,
+            ...(typeof previousInteractionId === "string" && previousInteractionId.length > 0
+                ? { previousInteractionId }
+                : {}),
+            memoryContext: buildMemoryContext(cleanText),
+            pendingCalendarAction: pendingCalendarAction
+        };
+
+        console.info("[CONVERSATION] Calling Gemini API", {
+            endpoint: "/api/gemini",
+            autoCommander: true
+        });
+        showClientStatus("認証確認完了。Gemini APIへ送信しています...");
 
         const response = await fetch(
             "/api/gemini",
@@ -2422,17 +3096,25 @@ async function sendToGemini(text) {
                     "Content-Type": "application/json",
                     Authorization: "Bearer " + accessToken
                 },
-                body: JSON.stringify({
-                    text: cleanText,
-                    previousInteractionId: previousInteractionId,
-                    memoryContext: buildMemoryContext(),
-                    pendingCalendarAction: pendingCalendarAction
-                }),
+                body: JSON.stringify(requestBody),
                 signal: controller.signal
             }
         );
 
-        const data = await response.json();
+        let streamedReplyShown = false;
+        const parsedResponse = await readJarvisApiResponse(response, partialText => {
+            if (requestUserId !== window.jarvisCurrentUserId) return;
+            if (currentMode !== "voice" && voiceResponse) {
+                voiceResponse.hidden = false;
+                voiceResponse.setAttribute("aria-hidden", "false");
+                voiceResponse.textContent = partialText;
+                streamedReplyShown = true;
+            }
+        });
+        const data = parsedResponse.data;
+
+        // 自動司令官が返した結果は、既存の回答パネル・音声出力へそのまま渡す。
+        // 失敗時はサーバーが通常Gemini経路へフォールバックする。
 
         // 応答待ちの間にアカウントが変わっていたら、古い応答を破棄する。
         if (requestUserId !== window.jarvisCurrentUserId) {
@@ -2460,14 +3142,21 @@ async function sendToGemini(text) {
             requestUserId === window.jarvisCurrentUserId
         ) {
             previousInteractionId = data.interactionId;
+            saveConversationInteractionId(requestUserId, data.interactionId);
         }
 
-        if (
-            data.memory &&
-            data.memory.shouldSave === true &&
-            requestUserId === window.jarvisCurrentUserId
-        ) {
-            await saveMemory(data.memory, requestUserId);
+        console.info("[CONVERSATION] Client continuity", {
+            sentPreviousInteractionId: Boolean(requestBody.previousInteractionId),
+            receivedInteractionId: Boolean(data.interactionId),
+            storedInteractionId: Boolean(previousInteractionId)
+        });
+
+        if (requestUserId === window.jarvisCurrentUserId) {
+            if (Array.isArray(data.memories) && data.memories.length > 0) {
+                await saveMemoriesBatch(data.memories, requestUserId);
+            } else if (data.memory && data.memory.shouldSave === true) {
+                await saveMemory(data.memory, requestUserId);
+            }
         }
 
         // 保存処理の待機中にアカウントが変わった場合も、表示・読み上げしない。
@@ -2476,16 +3165,35 @@ async function sendToGemini(text) {
         }
 
         window.setJarvisCoreState("responding");
-        const responseAnimation = animateJarvisResponse(data.text);
-        const holoPanel = document.getElementById("jarvisHoloPanel");
-        holoPanel.classList.remove("show");
-        void holoPanel.offsetWidth;
-        holoPanel.classList.add("show");
-        responseAnimation.then(token => {
-            if (token !== null && requestUserId === window.jarvisCurrentUserId) {
-                renderJarvisVisualization(data.visualization);
-            }
-        });
+        const hasVisualization = !!(
+            data.visualization &&
+            typeof data.visualization.type === "string" &&
+            data.visualization.type !== "none"
+        );
+        // In voice mode, keep the visual panel focused on the chart while the
+        // corresponding explanation is spoken through TTS. Text mode remains unchanged.
+        const visualVoiceMode = currentMode === "voice" && hasVisualization;
+        if (voiceResponse) {
+            voiceResponse.hidden = visualVoiceMode;
+            voiceResponse.setAttribute("aria-hidden", visualVoiceMode ? "true" : "false");
+        }
+        // Keep an already-visible response panel mounted; restarting its
+        // entrance animation here causes a visible fade-out/fade-in flicker.
+        if (!holoPanel.classList.contains("show")) {
+            holoPanel.classList.add("show");
+        }
+        if (visualVoiceMode) {
+            renderJarvisVisualization(data.visualization);
+        } else if (streamedReplyShown && voiceResponse && voiceResponse.textContent === data.text) {
+            renderJarvisVisualization(data.visualization);
+        } else {
+            const responseAnimation = animateJarvisResponse(data.text, streamedReplyShown && voiceResponse ? voiceResponse.textContent : "");
+            responseAnimation.then(token => {
+                if (token !== null && requestUserId === window.jarvisCurrentUserId) {
+                    renderJarvisVisualization(data.visualization);
+                }
+            });
+        }
 
         status.textContent = "";
 
@@ -2530,14 +3238,30 @@ async function sendToGemini(text) {
             }, 1000);
         }
     } catch (error) {
+        // Remove any uploaded temporary objects if the chat request failed before server-side intake.
+        if (uploadedAttachmentsForCleanup.length) {
+            try {
+                const cleanupToken = await window.jarvisGetAccessToken();
+                if (cleanupToken && requestUserId === window.jarvisCurrentUserId) {
+                    await fetch("/api/gemini", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: "Bearer " + cleanupToken },
+                        body: JSON.stringify({ mode: "attachment-delete", paths: uploadedAttachmentsForCleanup })
+                    });
+                }
+            } catch (cleanupError) {
+                console.warn("[ATTACHMENT] Best-effort client cleanup failed", { name: cleanupError?.name || "Error" });
+            }
+        }
         // 通信・JSON解析などの失敗で処理が中断しても、画面状態と音声会話を復旧する。
         if (requestUserId === window.jarvisCurrentUserId) {
             console.error("Gemini conversation failed:", error);
-            document.getElementById("voiceResponse").textContent =
-                "処理に失敗しました。通信状態を確認して、もう一度お試しください。";
+            const errorDetail = error && error.message
+                ? String(error.message).slice(0, 180)
+                : "原因不明の通信エラー";
+            showClientError("Gemini API通信に失敗しました: " + errorDetail);
             renderJarvisVisualization(null);
-            document.getElementById("jarvisHoloPanel").classList.add("show");
-            status.textContent = "処理に失敗しました";
+            status.textContent = "API COMMUNICATION ERROR";
             window.setJarvisCoreState("standby");
             updateHudStatus("ONLINE", "STANDBY", "ERROR", "RECOVERY");
 
