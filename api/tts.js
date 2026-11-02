@@ -142,7 +142,7 @@ export default async function handler(req, res) {
         metadata: {
           model: "eleven_v3",
           voice: "XrrS5KddqXY8b3ulN2uu",
-          error: timedOut ? "TTS request timed out" : (error?.message || "Unknown error")
+          error: timedOut ? "TTS request timed out" : "TTS request failed"
         }
       });
       if (timedOut) {
