@@ -2971,7 +2971,7 @@ Snippet: ${snippet}
     // ==========================================
 
 if (
-  (!searchContext || isWeatherQuestion && !searchContext.includes("[Serper Weather]")) &&
+  !searchContext &&
   tavilyKey &&
   isSearchQuestion
 ) {
