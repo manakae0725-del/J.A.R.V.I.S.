@@ -448,6 +448,13 @@ body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{disp
         placeholder="AWAITING INPUT"
     ></textarea>
 
+    <div id="attachmentControls" style="display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap">
+      <button id="attachFileButton" type="button" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px">＋ 添付</button>
+      <span style="font-size:10px;color:#8ebbdc">画像・PDF・TXT / 最大5件・合計20MB</span>
+      <input id="attachmentInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" multiple hidden>
+    </div>
+    <div id="attachmentPreview" aria-live="polite" style="display:grid;gap:5px;margin:6px 0"></div>
+
     <br>
 
     <button id="sendButton">
@@ -1287,6 +1294,62 @@ const textInput =
 
 const sendButton =
     document.getElementById("sendButton");
+const attachmentInput = document.getElementById("attachmentInput");
+const attachFileButton = document.getElementById("attachFileButton");
+const attachmentPreview = document.getElementById("attachmentPreview");
+let jarvisPendingAttachments = [];
+const JARVIS_ATTACHMENT_RULES = {
+  "image/jpeg": 10 * 1024 * 1024,
+  "image/png": 10 * 1024 * 1024,
+  "image/webp": 10 * 1024 * 1024,
+  "application/pdf": 15 * 1024 * 1024,
+  "text/plain": 1 * 1024 * 1024
+};
+function renderJarvisAttachments() {
+  if (!attachmentPreview) return;
+  attachmentPreview.replaceChildren();
+  jarvisPendingAttachments.forEach((file, index) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 9px;background:rgba(4,25,43,.85);border:1px solid rgba(45,150,220,.35);border-radius:4px;color:#d9efff;font-size:11px";
+    const label = document.createElement("span");
+    label.textContent = file.name + " · " + (file.size / 1024 / 1024).toFixed(2) + "MB";
+    label.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "削除";
+    remove.setAttribute("aria-label", file.name + "を添付から削除");
+    remove.style.cssText = "background:#102b40;color:#e7f7ff;border:1px solid #258bc4;border-radius:4px;padding:3px 7px;font:inherit;font-size:10px;flex:none";
+    remove.addEventListener("click", () => {
+      jarvisPendingAttachments.splice(index, 1);
+      renderJarvisAttachments();
+    });
+    row.append(label, remove);
+    attachmentPreview.appendChild(row);
+  });
+}
+if (attachFileButton && attachmentInput) {
+  attachFileButton.addEventListener("click", () => attachmentInput.click());
+  attachmentInput.addEventListener("change", () => {
+    const incoming = Array.from(attachmentInput.files || []);
+    const next = [...jarvisPendingAttachments];
+    for (const file of incoming) {
+      const limit = JARVIS_ATTACHMENT_RULES[file.type];
+      if (!limit) { alert("対応していないファイル形式です: " + file.name); continue; }
+      if (file.size < 1 || file.size > limit) { alert("ファイルサイズ上限を超えています: " + file.name); continue; }
+      if (next.length >= 5) { alert("添付できるファイルは最大5件です。"); break; }
+      if (next.some(item => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified)) continue;
+      next.push(file);
+    }
+    if (next.reduce((sum, file) => sum + file.size, 0) > 20 * 1024 * 1024) {
+      alert("添付ファイルの合計は20MBまでです。");
+    } else {
+      jarvisPendingAttachments = next;
+      renderJarvisAttachments();
+    }
+    attachmentInput.value = "";
+  });
+}
+
 
 
 let backgroundModeEnabled = false;
@@ -1610,7 +1673,12 @@ sendButton.addEventListener(
     async function(){
 
         const text = textInput.value.trim();
-        if(!text) return;
+        if(!text && jarvisPendingAttachments.length === 0) return;
+        const attachmentsToSend = jarvisPendingAttachments.slice();
+        if (backgroundModeEnabled && attachmentsToSend.length) {
+            alert("添付ファイルは通常チャットで送信してください。");
+            return;
+        }
 
         textInput.value = "";
         sendButton.disabled = true;
@@ -1624,8 +1692,12 @@ sendButton.addEventListener(
         if (initialPanel) initialPanel.classList.add("show");
 
         try {
-            const sendResult = await sendToGemini(text, { background: backgroundModeEnabled });
+            const sendResult = await sendToGemini(text, { background: backgroundModeEnabled, attachments: attachmentsToSend });
             if (sendResult && sendResult.backgroundTaskCreated) setBackgroundMode(false);
+            if (jarvisPendingAttachments.length === attachmentsToSend.length) {
+                jarvisPendingAttachments = [];
+                renderJarvisAttachments();
+            }
         } catch (error) {
             console.error("[CONVERSATION] Send handler failed:", error);
             const voiceResponse = document.getElementById("voiceResponse");
@@ -2887,8 +2959,10 @@ async function sendToGemini(text, options = {}) {
             ? text.trim()
             : "";
 
-    if (!cleanText) return;
+    const selectedAttachments = Array.isArray(options.attachments) ? options.attachments : [];
+    if (!cleanText && selectedAttachments.length === 0) return;
     if (options && options.background === true) {
+        if (selectedAttachments.length) throw new Error("添付ファイルはバックグラウンドタスクでは送信できません。");
         return createBackgroundTask(cleanText);
     }
 
@@ -2972,8 +3046,31 @@ async function sendToGemini(text, options = {}) {
 
         // J.A.R.V.I.S.が通常の依頼文から自動判断できるよう、毎回の合言葉は要求しない。
         // サーバー側の自動司令官機能が無効・未設定なら、従来のGemini処理をそのまま使う。
+        const uploadedAttachments = [];
+        for (const file of selectedAttachments) {
+            const signResponse = await fetch("/api/gemini", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: "Bearer " + accessToken },
+                body: JSON.stringify({ mode: "attachment-upload-url", mimeType: file.type, size: file.size })
+            });
+            const signData = await signResponse.json().catch(() => ({}));
+            if (!signResponse.ok || !signData.uploadUrl || !signData.objectPath) {
+                throw new Error(signData.error || "添付ファイルのアップロード準備に失敗しました。");
+            }
+            const uploadResponse = await fetch(signData.uploadUrl, {
+                method: "POST",
+                headers: { "Content-Type": file.type, "x-upsert": "false" },
+                body: file
+            });
+            if (!uploadResponse.ok) {
+                throw new Error("添付ファイルをアップロードできませんでした: " + file.name);
+            }
+            uploadedAttachments.push({ path: signData.objectPath, name: file.name, mimeType: file.type, size: file.size });
+        }
+
         const requestBody = {
             text: cleanText,
+            attachments: uploadedAttachments,
             autoCommander: true,
             ...(typeof previousInteractionId === "string" && previousInteractionId.length > 0
                 ? { previousInteractionId }
