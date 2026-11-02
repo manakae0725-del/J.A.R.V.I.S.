@@ -17,7 +17,8 @@ async function runAuth({ authorization = "Bearer test-session", status = 200, pa
   const originalEnv = {
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
-    SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY
+    SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
+    JARVIS_ALLOWED_USER_IDS: process.env.JARVIS_ALLOWED_USER_IDS
   };
   const originalModule = require.cache[authPath];
   const requests = [];
@@ -25,6 +26,7 @@ async function runAuth({ authorization = "Bearer test-session", status = 200, pa
   process.env.SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_ANON_KEY = "test-anon-key";
   delete process.env.SUPABASE_PUBLISHABLE_KEY;
+  process.env.JARVIS_ALLOWED_USER_IDS = "user-A";
   delete require.cache[authPath];
 
   global.fetch = async (url, options) => {
@@ -115,7 +117,8 @@ test("publishable key is used when anon key is not configured", async () => {
   const originalEnv = {
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
-    SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY
+    SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
+    JARVIS_ALLOWED_USER_IDS: process.env.JARVIS_ALLOWED_USER_IDS
   };
   const originalModule = require.cache[authPath];
   const requests = [];
