@@ -350,7 +350,7 @@ async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens,
 }
 
 function isBackgroundWorkerAuthorized(req) {
-  if (process.env.VERCEL_ENV !== "preview") return false;
+  if (process.env.VERCEL_ENV !== "preview" && process.env.VERCEL_ENV !== "production") return false;
   const expected = process.env.JARVIS_BACKGROUND_WORKER_SECRET || "";
   const supplied = req.headers["x-jarvis-worker-secret"];
   if (!expected || typeof supplied !== "string") return false;
