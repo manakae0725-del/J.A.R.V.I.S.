@@ -33,11 +33,13 @@ async function requireAuth(req, res) {
         headers: {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${match[1]}`
-        }
+        },
+        signal: AbortSignal.timeout(8000)
       }
     );
 
     if (!response.ok) {
+      const unavailable = response.status >= 500;
       let upstreamError = {};
       try {
         const body = await response.json();
@@ -52,7 +54,9 @@ async function requireAuth(req, res) {
         status: response.status,
         ...upstreamError
       });
-      res.status(401).json({ error: "Invalid or expired session" });
+      res.status(unavailable ? 503 : 401).json({
+        error: unavailable ? "Authentication service unavailable" : "Invalid or expired session"
+      });
       return null;
     }
 
