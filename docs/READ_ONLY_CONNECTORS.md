@@ -22,10 +22,10 @@ Do not use a Supabase service-role key or database password as the Management AP
 
 All routes require the existing authenticated J.A.R.V.I.S. session. Only GET is accepted.
 
-- `GET /api/connectors?provider=status` — reports whether each credential is configured; it never returns credential values.
-- `GET /api/connectors?provider=github&action=overview|branches|commits|pulls|issues`
-- `GET /api/connectors?provider=vercel&action=project|deployments`
-- `GET /api/connectors?provider=supabase&action=project`
+- `GET /api/google/status?provider=status` — reports whether each credential is configured; it never returns credential values.
+- `GET /api/google/status?provider=github&action=overview|branches|commits|pulls|issues`
+- `GET /api/google/status?provider=vercel&action=project|deployments`
+- `GET /api/google/status?provider=supabase&action=project`
 
 Unsupported providers/actions are rejected. The endpoint does not accept arbitrary URLs, does not proxy user-supplied destinations, and does not expose write operations. Upstream calls have a 10-second timeout and response-size cap.
 
