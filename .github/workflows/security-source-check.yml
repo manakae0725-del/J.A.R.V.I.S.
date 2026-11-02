@@ -25,6 +25,8 @@ jobs:
         run: node scripts/migration-ledger-check.mjs
       - name: Run authentication API tests
         run: node --test scripts/auth.test.cjs
+      - name: Run read-only connector API tests
+        run: node --test scripts/connectors-api.test.cjs
       - name: Run current memory API tests
         run: node --test scripts/memory-api-current.test.cjs
       - name: Run rate-limit API tests
