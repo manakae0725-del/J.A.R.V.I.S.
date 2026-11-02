@@ -865,6 +865,20 @@ module.exports = async function handler(req, res) {
       return res.status(413).json({ error: "Text exceeds the 12000-character limit" });
     }
 
+    if (
+      memoryContext !== undefined &&
+      (typeof memoryContext !== "string" || memoryContext.length > 12000)
+    ) {
+      return res.status(400).json({ error: "Invalid memory context." });
+    }
+
+    if (
+      previousInteractionId !== undefined &&
+      (typeof previousInteractionId !== "string" || previousInteractionId.length > 200)
+    ) {
+      return res.status(400).json({ error: "Invalid conversation state." });
+    }
+
     const geminiKey = process.env.GEMINI_API_KEY;
     const serperKey = process.env.SERPER_API_KEY;
     const tavilyKey = process.env.TAVILY_API_KEY;
