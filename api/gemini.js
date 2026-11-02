@@ -613,7 +613,7 @@ module.exports = async function handler(req, res) {
       }
       const signedPath = signedData.signedURL || signedData.url;
       if (typeof signedPath !== "string" || !signedPath) return res.status(502).json({ error: "アップロードURLを取得できませんでした。" });
-      const uploadUrl = /^https:\\/\\//i.test(signedPath) ? signedPath : supabaseUrl.replace(/\/+$/, "") + "/storage/v1" + (signedPath.startsWith("/") ? signedPath : "/" + signedPath);
+      const uploadUrl = /^https:\/\//i.test(signedPath) ? signedPath : supabaseUrl.replace(/\/+$/, "") + "/storage/v1" + (signedPath.startsWith("/") ? signedPath : "/" + signedPath);
       return res.status(200).json({ uploadUrl, objectPath, bucket, mimeType, maxSize: size });
     } catch (error) {
       console.error("[ATTACHMENT] Signed URL request failed", { name: error?.name || "Error" });
