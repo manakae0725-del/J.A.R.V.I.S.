@@ -8,7 +8,7 @@ This document extends `household-finance-design.md`. It is a design specificatio
 
 - Each person authenticates with their own J.A.R.V.I.S. account.
 - Both accounts can access one explicitly shared household finance space after an invitation/acceptance flow.
-- A user's private memories, conversations, Google Drive files, and unrelated data must never become visible to the other household member.
+- A user's private memories, conversations, and unrelated data must never become visible to the other household member. Manato's designated payslip folder is a narrowly scoped exception for household finance processing; it does not grant Kaede general Drive access.
 - Household finance data is shared only within the household boundary.
 - Each write records the authenticated actor (`created_by`) and the household (`household_id`).
 - Removing a member revokes future access immediately; historical audit records remain attributable to the actor.
@@ -64,12 +64,12 @@ Each user connects their own Google Drive account. J.A.R.V.I.S. may read only fi
 ## Open decisions to resolve before implementation
 
 1. Whether the household should be created by Manato's account and Kaede invited, or vice versa.
-2. Whether each person's salary details may be shared with the other by default, or remain private until that person explicitly shares them. Recommended: private until explicitly shared.
+2. Salary visibility: decided — both members' confirmed salary data is shared household finance data.
 3. Whether both members may correct/delete shared transactions, or only the creator/household owner. Recommended: both may add and correct; deletion should be a reversible void with audit history.
 
 ## Implementation gates
 
-- Inspect the current auth identity and Google Drive connection ownership model in source.
+- Inspect the current auth identity and Manato's Google Drive connection ownership model in source.
 - Design migrations and RLS policies locally first.
 - Test with two distinct test users and at least two households.
 - Do not modify the live Supabase project until the user explicitly approves the exact migration.
