@@ -16,7 +16,7 @@ require.cache[ratePath] = {
   id: ratePath,
   filename: ratePath,
   loaded: true,
-  exports: { consumeRateLimit: async () => true }
+  exports: { enforceRateLimit: async () => true }
 };
 
 let handlerPromise;
@@ -75,7 +75,7 @@ test("TTS provider non-OK response returns a sanitized 502", async () => {
     async text() { return "private provider details"; }
   }));
   assert.equal(res.statusCode, 502);
-  assert.deepEqual(res.body, { error: "TTS service unavailable." });
+  assert.deepEqual(res.body, { error: "Speech synthesis failed" });
 });
 
 test("TTS provider network failure returns a sanitized 502", async () => {
