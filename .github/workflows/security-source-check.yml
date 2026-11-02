@@ -1,0 +1,35 @@
+name: Security source checks
+
+on:
+  pull_request:
+    branches: [main, perf/response-speed-memory-cache]
+  push:
+    branches: [security-audit-baseline-2026-10-17, chore/migration-source-and-ci-2026-11-02]
+
+permissions:
+  contents: read
+
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run static security source checks
+        run: node scripts/security-source-check.mjs
+      - name: Verify Supabase migration source ledger
+        run: node scripts/migration-ledger-check.mjs
+      - name: Run authentication API tests
+        run: node --test scripts/auth.test.cjs
+      - name: Run current memory API tests
+        run: node --test scripts/memory-api-current.test.cjs
+      - name: Run rate-limit API tests
+        run: node --test scripts/rate-limit.test.cjs
+      - name: Run Gemini and TTS input boundary tests
+        run: node --test scripts/provider-input.test.cjs
+      - name: Run TTS provider response tests
+        run: node --test scripts/tts-provider.test.cjs

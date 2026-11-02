@@ -40,3 +40,36 @@ begin
 end; $$;
 revoke all on function public.jarvis_append_background_task_correction(uuid,text,text,text) from public,anon,authenticated;
 grant execute on function public.jarvis_append_background_task_correction(uuid,text,text,text) to service_role;
+
+-- Recreate the currently observed one-minute recovery job on a clean database.
+-- The job calls the Preview worker only; secrets are read from Supabase Vault.
+do $migration$
+begin
+  if (
+    select count(distinct name) = 2
+    from vault.decrypted_secrets
+    where name in ('jarvis_background_worker_secret', 'jarvis_vercel_protection_bypass')
+  ) and not exists (
+    select 1 from cron.job where jobname = 'jarvis-background-worker'
+  ) then
+    perform cron.schedule(
+      'jarvis-background-worker',
+      '* * * * *',
+      $job$
+        select net.http_post(
+          url := 'https://j-a-r-v-i-s-git-perf-response-speed-memory-cache-manato2.vercel.app/api/gemini',
+          headers := jsonb_build_object(
+            'Content-Type', 'application/json',
+            'x-jarvis-worker-secret',
+            (select decrypted_secret from vault.decrypted_secrets where name = 'jarvis_background_worker_secret' limit 1),
+            'x-vercel-protection-bypass',
+            (select decrypted_secret from vault.decrypted_secrets where name = 'jarvis_vercel_protection_bypass' limit 1)
+          ),
+          body := '{"mode":"background-worker-tick"}'::jsonb,
+          timeout_milliseconds := 45000
+        ) as request_id;
+      $job$
+    );
+  end if;
+end;
+$migration$;

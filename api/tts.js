@@ -90,18 +90,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const settingsResponse = await fetch(
-      "https://api.elevenlabs.io/v1/voices/XrrS5KddqXY8b3ulN2uu/settings",
-      { headers: { "xi-api-key": apiKey } }
-    );
-
-    if (!settingsResponse.ok) {
-      console.error(
-        "[JARVIS VOICE SETTINGS] Failed:",
-        settingsResponse.status
-      );
-    }
-
+    // Voice settings are sent directly in the synthesis request; no separate settings lookup is needed.
    
     // 読み上げ用テキストの補正
     const spokenText = text
@@ -160,7 +149,8 @@ export default async function handler(req, res) {
         console.error("ElevenLabs TTS request timed out", { durationMs });
         return res.status(504).json({ error: "Speech synthesis timed out" });
       }
-      throw error;
+      console.error("ElevenLabs TTS request failed", { name: error?.name || "Error" });
+      return res.status(502).json({ error: "Speech synthesis failed" });
     } finally {
       clearTimeout(ttsTimeout);
     }
@@ -181,29 +171,25 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      let errorMessage =
-        "ElevenLabs TTS request failed.";
-
-      try {
-        const data = await response.json();
-
-        errorMessage =
-          data?.detail?.message ||
-          data?.detail?.status ||
-          data?.error ||
-          errorMessage;
-      } catch (e) {}
-
-      console.error("ElevenLabs TTS request failed", {
-        status: response.status
-      });
-      return res.status(502).json({
-        error: "Speech synthesis failed"
-      });
+      console.error("ElevenLabs TTS request failed", { status: response.status });
+      return res.status(502).json({ error: "Speech synthesis failed" });
     }
 
-    const arrayBuffer =
-      await response.arrayBuffer();
+    let arrayBuffer;
+    try {
+      arrayBuffer = await response.arrayBuffer();
+    } catch (error) {
+      await logApiUsage({
+        provider: "elevenlabs",
+        service: "tts",
+        success: false,
+        statusCode: 502,
+        durationMs,
+        metadata: { model: "eleven_v3", voice: "XrrS5KddqXY8b3ulN2uu", error: "Invalid audio response" }
+      });
+      console.error("ElevenLabs returned an unreadable audio response", { name: error?.name || "Error" });
+      return res.status(502).json({ error: "Speech synthesis failed" });
+    }
 
     const audio =
       Buffer.from(arrayBuffer).toString("base64");
