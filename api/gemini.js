@@ -564,6 +564,39 @@ module.exports = async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
+  if (req.body && req.body.mode === "attachment-upload-url") {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const storageKey = process.env.SUPABASE_SECRET_KEY;
+    const bucket = "jarvis-chat-temp";
+    const mimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf", "text/plain"]);
+    const mimeType = req.body.mimeType;
+    const size = Number(req.body.size);
+    if (!supabaseUrl || !storageKey) return res.status(503).json({ error: "添付ファイル保存サービスが設定されていません。" });
+    if (!mimeTypes.has(mimeType) || !Number.isSafeInteger(size) || size < 1 || size > 20 * 1024 * 1024) {
+      return res.status(400).json({ error: "添付ファイル形式またはサイズが上限を超えています。" });
+    }
+    const ext = ({ "image/jpeg":"jpg", "image/png":"png", "image/webp":"webp", "application/pdf":"pdf", "text/plain":"txt" })[mimeType];
+    const objectPath = user.id + "/" + crypto.randomUUID() + "." + ext;
+    try {
+      const signedResponse = await fetch(
+        supabaseUrl.replace(/\\/+$/, "") + "/storage/v1/object/upload/sign/" + bucket + "/" + objectPath.split("/").map(encodeURIComponent).join("/"),
+        { method: "POST", headers: { apikey: storageKey, Authorization: "Bearer " + storageKey, "Content-Type": "application/json" }, body: JSON.stringify({ upsert: false }), signal: AbortSignal.timeout(10000) }
+      );
+      const signedData = await signedResponse.json().catch(() => ({}));
+      if (!signedResponse.ok) {
+        console.error("[ATTACHMENT] Signed upload URL creation failed", { status: signedResponse.status });
+        return res.status(502).json({ error: "添付ファイルのアップロード準備に失敗しました。" });
+      }
+      const signedPath = signedData.signedURL || signedData.url;
+      if (typeof signedPath !== "string" || !signedPath) return res.status(502).json({ error: "アップロードURLを取得できませんでした。" });
+      const uploadUrl = /^https:\\/\\//i.test(signedPath) ? signedPath : supabaseUrl.replace(/\\/+$/, "") + "/storage/v1" + (signedPath.startsWith("/") ? signedPath : "/" + signedPath);
+      return res.status(200).json({ uploadUrl, objectPath, bucket, mimeType, maxSize: size });
+    } catch (error) {
+      console.error("[ATTACHMENT] Signed URL request failed", { name: error?.name || "Error" });
+      return res.status(502).json({ error: "添付ファイルのアップロード準備に失敗しました。" });
+    }
+  }
+
   const backgroundMode = req.body && req.body.mode;
   if (typeof backgroundMode === "string" && backgroundMode.startsWith("background-task-")) {
     if (process.env.VERCEL_ENV !== "preview") {
@@ -850,20 +883,31 @@ module.exports = async function handler(req, res) {
 
   try {
  const {
-  text,
+  text = "",
   previousInteractionId,
-  memoryContext
+  memoryContext,
+  attachments = []
 } = req.body;
-
-    if (!text) {
-      return res.status(400).json({
-        error: "text is required",
-      });
-    }
 
     if (typeof text !== "string" || text.length > 12000) {
       return res.status(413).json({ error: "Text exceeds the 12000-character limit" });
     }
+    if (!Array.isArray(attachments) || attachments.length > 5 || (!text.trim() && attachments.length === 0)) {
+      return res.status(400).json({ error: "テキストまたは添付ファイルが必要です。" });
+    }
+    const allowedAttachmentTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf", "text/plain"]);
+    let attachmentTotalBytes = 0;
+    for (const item of attachments) {
+      if (!item || typeof item.path !== "string" || !item.path.startsWith(user.id + "/") ||
+          typeof item.name !== "string" || item.name.length > 180 ||
+          !allowedAttachmentTypes.has(item.mimeType) ||
+          !Number.isSafeInteger(item.size) || item.size < 1 ||
+          item.size > (item.mimeType === "application/pdf" ? 15 : item.mimeType === "text/plain" ? 1 : 10) * 1024 * 1024) {
+        return res.status(400).json({ error: "添付ファイル情報が不正です。" });
+      }
+      attachmentTotalBytes += item.size;
+    }
+    if (attachmentTotalBytes > 20 * 1024 * 1024) return res.status(413).json({ error: "添付ファイル合計が20MBを超えています。" });
 
     if (
       memoryContext !== undefined &&
@@ -3483,10 +3527,43 @@ visualization は画面表示専用です。reply と speechText は通常どお
     const thinkingLevel = generationClassification.complexity === "high" ? "medium" : "low";
     perf.thinkingLevel = thinkingLevel;
 
+    let attachmentInputParts = [];
+    if (attachments.length) {
+      const storageUrl = process.env.SUPABASE_URL;
+      const storageKey = process.env.SUPABASE_SECRET_KEY;
+      if (!storageUrl || !storageKey) return res.status(503).json({ error: "添付ファイル保存サービスが設定されていません。" });
+      for (const item of attachments) {
+        const downloadUrl = storageUrl.replace(/\\/+$/, "") + "/storage/v1/object/" + "jarvis-chat-temp/" + item.path.split("/").map(encodeURIComponent).join("/");
+        const fileResponse = await fetch(downloadUrl, { headers: { apikey: storageKey, Authorization: "Bearer " + storageKey }, signal: AbortSignal.timeout(20000) });
+        if (!fileResponse.ok) return res.status(400).json({ error: "添付ファイルを読み込めませんでした。再度添付してください。" });
+        const bytes = Buffer.from(await fileResponse.arrayBuffer());
+        if (bytes.length !== item.size || bytes.length > 20 * 1024 * 1024) return res.status(400).json({ error: "添付ファイルのサイズ検証に失敗しました。" });
+        const signatureOk =
+          item.mimeType === "image/jpeg" ? bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff :
+          item.mimeType === "image/png" ? bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])) :
+          item.mimeType === "image/webp" ? bytes.toString("ascii",0,4) === "RIFF" && bytes.toString("ascii",8,12) === "WEBP" :
+          item.mimeType === "application/pdf" ? bytes.toString("ascii",0,5) === "%PDF-" :
+          item.mimeType === "text/plain" ? !bytes.includes(0) : false;
+        if (!signatureOk) return res.status(400).json({ error: "ファイルの内容と形式が一致しません。" });
+        if (item.mimeType === "text/plain") {
+          attachmentInputParts.push({ type: "text", text: "\\n【添付テキスト: " + item.name.replace(/[\\r\\n]/g, " ").slice(0,120) + "】\\n" + bytes.toString("utf8").slice(0, 100000) });
+        } else {
+          attachmentInputParts.push({
+            type: item.mimeType === "application/pdf" ? "document" : "image",
+            data: bytes.toString("base64"),
+            mime_type: item.mimeType
+          });
+        }
+      }
+    }
+    const multimodalInput = attachmentInputParts.length
+      ? [{ type: "text", text: geminiInput }, ...attachmentInputParts]
+      : geminiInput;
+
     const requestBody = {
       model: "gemini-3.6-flash",
 
-      input: geminiInput,
+      input: multimodalInput,
 
       generation_config: {
         thinking_level: thinkingLevel
