@@ -59,15 +59,6 @@ async function readJson(url, headers, label) {
 }
 
 async function github(action) {
-  const token = process.env.GITHUB_READ_TOKEN;
-  if (!token) return { configured: false };
-  const repository = safeRepository(process.env.GITHUB_REPOSITORY || DEFAULT_GITHUB_REPOSITORY);
-  const base = "https://api.github.com/repos/" + repository;
-  const headers = {
-    Accept: "application/vnd.github+json",
-    Authorization: "Bearer " + token,
-    "X-GitHub-Api-Version": "2022-11-28"
-  };
   const paths = {
     overview: "",
     branches: "/branches?per_page=30",
@@ -80,6 +71,15 @@ async function github(action) {
     error.status = 400;
     throw error;
   }
+  const token = process.env.GITHUB_READ_TOKEN;
+  if (!token) return { configured: false };
+  const repository = safeRepository(process.env.GITHUB_REPOSITORY || DEFAULT_GITHUB_REPOSITORY);
+  const base = "https://api.github.com/repos/" + repository;
+  const headers = {
+    Accept: "application/vnd.github+json",
+    Authorization: "Bearer " + token,
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
   const data = await readJson(base + paths[action], headers, "GitHub");
   if (action === "overview") {
     return {
@@ -94,21 +94,21 @@ async function github(action) {
 }
 
 async function vercel(action) {
-  const token = process.env.VERCEL_READ_TOKEN;
-  const projectId = process.env.VERCEL_PROJECT_ID || DEFAULT_VERCEL_PROJECT_ID;
-  if (!token) return { configured: false, projectConfigured: Boolean(projectId) };
-  const team = process.env.VERCEL_TEAM_ID || "team_A3GSr6JlvzblsgMAGGLZG11f";
-  const base = "https://api.vercel.com";
-  const headers = { Authorization: "Bearer " + token };
   const paths = {
-    project: "/v9/projects/" + encodeURIComponent(projectId) + "?teamId=" + encodeURIComponent(team),
-    deployments: "/v6/deployments?projectId=" + encodeURIComponent(projectId) + "&limit=10&teamId=" + encodeURIComponent(team)
+    project: "/v9/projects/" + encodeURIComponent(process.env.VERCEL_PROJECT_ID || DEFAULT_VERCEL_PROJECT_ID) + "?teamId=" + encodeURIComponent(process.env.VERCEL_TEAM_ID || "team_A3GSr6JlvzblsgMAGGLZG11f"),
+    deployments: "/v6/deployments?projectId=" + encodeURIComponent(process.env.VERCEL_PROJECT_ID || DEFAULT_VERCEL_PROJECT_ID) + "&limit=10&teamId=" + encodeURIComponent(process.env.VERCEL_TEAM_ID || "team_A3GSr6JlvzblsgMAGGLZG11f")
   };
   if (!Object.prototype.hasOwnProperty.call(paths, action)) {
     const error = new Error("Unsupported Vercel action");
     error.status = 400;
     throw error;
   }
+  const token = process.env.VERCEL_READ_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID || DEFAULT_VERCEL_PROJECT_ID;
+  if (!token) return { configured: false, projectConfigured: Boolean(projectId) };
+  const team = process.env.VERCEL_TEAM_ID || "team_A3GSr6JlvzblsgMAGGLZG11f";
+  const base = "https://api.vercel.com";
+  const headers = { Authorization: "Bearer " + token };
   const data = await readJson(base + paths[action], headers, "Vercel");
   if (action === "project") {
     return { configured: true, project: { id: data.id, name: data.name, framework: data.framework, nodeVersion: data.nodeVersion, updatedAt: data.updatedAt, latestDeployments: Array.isArray(data.latestDeployments) ? data.latestDeployments.slice(0, 5).map(x => ({ uid: x.uid, state: x.state, target: x.target, url: x.url, createdAt: x.createdAt })) : [] } };
@@ -117,15 +117,15 @@ async function vercel(action) {
 }
 
 async function supabase(action) {
-  const token = process.env.SUPABASE_MANAGEMENT_TOKEN;
   const projectRef = process.env.SUPABASE_PROJECT_REF;
-  if (!token || !projectRef) return { configured: false, projectConfigured: Boolean(projectRef) };
-  const paths = { project: "/v1/projects/" + encodeURIComponent(projectRef) };
+  const paths = { project: "/v1/projects/" + encodeURIComponent(projectRef || "not-configured") };
   if (!Object.prototype.hasOwnProperty.call(paths, action)) {
     const error = new Error("Unsupported Supabase action");
     error.status = 400;
     throw error;
   }
+  const token = process.env.SUPABASE_MANAGEMENT_TOKEN;
+  if (!token || !projectRef) return { configured: false, projectConfigured: Boolean(projectRef) };
   const data = await readJson("https://api.supabase.com" + paths[action], {
     Authorization: "Bearer " + token,
     Accept: "application/json"
