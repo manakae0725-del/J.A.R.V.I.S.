@@ -69,8 +69,8 @@ test("Gemini previous interaction ID above 200 characters is rejected before pro
 
 test("Gemini null previous interaction ID is treated as a new conversation", async () => {
   const providerResponse = new Response(
-    'data: {"event_type":"interaction.created","interaction":{"id":"test-interaction"}}\\n\\n' +
-    'data: {"event_type":"interaction.completed","interaction":{"id":"test-interaction","status":"completed"}}\\n\\n',
+    'data: {"event_type":"interaction.created","interaction":{"id":"test-interaction"}}\n\n' +
+    'data: {"event_type":"interaction.completed","interaction":{"id":"test-interaction","status":"completed"}}\n\n',
     { status: 200, headers: { "Content-Type": "text/event-stream" } }
   );
   const { res, requests } = await runGemini(
