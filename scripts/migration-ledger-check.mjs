@@ -32,7 +32,7 @@ for (const name of actual) {
 }
 
 const retryMarker = readFileSync(join(migrationDir, "20261101164406_background_task_fast_bounded_retry.sql"), "utf8");
-assert.match(retryMarker, /original intermediate SQL unavailable/i);
+assert.match(retryMarker, /could not be recovered/i);
 const retryFinal = readFileSync(join(migrationDir, "20261101164448_background_task_zero_delay_recovery.sql"), "utf8");
 assert.match(retryFinal, /greatest\(0, least\(coalesce\(p_retry_delay_seconds, 0\), 60\)\)/);
 assert.match(retryFinal, /p_retry_delay_seconds integer default 0/);
