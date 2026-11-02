@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main, perf/response-speed-memory-cache]
   push:
-    branches: [security-audit-baseline-2026-10-17, chore/migration-source-and-ci-2026-11-02]
+    branches: [security-audit-baseline-2026-10-17, chore/migration-source-and-ci-2026-11-02, perf/response-speed-memory-cache]
 
 permissions:
   contents: read
