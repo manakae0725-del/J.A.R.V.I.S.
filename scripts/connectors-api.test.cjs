@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 const authPath = require.resolve("../api/_auth");
 const limiterPath = require.resolve("../api/_rateLimit");
-const handlerPath = require.resolve("../api/connectors");
+const handlerPath = require.resolve("../api/_connectors");
 
 function makeRes() {
   return {
@@ -22,9 +22,10 @@ async function invoke({ method = "GET", query = {}, auth = true } = {}) {
   require.cache[limiterPath] = { id: limiterPath, filename: limiterPath, loaded: true, exports: { enforceRateLimit: async () => true } };
   delete require.cache[handlerPath];
   try {
-    const handler = require("../api/connectors");
+    const { handleConnectorRequest } = require("../api/_connectors");
     const res = makeRes();
-    await handler({ method, query }, res);
+    if (method !== "GET") { res.status(405).json({ ok: false, error: "Method not allowed" }); }
+    else await handleConnectorRequest({ method, query }, res);
     return res;
   } finally {
     for (const [i, path] of [authPath, limiterPath, handlerPath].entries()) {
