@@ -7,6 +7,7 @@ const gemini = read("../api/gemini.js");
 const tts = read("../api/tts.js");
 const memory = read("../api/memory.js");
 const limiter = read("../api/_rateLimit.js");
+const connectors = read("../api/connectors.js");
 const background = read("../lib/backgroundTasks.js");
 const taskMigration = read("../supabase/migrations/20261101154218_create_jarvis_background_task_system.sql");
 
@@ -24,6 +25,8 @@ const checks = [
   ["memory requires authentication and rate limits", /requireAuth\(req, res\)/.test(memory) && /enforceRateLimit\(res, user, "memory-minute"/.test(memory)],
   ["memory reads and writes use authenticated user ID", /user_id: `eq\.\$\{user\.id\}`/.test(memory) && /p_user_id: user\.id/.test(memory)],
   ["rate limiter uses the current atomic RPC and fails closed", /jarvis_check_rate_limit/.test(limiter) && /status\(503\)/.test(limiter) && /typeof decision\.allowed !== "boolean"/.test(limiter)],
+  ["external connectors require auth, use GET only, and expose fixed read-only actions", /requireAuth\(req, res\)/.test(connectors) && /req\.method !== "GET"/.test(connectors) && /Object\.prototype\.hasOwnProperty\.call\(paths, action\)/.test(connectors) && !/req\.query\.url/.test(connectors)],
+  ["external connector credentials remain server-side and upstream calls have timeouts", /GITHUB_READ_TOKEN/.test(connectors) && /VERCEL_READ_TOKEN/.test(connectors) && /SUPABASE_MANAGEMENT_TOKEN/.test(connectors) && /AbortSignal\.timeout\(10000\)/.test(connectors)],
   ["background task storage uses owner-scoped queries", /user_id: "eq\." \+ userId/.test(background) && /jarvis_enqueue_background_task/.test(background)],
   ["background task base migration defines RLS and service-role-only grants", /enable row level security/i.test(taskMigration) && /revoke all on public\.jarvis_background_tasks.*anon,authenticated/is.test(taskMigration) && /to service_role/i.test(taskMigration)],
   ["obsolete ephemeral token endpoint is absent", !existsSync(new URL("../api/token.js", import.meta.url))]
