@@ -3025,6 +3025,7 @@ async function sendToGemini(text, options = {}) {
     const timeout = setTimeout(() => {
         controller.abort();
     }, 240000);
+    const uploadedAttachmentsForCleanup = [];
 
     try {
         const accessToken = await window.jarvisGetAccessToken();
@@ -3057,8 +3058,10 @@ async function sendToGemini(text, options = {}) {
             if (!signResponse.ok || !signData.uploadUrl || !signData.objectPath) {
                 throw new Error(signData.error || "添付ファイルのアップロード準備に失敗しました。");
             }
+            // Register the owner-scoped path before uploading so a partial/failed upload can be cleaned up.
+            uploadedAttachmentsForCleanup.push(signData.objectPath);
             const uploadResponse = await fetch(signData.uploadUrl, {
-                method: "POST",
+                method: "PUT",
                 headers: { "Content-Type": file.type, "x-upsert": "false" },
                 body: file
             });
@@ -3235,6 +3238,21 @@ async function sendToGemini(text, options = {}) {
             }, 1000);
         }
     } catch (error) {
+        // Remove any uploaded temporary objects if the chat request failed before server-side intake.
+        if (uploadedAttachmentsForCleanup.length) {
+            try {
+                const cleanupToken = await window.jarvisGetAccessToken();
+                if (cleanupToken && requestUserId === window.jarvisCurrentUserId) {
+                    await fetch("/api/gemini", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: "Bearer " + cleanupToken },
+                        body: JSON.stringify({ mode: "attachment-delete", paths: uploadedAttachmentsForCleanup })
+                    });
+                }
+            } catch (cleanupError) {
+                console.warn("[ATTACHMENT] Best-effort client cleanup failed", { name: cleanupError?.name || "Error" });
+            }
+        }
         // 通信・JSON解析などの失敗で処理が中断しても、画面状態と音声会話を復旧する。
         if (requestUserId === window.jarvisCurrentUserId) {
             console.error("Gemini conversation failed:", error);
