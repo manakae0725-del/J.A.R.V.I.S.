@@ -3558,13 +3558,13 @@ visualization は画面表示専用です。reply と speechText は通常どお
       const storageKey = process.env.SUPABASE_SECRET_KEY;
       if (!storageUrl || !storageKey) return res.status(503).json({ error: "添付ファイル保存サービスが設定されていません。" });
       for (const item of attachments) {
-        const downloadUrl = storageUrl.replace(/\\/+$/, "") + "/storage/v1/object/" + "jarvis-chat-temp/" + item.path.split("/").map(encodeURIComponent).join("/");
+        const downloadUrl = storageUrl.replace(/\/+$/, "") + "/storage/v1/object/" + "jarvis-chat-temp/" + item.path.split("/").map(encodeURIComponent).join("/");
         const fileResponse = await fetch(downloadUrl, { headers: { apikey: storageKey, Authorization: "Bearer " + storageKey }, signal: AbortSignal.timeout(20000) });
         if (!fileResponse.ok) return res.status(400).json({ error: "添付ファイルを読み込めませんでした。再度添付してください。" });
         const bytes = Buffer.from(await fileResponse.arrayBuffer());
         // Remove the private temporary object as soon as its bytes are safely in memory.
         try {
-          await fetch(storageUrl.replace(/\\/+$/, "") + "/storage/v1/object/jarvis-chat-temp", {
+          await fetch(storageUrl.replace(/\/+$/, "") + "/storage/v1/object/jarvis-chat-temp", {
             method: "DELETE",
             headers: { apikey: storageKey, Authorization: "Bearer " + storageKey, "Content-Type": "application/json" },
             body: JSON.stringify({ prefixes: [item.path] }),
