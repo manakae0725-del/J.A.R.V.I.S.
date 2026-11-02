@@ -12,13 +12,12 @@ Status: implementation planning; no application code or database has been change
 - Access is then restricted by `JARVIS_ALLOWED_USER_IDS`. A second household login cannot use the API until its Supabase auth user ID is explicitly allowlisted.
 - Finance authorization must not be implemented by trusting request-supplied user IDs, user metadata, or client-side household IDs.
 
-### Google Drive
-- `api/google/connect.js` requests `drive.readonly` and persists OAuth state against the authenticated J.A.R.V.I.S. user.
-- `api/google/callback.js` saves the Google connection using the user ID stored in the OAuth state.
-- `api/_google/tokenStore.js` encrypts OAuth tokens and retrieves each connection with both `user_id` and `connection_id`.
-- `api/google/drive.js` supports listing and metadata lookup only. It currently does not download PDF bytes or extract text.
-- The current design therefore supports one Drive owner (Manato) as the document source. Kaede's J.A.R.V.I.S. login must not gain access to Manato's general Drive connection.
-- Drive search must be constrained to a configured payslip folder ID or an explicitly selected file ID. The current generic name search is too broad for household payroll import.
+### Chat file and image attachments
+- The chat composer is `#textInput` and `#sendButton` in `public/index.html`.
+- `sendToGemini(text, options)` currently sends a JSON body to `/api/gemini`; no attachment picker or binary upload flow exists.
+- The existing Google Drive integration is user-scoped and is not required for household finance.
+- Manato and Kaede each upload their own payslip or receipt directly from their device through their own J.A.R.V.I.S. login. Neither account needs access to the other's Drive.
+- The attachment design is documented in `docs/architecture/chat-attachments-design.md`: private temporary storage, signed upload, server-side ownership validation, multimodal Gemini processing, automatic cleanup, and explicit confirmation before finance writes.
 
 ### Serverless/API constraints
 - The Vercel Hobby deployment limit is 12 Serverless Functions. Do not add a new `api/**` route until the exact current function count is established.
@@ -36,9 +35,9 @@ Status: implementation planning; no application code or database has been change
 - Manato and Kaede use separate J.A.R.V.I.S. accounts.
 - One shared household finance space is accessible to both active members.
 - Both members' confirmed salary data, income, expenses, account labels, balances, recurring obligations, and reports are shared.
-- Manato alone connects Google Drive. Kaede gives her payslip PDF to Manato, who stores both PDFs in a designated folder in his Drive.
-- Parsed payslip values remain unconfirmed until checked. After confirmation, both members can use and view the household salary data.
-- Only the designated payslip folder or explicitly selected PDF may be read. No general Drive search or permission sharing.
+- Google Drive is not the household document intake path. Each person sends their own files/images directly to J.A.R.V.I.S. from their device and their own account.
+- Neither member needs to access the other's Drive.
+- Parsed payslip values remain unconfirmed until the salary owner checks and confirms them. After confirmation and explicit sharing, both members can use and view the household salary data.
 - Conversations, personal memories, and unrelated Drive data remain private.
 - No bank login, account numbers, card numbers, credentials, scraping, or automatic bank transactions.
 - No Production deploy, main merge, or live database migration without separate explicit approval.
@@ -66,15 +65,15 @@ Status: implementation planning; no application code or database has been change
 4. Implement correction, void, search, monthly summaries, category aggregates, and chart-ready data.
 5. Keep credit-card purchases and later settlement from being counted twice.
 
-### Gate 4 — Payslip import from Manato's Drive
-1. Add a designated-folder setting owned by Manato.
-2. Add folder-scoped PDF discovery and explicit-file selection.
-3. Extend the Google client with a bounded binary download path; do not parse binary through the existing JSON-only helper.
-4. Extract text from text PDFs; use OCR only for image-only PDFs after evaluating a free/local option first.
-5. Validate file MIME type, size, and owner; do not log PDF contents or extracted salary values.
-6. Parse gross pay, deductions, net pay, pay period, pay date, and destination label only when explicitly present.
-7. Require human confirmation; store normalized fields and Drive file ID/link metadata, not duplicate PDF bytes.
-8. Make confirmed salary figures visible to both active household members.
+### Gate 4 — Payslip and receipt import through chat attachments
+1. Implement the generic chat attachment flow first (images, PDFs, text files).
+2. Each member uploads their own documents through their own authenticated session; no Drive sharing is required.
+3. Use private temporary storage and server-controlled object ownership; validate MIME type and size server-side.
+4. Parse gross pay, deductions, net pay, pay period, pay date, and destination label only when explicitly present.
+5. Parse receipt merchant, date, total, and likely category as candidate fields.
+6. Require the relevant owner to confirm extracted salary/expense values before writing finance records.
+7. Store normalized confirmed fields and minimal attachment metadata; temporary file bytes are deleted after processing unless the user explicitly saves the document.
+8. Make only confirmed and explicitly shared salary figures visible to both active household members.
 
 ### Gate 5 — Balances, forecast, dashboard, reminders
 1. Use manually reported, timestamped balances as actual baselines.
