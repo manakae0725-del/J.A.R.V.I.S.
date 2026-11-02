@@ -603,7 +603,7 @@ module.exports = async function handler(req, res) {
     const objectPath = user.id + "/" + crypto.randomUUID() + "." + ext;
     try {
       const signedResponse = await fetch(
-        supabaseUrl.replace(/\\/+$/, "") + "/storage/v1/object/upload/sign/" + bucket + "/" + objectPath.split("/").map(encodeURIComponent).join("/"),
+        supabaseUrl.replace(/\/+$/, "") + "/storage/v1/object/upload/sign/" + bucket + "/" + objectPath.split("/").map(encodeURIComponent).join("/"),
         { method: "POST", headers: { apikey: storageKey, Authorization: "Bearer " + storageKey, "Content-Type": "application/json" }, body: JSON.stringify({ upsert: false }), signal: AbortSignal.timeout(10000) }
       );
       const signedData = await signedResponse.json().catch(() => ({}));
@@ -613,7 +613,7 @@ module.exports = async function handler(req, res) {
       }
       const signedPath = signedData.signedURL || signedData.url;
       if (typeof signedPath !== "string" || !signedPath) return res.status(502).json({ error: "アップロードURLを取得できませんでした。" });
-      const uploadUrl = /^https:\\/\\//i.test(signedPath) ? signedPath : supabaseUrl.replace(/\\/+$/, "") + "/storage/v1" + (signedPath.startsWith("/") ? signedPath : "/" + signedPath);
+      const uploadUrl = /^https:\\/\\//i.test(signedPath) ? signedPath : supabaseUrl.replace(/\/+$/, "") + "/storage/v1" + (signedPath.startsWith("/") ? signedPath : "/" + signedPath);
       return res.status(200).json({ uploadUrl, objectPath, bucket, mimeType, maxSize: size });
     } catch (error) {
       console.error("[ATTACHMENT] Signed URL request failed", { name: error?.name || "Error" });
