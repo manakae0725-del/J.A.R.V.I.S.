@@ -158,19 +158,15 @@ export default async function handler(req, res) {
     const durationMs =
       Date.now() - ttsStart;
 
-    await logApiUsage({
-      provider: "elevenlabs",
-      service: "tts",
-      success: response.ok,
-      statusCode: response.status,
-      durationMs,
-      metadata: {
-        model: "eleven_v3",
-        voice: "XrrS5KddqXY8b3ulN2uu"
-      }
-    });
-
     if (!response.ok) {
+      await logApiUsage({
+        provider: "elevenlabs",
+        service: "tts",
+        success: false,
+        statusCode: response.status,
+        durationMs,
+        metadata: { model: "eleven_v3", voice: "XrrS5KddqXY8b3ulN2uu", error: "Provider request rejected" }
+      });
       console.error("ElevenLabs TTS request failed", { status: response.status });
       return res.status(502).json({ error: "Speech synthesis failed" });
     }
@@ -191,14 +187,31 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: "Speech synthesis failed" });
     }
 
-    const audio =
-      Buffer.from(arrayBuffer).toString("base64");
-
-    if (!audio) {
-      return res.status(500).json({
-        error: "Audio data was not returned."
+    if (!arrayBuffer.byteLength) {
+      await logApiUsage({
+        provider: "elevenlabs",
+        service: "tts",
+        success: false,
+        statusCode: 502,
+        durationMs,
+        metadata: { model: "eleven_v3", voice: "XrrS5KddqXY8b3ulN2uu", error: "Empty audio response" }
       });
+      return res.status(502).json({ error: "Speech synthesis failed" });
     }
+
+    await logApiUsage({
+      provider: "elevenlabs",
+      service: "tts",
+      success: true,
+      statusCode: response.status,
+      durationMs,
+      metadata: {
+        model: "eleven_v3",
+        voice: "XrrS5KddqXY8b3ulN2uu"
+      }
+    });
+
+    const audio = Buffer.from(arrayBuffer).toString("base64");
 
     return res.status(200).json({
       audio
