@@ -294,7 +294,7 @@ create or replace function public.finance_validate_transaction_payroll_link()
 returns trigger
 language plpgsql
 set search_path = pg_catalog, public
-as $
+as $finance$
 declare
   payroll_net bigint;
 begin
@@ -316,7 +316,7 @@ begin
 
   return new;
 end;
-$;
+$finance$;
 create trigger finance_transactions_validate_payroll_link
 before update on public.finance_transactions
 for each row execute function public.finance_validate_transaction_payroll_link();
