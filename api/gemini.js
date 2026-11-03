@@ -740,9 +740,6 @@ module.exports = async function handler(req, res) {
 
   const backgroundMode = req.body && req.body.mode;
   if (typeof backgroundMode === "string" && backgroundMode.startsWith("background-task-")) {
-    if (process.env.VERCEL_ENV !== "preview") {
-      return res.status(403).json({ ok: false, error: "PREVIEW_ONLY_FEATURE" });
-    }
     try {
       if (backgroundMode === "background-task-create") {
         if (!(await enforceRateLimit(res, user, "background-task-create-minute", 3, 60))) return;
