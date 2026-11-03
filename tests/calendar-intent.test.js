@@ -21,24 +21,24 @@ test("calendar feature and booking discussions do not trigger event mutations", 
   }
 });
 
-test("explicitly requested calendar event updates are routed", () => {
+test("explicit calendar event updates are routed", () => {
   for (const text of [
     "明日の予定を変更して",
     "カレンダーの予定を明日10時から11時に変更してください",
     "予定「定例会議」の時間を変えて",
-    "スケジュールを30分ずらして"
+    "スケジュール「定例会議」を30分ずらして"
   ]) assert.equal(isExplicitCalendarUpdateIntent(text), true, text);
 });
 
-test("explicitly requested calendar event deletions are routed", () => {
+test("explicit calendar event deletions are routed", () => {
   for (const text of [
     "今日の予定を削除して",
     "カレンダーの予定「定例会議」を消してください",
-    "スケジュールを取り消して"
+    "スケジュール「定例会議」を取り消して"
   ]) assert.equal(isExplicitCalendarDeleteIntent(text), true, text);
 });
 
-test("booking changes without a calendar item do not route to Google Calendar", () => {
+test("booking changes without a calendar event target do not route to Google Calendar", () => {
   for (const text of ["予約を変更して", "予約変更をお願いします", "予約をキャンセルして"]) {
     assert.equal(isExplicitCalendarUpdateIntent(text), false, text);
     assert.equal(isExplicitCalendarDeleteIntent(text), false, text);
