@@ -103,6 +103,7 @@ const semanticCases = [
   ,["short code review request", "このコードをレビューしてください。", true]
   ,["simple business status with context", "今月の売上はいくらですか？", false]
   ,["short architecture design request", "予約管理システムを設計してください。", true]
+  ,["reservation system design including sales aggregation", "美容室の予約管理システムを設計してください。顧客情報、予約枠の重複防止、担当者ごとのスケジュール管理、予約変更・キャンセル、売上集計まで含めて、必要なデータ構造と処理の流れを整理してください。", true]
 ];
 
 for (const [name, text, expected] of semanticCases) {
