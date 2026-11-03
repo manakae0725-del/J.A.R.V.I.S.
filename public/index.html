@@ -1721,7 +1721,7 @@ async function refreshJmaWeather(force = false) {
             renderJmaWeather(null);
             if (condition) condition.textContent = String(error?.message || "天気データ取得失敗").includes("PREVIEW_ONLY_TEST") ? "Preview限定機能" : "気象庁データ取得失敗";
             const meta = document.getElementById("weatherMeta");
-            if (meta) meta.textContent = "更新ボタンから再試行できます。\\n出典：気象庁（気象庁の公開データを基にJ.A.R.V.I.S.が加工・表示）";
+            if (meta) meta.textContent = "更新ボタンから再試行できます。\n出典：気象庁（気象庁の公開データを基にJ.A.R.V.I.S.が加工・表示）";
         }
     } finally {
         jmaWeatherLoading = false;
