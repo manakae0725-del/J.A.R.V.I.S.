@@ -293,17 +293,25 @@ function parseBackgroundJson(value) {
   throw error;
 }
 
-async function callBackgroundGemini(systemInstruction, userInput, maxOutputTokens = 1200, thinkingLevel = "low") {
+async function callBackgroundGemini(systemInstruction, userInput, maxOutputTokens = 1200, thinkingLevel = "low", responseSchema = null) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("BACKGROUND_GEMINI_NOT_CONFIGURED");
+  const requestBody = {
+    model: "gemini-3.6-flash",
+    input: systemInstruction + "\n\nTask:\n" + userInput,
+    generation_config: { max_output_tokens: maxOutputTokens, thinking_level: thinkingLevel }
+  };
+  if (responseSchema) {
+    requestBody.response_format = {
+      type: "text",
+      mime_type: "application/json",
+      schema: responseSchema
+    };
+  }
   const response = await fetch("https://generativelanguage.googleapis.com/v1/interactions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({
-      model: "gemini-3.6-flash",
-      input: systemInstruction + "\n\nTask:\n" + userInput,
-      generation_config: { max_output_tokens: maxOutputTokens, thinking_level: thinkingLevel }
-    }),
+    body: JSON.stringify(requestBody),
     signal: AbortSignal.timeout(25000)
   });
   const raw = await response.text();
@@ -324,8 +332,8 @@ async function callBackgroundGemini(systemInstruction, userInput, maxOutputToken
   return text;
 }
 
-async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens, thinkingLevel, expectedShape) {
-  const raw = await callBackgroundGemini(systemInstruction, userInput, maxOutputTokens, thinkingLevel);
+async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens, thinkingLevel, expectedShape, responseSchema) {
+  const raw = await callBackgroundGemini(systemInstruction, userInput, maxOutputTokens, thinkingLevel, responseSchema);
   try {
     return parseBackgroundJson(raw);
   } catch (error) {
@@ -344,10 +352,66 @@ async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens,
       repairPrompt,
       JSON.stringify({ originalInput: userInput, malformedResponse: raw.slice(0, 12000) }),
       Math.max(900, maxOutputTokens),
-      thinkingLevel
+      thinkingLevel,
+      responseSchema
     );
     return parseBackgroundJson(repaired);
   }
+}
+
+function normalizeBackgroundPlan(parsedPlan) {
+  const plan = Array.isArray(parsedPlan) ? parsedPlan : parsedPlan?.steps;
+  if (!Array.isArray(plan)) return { ok: false, reason: "steps_not_array", planCount: null };
+  if (plan.length < 1 || plan.length > 5) return { ok: false, reason: "steps_out_of_range", planCount: plan.length };
+  const normalized = plan.map(item => ({
+    title: String(item?.title || "").trim().slice(0, 160),
+    instruction: String(item?.instruction || "").trim().slice(0, 4000)
+  }));
+  const invalidItems = normalized.map((item, index) => ({ item, index }))
+    .filter(({ item }) => !item.title || !item.instruction)
+    .map(({ index }) => index);
+  if (invalidItems.length) return { ok: false, reason: "required_text_missing", planCount: plan.length, invalidItems };
+  return { ok: true, plan: normalized };
+}
+
+async function repairBackgroundPlan(task, classification, invalidPlan, validation) {
+  const plannerSchema = {
+    type: "object",
+    properties: {
+      steps: {
+        type: "array",
+        description: "An ordered work plan with one to five independently executable analysis steps.",
+        minItems: 1,
+        maxItems: 5,
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "A short, non-empty step title." },
+            instruction: { type: "string", description: "A specific, non-empty instruction for this step." }
+          },
+          required: ["title", "instruction"],
+          additionalProperties: false
+        }
+      }
+    },
+    required: ["steps"],
+    additionalProperties: false
+  };
+  const repairPrompt = [
+    "Repair the supplied work plan so it exactly matches the required JSON structure.",
+    "Return ONLY one JSON object with a steps array containing 1 to 5 objects.",
+    "Every step must contain non-empty string fields title and instruction.",
+    "Do not add facts. Preserve the user's original request and make each step a bounded analysis task.",
+    "Do not call tools, access accounts, change settings, send messages, write files, or perform external side effects."
+  ].join("\n");
+  return callBackgroundJson(
+    repairPrompt,
+    JSON.stringify({ originalRequest: task.request, commanderClassification: classification, validationFailure: validation, previousPlan: invalidPlan }),
+    1200,
+    classification.complexity === "high" ? "medium" : "low",
+    "an object with a steps array containing 1 to 5 objects, each with non-empty title and instruction strings",
+    plannerSchema
+  );
 }
 
 function isBackgroundWorkerAuthorized(req) {
@@ -381,26 +445,65 @@ async function handleBackgroundWorkerTick(req, res) {
     if (task.status === "planning") {
       const plannerPrompt = [
         "Create a safe, bounded work plan for the user's request.",
-        "Return ONLY a JSON array containing 1 to 5 objects. Each object must have exactly: title, instruction.",
+        "Return ONLY a JSON object with one property named steps. steps must contain 1 to 5 objects, each with exactly: title, instruction.",
         "Each title must be short. Each instruction must be independently executable as analysis/reasoning using only the supplied request and prior results.",
         "Do not call tools, access accounts, change settings, send messages, write files, or perform external side effects.",
         "Do not invent missing facts. If the request requires unavailable data, make the missing data explicit in the plan.",
         "Keep the plan ordered and avoid redundant steps."
       ].join("\n");
+      const plannerSchema = {
+        type: "object",
+        properties: {
+          steps: {
+            type: "array",
+            description: "An ordered work plan with one to five independently executable analysis steps.",
+            minItems: 1,
+            maxItems: 5,
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string", description: "A short, non-empty step title." },
+                instruction: { type: "string", description: "A specific, non-empty instruction for this step." }
+              },
+              required: ["title", "instruction"],
+              additionalProperties: false
+            }
+          }
+        },
+        required: ["steps"],
+        additionalProperties: false
+      };
       const parsedPlan = await callBackgroundJson(
         plannerPrompt,
         JSON.stringify({ request: task.request, commanderClassification: classification }),
-        900,
+        1100,
         classification.complexity === "high" ? "medium" : "low",
-        "an array of 1 to 5 {title, instruction} objects"
+        "an object with a steps array containing 1 to 5 {title, instruction} objects",
+        plannerSchema
       );
-      const plan = Array.isArray(parsedPlan) ? parsedPlan : parsedPlan?.steps;
-      if (!Array.isArray(plan) || plan.length < 1 || plan.length > 5) throw new Error("BACKGROUND_PLAN_INVALID");
-      const normalizedPlan = plan.map(item => ({
-        title: String(item?.title || "").trim().slice(0, 160),
-        instruction: String(item?.instruction || "").trim().slice(0, 4000)
-      }));
-      if (normalizedPlan.some(item => !item.title || !item.instruction)) throw new Error("BACKGROUND_PLAN_INVALID");
+      let normalized = normalizeBackgroundPlan(parsedPlan);
+      if (!normalized.ok) {
+        console.warn("[BACKGROUND TASK] Planner output failed semantic validation; requesting one repair", {
+          taskId: task.id,
+          reason: normalized.reason,
+          planCount: normalized.planCount,
+          invalidItems: normalized.invalidItems || []
+        });
+        const repairedPlan = await repairBackgroundPlan(task, classification, parsedPlan, normalized);
+        normalized = normalizeBackgroundPlan(repairedPlan);
+      }
+      if (!normalized.ok) {
+        const planError = new Error("BACKGROUND_PLAN_INVALID_AFTER_REPAIR");
+        planError.code = "BACKGROUND_PLAN_INVALID_AFTER_REPAIR";
+        console.error("[BACKGROUND TASK] Planner output remained invalid after repair", {
+          taskId: task.id,
+          reason: normalized.reason,
+          planCount: normalized.planCount,
+          invalidItems: normalized.invalidItems || []
+        });
+        throw planError;
+      }
+      const normalizedPlan = normalized.plan;
       const saved = await backgroundTasks.savePlan(task.id, workerId, normalizedPlan);
       if (!saved) await backgroundTasks.releaseLease(task.id, workerId);
       return res.status(saved ? 200 : 409).json({ ok: Boolean(saved), taskId: task.id, stage: "planned" });
@@ -442,7 +545,7 @@ async function handleBackgroundWorkerTick(req, res) {
           const successful = council.results.filter(item => item.ok && typeof item.text === "string" && item.text.trim());
           if (successful.length) {
             providersUsed = successful.map(item => item.provider);
-            output = successful.map(item => "【" + item.provider + "】\\n" + item.text).join("\\n\\n");
+            output = successful.map(item => item.text.trim()).join("\n\n");
           }
         } catch (councilError) {
           console.warn("[BACKGROUND TASK] Commander delegation unavailable; using Gemini", {
@@ -480,12 +583,25 @@ async function handleBackgroundWorkerTick(req, res) {
       "Set passed=true only when the answer is complete, internally consistent, and does not claim unsupported facts or actions.",
       "If passed=false, specify one focused corrective step. Do not invent facts."
     ].join("\n");
+    const verifierSchema = {
+      type: "object",
+      properties: {
+        passed: { type: "boolean" },
+        summary: { type: "string" },
+        issues: { type: "array", items: { type: "string" }, maxItems: 8 },
+        correction_title: { type: "string" },
+        correction_instruction: { type: "string" }
+      },
+      required: ["passed", "summary", "issues", "correction_title", "correction_instruction"],
+      additionalProperties: false
+    };
     const verification = await callBackgroundJson(
       verifierPrompt,
       JSON.stringify({ originalRequest: task.request, completedSteps }),
       900,
       "medium",
-      "an object with passed, summary, issues, correction_title, correction_instruction"
+      "an object with passed, summary, issues, correction_title, correction_instruction",
+      verifierSchema
     );
     if (verification?.passed === true) {
       const finished = await backgroundTasks.finish(task.id, workerId, "completed", {
