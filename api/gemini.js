@@ -358,6 +358,61 @@ async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens,
   }
 }
 
+function normalizeBackgroundPlan(parsedPlan) {
+  const plan = Array.isArray(parsedPlan) ? parsedPlan : parsedPlan?.steps;
+  if (!Array.isArray(plan)) return { ok: false, reason: "steps_not_array", planCount: null };
+  if (plan.length < 1 || plan.length > 5) return { ok: false, reason: "steps_out_of_range", planCount: plan.length };
+  const normalized = plan.map(item => ({
+    title: String(item?.title || "").trim().slice(0, 160),
+    instruction: String(item?.instruction || "").trim().slice(0, 4000)
+  }));
+  const invalidItems = normalized.map((item, index) => ({ item, index }))
+    .filter(({ item }) => !item.title || !item.instruction)
+    .map(({ index }) => index);
+  if (invalidItems.length) return { ok: false, reason: "required_text_missing", planCount: plan.length, invalidItems };
+  return { ok: true, plan: normalized };
+}
+
+async function repairBackgroundPlan(task, classification, invalidPlan, validation) {
+  const plannerSchema = {
+    type: "object",
+    properties: {
+      steps: {
+        type: "array",
+        description: "An ordered work plan with one to five independently executable analysis steps.",
+        minItems: 1,
+        maxItems: 5,
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "A short, non-empty step title." },
+            instruction: { type: "string", description: "A specific, non-empty instruction for this step." }
+          },
+          required: ["title", "instruction"],
+          additionalProperties: false
+        }
+      }
+    },
+    required: ["steps"],
+    additionalProperties: false
+  };
+  const repairPrompt = [
+    "Repair the supplied work plan so it exactly matches the required JSON structure.",
+    "Return ONLY one JSON object with a steps array containing 1 to 5 objects.",
+    "Every step must contain non-empty string fields title and instruction.",
+    "Do not add facts. Preserve the user's original request and make each step a bounded analysis task.",
+    "Do not call tools, access accounts, change settings, send messages, write files, or perform external side effects."
+  ].join("\n");
+  return callBackgroundJson(
+    repairPrompt,
+    JSON.stringify({ originalRequest: task.request, commanderClassification: classification, validationFailure: validation, previousPlan: invalidPlan }),
+    1200,
+    classification.complexity === "high" ? "medium" : "low",
+    "an object with a steps array containing 1 to 5 objects, each with non-empty title and instruction strings",
+    plannerSchema
+  );
+}
+
 function isBackgroundWorkerAuthorized(req) {
   if (process.env.VERCEL_ENV !== "preview" && process.env.VERCEL_ENV !== "production") return false;
   const expected = process.env.JARVIS_BACKGROUND_WORKER_SECRET || "";
@@ -400,13 +455,14 @@ async function handleBackgroundWorkerTick(req, res) {
         properties: {
           steps: {
             type: "array",
+            description: "An ordered work plan with one to five independently executable analysis steps.",
             minItems: 1,
             maxItems: 5,
             items: {
               type: "object",
               properties: {
-                title: { type: "string" },
-                instruction: { type: "string" }
+                title: { type: "string", description: "A short, non-empty step title." },
+                instruction: { type: "string", description: "A specific, non-empty instruction for this step." }
               },
               required: ["title", "instruction"],
               additionalProperties: false
@@ -419,18 +475,34 @@ async function handleBackgroundWorkerTick(req, res) {
       const parsedPlan = await callBackgroundJson(
         plannerPrompt,
         JSON.stringify({ request: task.request, commanderClassification: classification }),
-        900,
+        1100,
         classification.complexity === "high" ? "medium" : "low",
         "an object with a steps array containing 1 to 5 {title, instruction} objects",
         plannerSchema
       );
-      const plan = Array.isArray(parsedPlan) ? parsedPlan : parsedPlan?.steps;
-      if (!Array.isArray(plan) || plan.length < 1 || plan.length > 5) throw new Error("BACKGROUND_PLAN_INVALID");
-      const normalizedPlan = plan.map(item => ({
-        title: String(item?.title || "").trim().slice(0, 160),
-        instruction: String(item?.instruction || "").trim().slice(0, 4000)
-      }));
-      if (normalizedPlan.some(item => !item.title || !item.instruction)) throw new Error("BACKGROUND_PLAN_INVALID");
+      let normalized = normalizeBackgroundPlan(parsedPlan);
+      if (!normalized.ok) {
+        console.warn("[BACKGROUND TASK] Planner output failed semantic validation; requesting one repair", {
+          taskId: task.id,
+          reason: normalized.reason,
+          planCount: normalized.planCount,
+          invalidItems: normalized.invalidItems || []
+        });
+        const repairedPlan = await repairBackgroundPlan(task, classification, parsedPlan, normalized);
+        normalized = normalizeBackgroundPlan(repairedPlan);
+      }
+      if (!normalized.ok) {
+        const planError = new Error("BACKGROUND_PLAN_INVALID_AFTER_REPAIR");
+        planError.code = "BACKGROUND_PLAN_INVALID_AFTER_REPAIR";
+        console.error("[BACKGROUND TASK] Planner output remained invalid after repair", {
+          taskId: task.id,
+          reason: normalized.reason,
+          planCount: normalized.planCount,
+          invalidItems: normalized.invalidItems || []
+        });
+        throw planError;
+      }
+      const normalizedPlan = normalized.plan;
       const saved = await backgroundTasks.savePlan(task.id, workerId, normalizedPlan);
       if (!saved) await backgroundTasks.releaseLease(task.id, workerId);
       return res.status(saved ? 200 : 409).json({ ok: Boolean(saved), taskId: task.id, stage: "planned" });
