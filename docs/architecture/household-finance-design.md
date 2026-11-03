@@ -75,6 +75,17 @@ Small differences from real-world balances are acceptable. Safety, explicit prov
 - No database schema, migration, finance API, or UI has been created for this feature.
 - Supabase changed Data API exposure defaults: new public tables are not automatically exposed to the Data API. Keep finance tables server-only unless a later design explicitly requires client access, and verify grants/settings before enabling any exposure.
 
+## Supabase plan and implementation timing (decision: 2026-11-03)
+
+- Keep the current Supabase organization/project on the Free plan while the J.A.R.V.I.S. core product is being completed.
+- Do not upgrade Supabase to Pro solely to create a database branch or run an early finance-schema test.
+- Reconsider and perform the Pro upgrade only after the J.A.R.V.I.S. core is complete and ready for practical operation. The upgrade is a deliberate project milestone, not an automatic action.
+- At that milestone, first establish and verify the Supabase backup and recovery approach available on the selected plan. Include a documented backup schedule/retention review and a restore/recovery test before relying on the database for household finance.
+- After the backup/recovery foundation is verified, complete the household-finance database implementation, migration testing, API integration, Google Sheets integration, permission checks, and end-to-end tests.
+- Begin household-finance production use only after those checks pass and the user explicitly approves the live migration/release.
+- Until the Pro milestone, continue only design/specification work for household finance. Do not apply finance migrations, create production finance tables, or incur Pro/branch charges.
+- Before upgrading, re-check current Supabase plan pricing, included backup features/retention, branch availability, and any additional compute/storage/egress charges. Do not assume that Pro automatically covers every backup or usage requirement.
+
 ## Detailed schema specification
 
 The normalized 11-table design, column definitions, data types, foreign keys, constraints, indexes, accounting semantics, role matrix, and server-only access controls are specified in:
