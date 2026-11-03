@@ -472,7 +472,7 @@ async function handleBackgroundWorkerTick(req, res) {
           const successful = council.results.filter(item => item.ok && typeof item.text === "string" && item.text.trim());
           if (successful.length) {
             providersUsed = successful.map(item => item.provider);
-            output = successful.map(item => "【" + item.provider + "】\\n" + item.text).join("\\n\\n");
+            output = successful.map(item => item.text.trim()).join("\n\n");
           }
         } catch (councilError) {
           console.warn("[BACKGROUND TASK] Commander delegation unavailable; using Gemini", {
