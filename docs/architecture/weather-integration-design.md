@@ -29,7 +29,7 @@ Provide J.A.R.V.I.S. with reliable current conditions and forecasts for the user
 
 ## Provider re-evaluation (2026-11-03)
 
-**Google Weather API is not suitable for the initial Japan deployment.** Google's official FAQ explicitly excludes Japan and South Korea from coverage. Do not enable the Weather API for J.A.R.V.I.S. Japan weather retrieval, create a production Weather API key, or activate billing for this purpose. A Google Cloud account may still be useful for unrelated Google integrations, but registration is currently deferred.
+**Correction (2026-11-03): Google Weather API does support Japan.** The current official FAQ states that Japan and South Korea are supported, with Japanese data supplied by Weathernews. The earlier conclusion that Japan was excluded was incorrect. However, Google Maps Platform service-specific terms prohibit using Weather API content to recreate a weather app or weather model whose primary purpose is weather information. The same terms limit caching to one hour for current conditions and hourly forecasts, 24 hours for daily forecasts, and 30 days for today's forecast. This is a significant mismatch with J.A.R.V.I.S.'s desired twice-daily retrieval and persistent last-success HUD cache. Google Weather API remains a candidate only if the ancillary-weather use within the broader assistant is confirmed as permitted and the cache/display design is changed to comply. Do not enable billing or create a key until that review is complete.
 
 ### Japan-capable candidates under review
 
@@ -59,7 +59,7 @@ Provider selection remains **OPEN**. Current findings: (1) JMA public data can g
 
 This section records current research. Google Weather API supports Japan, but is not selected yet; Google Cloud registration and billing remain deferred.
 
-- The official Weather API documentation lists current conditions, up to 10 days of daily forecasts, up to 240 hours of hourly forecasts, up to 24 hours of hourly history, and public weather alerts.
+- The official FAQ states that Japan and South Korea are supported, with Japanese data supplied by Weathernews. It lists current conditions, hourly and daily forecasts, hourly history, and public weather alerts. Current conditions refresh about every 15 minutes; hourly and daily forecasts about every 30 minutes.
 - Production use requires billing on the project and an API key or OAuth token on each request.
 - The current official pricing table lists a 10,000-request monthly free usage cap for the Weather Usage SKU, then a listed first paid tier of USD $0.15 per 1,000 requests (pricing tiers may vary by volume/region and must be rechecked before activation).
 - The official Google Maps Platform page offers a no-credit-card demo key for a controlled sandbox; this is for prototyping and must not be assumed to be a production credential.
