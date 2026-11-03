@@ -24,17 +24,17 @@ Small differences from real-world balances are acceptable. Safety, explicit prov
 - Edit, void, and search entries with ownership checks and an audit trail.
 - Prevent duplicate entries using explicit idempotency keys and source references.
 
-### Phase 3 — Payslip PDF import from Manato's Google Drive
-- Manato's connected Google Drive is the household's designated payslip document source. Kaede does not need to connect her own Drive.
-- Kaede gives her payslip PDF to Manato; Manato stores both his own and Kaede's payslip PDFs in his designated Drive folder.
-- Search only that designated folder or an explicitly selected file. Do not search unrelated Drive files.
-- Extract PDF text; use OCR only when the PDF is image-only.
-- Parse gross pay, itemized deductions, net pay, pay period, pay date, and any displayed deposit destination.
-- Identify whose payslip it is separately from who owns the Drive file. Treat parsed fields as unverified until checked/confirmed.
-- Store normalized fields and Drive file ID/link metadata; do not duplicate the PDF into the database.
-- Do not infer a bank account when the payslip does not explicitly identify one.
-- Both Manato's and Kaede's confirmed salary data are household-shared finance data, visible to both active household members. Do not classify household salary figures as private by default.
-- Keep the original PDF accessible only through Manato's authorized Drive connection; sharing parsed household data does not copy the file or change Drive permissions.
+### Phase 3 — Payslip and receipt import through J.A.R.V.I.S. chat attachments
+- Manato and Kaede each upload their own payslips, receipts, invoices, and supporting images directly from their device through their own authenticated J.A.R.V.I.S. account.
+- Google Drive is not the household document intake path. Neither member needs access to the other's Drive, and finance processing must not search either member's Drive.
+- Use the generic chat attachment flow: private temporary Storage, signed upload, server-side ownership validation, multimodal Gemini processing, and automatic cleanup.
+- Extract payslip gross pay, itemized deductions, net pay, pay period, pay date, and a deposit destination label only when explicitly displayed.
+- Extract receipt merchant, transaction date, total, and likely category as candidate fields.
+- Identify the salary subject separately from the uploader and the person who confirms the record.
+- Treat all extracted values as unverified candidates until the relevant owner reviews and confirms them. Do not create finance records from model extraction alone.
+- Store normalized confirmed fields and minimal attachment metadata. Temporary file bytes are deleted after processing unless the user explicitly asks to save the document.
+- Both members' confirmed and explicitly shared salary data are household-shared finance data, visible to both active household members. Conversations, personal memories, and unrelated attachments remain private.
+- Do not infer a bank account or deposit destination when the document does not explicitly identify one.
 
 ### Phase 4 — Balance snapshots and cash-flow forecast
 - User reports each account's real balance after the relevant withdrawals; that report becomes a dated baseline snapshot.
@@ -62,7 +62,7 @@ Small differences from real-world balances are acceptable. Safety, explicit prov
 - Server-side access only where appropriate; never expose service-role/secret keys to the browser.
 - Validate currency as integer yen; reject negative amounts unless represented as a typed refund/adjustment.
 - Use immutable event history or explicit correction records for financial edits.
-- Minimize salary PDF retention; retain only the source reference and confirmed normalized data unless the user explicitly chooses otherwise.
+- Minimize salary/receipt document retention; retain only confirmed normalized data and minimal source metadata unless the user explicitly chooses otherwise.
 - No Production deployment or live database migration without separate explicit approval.
 
 ## Suggested logical data model (not SQL)
@@ -72,7 +72,7 @@ Small differences from real-world balances are acceptable. Safety, explicit prov
 3. `finance_transactions`: income, expense, transfer, refund, adjustment; amount, date, category, person, account/card label, status, source, idempotency key.
 4. `finance_recurring_items`: recurring income and obligations.
 5. `finance_balance_snapshots`: manually reported account balance and as-of timestamp.
-6. `finance_documents`: Drive file ID, Drive owner, payslip subject/person, document type, parse status, confirmation metadata; no PDF binary.
+6. `finance_documents`: uploader, document subject/person, document type, temporary attachment reference or minimal saved-file metadata, parse status, confirmation metadata; no PDF/image binary in the database.
 7. `finance_audit_log`: append-only record of creation, confirmation, correction, and voiding.
 
 Final schema must be reconciled with existing auth/user model and current Supabase RLS patterns before any migration.
@@ -90,8 +90,8 @@ Final schema must be reconciled with existing auth/user model and current Supaba
 ## Implementation gates
 
 Before coding:
-1. Inspect the full current branch source and current auth/user model.
-2. Inspect Manato's existing Google Drive scopes and file-download implementation.
+1. Inspect the full current branch source, existing chat attachment implementation, and current auth/user model.
+2. Inspect private Storage bucket configuration, signed-upload handling, object ownership validation, Gemini multimodal handling, and cleanup behavior.
 3. Confirm separate authenticated accounts and shared household access (decision confirmed).
 4. Design RLS policies and tests.
 5. Check Vercel function count before adding endpoints.
@@ -102,6 +102,6 @@ Before database changes:
 3. Obtain explicit user approval for live Supabase migration.
 
 Before release:
-1. Unit/integration tests for calculations, duplicate prevention, card settlement, corrections, and permissions.
-2. Verify no secrets or PDF contents enter logs.
+1. Unit/integration tests for calculations, duplicate prevention, card settlement, corrections, permissions, attachment ownership, and cleanup.
+2. Verify no secrets, attachment contents, OCR text, or sensitive payroll values enter logs.
 3. Deploy Preview only; do not merge to main or deploy Production without explicit approval.
