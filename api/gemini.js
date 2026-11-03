@@ -1088,11 +1088,7 @@ module.exports = async function handler(req, res) {
     const serperKey = process.env.SERPER_API_KEY;
     const tavilyKey = process.env.TAVILY_API_KEY;
 
-    if (!geminiKey) {
-      return res.status(500).json({
-        error: "GEMINI_API_KEY is not configured",
-      });
-    }
+
 
     let searchContext = "";
     const sources = [];
@@ -1110,7 +1106,7 @@ module.exports = async function handler(req, res) {
       ? userMarker[1].trim()
       : rawText;
 
-    const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|雨が降|雪が降|傘が必要|週間予報|天気予報)/.test(userText);
+    const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|雨|雪|傘|寒い|暑い|冷え込む|暖かい)/.test(userText);
     if (weatherIntent) {
       if (!(await enforceRateLimit(res, user, "weather-chat-minute", 3, 60))) return;
       try {
@@ -1129,7 +1125,7 @@ module.exports = async function handler(req, res) {
         if (weeklyRequested && Array.isArray(forecast.weekly) && forecast.weekly.length) {
           const days = forecast.weekly.slice(0, 7).map(day => {
             const parts = [dateLabel(day.dateTime), day.weather || "天気未取得"];
-            if (day.high !== undefined || day.low !== undefined) parts.push("最高 " + temperatureLabel(day.high) + " / 最低 " + temperatureLabel(day.low));
+            if (Number.isFinite(day.high) || Number.isFinite(day.low)) parts.push("最高 " + temperatureLabel(day.high) + " / 最低 " + temperatureLabel(day.low));
             if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率 " + day.precipitationProbability + "%");
             return parts.join("：");
           });
@@ -1140,7 +1136,7 @@ module.exports = async function handler(req, res) {
           const tomorrowDate = tomorrow.toISOString().slice(0, 10);
           const day = forecast.weekly.find(item => String(item.dateTime || "").slice(0, 10) === tomorrowDate) || forecast.weekly[0];
           const parts = ["札幌の明日の予報は" + (day.weather || "天気未取得") + "です。"];
-          if (day.high !== undefined || day.low !== undefined) parts.push("最高気温は" + temperatureLabel(day.high) + "、最低気温は" + temperatureLabel(day.low) + "です。");
+          if (Number.isFinite(day.high) || Number.isFinite(day.low)) parts.push("最高気温は" + temperatureLabel(day.high) + "、最低気温は" + temperatureLabel(day.low) + "です。");
           if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率は" + day.precipitationProbability + "%です。");
           answer = parts.join(" ");
         } else if (weather.forecastValuesReady && forecast.current) {
@@ -1169,6 +1165,12 @@ module.exports = async function handler(req, res) {
       }
     }
 
+
+    if (!geminiKey) {
+      return res.status(500).json({
+        error: "GEMINI_API_KEY is not configured",
+      });
+    }
 
     // Spreadsheet registry is user-scoped and stored in Supabase memories, never in source code.
     const registrationUrls = [...userText.matchAll(/https?:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+[^\s<>"']*/g)];
