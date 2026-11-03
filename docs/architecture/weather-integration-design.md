@@ -36,11 +36,11 @@ Provide J.A.R.V.I.S. with reliable current conditions and forecasts for the user
 - **Japan Meteorological Agency (JMA) public data:** JMA publishes prefectural forecasts, weekly forecasts, observations, and machine-readable disaster-weather XML. Its information catalog documents forecast content and publication frequency. However, a stable, supported public REST forecast API/SLA is not established by these pages; website JSON endpoints used by third parties must be treated as undocumented and potentially changeable. Check JMA's content terms and attribution requirements before implementation.
 - **TenkiNow (unofficial AMeDAS observation API):** a no-key JSON service for nearby station observations, not forecasts. Its own documentation says it is unofficial, returns station observations rather than interpolated point estimates, and should not be used for safety-critical purposes. It could be an optional current-observation source, not the forecast source.
 - **Japan Weather Association Weather Data API:** Japan-specific high-resolution data and forecast coverage, but it is a paid commercial service. Its published pricing starts at JPY 32,000/month for credit-card billing; not appropriate for the current cost-minimizing household use unless the scope changes and the user explicitly approves.
-- **Google Weather API:** excluded for Japan due to the provider's stated coverage restriction.
+- **Google Weather API:** Japan is supported (Weathernews data), but usage restrictions and short cache periods may conflict with the persistent HUD requirement; see the correction above.
 
 ### Current decision
 
-Provider selection remains **OPEN**. Prefer a stable, Japan-supported, low-cost source with clear display/cache/redistribution terms. Do not commit to a paid provider or introduce a new API key until source coverage, legal terms, cost, and required forecast fields have been checked. Keep the internal normalized weather model provider-neutral so the UI and scheduler do not depend on one vendor.
+Provider selection remains **OPEN**. Current findings: (1) JMA public data can generally be reused under the JMA site terms with attribution and appropriate notes for edits, but undocumented website JSON endpoints are not stable contracts; (2) unofficial JMA wrapper APIs explicitly warn that their upstream endpoints may change or fail; (3) Google Weather API supports Japan, but its use and cache restrictions require a careful fit review; (4) JWA's supported commercial API starts at JPY 32,000/month and requires prior permission for commercial use and caching, so it is out of scope for now. The next step is to evaluate official JMA machine-readable XML and the exact permitted use for a private household assistant. Keep the normalized weather model provider-neutral.
 
 ## Proposed architecture
 
@@ -55,16 +55,16 @@ Provider selection remains **OPEN**. Prefer a stable, Japan-supported, low-cost 
 9. On-demand voice requests should refresh or return a sufficiently recent cached result according to an explicit freshness rule. The assistant must state the observation/update time and distinguish current conditions from forecast.
 10. Keep general web search available for questions outside the structured forecast scope; avoid making a second paid search call when a successful dedicated weather result already answers the request.
 
-## Previously researched Google Weather API pricing and access (not selected for Japan)
+## Google Weather API — corrected coverage, restrictions, and pricing
 
-This section is retained as historical research only. Google Weather API is not selected for Japan and Google Cloud registration is deferred.
+This section records current research. Google Weather API supports Japan, but is not selected yet; Google Cloud registration and billing remain deferred.
 
 - The official Weather API documentation lists current conditions, up to 10 days of daily forecasts, up to 240 hours of hourly forecasts, up to 24 hours of hourly history, and public weather alerts.
-- Google documents that production use requires billing on the project and an API key or OAuth token on each request. This is not actionable for Japan because the API does not cover Japan.
+- Production use requires billing on the project and an API key or OAuth token on each request.
 - The current official pricing table lists a 10,000-request monthly free usage cap for the Weather Usage SKU, then a listed first paid tier of USD $0.15 per 1,000 requests (pricing tiers may vary by volume/region and must be rechecked before activation).
 - The official Google Maps Platform page offers a no-credit-card demo key for a controlled sandbox; this is for prototyping and must not be assumed to be a production credential.
-- With only two scheduled refreshes per day, a single endpoint would use about 60 requests per 30-day month per configured location, excluding on-demand requests. Separate current-conditions, hourly, and daily endpoints multiply that count. This estimate is historical and not relevant to the Japan provider decision.
-- Do not activate billing or create/rotate production API keys without explicit user approval. Google Weather API is not selected for Japan.
+- At two scheduled refreshes per day, one endpoint would use about 60 requests per 30-day month per configured location; each additional endpoint queried on each refresh adds another 60. On-demand refreshes add requests. The official price list currently shows 10,000 free monthly Weather Usage events, then USD $0.15 per 1,000 events in the first paid tier. A valid billing account is still required.
+- Critical terms: current conditions and hourly forecast values may be cached for only one hour; daily forecast values for 24 hours; today's forecast for 30 days; hourly history for 240 hours; public alerts for one hour. Google also prohibits using Weather API content to recreate a weather app or weather model whose primary purpose is weather information. This may be compatible with a broader assistant that has an ancillary weather panel, but that interpretation must not be assumed without review. The one-hour cache limit conflicts with keeping the last successful current/hourly data visible between the 07:30 and 22:00 scheduled refreshes. Do not activate billing or create/rotate API keys without explicit user approval.
 
 ## Implementation phases
 
