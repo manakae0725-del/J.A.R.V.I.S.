@@ -1110,6 +1110,65 @@ module.exports = async function handler(req, res) {
       ? userMarker[1].trim()
       : rawText;
 
+    const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|雨が降|雪が降|傘が必要|週間予報|天気予報)/.test(userText);
+    if (weatherIntent) {
+      if (!(await enforceRateLimit(res, user, "weather-chat-minute", 3, 60))) return;
+      try {
+        const weather = await inspectLatestForecast();
+        const forecast = weather.forecast || {};
+        const weeklyRequested = /(?:週間|今週|7日間|一週間|７日間)/.test(userText);
+        const tomorrowRequested = /(?:明日|あした|翌日)/.test(userText);
+        const dateLabel = value => {
+          const date = new Date(value);
+          return Number.isFinite(date.getTime())
+            ? date.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short" })
+            : "日付不明";
+        };
+        const temperatureLabel = value => Number.isFinite(value) ? value + "℃" : "未取得";
+        let answer = "";
+        if (weeklyRequested && Array.isArray(forecast.weekly) && forecast.weekly.length) {
+          const days = forecast.weekly.slice(0, 7).map(day => {
+            const parts = [dateLabel(day.dateTime), day.weather || "天気未取得"];
+            if (day.high !== undefined || day.low !== undefined) parts.push("最高 " + temperatureLabel(day.high) + " / 最低 " + temperatureLabel(day.low));
+            if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率 " + day.precipitationProbability + "%");
+            return parts.join("：");
+          });
+          answer = "札幌の週間予報です。\n" + days.join("\n");
+        } else if (tomorrowRequested && Array.isArray(forecast.weekly) && forecast.weekly.length) {
+          const tomorrow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+          tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+          const tomorrowDate = tomorrow.toISOString().slice(0, 10);
+          const day = forecast.weekly.find(item => String(item.dateTime || "").slice(0, 10) === tomorrowDate) || forecast.weekly[0];
+          const parts = ["札幌の明日の予報は" + (day.weather || "天気未取得") + "です。"];
+          if (day.high !== undefined || day.low !== undefined) parts.push("最高気温は" + temperatureLabel(day.high) + "、最低気温は" + temperatureLabel(day.low) + "です。");
+          if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率は" + day.precipitationProbability + "%です。");
+          answer = parts.join(" ");
+        } else if (weather.forecastValuesReady && forecast.current) {
+          const current = forecast.current;
+          const currentTime = new Date(current.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
+          answer = "札幌の" + currentTime + "からの予報は" + current.weather + "、気温は" + temperatureLabel(current.temperature) + "です。";
+          const highLow = forecast.todayHighLow || {};
+          const extremes = [];
+          if (Number.isFinite(highLow.high)) extremes.push("最高 " + highLow.high + "℃");
+          if (Number.isFinite(highLow.low)) extremes.push("最低 " + highLow.low + "℃");
+          if (extremes.length) answer += " 今日の予想気温は" + extremes.join("、") + "です。";
+          const next = (forecast.threeHourly || []).filter(item => Date.parse(item.dateTime) > Date.parse(current.dateTime)).slice(0, 3);
+          if (next.length) answer += "\n続く予報：" + next.map(item => {
+            const time = new Date(item.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
+            return time + " " + (item.weather || "天気未取得") + " " + temperatureLabel(item.temperature);
+          }).join("、");
+        } else {
+          answer = "気象庁のデータ取得はできましたが、札幌の有効な予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
+        }
+        answer += "\n" + weather.attribution;
+        return calendarDirect(res, answer, answer, { weather });
+      } catch (error) {
+        console.warn("[WEATHER] JMA forecast request failed", { code: typeof error?.message === "string" ? error.message : "JMA_WEATHER_ERROR" });
+        const message = "気象庁の札幌予報を取得できませんでした。時間をおいて再度お試しください。";
+        return calendarDirect(res, message, message);
+      }
+    }
+
 
     // Spreadsheet registry is user-scoped and stored in Supabase memories, never in source code.
     const registrationUrls = [...userText.matchAll(/https?:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+[^\s<>"']*/g)];
