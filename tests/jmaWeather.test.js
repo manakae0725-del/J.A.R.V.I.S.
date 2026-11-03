@@ -141,7 +141,7 @@ test("parses Sapporo three-hour weather and temperature from VPFD51 XML", () => 
           <WindDirectionPart><jmx_eb:WindDirection refID="1">北</jmx_eb:WindDirection></WindDirectionPart>
           <WindSpeedPart><jmx_eb:WindSpeedLevel refID="1">2</jmx_eb:WindSpeedLevel></WindSpeedPart>
         </Property></Kind>
-        <Area><Name>石狩地方</Name><Code>016010</Code></Area>
+        <Area><Name>石狩・空知・後志地方</Name><Code>016000</Code></Area>
       </Item>
     </TimeSeriesInfo></MeteorologicalInfos>
     <MeteorologicalInfos type="地点予報"><TimeSeriesInfo>
@@ -192,5 +192,6 @@ test("parses Sapporo weekly weather, precipitation, and temperatures from VPFW50
     </TimeSeriesInfo></MeteorologicalInfos>
   </Body></Report>`;
   const parsed = parseVpfw50Forecast(xml);
+  assert.deepEqual(parsed.area, { name: "石狩・空知・後志地方", code: "016000" });
   assert.deepEqual(parsed.days, [{ dateTime: "2026-11-04T00:00:00+09:00", weather: "雪", precipitationProbability: 60, high: 4, low: -3 }]);
 });
