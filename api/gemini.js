@@ -1109,7 +1109,7 @@ module.exports = async function handler(req, res) {
     const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|週間予報|週間天気|傘|(?:今日|明日|今夜|明後日|週末|今週).{0,8}(?:雨|雪|晴れ|曇り|寒|暑)|(?:雨|雪)(?:が|は|降る|降り|の予報)|札幌.{0,6}(?:雨|雪|晴れ|曇り|気温)|(?:寒い|暑い|冷え込む|暖かい))/.test(userText);
     if (weatherIntent) {
       const locationQuery = userText.replace(/(?:今日|本日|明日|あした|明後日|あさって|今夜|今朝|週末|今週|来週|現在)(?:の)?/g, "");
-      const requestedLocation = locationQuery.match(/([^\\s、,。?？のはで]{1,12})(?:の|は|で)?(?:天気|気温|天候|降水確率|雨|雪|晴れ|曇り)/)?.[1] || null;
+      const requestedLocation = locationQuery.match(/([^\s、,。?？のはで]{1,12})(?:の|は|で)?(?:天気|気温|天候|降水確率|雨|雪|晴れ|曇り)/)?.[1] || null;
       if (requestedLocation && !/(?:札幌|石狩)/.test(requestedLocation)) {
         const message = "現在の天気機能は札幌（石狩地方）を標準地点として対応しています。指定された地域の予報はまだ取得できません。";
         return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
