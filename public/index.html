@@ -244,6 +244,24 @@ flex-direction: column;
 align-items: center;
 gap: 4px;
 }
+.weather-meta {
+font-size: 8px;
+line-height: 1.45;
+color: #6798bd;
+margin-top: 7px;
+white-space: pre-line;
+overflow-wrap: anywhere;
+}
+.weather-refresh {
+background: transparent;
+border: 1px solid rgba(70, 170, 230, .35);
+border-radius: 4px;
+color: #8acfff;
+font-size: 9px;
+padding: 2px 6px;
+cursor: pointer;
+}
+.weather-refresh:disabled { opacity: .55; cursor: default; }
 /* 通知・ログリストスタイル */
 .notif-item {
 display: flex;
@@ -631,7 +649,7 @@ POWER
 <div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">WEATHER</span>
-<span class="hud-dots">...</span>
+<button id="weatherRefresh" class="weather-refresh" type="button">更新</button>
 </div>
 <div class="weather-main-box">
   <div>
@@ -647,6 +665,7 @@ POWER
 <div class="hourly-forecast-grid" id="weatherHourly">
   <div class="hourly-col"><span>予報</span><span>未取得</span></div>
 </div>
+<div class="weather-meta" id="weatherMeta">気象庁データ未取得</div>
 </div>
 </div><div class="hud-card">
 <div class="hud-card-header">
@@ -1622,6 +1641,101 @@ async function backgroundApiRequest(payload) {
     return data;
 }
 
+let jmaWeatherLoading = false;
+let jmaWeatherLastUserId = null;
+
+function formatJmaTime(value) {
+    if (!value) return "--:--";
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "--:--";
+    return date.toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
+}
+
+function renderJmaWeather(data) {
+    const location = document.getElementById("weatherLocation");
+    const temperature = document.getElementById("weatherTemp");
+    const condition = document.getElementById("weatherCondition");
+    const highLow = document.getElementById("weatherHighLow");
+    const hourly = document.getElementById("weatherHourly");
+    const meta = document.getElementById("weatherMeta");
+    const forecast = data && data.forecast ? data.forecast : {};
+    const current = forecast.current;
+    if (!data || data.forecastValuesReady !== true || !current) {
+        location.textContent = "札幌";
+        temperature.textContent = "--°C";
+        condition.textContent = "有効な予報データなし";
+        highLow.replaceChildren();
+        hourly.replaceChildren();
+        const empty = document.createElement("div");
+        empty.className = "hourly-col";
+        empty.textContent = "予報未取得";
+        hourly.appendChild(empty);
+        meta.textContent = (data && data.note ? data.note + "\n" : "") + (data && data.inspectedTelegram ? "発表 " + data.inspectedTelegram.reportDateTime + "\n" : "") + data.attribution;
+        return;
+    }
+    location.textContent = "札幌・" + formatJmaTime(current.dateTime) + "予報";
+    temperature.textContent = current.temperature === null ? "--°C" : current.temperature + "°C";
+    condition.textContent = current.weather || "天気予報なし";
+    const highLowData = forecast.todayHighLow || {};
+    highLow.replaceChildren();
+    const high = document.createElement("div");
+    const low = document.createElement("div");
+    high.textContent = "H: " + (highLowData.high === null || highLowData.high === undefined ? "--" : highLowData.high) + "°C";
+    low.textContent = "L: " + (highLowData.low === null || highLowData.low === undefined ? "--" : highLowData.low) + "°C";
+    highLow.append(high, low);
+    hourly.replaceChildren();
+    const entries = Array.isArray(forecast.threeHourly) ? forecast.threeHourly.filter(item => item && item.dateTime).slice(0, 4) : [];
+    for (const item of entries) {
+        const column = document.createElement("div");
+        column.className = "hourly-col";
+        const time = document.createElement("span");
+        const weather = document.createElement("span");
+        const temp = document.createElement("span");
+        time.textContent = formatJmaTime(item.dateTime);
+        weather.textContent = item.weather || "--";
+        temp.textContent = item.temperature === null || item.temperature === undefined ? "--°" : item.temperature + "°";
+        column.append(time, weather, temp);
+        hourly.appendChild(column);
+    }
+    meta.textContent = "発表 " + (data.inspectedTelegram?.reportDateTime || "時刻不明") + " / 取得 " + formatJmaTime(data.fetchedAt) + "\n" + data.attribution;
+}
+
+async function refreshJmaWeather(force = false) {
+    const userId = window.jarvisCurrentUserId || null;
+    const button = document.getElementById("weatherRefresh");
+    const condition = document.getElementById("weatherCondition");
+    if (!userId || jmaWeatherLoading || (!force && jmaWeatherLastUserId === userId)) return;
+    jmaWeatherLoading = true;
+    jmaWeatherLastUserId = userId;
+    if (button) button.disabled = true;
+    if (condition) condition.textContent = "気象庁データ取得中...";
+    try {
+        const response = await backgroundApiRequest({ mode: "weather-source-check" });
+        if (userId !== window.jarvisCurrentUserId) return;
+        renderJmaWeather(response.weather || null);
+    } catch (error) {
+        if (userId === window.jarvisCurrentUserId) {
+            if (condition) condition.textContent = String(error?.message || "天気データ取得失敗").includes("PREVIEW_ONLY_TEST") ? "Preview限定機能" : "気象庁データ取得失敗";
+            const meta = document.getElementById("weatherMeta");
+            if (meta) meta.textContent = "更新ボタンから再試行できます。";
+        }
+    } finally {
+        jmaWeatherLoading = false;
+        if (button) button.disabled = false;
+    }
+}
+
+document.getElementById("weatherRefresh")?.addEventListener("click", () => refreshJmaWeather(true));
+window.addEventListener("jarvis-auth-change", event => {
+    if (event.detail?.userId) {
+        jmaWeatherLastUserId = null;
+        refreshJmaWeather();
+    } else {
+        jmaWeatherLastUserId = null;
+        renderJmaWeather(null);
+    }
+});
+if (window.jarvisCurrentUserId) refreshJmaWeather();
 async function createBackgroundTask(text) {
     const response = document.getElementById("voiceResponse");
     const panel = document.getElementById("jarvisHoloPanel");
