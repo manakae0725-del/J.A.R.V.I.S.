@@ -289,6 +289,38 @@ create trigger finance_payroll_details_validate
 before insert or update on public.finance_payroll_details
 for each row execute function public.finance_validate_payroll_detail();
 
+-- Keep payroll ledger invariants valid when the linked transaction is edited later.
+create or replace function public.finance_validate_transaction_payroll_link()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public
+as $
+declare
+  payroll_net bigint;
+begin
+  select net_jpy
+    into payroll_net
+    from public.finance_payroll_details
+   where household_id = old.household_id
+     and transaction_id = old.id;
+
+  if found and (
+       new.kind <> 'income'
+       or new.status <> 'confirmed'
+       or new.amount_jpy <> payroll_net
+       or new.household_id <> old.household_id
+       or new.id <> old.id
+     ) then
+    raise exception 'Transaction is linked to payroll detail; kind, status, amount, household and id must remain consistent';
+  end if;
+
+  return new;
+end;
+$;
+create trigger finance_transactions_validate_payroll_link
+before update on public.finance_transactions
+for each row execute function public.finance_validate_transaction_payroll_link();
+
 -- Finance tables are server-only. No browser role gets Data API privileges.
 alter table public.finance_households enable row level security;
 alter table public.finance_household_members enable row level security;
@@ -333,5 +365,6 @@ to service_role;
 -- Trigger functions are not intended as callable RPC endpoints.
 revoke all on function public.finance_reject_audit_mutation() from public, anon, authenticated;
 revoke all on function public.finance_validate_payroll_detail() from public, anon, authenticated;
+revoke all on function public.finance_validate_transaction_payroll_link() from public, anon, authenticated;
 
 commit;
