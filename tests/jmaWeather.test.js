@@ -141,7 +141,7 @@ test("parses Sapporo three-hour weather and temperature from VPFD51 XML", () => 
           <WindDirectionPart><jmx_eb:WindDirection refID="1">北</jmx_eb:WindDirection></WindDirectionPart>
           <WindSpeedPart><jmx_eb:WindSpeedLevel refID="1">2</jmx_eb:WindSpeedLevel></WindSpeedPart>
         </Property></Kind>
-        <Area><Name>石狩・空知・後志地方</Name><Code>016000</Code></Area>
+        <Area><Name>石狩地方</Name><Code>016010</Code></Area>
       </Item>
     </TimeSeriesInfo></MeteorologicalInfos>
     <MeteorologicalInfos type="地点予報"><TimeSeriesInfo>
@@ -179,7 +179,7 @@ test("parses Sapporo weekly weather, precipitation, and temperatures from VPFW50
       <Item>
         <Kind><Property><Type>天気</Type><WeatherPart><jmx_eb:Weather refID="1">雪</jmx_eb:Weather></WeatherPart></Property></Kind>
         <Kind><Property><Type>降水確率</Type><ProbabilityOfPrecipitationPart><jmx_eb:ProbabilityOfPrecipitation refID="1">60</jmx_eb:ProbabilityOfPrecipitation></ProbabilityOfPrecipitationPart></Property></Kind>
-        <Area><Name>石狩地方</Name><Code>016010</Code></Area>
+        <Area><Name>石狩・空知・後志地方</Name><Code>016000</Code></Area>
       </Item>
     </TimeSeriesInfo></MeteorologicalInfos>
     <MeteorologicalInfos type="地点予報"><TimeSeriesInfo>
