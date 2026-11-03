@@ -65,7 +65,40 @@ Small differences from real-world balances are acceptable. Safety, explicit prov
 - Minimize salary/receipt document retention; retain only confirmed normalized data and minimal source metadata unless the user explicitly chooses otherwise.
 - No Production deployment or live database migration without separate explicit approval.
 
-## Suggested logical data model (not SQL)
+## Verified implementation baseline (2026-11-03)
+
+- Supabase project is active on PostgreSQL 17.6.1.
+- Current public tables are limited to J.A.R.V.I.S. memories, API usage/rate limits, Google OAuth connections/state, and background tasks/steps/events. No household-finance tables exist.
+- Existing public tables have RLS enabled; the current `pg_policies` inspection returned no public-table policies. Existing application access is server-side and uses the Supabase secret key. Finance operations must therefore perform explicit household authorization in the server layer and must never expose the secret key.
+- Supabase Auth currently contains two users. This confirms two accounts exist, but does not by itself confirm which account belongs to which household member or whether both are allowlisted by the current J.A.R.V.I.S. deployment.
+- Current API authentication validates the bearer token with Supabase Auth and then checks `JARVIS_ALLOWED_USER_IDS`. Household membership must be checked separately after authentication; allowlisting alone is not household authorization.
+- No database schema, migration, finance API, or UI has been created for this feature.
+- Supabase changed Data API exposure defaults: new public tables are not automatically exposed to the Data API. Keep finance tables server-only unless a later design explicitly requires client access, and verify grants/settings before enabling any exposure.
+
+## Proposed logical data model (design only; not SQL)
+
+1. `finance_households`: household identity, display name, timezone (default Asia/Tokyo), created_by.
+2. `finance_household_members`: household_id, auth user_id, role, active/revoked status, invited_by, joined_at. Unique active membership per user/household. This is the authoritative sharing boundary.
+3. `finance_accounts`: household_id, user-defined display label, account type (cash/bank/card/e-money/other), currency (JPY), active flag. No account numbers or credentials.
+4. `finance_categories`: household_id, transaction kind, category name, display order, active flag. Seed common categories but allow household customization.
+5. `finance_transactions`: household_id, type (income/expense/transfer/refund/adjustment), positive integer amount_jpy, transaction/due dates, category, payer/recipient member, source and destination account labels, payment method, planned/confirmed/void status, description, idempotency key, created_by, source document reference.
+6. `finance_payroll_details`: transaction_id, salary subject member, pay period, gross amount, itemized deductions (structured JSON or child rows), net amount, expected pay date, actual receipt date. The ledger cash-flow amount is the confirmed net amount; gross and deductions remain separately analyzable.
+7. `finance_recurring_items`: household_id, income/expense type, label, amount or estimate, recurrence rule, next due date, account, responsible member, active flag.
+8. `finance_balance_snapshots`: household_id, account_id, reported integer balance, as-of timestamp, reported_by, note. Snapshots are immutable; a new report creates a new row.
+9. `finance_documents`: household_id, uploader user_id, document subject member, document type, minimal source metadata, parse/confirmation status, linked transaction_id, confirmed_by/at. Do not store file bytes or full extracted OCR text by default.
+10. `finance_audit_events`: household_id, actor user_id, target table/row, action, before/after minimal JSON, reason, created_at. Append-only; corrections and voids are new events, not silent destructive edits.
+
+### Core relationship and accounting rules
+
+- Every finance row is household-scoped. The server derives the caller from the validated Supabase session and checks active membership on every operation. Never trust client-supplied user_id, household_id, role, created_by, or visibility.
+- Manato and Kaede remain separate Auth users. Their household membership grants access to shared finance rows; it does not grant access to each other's conversations, memories, Google connections, or unrelated files.
+- Member identity (who the income/expense belongs to) is distinct from the actor (who entered or confirmed it).
+- Use positive integer yen amounts; the transaction type determines the accounting direction. Refunds and corrections are explicit typed records.
+- Transfers are linked source/destination account movements and are excluded from income/expense totals. Credit-card purchases count as expenses; later card settlement is a transfer/settlement, not a second expense.
+- A salary record's cash-flow amount is net pay. Gross pay and deductions are retained as payroll detail for analysis.
+- Planned, confirmed, imported-unconfirmed, and voided records must remain distinguishable in queries and UI.
+- Balance snapshots are reported facts. Forecasts are calculated separately from the latest snapshot and future known events.
+
 
 1. `finance_people`: household members / payer identity.
 2. `finance_accounts`: display labels and account type only; no bank identifiers.
