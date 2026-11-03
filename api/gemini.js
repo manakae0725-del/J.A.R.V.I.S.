@@ -1106,7 +1106,7 @@ module.exports = async function handler(req, res) {
       ? userMarker[1].trim()
       : rawText;
 
-    const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|雨|雪|傘|寒い|暑い|冷え込む|暖かい)/.test(userText);
+    const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|傘|(?:今日|明日|今夜|明後日|週末|今週).{0,8}(?:雨|雪|晴れ|曇り|寒|暑)|(?:雨|雪)(?:が|は|降る|降り|の予報)|札幌.{0,6}(?:雨|雪|晴れ|曇り|気温)|(?:寒い|暑い|冷え込む|暖かい))/.test(userText);
     if (weatherIntent) {
       if (!(await enforceRateLimit(res, user, "weather-chat-minute", 3, 60))) return;
       try {
@@ -1156,6 +1156,8 @@ module.exports = async function handler(req, res) {
         } else {
           answer = "気象庁のデータ取得はできましたが、札幌の有効な予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
         }
+        const formatStamp = value => value ? new Date(value).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "不明";
+        answer += "\n発表 " + formatStamp(weather.inspectedTelegram?.reportDateTime) + " / 取得 " + formatStamp(weather.fetchedAt);
         answer += "\n" + weather.attribution;
         return calendarDirect(res, answer, answer, { weather });
       } catch (error) {
