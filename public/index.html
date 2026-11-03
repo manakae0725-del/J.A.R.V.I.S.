@@ -1725,6 +1725,7 @@ async function refreshJmaWeather(force = false) {
     } finally {
         jmaWeatherLoading = false;
         if (button) button.disabled = false;
+        if (window.jarvisCurrentUserId && window.jarvisCurrentUserId !== userId) refreshJmaWeather();
     }
 }
 
