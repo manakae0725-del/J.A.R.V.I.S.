@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { parseFeedEntries, readTag } = require("../lib/jmaWeather");
+const { parseFeedEntries, readTag, extractForecastAreas, findSapporoArea } = require("../lib/jmaWeather");
 
 test("selects JMA VPFD51 and VPFW50 telegrams from Atom feed", () => {
   const xml = `<?xml version="1.0"?>
@@ -50,4 +50,11 @@ test("reads namespaced XML tags and decodes entities", () => {
 
 test("returns null for absent XML tags", () => {
   assert.equal(readTag("<Report><Title>Weather</Title></Report>", "Missing"), null);
+});
+
+test("extracts forecast area codes and names from Area elements", () => {
+  const xml = `<Report><Area code="016000"><Name>石狩地方</Name><Area code="016010"><Name>札幌</Name></Area></Area></Report>`;
+  const areas = extractForecastAreas(xml);
+  assert.deepEqual(areas, [{ code: "016000", name: "石狩地方" }, { code: "016010", name: "札幌" }]);
+  assert.deepEqual(findSapporoArea(areas), { code: "016010", name: "札幌" });
 });
