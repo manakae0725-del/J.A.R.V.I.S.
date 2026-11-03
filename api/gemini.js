@@ -683,6 +683,9 @@ module.exports = async function handler(req, res) {
   if (!user) return;
 
   if (req.body && req.body.mode === "weather-source-check") {
+    if (process.env.VERCEL_ENV !== "preview") {
+      return res.status(403).json({ ok: false, error: "PREVIEW_ONLY_TEST" });
+    }
     if (!(await enforceRateLimit(res, user, "weather-source-check-minute", 3, 60))) return;
     try {
       const result = await inspectLatestForecast();
