@@ -62,11 +62,13 @@ test("extracts nested Area elements with XML namespaces and attribute variations
   const xml = `<j:Report xmlns:j="urn:jma">
     <j:Area name="region">
       <j:Name>石狩地方</j:Name><j:Code codeType="AreaForecast">1400</j:Code>
+      <j:Area><j:Name>石狩中部</j:Name><j:Code>1420</j:Code></j:Area>
     </j:Area>
   </j:Report>`;
   const areas = extractForecastAreas(xml);
   assert.deepEqual(areas, [
-    { code: "1400", name: "石狩地方" }
+    { code: "1400", name: "石狩地方" },
+    { code: "1420", name: "石狩中部" }
   ]);
   assert.deepEqual(findSapporoArea(areas), { code: "1400", name: "石狩地方" });
 });
