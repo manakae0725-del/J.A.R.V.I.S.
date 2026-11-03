@@ -53,24 +53,24 @@ test("returns null for absent XML tags", () => {
 });
 
 test("extracts forecast area codes and names from Area elements", () => {
-  const xml = `<Report><Area><Name>石狩地方</Name><Code>1400</Code></Area></Report>`;
+  const xml = `<Report><Area><Name>石狩地方</Name><Code>016010</Code></Area></Report>`;
   const areas = extractForecastAreas(xml);
-  assert.deepEqual(areas, [{ code: "1400", name: "石狩地方" }]);
-  assert.deepEqual(findSapporoArea(areas), { code: "1400", name: "石狩地方" });
+  assert.deepEqual(areas, [{ code: "016010", name: "石狩地方" }]);
+  assert.deepEqual(findSapporoArea(areas), { code: "016010", name: "石狩地方" });
 });
 test("extracts nested Area elements with XML namespaces and attribute variations", () => {
   const xml = `<j:Report xmlns:j="urn:jma">
     <j:Area name="region">
-      <j:Name>石狩地方</j:Name><j:Code codeType="AreaForecast">1400</j:Code>
-      <j:Area><j:Name>石狩中部</j:Name><j:Code>1420</j:Code></j:Area>
+      <j:Name>石狩地方</j:Name><j:Code codeType="AreaForecast">016010</j:Code>
+      <j:Area><j:Name>石狩中部</j:Name><j:Code>016020</j:Code></j:Area>
     </j:Area>
   </j:Report>`;
   const areas = extractForecastAreas(xml);
   assert.deepEqual(areas, [
-    { code: "1400", name: "石狩地方" },
-    { code: "1420", name: "石狩中部" }
+    { code: "016010", name: "石狩地方" },
+    { code: "016020", name: "石狩中部" }
   ]);
-  assert.deepEqual(findSapporoArea(areas), { code: "1400", name: "石狩地方" });
+  assert.deepEqual(findSapporoArea(areas), { code: "016010", name: "石狩地方" });
 });
 
 test("ignores Area elements without a code or name", () => {
@@ -84,15 +84,15 @@ test("ignores Area elements without a code or name", () => {
 });
 test("extracts the Sapporo representative station independently from its forecast area", () => {
   const xml = `<Report>
-    <MeteorologicalInfos type="区域予報"><TimeSeriesInfo><Item><Area><Name>石狩地方</Name><Code>1400</Code></Area></Item></TimeSeriesInfo></MeteorologicalInfos>
-    <MeteorologicalInfos type="地点予報"><TimeSeriesInfo><Item><Station><Name>札幌</Name><Code>47412</Code></Station></Item></TimeSeriesInfo></MeteorologicalInfos>
+    <MeteorologicalInfos type="区域予報"><TimeSeriesInfo><Item><Area><Name>石狩地方</Name><Code>016010</Code></Area></Item></TimeSeriesInfo></MeteorologicalInfos>
+    <MeteorologicalInfos type="地点予報"><TimeSeriesInfo><Item><Station><Name>札幌</Name><Code>14163</Code></Station></Item></TimeSeriesInfo></MeteorologicalInfos>
   </Report>`;
   const stations = extractForecastStations(xml);
-  assert.deepEqual(stations, [{ code: "47412", name: "札幌" }]);
-  assert.deepEqual(findSapporoStation(stations), { code: "47412", name: "札幌" });
+  assert.deepEqual(stations, [{ code: "14163", name: "札幌" }]);
+  assert.deepEqual(findSapporoStation(stations), { code: "14163", name: "札幌" });
   assert.deepEqual(findSapporoForecastTargets(xml), {
-    area: { code: "1400", name: "石狩地方" },
-    station: { code: "47412", name: "札幌" }
+    area: { code: "016010", name: "石狩地方" },
+    station: { code: "14163", name: "札幌" }
   });
 });
 test("classifies JMA forecast publication, correction, and cancellation", () => {
@@ -105,7 +105,7 @@ test("summarizes namespaced VPFD51 MeteorologicalInfos and TimeSeriesInfo struct
   const xml = `<j:Report xmlns:j="urn:jma"><j:Body>
     <j:MeteorologicalInfos type="区域予報"><j:TimeSeriesInfo>
       <j:TimeDefines><j:TimeDefine timeId="1"><j:DateTime>2026-11-03T18:00:00+09:00</j:DateTime></j:TimeDefine></j:TimeDefines>
-      <j:Item><j:Kind><j:Property><j:Type>３時間内卓越天気</j:Type></j:Property></j:Kind><j:Area><j:Name>石狩地方</j:Name><j:Code>1400</j:Code></j:Area></j:Item>
+      <j:Item><j:Kind><j:Property><j:Type>３時間内卓越天気</j:Type></j:Property></j:Kind><j:Area><j:Name>石狩地方</j:Name><j:Code>016010</j:Code></j:Area></j:Item>
     </j:TimeSeriesInfo></j:MeteorologicalInfos>
   </j:Body></j:Report>`;
   const summary = summarizeForecastStructure(xml);
