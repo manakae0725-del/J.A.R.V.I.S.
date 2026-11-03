@@ -1194,9 +1194,12 @@ module.exports = async function handler(req, res) {
             return date + time + " " + (item.weather || "天気未取得") + " " + temperatureLabel(item.temperature);
           }).join("、");
         } else {
-          answer = "気象庁のデータ取得はできましたが、selectedArea.label + "の有効な予報値を確認できませんでした。未確認の天気や気温はお伝えしません。"";
+          answer = selectedArea.label + "の有効な予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
         }
         const formatStamp = value => value ? new Date(value).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "不明";
+        if (selectedArea.representativeStation && forecast.targets?.station?.name) {
+          answer += "\n気温は代表地点（" + forecast.targets.station.name + "）の予報値です。";
+        }
         answer += "\n発表 " + formatStamp(weather.inspectedTelegram?.reportDateTime) + " / 取得 " + formatStamp(weather.fetchedAt);
         answer += "\n" + weather.attribution;
         return calendarDirect(res, answer, answer, { weather, interactionId: previousInteractionId || null });
