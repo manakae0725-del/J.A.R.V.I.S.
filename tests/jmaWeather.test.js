@@ -172,6 +172,8 @@ test("parses Sapporo three-hour weather and temperature from VPFD51 XML", () => 
   assert.equal(parsed.current.windDirection, "北");
   assert.equal(parsed.current.windSpeedLevel, 2);
   assert.deepEqual(parsed.todayHighLow, { date: "2026-11-03", high: 8, low: 1 });
+  const active = parseVpfd51Forecast(xml, Date.parse("2026-11-03T13:00:00+09:00"));
+  assert.equal(active.current.dateTime, "2026-11-03T12:00:00+09:00");
 });
 
 test("parses Sapporo weekly weather, precipitation, and temperatures from VPFW50 XML", () => {
