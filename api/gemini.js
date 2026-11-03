@@ -62,6 +62,7 @@ const { googleApiRequest } = require("./_google/client");
 
 const crypto = require("crypto");
 const backgroundTasks = require("../lib/backgroundTasks");
+const { inspectLatestForecast } = require("../lib/jmaWeather");
 
 const SPREADSHEET_REGISTRY_CATEGORY = "jarvis_spreadsheet_registry";
 
@@ -680,6 +681,23 @@ module.exports = async function handler(req, res) {
 
   const user = await requireAuth(req, res);
   if (!user) return;
+
+  if (req.body && req.body.mode === "weather-source-check") {
+    if (!(await enforceRateLimit(res, user, "weather-source-check-minute", 3, 60))) return;
+    try {
+      const result = await inspectLatestForecast();
+      return res.status(200).json({ ok: true, weather: result });
+    } catch (error) {
+      console.warn("[WEATHER] JMA source inspection failed", {
+        code: typeof error?.message === "string" ? error.message : "JMA_SOURCE_ERROR"
+      });
+      return res.status(502).json({
+        ok: false,
+        error: "JMA_WEATHER_SOURCE_UNAVAILABLE",
+        message: "気象庁の天気データを確認できませんでした。"
+      });
+    }
+  }
 
   if (req.body && req.body.mode === "attachment-delete") {
     const supabaseUrl = process.env.SUPABASE_URL;
