@@ -59,6 +59,7 @@ test("extracts forecast area codes and names from Area elements", () => {
   const areas = extractForecastAreas(xml);
   assert.deepEqual(areas, [{ code: "016010", name: "石狩地方" }]);
   assert.deepEqual(findSapporoArea(areas), { code: "016010", name: "石狩地方" });
+  assert.deepEqual(findSapporoArea([{ code: "016000", name: "石狩・空知・後志地方" }]), { code: "016000", name: "石狩・空知・後志地方" });
 });
 test("extracts nested Area elements with XML namespaces and attribute variations", () => {
   const xml = `<j:Report xmlns:j="urn:jma">
