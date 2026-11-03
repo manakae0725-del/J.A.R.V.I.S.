@@ -2,7 +2,7 @@
 
 Date: 2026-11-02
 Branch: `perf/response-speed-memory-cache`
-Status: design only; no code, Storage bucket, database, or deployment changes made.
+Status: generic attachment flow implemented on the development branch; finance-specific parsing and persistence remain design-only. Video support is deferred.
 
 ## Goal
 
@@ -13,12 +13,15 @@ Allow a user to attach files and images directly in the J.A.R.V.I.S. chat compos
 
 Google Drive is not a prerequisite for household finance. Kaede does not need access to Manato's Drive. Each user uploads their own file through their own authenticated J.A.R.V.I.S. session.
 
-## Existing code facts
+## Implemented code facts (development branch)
 
-- The chat composer is `#textInput` with `#sendButton` in `public/index.html`.
-- `sendToGemini(text, options)` builds a JSON request to `/api/gemini` and uses the existing streaming response reader.
-- The current request body carries text, commander flag, previous interaction ID, memory context, and pending calendar action. There is no file input, attachment metadata, or binary upload flow.
-- `api/gemini.js` currently processes text-oriented conversation requests. It calls the Gemini Interactions API using a string input in the inspected paths.
+- The chat composer in `public/index.html` supports selecting image, PDF, and plain-text attachments.
+- Attachments are sent through the existing `/api/gemini` route; no separate API route was added for upload handling.
+- `api/gemini.js` contains the signed-upload preparation and attachment processing path.
+- Current user-facing limits: up to 5 files per message and 20 MB total. Supported formats in the current UI include JPEG, PNG, WebP, PDF, and plain text.
+- A mobile filename-overflow issue was fixed in commit `6f9e5d1c3a8418b91755170d8f1610ec76572bcf`. The user chose not to run additional attachment-specific tests after this fix; do not describe the fix as independently verified by a new test.
+- Video selection/processing is not supported and is deferred.
+- The household-finance feature must reuse this existing attachment path; it must not infer that a chat attachment is automatically a saved finance document or a confirmed ledger record.
 - Do not add a new `api/**` route until the Vercel Hobby 12-function limit is measured against the exact source tree. Prefer extending the existing authenticated `/api/gemini` route through explicit modes/actions.
 
 ## Proposed user experience
