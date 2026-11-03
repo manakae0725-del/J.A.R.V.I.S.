@@ -1163,7 +1163,7 @@ module.exports = async function handler(req, res) {
               answer = "札幌の明日の予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
             }
           }
-        }        } else if (weather.forecastValuesReady && forecast.current) {
+        } else if (weather.forecastValuesReady && forecast.current) {
           const current = forecast.current;
           const currentTime = new Date(current.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
           answer = "札幌の" + currentTime + "からの予報は" + current.weather + "、気温は" + temperatureLabel(current.temperature) + "です。";
