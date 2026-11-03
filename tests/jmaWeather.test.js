@@ -53,16 +53,16 @@ test("returns null for absent XML tags", () => {
 });
 
 test("extracts forecast area codes and names from Area elements", () => {
-  const xml = `<Report><Area code="016000"><Name>石狩地方</Name><Area code="016010"><Name>札幌</Name></Area></Area></Report>`;
+  const xml = `<Report><Area><Name>石狩地方</Name><Code>016000</Code><Area><Name>札幌</Name><Code>016010</Code></Area></Area></Report>`;
   const areas = extractForecastAreas(xml);
   assert.deepEqual(areas, [{ code: "016000", name: "石狩地方" }, { code: "016010", name: "札幌" }]);
   assert.deepEqual(findSapporoArea(areas), { code: "016010", name: "札幌" });
 });
 test("extracts nested Area elements with XML namespaces and attribute variations", () => {
   const xml = `<j:Report xmlns:j="urn:jma">
-    <j:Area name="region" code='016000'>
-      <j:Name>石狩地方</j:Name>
-      <j:Area code="016010" extra="x"><j:Name>札幌</j:Name></j:Area>
+    <j:Area name="region">
+      <j:Name>石狩地方</j:Name><j:Code codeType="AreaForecast">016000</j:Code>
+      <j:Area extra="x"><j:Name>札幌</j:Name><j:Code>016010</j:Code></j:Area>
     </j:Area>
   </j:Report>`;
   const areas = extractForecastAreas(xml);
@@ -76,8 +76,8 @@ test("extracts nested Area elements with XML namespaces and attribute variations
 test("ignores Area elements without a code or name", () => {
   const xml = `<Report>
     <Area><Name>コードなし</Name></Area>
-    <Area code="016010"></Area>
-    <Area code="016020"><Name>函館</Name></Area>
+    <Area><Code>016010</Code></Area>
+    <Area><Name>函館</Name><Code>016020</Code></Area>
   </Report>`;
   assert.deepEqual(extractForecastAreas(xml), [{ code: "016020", name: "函館" }]);
   assert.equal(findSapporoArea(extractForecastAreas(xml)), null);
