@@ -106,6 +106,6 @@ Status: design and schema specification; no household-finance application code o
 
 ## Deferred user decisions
 
-- Confirm Manato as initial household owner and Kaede as the second member before provisioning either membership row.
+- Confirmed by user on 2026-11-03: Manato is the initial household owner and Kaede is the second member. This approves the proposed role model only; no membership rows have been provisioned.
 - Confirm Kaede's Auth user ID through an authorized admin-side process before allowlisting/provisioning.
 - Any live database migration requires separate approval after exact SQL, security model, and Preview/test plan are presented.
