@@ -634,57 +634,19 @@ POWER
 <span class="hud-dots">...</span>
 </div>
 <div class="weather-main-box">
-<div>
-<div class="weather-location" id="weatherLocation">東京</div>
-<div class="weather-temp-display" id="weatherTemp">13°C</div>
-<div class="weather-condition-text">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-くもり
+<div class="weather-main-box">
+  <div>
+    <div class="weather-location" id="weatherLocation">札幌</div>
+    <div class="weather-temp-display" id="weatherTemp">--°C</div>
+    <div class="weather-condition-text" id="weatherCondition">気象庁データ未取得</div>
+  </div>
+  <div class="weather-high-low" id="weatherHighLow">
+    <div>H: --°C</div>
+    <div>L: --°C</div>
+  </div>
 </div>
-</div>
-<div class="weather-high-low">
-<div>H: 15°C</div>
-<div>L: 8°C</div>
-</div></div>
-<div class="hourly-forecast-grid">
-<div class="hourly-col">
-<span>10:00</span>
-<span>13°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>13:00</span>
-<span>14°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>16:00</span>
-<span>15°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<circle cx="12" cy="12" r="5"/>
-<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22
-19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>19:00</span>
-<span>12°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0-10z"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>22:00</span>
-<span>11°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-</svg>
+<div class="hourly-forecast-grid" id="weatherHourly">
+  <div class="hourly-col"><span>予報</span><span>未取得</span></div>
 </div>
 </div>
 </div><div class="hud-card">
