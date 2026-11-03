@@ -75,40 +75,22 @@ Small differences from real-world balances are acceptable. Safety, explicit prov
 - No database schema, migration, finance API, or UI has been created for this feature.
 - Supabase changed Data API exposure defaults: new public tables are not automatically exposed to the Data API. Keep finance tables server-only unless a later design explicitly requires client access, and verify grants/settings before enabling any exposure.
 
-## Proposed logical data model (design only; not SQL)
+## Detailed schema specification
 
-1. `finance_households`: household identity, display name, timezone (default Asia/Tokyo), created_by.
-2. `finance_household_members`: household_id, auth user_id, role, active/revoked status, invited_by, joined_at. Unique active membership per user/household. This is the authoritative sharing boundary.
-3. `finance_accounts`: household_id, user-defined display label, account type (cash/bank/card/e-money/other), currency (JPY), active flag. No account numbers or credentials.
-4. `finance_categories`: household_id, transaction kind, category name, display order, active flag. Seed common categories but allow household customization.
-5. `finance_transactions`: household_id, type (income/expense/transfer/refund/adjustment), positive integer amount_jpy, transaction/due dates, category, payer/recipient member, source and destination account labels, payment method, planned/confirmed/void status, description, idempotency key, created_by, source document reference.
-6. `finance_payroll_details`: transaction_id, salary subject member, pay period, gross amount, itemized deductions (structured JSON or child rows), net amount, expected pay date, actual receipt date. The ledger cash-flow amount is the confirmed net amount; gross and deductions remain separately analyzable.
-7. `finance_recurring_items`: household_id, income/expense type, label, amount or estimate, recurrence rule, next due date, account, responsible member, active flag.
-8. `finance_balance_snapshots`: household_id, account_id, reported integer balance, as-of timestamp, reported_by, note. Snapshots are immutable; a new report creates a new row.
-9. `finance_documents`: household_id, uploader user_id, document subject member, document type, minimal source metadata, parse/confirmation status, linked transaction_id, confirmed_by/at. Do not store file bytes or full extracted OCR text by default.
-10. `finance_audit_events`: household_id, actor user_id, target table/row, action, before/after minimal JSON, reason, created_at. Append-only; corrections and voids are new events, not silent destructive edits.
+The normalized 11-table design, column definitions, data types, foreign keys, constraints, indexes, accounting semantics, role matrix, and server-only access controls are specified in:
 
-### Core relationship and accounting rules
+- `docs/architecture/household-finance-schema-spec.md`
 
-- Every finance row is household-scoped. The server derives the caller from the validated Supabase session and checks active membership on every operation. Never trust client-supplied user_id, household_id, role, created_by, or visibility.
-- Manato and Kaede remain separate Auth users. Their household membership grants access to shared finance rows; it does not grant access to each other's conversations, memories, Google connections, or unrelated files.
-- Member identity (who the income/expense belongs to) is distinct from the actor (who entered or confirmed it).
-- Use positive integer yen amounts; the transaction type determines the accounting direction. Refunds and corrections are explicit typed records.
-- Transfers are linked source/destination account movements and are excluded from income/expense totals. Credit-card purchases count as expenses; later card settlement is a transfer/settlement, not a second expense.
-- A salary record's cash-flow amount is net pay. Gross pay and deductions are retained as payroll detail for analysis.
-- Planned, confirmed, imported-unconfirmed, and voided records must remain distinguishable in queries and UI.
-- Balance snapshots are reported facts. Forecasts are calculated separately from the latest snapshot and future known events.
+The specification remains design-only. It contains no applied migration and does not authorize live database changes.
 
-
-1. `finance_people`: household members / payer identity.
-2. `finance_accounts`: display labels and account type only; no bank identifiers.
-3. `finance_transactions`: income, expense, transfer, refund, adjustment; amount, date, category, person, account/card label, status, source, idempotency key.
-4. `finance_recurring_items`: recurring income and obligations.
-5. `finance_balance_snapshots`: manually reported account balance and as-of timestamp.
-6. `finance_documents`: uploader, document subject/person, document type, temporary attachment reference or minimal saved-file metadata, parse status, confirmation metadata; no PDF/image binary in the database.
-7. `finance_audit_log`: append-only record of creation, confirmation, correction, and voiding.
-
-Final schema must be reconciled with existing auth/user model and current Supabase RLS patterns before any migration.
+Key design choices:
+- Household membership is the sharing boundary; application allowlisting and household membership are separate checks.
+- Each finance operation must derive the caller from the validated session and verify active household membership server-side.
+- Browser roles receive no finance-table privileges. RLS is enabled as defense in depth; the existing server secret key bypasses RLS, so explicit server authorization is mandatory.
+- Payroll is normalized into payroll details and child deduction rows. Ledger income equals confirmed net pay.
+- Parsed but unconfirmed documents remain candidates, not transactions.
+- Transactions use idempotency keys; corrections/voids preserve audit history; snapshots are immutable.
+- Initial household membership is provisioned through a controlled admin-side operation. No public invitation or self-service household creation is included in v1.
 
 ## Accounting invariants
 
