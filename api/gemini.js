@@ -1106,7 +1106,7 @@ module.exports = async function handler(req, res) {
       ? userMarker[1].trim()
       : rawText;
 
-    const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|傘|(?:今日|明日|今夜|明後日|週末|今週).{0,8}(?:雨|雪|晴れ|曇り|寒|暑)|(?:雨|雪)(?:が|は|降る|降り|の予報)|札幌.{0,6}(?:雨|雪|晴れ|曇り|気温)|(?:寒い|暑い|冷え込む|暖かい))/.test(userText);
+    const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|週間予報|週間天気|傘|(?:今日|明日|今夜|明後日|週末|今週).{0,8}(?:雨|雪|晴れ|曇り|寒|暑)|(?:雨|雪)(?:が|は|降る|降り|の予報)|札幌.{0,6}(?:雨|雪|晴れ|曇り|気温)|(?:寒い|暑い|冷え込む|暖かい))/.test(userText);
     if (weatherIntent) {
       if (!(await enforceRateLimit(res, user, "weather-chat-minute", 3, 60))) return;
       try {
