@@ -1313,7 +1313,7 @@ function renderJarvisAttachments() {
     row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 9px;background:rgba(4,25,43,.85);border:1px solid rgba(45,150,220,.35);border-radius:4px;color:#d9efff;font-size:11px";
     const label = document.createElement("span");
     label.textContent = file.name + " · " + (file.size / 1024 / 1024).toFixed(2) + "MB";
-    label.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    label.style.cssText = "display:block;min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
     const remove = document.createElement("button");
     remove.type = "button";
     remove.textContent = "削除";
