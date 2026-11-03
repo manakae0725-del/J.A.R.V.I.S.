@@ -1118,7 +1118,7 @@ module.exports = async function handler(req, res) {
       try {
         const weather = await inspectLatestForecast();
         const forecast = weather.forecast || {};
-        const weeklyRequested = /(?:週間|今週|7日間|一週間|７日間)/.test(userText);
+        const weeklyRequested = /(?:週間|今週|来週|週末|7日間|一週間|７日間)/.test(userText);
         const futureDayOffset = /(?:明後日|あさって)/.test(userText) ? 2 : /(?:明日|あした|翌日)/.test(userText) ? 1 : 0;
         const tomorrowRequested = futureDayOffset > 0;
         const dateLabel = value => {
@@ -1135,13 +1135,16 @@ module.exports = async function handler(req, res) {
         const targetDayLabel = futureDayOffset === 2 ? "明後日" : "明日";
         if (weeklyRequested) {
           if (Array.isArray(forecast.weekly) && forecast.weekly.length) {
-            const days = forecast.weekly.slice(0, 7).map(day => {
+            const weeklyItems = /週末/.test(userText)
+              ? forecast.weekly.filter(day => { const weekday = new Date(Date.parse(day.dateTime) + 9 * 60 * 60 * 1000).getUTCDay(); return weekday === 0 || weekday === 6; }).slice(0, 2)
+              : forecast.weekly.slice(0, 7);
+            const days = weeklyItems.map(day => {
               const parts = [dateLabel(day.dateTime), day.weather || "天気未取得"];
               if (Number.isFinite(day.high) || Number.isFinite(day.low)) parts.push("最高 " + temperatureLabel(day.high) + " / 最低 " + temperatureLabel(day.low));
               if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率 " + day.precipitationProbability + "%");
               return parts.join("：");
             });
-            answer = "札幌の週間予報です。\n" + days.join("\n");
+            answer = ( /週末/.test(userText) ? "札幌の週末予報です。\n" : "札幌の週間予報です。\n" ) + (days.length ? days.join("\n") : "対象日の予報データを確認できませんでした。");
           } else {
             answer = "札幌の週間予報データを確認できませんでした。未確認の予報値はお伝えしません。";
           }
