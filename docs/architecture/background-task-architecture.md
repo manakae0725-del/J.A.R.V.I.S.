@@ -11,7 +11,7 @@ Allow J.A.R.V.I.S. to accept a long-running analysis task, return control to the
 - The existing authenticated `/api/gemini` handler remains the API entry point; no additional Vercel function is introduced.
 - Supabase Postgres stores tasks, steps, events, leases, progress, and results.
 - `pg_cron` invokes `pg_net` once per minute.
-- `pg_net` calls the stable Vercel Preview branch alias with a dedicated secret header.
+- `pg_net` calls the Production Vercel alias with a dedicated secret header.
 - The worker claims one task atomically and executes one bounded Gemini stage per invocation.
 - A persisted lease allows a later worker to reclaim a task after a process timeout or crash.
 - The worker is invoked through the Production alias. Production and the active Preview deployment each have their own `JARVIS_BACKGROUND_WORKER_SECRET`; the scheduler uses the matching secret stored in Supabase Vault.
