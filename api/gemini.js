@@ -292,17 +292,25 @@ function parseBackgroundJson(value) {
   throw error;
 }
 
-async function callBackgroundGemini(systemInstruction, userInput, maxOutputTokens = 1200, thinkingLevel = "low") {
+async function callBackgroundGemini(systemInstruction, userInput, maxOutputTokens = 1200, thinkingLevel = "low", responseSchema = null) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("BACKGROUND_GEMINI_NOT_CONFIGURED");
+  const requestBody = {
+    model: "gemini-3.6-flash",
+    input: systemInstruction + "\n\nTask:\n" + userInput,
+    generation_config: { max_output_tokens: maxOutputTokens, thinking_level: thinkingLevel }
+  };
+  if (responseSchema) {
+    requestBody.response_format = {
+      type: "text",
+      mime_type: "application/json",
+      schema: responseSchema
+    };
+  }
   const response = await fetch("https://generativelanguage.googleapis.com/v1/interactions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({
-      model: "gemini-3.6-flash",
-      input: systemInstruction + "\n\nTask:\n" + userInput,
-      generation_config: { max_output_tokens: maxOutputTokens, thinking_level: thinkingLevel }
-    }),
+    body: JSON.stringify(requestBody),
     signal: AbortSignal.timeout(25000)
   });
   const raw = await response.text();
@@ -323,8 +331,8 @@ async function callBackgroundGemini(systemInstruction, userInput, maxOutputToken
   return text;
 }
 
-async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens, thinkingLevel, expectedShape) {
-  const raw = await callBackgroundGemini(systemInstruction, userInput, maxOutputTokens, thinkingLevel);
+async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens, thinkingLevel, expectedShape, responseSchema) {
+  const raw = await callBackgroundGemini(systemInstruction, userInput, maxOutputTokens, thinkingLevel, responseSchema);
   try {
     return parseBackgroundJson(raw);
   } catch (error) {
@@ -343,7 +351,8 @@ async function callBackgroundJson(systemInstruction, userInput, maxOutputTokens,
       repairPrompt,
       JSON.stringify({ originalInput: userInput, malformedResponse: raw.slice(0, 12000) }),
       Math.max(900, maxOutputTokens),
-      thinkingLevel
+      thinkingLevel,
+      responseSchema
     );
     return parseBackgroundJson(repaired);
   }
@@ -380,18 +389,40 @@ async function handleBackgroundWorkerTick(req, res) {
     if (task.status === "planning") {
       const plannerPrompt = [
         "Create a safe, bounded work plan for the user's request.",
-        "Return ONLY a JSON array containing 1 to 5 objects. Each object must have exactly: title, instruction.",
+        "Return ONLY a JSON object with one property named steps. steps must contain 1 to 5 objects, each with exactly: title, instruction.",
         "Each title must be short. Each instruction must be independently executable as analysis/reasoning using only the supplied request and prior results.",
         "Do not call tools, access accounts, change settings, send messages, write files, or perform external side effects.",
         "Do not invent missing facts. If the request requires unavailable data, make the missing data explicit in the plan.",
         "Keep the plan ordered and avoid redundant steps."
       ].join("\n");
+      const plannerSchema = {
+        type: "object",
+        properties: {
+          steps: {
+            type: "array",
+            minItems: 1,
+            maxItems: 5,
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                instruction: { type: "string" }
+              },
+              required: ["title", "instruction"],
+              additionalProperties: false
+            }
+          }
+        },
+        required: ["steps"],
+        additionalProperties: false
+      };
       const parsedPlan = await callBackgroundJson(
         plannerPrompt,
         JSON.stringify({ request: task.request, commanderClassification: classification }),
         900,
         classification.complexity === "high" ? "medium" : "low",
-        "an array of 1 to 5 {title, instruction} objects"
+        "an object with a steps array containing 1 to 5 {title, instruction} objects",
+        plannerSchema
       );
       const plan = Array.isArray(parsedPlan) ? parsedPlan : parsedPlan?.steps;
       if (!Array.isArray(plan) || plan.length < 1 || plan.length > 5) throw new Error("BACKGROUND_PLAN_INVALID");
@@ -479,12 +510,25 @@ async function handleBackgroundWorkerTick(req, res) {
       "Set passed=true only when the answer is complete, internally consistent, and does not claim unsupported facts or actions.",
       "If passed=false, specify one focused corrective step. Do not invent facts."
     ].join("\n");
+    const verifierSchema = {
+      type: "object",
+      properties: {
+        passed: { type: "boolean" },
+        summary: { type: "string" },
+        issues: { type: "array", items: { type: "string" }, maxItems: 8 },
+        correction_title: { type: "string" },
+        correction_instruction: { type: "string" }
+      },
+      required: ["passed", "summary", "issues", "correction_title", "correction_instruction"],
+      additionalProperties: false
+    };
     const verification = await callBackgroundJson(
       verifierPrompt,
       JSON.stringify({ originalRequest: task.request, completedSteps }),
       900,
       "medium",
-      "an object with passed, summary, issues, correction_title, correction_instruction"
+      "an object with passed, summary, issues, correction_title, correction_instruction",
+      verifierSchema
     );
     if (verification?.passed === true) {
       const finished = await backgroundTasks.finish(task.id, workerId, "completed", {
