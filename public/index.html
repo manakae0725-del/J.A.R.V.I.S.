@@ -1644,6 +1644,12 @@ async function backgroundApiRequest(payload) {
 let jmaWeatherLoading = false;
 let jmaWeatherLastUserId = null;
 
+function formatJmaStamp(value) {
+    if (!value) return "時刻不明";
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "時刻不明";
+    return date.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 function formatJmaTime(value) {
     if (!value) return "--:--";
     const date = new Date(value);
@@ -1671,7 +1677,7 @@ function renderJmaWeather(data) {
         empty.textContent = "予報未取得";
         hourly.appendChild(empty);
         const attribution = data && data.attribution ? data.attribution : "出典：気象庁（気象庁の公開データを基にJ.A.R.V.I.S.が加工・表示）";
-        meta.textContent = (data && data.note ? data.note + "\n" : "") + (data && data.inspectedTelegram ? "発表 " + data.inspectedTelegram.reportDateTime + "\n" : "") + attribution;
+        meta.textContent = (data && data.note ? data.note + "\n" : "") + (data && data.inspectedTelegram ? "発表 " + formatJmaStamp(data.inspectedTelegram.reportDateTime) + "\n" : "") + attribution;
         return;
     }
     location.textContent = "札幌・" + formatJmaTime(current.dateTime) + "予報";
@@ -1700,7 +1706,7 @@ function renderJmaWeather(data) {
         column.append(time, weather, temp);
         hourly.appendChild(column);
     }
-    meta.textContent = "発表 " + (data.inspectedTelegram?.reportDateTime || "時刻不明") + " / 取得 " + formatJmaTime(data.fetchedAt) + "\n" + data.attribution;
+    meta.textContent = "発表 " + formatJmaStamp(data.inspectedTelegram?.reportDateTime) + " / 取得 " + formatJmaStamp(data.fetchedAt) + "\n" + data.attribution;
 }
 
 async function refreshJmaWeather(force = false) {
