@@ -116,3 +116,12 @@ test("summarizes namespaced VPFD51 MeteorologicalInfos and TimeSeriesInfo struct
   assert.deepEqual(summary[0].timeSeries[0].items[0].kinds, ["３時間内卓越天気"]);
   assert.equal(summary[0].timeSeries[0].items[0].areaName, "石狩地方");
 });
+test("rejects JMA telegram URLs with credentials, nonstandard ports, or query strings", () => {
+  const xml = `<feed>
+    <entry><id>https://user@www.data.jma.go.jp/developer/xml/data/a_VPFD51.xml</id><title>VPFD51</title><updated>2026-11-03T09:00:00Z</updated></entry>
+    <entry><id>https://www.data.jma.go.jp:8443/developer/xml/data/b_VPFD51.xml</id><title>VPFD51</title><updated>2026-11-03T09:00:00Z</updated></entry>
+    <entry><id>https://www.data.jma.go.jp/developer/xml/data/c_VPFD51.xml?next=1</id><title>VPFD51</title><updated>2026-11-03T09:00:00Z</updated></entry>
+    <entry><id>https://www.data.jma.go.jp/developer/xml/data/d_VPFD51.xml</id><title>VPFD51</title><updated>invalid-date</updated></entry>
+  </feed>`;
+  assert.deepEqual(parseFeedEntries(xml), []);
+});
