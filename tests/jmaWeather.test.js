@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { parseFeedEntries, readTag, extractForecastAreas, findSapporoArea } = require("../lib/jmaWeather");
+const { parseFeedEntries, readTag, extractForecastAreas, extractForecastStations, findSapporoArea, findSapporoStation, findSapporoForecastTargets } = require("../lib/jmaWeather");
 
 test("selects JMA VPFD51 and VPFW50 telegrams from Atom feed", () => {
   const xml = `<?xml version="1.0"?>
@@ -53,24 +53,22 @@ test("returns null for absent XML tags", () => {
 });
 
 test("extracts forecast area codes and names from Area elements", () => {
-  const xml = `<Report><Area><Name>石狩地方</Name><Code>016000</Code><Area><Name>札幌</Name><Code>016010</Code></Area></Area></Report>`;
+  const xml = `<Report><Area><Name>石狩地方</Name><Code>1400</Code></Area></Report>`;
   const areas = extractForecastAreas(xml);
-  assert.deepEqual(areas, [{ code: "016000", name: "石狩地方" }, { code: "016010", name: "札幌" }]);
-  assert.deepEqual(findSapporoArea(areas), { code: "016010", name: "札幌" });
+  assert.deepEqual(areas, [{ code: "1400", name: "石狩地方" }]);
+  assert.deepEqual(findSapporoArea(areas), { code: "1400", name: "石狩地方" });
 });
 test("extracts nested Area elements with XML namespaces and attribute variations", () => {
   const xml = `<j:Report xmlns:j="urn:jma">
     <j:Area name="region">
-      <j:Name>石狩地方</j:Name><j:Code codeType="AreaForecast">016000</j:Code>
-      <j:Area extra="x"><j:Name>札幌</j:Name><j:Code>016010</j:Code></j:Area>
+      <j:Name>石狩地方</j:Name><j:Code codeType="AreaForecast">1400</j:Code>
     </j:Area>
   </j:Report>`;
   const areas = extractForecastAreas(xml);
   assert.deepEqual(areas, [
-    { code: "016000", name: "石狩地方" },
-    { code: "016010", name: "札幌" }
+    { code: "1400", name: "石狩地方" }
   ]);
-  assert.deepEqual(findSapporoArea(areas), { code: "016010", name: "札幌" });
+  assert.deepEqual(findSapporoArea(areas), { code: "1400", name: "石狩地方" });
 });
 
 test("ignores Area elements without a code or name", () => {
@@ -81,4 +79,17 @@ test("ignores Area elements without a code or name", () => {
   </Report>`;
   assert.deepEqual(extractForecastAreas(xml), [{ code: "016020", name: "函館" }]);
   assert.equal(findSapporoArea(extractForecastAreas(xml)), null);
+});
+test("extracts the Sapporo representative station independently from its forecast area", () => {
+  const xml = `<Report>
+    <MeteorologicalInfos type="区域予報"><TimeSeriesInfo><Item><Area><Name>石狩地方</Name><Code>1400</Code></Area></Item></TimeSeriesInfo></MeteorologicalInfos>
+    <MeteorologicalInfos type="地点予報"><TimeSeriesInfo><Item><Station><Name>札幌</Name><Code>47412</Code></Station></Item></TimeSeriesInfo></MeteorologicalInfos>
+  </Report>`;
+  const stations = extractForecastStations(xml);
+  assert.deepEqual(stations, [{ code: "47412", name: "札幌" }]);
+  assert.deepEqual(findSapporoStation(stations), { code: "47412", name: "札幌" });
+  assert.deepEqual(findSapporoForecastTargets(xml), {
+    area: { code: "1400", name: "石狩地方" },
+    station: { code: "47412", name: "札幌" }
+  });
 });
