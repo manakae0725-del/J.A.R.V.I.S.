@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { parseFeedEntries, readTag, extractForecastAreas, extractForecastStations, findSapporoArea, findSapporoStation, findSapporoForecastTargets } = require("../lib/jmaWeather");
+const { parseFeedEntries, readTag, extractForecastAreas, extractForecastStations, findSapporoArea, findSapporoStation, findSapporoForecastTargets, classifyInfoType } = require("../lib/jmaWeather");
 
 test("selects JMA VPFD51 and VPFW50 telegrams from Atom feed", () => {
   const xml = `<?xml version="1.0"?>
@@ -94,4 +94,10 @@ test("extracts the Sapporo representative station independently from its forecas
     area: { code: "1400", name: "石狩地方" },
     station: { code: "47412", name: "札幌" }
   });
+});
+test("classifies JMA forecast publication, correction, and cancellation", () => {
+  assert.equal(classifyInfoType("発表"), "active");
+  assert.equal(classifyInfoType("訂正"), "active");
+  assert.equal(classifyInfoType("取消"), "canceled");
+  assert.equal(classifyInfoType(null), "unknown");
 });
