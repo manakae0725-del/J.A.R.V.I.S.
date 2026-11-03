@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { parseFeedEntries } = require("../lib/jmaWeather");
+const { parseFeedEntries, readTag } = require("../lib/jmaWeather");
 
 test("selects JMA VPFD51 and VPFW50 telegrams from Atom feed", () => {
   const xml = `<?xml version="1.0"?>
@@ -40,4 +40,14 @@ test("rejects telegram URLs outside the official JMA host and path", () => {
 
 test("rejects malformed non-Atom input", () => {
   assert.throws(() => parseFeedEntries("<html>not a feed</html>"), /JMA_INVALID_ATOM_FEED/);
+});
+
+
+test("reads namespaced XML tags and decodes entities", () => {
+  const xml = `<j:Report xmlns:j="urn:test"><j:Title>Forecast &amp; Warning</j:Title></j:Report>`;
+  assert.equal(readTag(xml, "Title"), "Forecast & Warning");
+});
+
+test("returns null for absent XML tags", () => {
+  assert.equal(readTag("<Report><Title>Weather</Title></Report>", "Missing"), null);
 });
