@@ -1399,16 +1399,17 @@ function backgroundResultText(value) {
 
 function appendBackgroundInline(parent, text) {
     const source = String(text || "");
-    const pattern = /(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|\x60[^`]+\x60)/g;
+    const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|\x60[^\x60]+\x60)/g;
+    const tick = String.fromCharCode(96);
     let cursor = 0;
     let match;
     while ((match = pattern.exec(source))) {
         if (match.index > cursor) parent.appendChild(document.createTextNode(source.slice(cursor, match.index)));
         const token = match[0];
-        const node = token.startsWith("`")
+        const node = token.startsWith(tick)
             ? document.createElement("code")
             : document.createElement(token.startsWith("**") ? "strong" : "em");
-        node.textContent = token.startsWith("`") ? token.slice(1, -1) : token.startsWith("**") ? token.slice(2, -2) : token.slice(1, -1);
+        node.textContent = token.startsWith(tick) ? token.slice(1, -1) : token.startsWith("**") ? token.slice(2, -2) : token.slice(1, -1);
         if (node.tagName === "CODE") node.style.cssText = "padding:1px 4px;background:rgba(80,150,210,.16);border-radius:3px";
         parent.appendChild(node);
         cursor = pattern.lastIndex;
@@ -1418,10 +1419,10 @@ function appendBackgroundInline(parent, text) {
 
 function appendBackgroundMarkdown(container, value) {
     let source = backgroundResultText(value)
-        .replace(/\\\\n/g, "\n")
-        .replace(/<br\\s*\\/?\\s*>/gi, "\n")
-        .replace(/^\\s*【(?:openai|gemini|claude)】\\s*/gim, "")
-        .replace(/\\r/g, "");
+        .replace(/\\n/g, "\n")
+        .replace(/<br\s*\/?\s*>/gi, "\n")
+        .replace(/^\s*【(?:openai|gemini|claude)】\s*/gim, "")
+        .replace(/\r/g, "");
     const lines = source.split("\n");
     let paragraph = [];
     const flushParagraph = () => {
@@ -1435,8 +1436,8 @@ function appendBackgroundMarkdown(container, value) {
         container.appendChild(p);
         paragraph = [];
     };
-    const isTableRow = line => /^\\s*\\|.*\\|\\s*$/.test(line);
-    const isTableDivider = line => /^\\s*\\|?\\s*:?-{3,}:?\\s*(\\|\\s*:?-{3,}:?\\s*)+\\|?\\s*$/.test(line);
+    const isTableRow = line => /^\s*\|.*\|\s*$/.test(line);
+    const isTableDivider = line => /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
     for (let i = 0; i < lines.length;) {
         const line = lines[i];
         if (!line.trim()) { flushParagraph(); i++; continue; }
@@ -1444,7 +1445,7 @@ function appendBackgroundMarkdown(container, value) {
             flushParagraph();
             const rows = [];
             while (i < lines.length && isTableRow(lines[i])) {
-                if (!isTableDivider(lines[i])) rows.push(lines[i].trim().replace(/^\\||\\|$/g, "").split("|").map(cell => cell.trim()));
+                if (!isTableDivider(lines[i])) rows.push(lines[i].trim().replace(/^\||\|$/g, "").split("|").map(cell => cell.trim()));
                 i++;
             }
             if (rows.length) {
@@ -1465,7 +1466,7 @@ function appendBackgroundMarkdown(container, value) {
             }
             continue;
         }
-        const heading = line.match(/^\\s{0,3}(#{1,4})\\s+(.+)$/);
+        const heading = line.match(/^\s{0,3}(#{1,4})\s+(.+)$/);
         if (heading) {
             flushParagraph();
             const h = document.createElement("h" + Math.min(4, heading[1].length + 1));
@@ -1475,10 +1476,10 @@ function appendBackgroundMarkdown(container, value) {
             i++;
             continue;
         }
-        const listMatch = line.match(/^\\s*(?:[-*+]\\s+|\\d+[.)]\\s+)(.+)$/);
+        const listMatch = line.match(/^\s*(?:[-*+]\s+|\d+[.)]\s+)(.+)$/);
         if (listMatch) {
             flushParagraph();
-            const ordered = /^\\s*\\d+[.)]\\s+/.test(line);
+            const ordered = /^\s*\d+[.)]\s+/.test(line);
             const list = container.lastElementChild;
             const sameList = list && list.tagName === (ordered ? "OL" : "UL") && list.dataset.backgroundList === "true";
             const target = sameList ? list : document.createElement(ordered ? "ol" : "ul");
