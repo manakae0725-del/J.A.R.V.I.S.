@@ -1175,7 +1175,8 @@ module.exports = async function handler(req, res) {
           const next = (forecast.threeHourly || []).filter(item => Date.parse(item.dateTime) > Date.parse(current.dateTime)).slice(0, 3);
           if (next.length) answer += "\n続く予報：" + next.map(item => {
             const time = new Date(item.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
-            return time + " " + (item.weather || "天気未取得") + " " + temperatureLabel(item.temperature);
+            const date = String(item.dateTime || "").slice(0, 10) !== String(current.dateTime || "").slice(0, 10) ? dateLabel(item.dateTime) + " " : "";
+            return date + time + " " + (item.weather || "天気未取得") + " " + temperatureLabel(item.temperature);
           }).join("、");
         } else {
           answer = "気象庁のデータ取得はできましたが、札幌の有効な予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
