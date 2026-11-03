@@ -1119,7 +1119,8 @@ module.exports = async function handler(req, res) {
         const weather = await inspectLatestForecast();
         const forecast = weather.forecast || {};
         const weeklyRequested = /(?:週間|今週|7日間|一週間|７日間)/.test(userText);
-        const tomorrowRequested = /(?:明日|あした|翌日)/.test(userText);
+        const futureDayOffset = /(?:明後日|あさって)/.test(userText) ? 2 : /(?:明日|あした|翌日)/.test(userText) ? 1 : 0;
+        const tomorrowRequested = futureDayOffset > 0;
         const dateLabel = value => {
           const date = new Date(value);
           return Number.isFinite(date.getTime())
@@ -1128,9 +1129,10 @@ module.exports = async function handler(req, res) {
         };
         const temperatureLabel = value => Number.isFinite(value) ? value + "℃" : "未取得";
         let answer = "";
-        const tomorrow = new Date(Date.now() + 9 * 60 * 60 * 1000);
-        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-        const tomorrowDate = tomorrow.toISOString().slice(0, 10);
+        const targetDay = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        targetDay.setUTCDate(targetDay.getUTCDate() + futureDayOffset);
+        const targetDate = targetDay.toISOString().slice(0, 10);
+        const targetDayLabel = futureDayOffset === 2 ? "明後日" : "明日";
         if (weeklyRequested) {
           if (Array.isArray(forecast.weekly) && forecast.weekly.length) {
             const days = forecast.weekly.slice(0, 7).map(day => {
@@ -1144,23 +1146,23 @@ module.exports = async function handler(req, res) {
             answer = "札幌の週間予報データを確認できませんでした。未確認の予報値はお伝えしません。";
           }
         } else if (tomorrowRequested) {
-          const day = Array.isArray(forecast.weekly) ? forecast.weekly.find(item => String(item.dateTime || "").slice(0, 10) === tomorrowDate) : null;
+          const day = Array.isArray(forecast.weekly) ? forecast.weekly.find(item => String(item.dateTime || "").slice(0, 10) === targetDate) : null;
           if (day) {
-            const parts = ["札幌の明日の予報は" + (day.weather || "天気未取得") + "です。"];
+            const parts = ["札幌の" + targetDayLabel + "の予報は" + (day.weather || "天気未取得") + "です。"];
             if (Number.isFinite(day.high) || Number.isFinite(day.low)) parts.push("最高気温は" + temperatureLabel(day.high) + "、最低気温は" + temperatureLabel(day.low) + "です。");
             if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率は" + day.precipitationProbability + "%です。");
             answer = parts.join(" ");
           } else {
-            const nextForecast = (forecast.threeHourly || []).find(item => String(item.dateTime || "").slice(0, 10) === tomorrowDate && item.weather && Number.isFinite(item.temperature));
+            const nextForecast = (forecast.threeHourly || []).find(item => String(item.dateTime || "").slice(0, 10) === targetDate && item.weather && Number.isFinite(item.temperature));
             if (nextForecast) {
               const time = new Date(nextForecast.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
-              answer = "札幌の明日" + time + "からの予報は" + nextForecast.weather + "、気温は" + temperatureLabel(nextForecast.temperature) + "です。";
-              const extremes = (forecast.dailyTemperatures || []).filter(item => String(item.dateTime || "").slice(0, 10) === tomorrowDate && Number.isFinite(item.value));
+              answer = "札幌の" + targetDayLabel + time + "からの予報は" + nextForecast.weather + "、気温は" + temperatureLabel(nextForecast.temperature) + "です。";
+              const extremes = (forecast.dailyTemperatures || []).filter(item => String(item.dateTime || "").slice(0, 10) === targetDate && Number.isFinite(item.value));
               const high = extremes.find(item => item.type === "最高気温" || item.type === "日中の最高気温");
               const low = extremes.find(item => item.type === "朝の最低気温");
               if (high || low) answer += " 最高気温は" + temperatureLabel(high?.value) + "、最低気温は" + temperatureLabel(low?.value) + "です。";
             } else {
-              answer = "札幌の明日の予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
+              answer = "札幌の" + targetDayLabel + "の予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
             }
           }
         } else if (weather.forecastValuesReady && forecast.current) {
