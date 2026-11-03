@@ -56,6 +56,7 @@ const { requireAuth } = require("./_auth");
 const { enforceRateLimit } = require("./_rateLimit");
 const { runAiCouncil, testOpenAIConnection } = require("./_aiCouncil");
 const { getAutoCommanderConfig } = require("../lib/commanderRouting");
+const { isExplicitMetricLookupIntent } = require("../lib/spreadsheetIntent");
 const { listConnectionsForUser } = require("./_google/tokenStore");
 const { googleApiRequest } = require("./_google/client");
 
@@ -2221,8 +2222,7 @@ module.exports = async function handler(req, res) {
     // Business-planning questions that merely mention sales/profit must stay on the Gemini path.
     const explicitSpreadsheetReference =
       /(?:スプレッドシート|Google\\s*Sheets|Google\\s*スプレッドシート|管理ブック|売上管理|店販管理|売上表|店販表|販売実績表)/i.test(userText);
-    const explicitMetricLookupIntent =
-      /(?:今月|先月|今日|本日|今年|昨年|去年|月別|全期間|期間別).{0,16}(?:売上|利益|客数|店販|販売|件数|数量)|(?:売上|利益|客数|店販|販売).{0,12}(?:いくら|合計|集計|実績|データ|推移|内訳|何件|何個|数量|利益率)/.test(userText);
+    const explicitMetricLookupIntent = isExplicitMetricLookupIntent(userText);
     const sheetsReadIntent =
       !explicitMultiAiRequestIntent &&
       !visualizationCreationIntent &&
