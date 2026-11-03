@@ -1156,7 +1156,7 @@ module.exports = async function handler(req, res) {
             const nextForecast = (forecast.threeHourly || []).find(item => String(item.dateTime || "").slice(0, 10) === targetDate && item.weather && Number.isFinite(item.temperature));
             if (nextForecast) {
               const time = new Date(nextForecast.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
-              answer = "札幌の" + targetDayLabel + time + "からの予報は" + nextForecast.weather + "、気温は" + temperatureLabel(nextForecast.temperature) + "です。";
+              answer = "札幌の" + targetDayLabel + " " + time + "からの予報は" + nextForecast.weather + "、気温は" + temperatureLabel(nextForecast.temperature) + "です。";
               const extremes = (forecast.dailyTemperatures || []).filter(item => String(item.dateTime || "").slice(0, 10) === targetDate && Number.isFinite(item.value));
               const high = extremes.find(item => item.type === "最高気温" || item.type === "日中の最高気温");
               const low = extremes.find(item => item.type === "朝の最低気温");
