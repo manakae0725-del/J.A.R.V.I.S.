@@ -1,6 +1,6 @@
 # J.A.R.V.I.S. Background Task Architecture
 
-Status: Preview implementation, 2026-11-02.
+Status: Production-enabled implementation, 2026-11-03.
 
 ## Goal
 
@@ -11,10 +11,10 @@ Allow J.A.R.V.I.S. to accept a long-running analysis task, return control to the
 - The existing authenticated `/api/gemini` handler remains the API entry point; no additional Vercel function is introduced.
 - Supabase Postgres stores tasks, steps, events, leases, progress, and results.
 - `pg_cron` invokes `pg_net` once per minute.
-- `pg_net` calls the stable Vercel Preview branch alias with a dedicated secret header.
+- `pg_net` calls the Production Vercel alias with a dedicated secret header.
 - The worker claims one task atomically and executes one bounded Gemini stage per invocation.
 - A persisted lease allows a later worker to reclaim a task after a process timeout or crash.
-- The Vercel Preview environment variable and Vault secret are scoped to the development worker. Production code and environment variables are not changed.
+- The worker is invoked through the Production alias. Production and the active Preview deployment each have their own `JARVIS_BACKGROUND_WORKER_SECRET`; the scheduler uses the matching secret stored in Supabase Vault.
 
 ## State model
 
@@ -35,8 +35,8 @@ RLS is enabled with no browser-facing policies. Tables and RPCs are accessible o
 - Idempotency key is unique per user.
 - Task claim uses row locking with `FOR UPDATE SKIP LOCKED`.
 - Each claim has a bounded lease; expired leases are reclaimable.
-- Worker authentication uses a separate random secret, stored in Vercel Preview env and Supabase Vault. It is not committed to Git.
-- Worker route is Preview-only.
+- Worker authentication uses a separate random secret, stored in the target Vercel environment and Supabase Vault. It is not committed to Git.
+- Worker route accepts only Preview or Production deployments and requires the timing-safe secret-header check.
 - AI output is treated as untrusted data.
 - Initial release performs analysis only. External writes and irreversible actions require a separate capability/confirmation design.
 - The worker uses Gemini only by default; it does not silently add paid providers or Claude.
@@ -49,7 +49,7 @@ The scheduler runs once per minute while the Supabase project is active. It uses
 
 ## Production boundary
 
-All task API modes and worker execution are gated to `VERCEL_ENV=preview`. The scheduler calls only the stable Preview branch alias. Production deployment code, environment variables, and aliases are not modified.
+User-facing task API modes are available in Preview and Production only after the existing session authentication and allowlist checks. Task ownership remains scoped to the authenticated user ID. Worker execution is available only in Preview or Production and requires the separate worker secret. The active Supabase Cron job calls the Production alias.
 
 ## Known limitations for first release
 
