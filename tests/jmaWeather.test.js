@@ -240,6 +240,7 @@ test("resolves Hokkaido forecast regions and representative cities", () => {
   assert.equal(resolveHokkaidoForecastArea("帯広の週間天気").code, "014030");
   assert.equal(resolveHokkaidoForecastArea("釧路の天気").code, "014100");
   assert.equal(resolveHokkaidoForecastArea("札幌の天気").code, "016000");
+  assert.equal(resolveHokkaidoForecastArea(" 札幌 の 天気 ").code, "016000");
   assert.equal(resolveHokkaidoForecastArea("北海道の天気"), null);
   assert.equal(resolveHokkaidoForecastArea("東京の天気"), null);
 });
