@@ -1194,7 +1194,7 @@ module.exports = async function handler(req, res) {
             return date + time + " " + (item.weather || "天気未取得") + " " + temperatureLabel(item.temperature);
           }).join("、");
         } else {
-          answer = "気象庁のデータ取得はできましたが、札幌の有効な予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
+          answer = "気象庁のデータ取得はできましたが、selectedArea.label + "の有効な予報値を確認できませんでした。未確認の天気や気温はお伝えしません。"";
         }
         const formatStamp = value => value ? new Date(value).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "不明";
         answer += "\n発表 " + formatStamp(weather.inspectedTelegram?.reportDateTime) + " / 取得 " + formatStamp(weather.fetchedAt);
@@ -1202,7 +1202,7 @@ module.exports = async function handler(req, res) {
         return calendarDirect(res, answer, answer, { weather, interactionId: previousInteractionId || null });
       } catch (error) {
         console.warn("[WEATHER] JMA forecast request failed", { code: typeof error?.message === "string" ? error.message : "JMA_WEATHER_ERROR" });
-        const message = "気象庁の札幌予報を取得できませんでした。時間をおいて再度お試しください。";
+        const message = "気象庁の" + selectedArea.label + "の予報を取得できませんでした。時間をおいて再度お試しください。";
         return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
       }
     }
