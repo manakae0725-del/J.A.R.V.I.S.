@@ -1397,6 +1397,108 @@ function backgroundResultText(value) {
     catch (_) { return String(value); }
 }
 
+function appendBackgroundInline(parent, text) {
+    const source = String(text || "");
+    const pattern = /(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|\x60[^`]+\x60)/g;
+    let cursor = 0;
+    let match;
+    while ((match = pattern.exec(source))) {
+        if (match.index > cursor) parent.appendChild(document.createTextNode(source.slice(cursor, match.index)));
+        const token = match[0];
+        const node = token.startsWith("`")
+            ? document.createElement("code")
+            : document.createElement(token.startsWith("**") ? "strong" : "em");
+        node.textContent = token.startsWith("`") ? token.slice(1, -1) : token.startsWith("**") ? token.slice(2, -2) : token.slice(1, -1);
+        if (node.tagName === "CODE") node.style.cssText = "padding:1px 4px;background:rgba(80,150,210,.16);border-radius:3px";
+        parent.appendChild(node);
+        cursor = pattern.lastIndex;
+    }
+    if (cursor < source.length) parent.appendChild(document.createTextNode(source.slice(cursor)));
+}
+
+function appendBackgroundMarkdown(container, value) {
+    let source = backgroundResultText(value)
+        .replace(/\\\\n/g, "\n")
+        .replace(/<br\\s*\\/?\\s*>/gi, "\n")
+        .replace(/^\\s*【(?:openai|gemini|claude)】\\s*/gim, "")
+        .replace(/\\r/g, "");
+    const lines = source.split("\n");
+    let paragraph = [];
+    const flushParagraph = () => {
+        if (!paragraph.length) return;
+        const p = document.createElement("p");
+        p.style.cssText = "margin:5px 0;line-height:1.7;white-space:normal";
+        paragraph.forEach((line, index) => {
+            if (index) p.appendChild(document.createElement("br"));
+            appendBackgroundInline(p, line);
+        });
+        container.appendChild(p);
+        paragraph = [];
+    };
+    const isTableRow = line => /^\\s*\\|.*\\|\\s*$/.test(line);
+    const isTableDivider = line => /^\\s*\\|?\\s*:?-{3,}:?\\s*(\\|\\s*:?-{3,}:?\\s*)+\\|?\\s*$/.test(line);
+    for (let i = 0; i < lines.length;) {
+        const line = lines[i];
+        if (!line.trim()) { flushParagraph(); i++; continue; }
+        if (isTableRow(line)) {
+            flushParagraph();
+            const rows = [];
+            while (i < lines.length && isTableRow(lines[i])) {
+                if (!isTableDivider(lines[i])) rows.push(lines[i].trim().replace(/^\\||\\|$/g, "").split("|").map(cell => cell.trim()));
+                i++;
+            }
+            if (rows.length) {
+                const table = document.createElement("table");
+                table.style.cssText = "width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;display:block;overflow-x:auto";
+                rows.forEach((cells, rowIndex) => {
+                    const tr = document.createElement("tr");
+                    cells.forEach(cell => {
+                        const td = document.createElement(rowIndex === 0 ? "th" : "td");
+                        td.style.cssText = "border:1px solid rgba(100,170,220,.28);padding:5px 6px;text-align:left;vertical-align:top;min-width:76px";
+                        if (rowIndex === 0) td.style.color = "#9fdcff";
+                        appendBackgroundInline(td, cell);
+                        tr.appendChild(td);
+                    });
+                    table.appendChild(tr);
+                });
+                container.appendChild(table);
+            }
+            continue;
+        }
+        const heading = line.match(/^\\s{0,3}(#{1,4})\\s+(.+)$/);
+        if (heading) {
+            flushParagraph();
+            const h = document.createElement("h" + Math.min(4, heading[1].length + 1));
+            h.style.cssText = "margin:10px 0 5px;color:#9fdcff;font-size:1em";
+            appendBackgroundInline(h, heading[2]);
+            container.appendChild(h);
+            i++;
+            continue;
+        }
+        const listMatch = line.match(/^\\s*(?:[-*+]\\s+|\\d+[.)]\\s+)(.+)$/);
+        if (listMatch) {
+            flushParagraph();
+            const ordered = /^\\s*\\d+[.)]\\s+/.test(line);
+            const list = container.lastElementChild;
+            const sameList = list && list.tagName === (ordered ? "OL" : "UL") && list.dataset.backgroundList === "true";
+            const target = sameList ? list : document.createElement(ordered ? "ol" : "ul");
+            if (!sameList) {
+                target.dataset.backgroundList = "true";
+                target.style.cssText = "margin:5px 0;padding-left:22px;line-height:1.7";
+                container.appendChild(target);
+            }
+            const li = document.createElement("li");
+            appendBackgroundInline(li, listMatch[1]);
+            target.appendChild(li);
+            i++;
+            continue;
+        }
+        paragraph.push(line.trim());
+        i++;
+    }
+    flushParagraph();
+}
+
 async function toggleBackgroundTaskResult(card, taskId, button) {
     const existing = card.querySelector("[data-background-result]");
     if (existing) {
@@ -1431,9 +1533,9 @@ async function toggleBackgroundTaskResult(card, taskId, button) {
             const heading = document.createElement("div");
             heading.style.cssText = "margin-bottom:5px;color:#8fcfff";
             heading.textContent = (index + 1) + ". " + String(step.title || ("工程 " + (index + 1)));
-            const body = document.createElement("pre");
-            body.style.cssText = "margin:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font:inherit;font-size:12px;line-height:1.65;color:#d9eaff";
-            body.textContent = backgroundResultText(step.output);
+            const body = document.createElement("div");
+            body.style.cssText = "max-height:420px;overflow:auto;font-size:12px;line-height:1.7;color:#d9eaff;overflow-wrap:anywhere";
+            appendBackgroundMarkdown(body, step.output);
             section.append(heading, body);
             panel.appendChild(section);
         }
