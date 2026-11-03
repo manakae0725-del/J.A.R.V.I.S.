@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { parseFeedEntries, readTag, extractForecastAreas, extractForecastStations, findSapporoArea, findSapporoStation, findSapporoForecastTargets, classifyInfoType, summarizeForecastStructure, parseVpfd51Forecast, parseVpfw50Forecast } = require("../lib/jmaWeather");
+const { readBoundedResponseBody, parseFeedEntries, readTag, extractForecastAreas, extractForecastStations, findSapporoArea, findSapporoStation, findSapporoForecastTargets, classifyInfoType, summarizeForecastStructure, parseVpfd51Forecast, parseVpfw50Forecast } = require("../lib/jmaWeather");
 
 test("selects JMA VPFD51 and VPFW50 telegrams from Atom feed", () => {
   const xml = `<?xml version="1.0"?>
@@ -199,4 +199,37 @@ test("parses Sapporo weekly weather, precipitation, and temperatures from VPFW50
   const parsed = parseVpfw50Forecast(xml);
   assert.deepEqual(parsed.area, { name: "石狩・空知・後志地方", code: "016000" });
   assert.deepEqual(parsed.days, [{ dateTime: "2026-11-04T00:00:00+09:00", weather: "雪", precipitationProbability: 60, high: 4, low: -3 }]);
+});
+
+
+test("reads a streamed UTF-8 response within the byte limit", async () => {
+  const response = new Response(new ReadableStream({
+    start(controller) {
+      controller.enqueue(Buffer.from("札"));
+      controller.enqueue(Buffer.from("幌"));
+      controller.close();
+    }
+  }));
+  assert.equal(await readBoundedResponseBody(response, Buffer.byteLength("札幌", "utf8")), "札幌");
+});
+
+test("rejects an oversized streamed response and cancels the stream", async () => {
+  let canceled = false;
+  const response = new Response(new ReadableStream({
+    start(controller) {
+      controller.enqueue(Buffer.from("1234"));
+      controller.enqueue(Buffer.from("5678"));
+    },
+    cancel() {
+      canceled = true;
+    }
+  }));
+  await assert.rejects(readBoundedResponseBody(response, 5), /JMA_RESPONSE_TOO_LARGE/);
+  assert.equal(canceled, true);
+});
+
+test("enforces the byte limit when a response has no readable stream", async () => {
+  const response = { body: null, text: async () => "札幌" };
+  assert.equal(await readBoundedResponseBody(response, 6), "札幌");
+  await assert.rejects(readBoundedResponseBody(response, 5), /JMA_RESPONSE_TOO_LARGE/);
 });
