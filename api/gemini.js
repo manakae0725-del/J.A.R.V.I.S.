@@ -57,6 +57,7 @@ const { enforceRateLimit } = require("./_rateLimit");
 const { runAiCouncil, testOpenAIConnection } = require("./_aiCouncil");
 const { getAutoCommanderConfig } = require("../lib/commanderRouting");
 const { isExplicitMetricLookupIntent } = require("../lib/spreadsheetIntent");
+const { isExplicitCalendarUpdateIntent, isExplicitCalendarDeleteIntent } = require("./_calendarIntent");
 const { listConnectionsForUser } = require("./_google/tokenStore");
 const { googleApiRequest } = require("./_google/client");
 
@@ -2595,8 +2596,10 @@ module.exports = async function handler(req, res) {
     const addVerb=/(?:入れて|入れといて|入れておいて|追加して|追加|登録して|登録|作って|作成して|予定にして|スケジュールして|予約して|押さえて|組んで)/.test(userText);
     const hasDateOrTime=!!calendarDate(userText)||/\d{1,2}時/.test(userText);
     const creating=/(?:予定|スケジュール|カレンダー).*(?:入れて|入れといて|入れておいて|追加|登録|作って|作成)|(?:入れて|入れといて|入れておいて|追加して|登録して|予約して|押さえて).*(?:予定|スケジュール|カレンダー)/.test(userText)||(addVerb&&hasDateOrTime);
-    const updating=/(?:予定|スケジュール|カレンダー).*(?:変更|ずらして|時間を変)|(?:変更|ずらして).*(?:予定|スケジュール|カレンダー)/.test(userText);
-    const deleting=/(?:予定|スケジュール|カレンダー).*(?:削除|消して|取り消して)|(?:削除|消して|取り消して).*(?:予定|スケジュール|カレンダー)/.test(userText);
+    // Only route explicit operations on a named calendar item. Feature discussions such as
+    // "担当者ごとのスケジュール管理・予約変更" must remain on the normal AI path.
+    const updating=isExplicitCalendarUpdateIntent(userText);
+    const deleting=isExplicitCalendarDeleteIntent(userText);
     if(creating||updating||deleting){
       try{
         const cs=await listConnectionsForUser(user.id),c=Array.isArray(cs)?cs.find(x=>x?.status==="connected"):null;
