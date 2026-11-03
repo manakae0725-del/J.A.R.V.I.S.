@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { parseFeedEntries, readTag, extractForecastAreas, extractForecastStations, findSapporoArea, findSapporoStation, findSapporoForecastTargets, classifyInfoType } = require("../lib/jmaWeather");
+const { parseFeedEntries, readTag, extractForecastAreas, extractForecastStations, findSapporoArea, findSapporoStation, findSapporoForecastTargets, classifyInfoType, summarizeForecastStructure } = require("../lib/jmaWeather");
 
 test("selects JMA VPFD51 and VPFW50 telegrams from Atom feed", () => {
   const xml = `<?xml version="1.0"?>
@@ -100,4 +100,19 @@ test("classifies JMA forecast publication, correction, and cancellation", () => 
   assert.equal(classifyInfoType("訂正"), "active");
   assert.equal(classifyInfoType("取消"), "canceled");
   assert.equal(classifyInfoType(null), "unknown");
+});
+test("summarizes namespaced VPFD51 MeteorologicalInfos and TimeSeriesInfo structure", () => {
+  const xml = `<j:Report xmlns:j="urn:jma"><j:Body>
+    <j:MeteorologicalInfos type="区域予報"><j:TimeSeriesInfo>
+      <j:TimeDefines><j:TimeDefine timeId="1"><j:DateTime>2026-11-03T18:00:00+09:00</j:DateTime></j:TimeDefine></j:TimeDefines>
+      <j:Item><j:Kind><j:Property><j:Type>３時間内卓越天気</j:Type></j:Property></j:Kind><j:Area><j:Name>石狩地方</j:Name><j:Code>1400</j:Code></j:Area></j:Item>
+    </j:TimeSeriesInfo></j:MeteorologicalInfos>
+  </j:Body></j:Report>`;
+  const summary = summarizeForecastStructure(xml);
+  assert.equal(summary.length, 1);
+  assert.equal(summary[0].type, "区域予報");
+  assert.equal(summary[0].timeSeries[0].timeDefines[0].id, "1");
+  assert.equal(summary[0].timeSeries[0].timeDefines[0].dateTime, "2026-11-03T18:00:00+09:00");
+  assert.deepEqual(summary[0].timeSeries[0].items[0].kinds, ["３時間内卓越天気"]);
+  assert.equal(summary[0].timeSeries[0].items[0].areaName, "石狩地方");
 });
