@@ -1670,7 +1670,8 @@ function renderJmaWeather(data) {
         empty.className = "hourly-col";
         empty.textContent = "予報未取得";
         hourly.appendChild(empty);
-        meta.textContent = (data && data.note ? data.note + "\n" : "") + (data && data.inspectedTelegram ? "発表 " + data.inspectedTelegram.reportDateTime + "\n" : "") + data.attribution;
+        const attribution = data && data.attribution ? data.attribution : "出典：気象庁（気象庁の公開データを基にJ.A.R.V.I.S.が加工・表示）";
+        meta.textContent = (data && data.note ? data.note + "\n" : "") + (data && data.inspectedTelegram ? "発表 " + data.inspectedTelegram.reportDateTime + "\n" : "") + attribution;
         return;
     }
     location.textContent = "札幌・" + formatJmaTime(current.dateTime) + "予報";
@@ -1684,7 +1685,9 @@ function renderJmaWeather(data) {
     low.textContent = "L: " + (highLowData.low === null || highLowData.low === undefined ? "--" : highLowData.low) + "°C";
     highLow.append(high, low);
     hourly.replaceChildren();
-    const entries = Array.isArray(forecast.threeHourly) ? forecast.threeHourly.filter(item => item && item.dateTime).slice(0, 4) : [];
+    const allEntries = Array.isArray(forecast.threeHourly) ? forecast.threeHourly.filter(item => item && item.dateTime) : [];
+    const currentIndex = allEntries.findIndex(item => item.dateTime === current.dateTime);
+    const entries = allEntries.slice(currentIndex >= 0 ? currentIndex : 0, (currentIndex >= 0 ? currentIndex : 0) + 4);
     for (const item of entries) {
         const column = document.createElement("div");
         column.className = "hourly-col";
