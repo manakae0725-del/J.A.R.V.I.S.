@@ -51,7 +51,8 @@ Provide J.A.R.V.I.S. with reliable current conditions and forecasts for the user
 
 ### Phase A — Complete design
 - Confirm the configured location behavior and timezone.
-- Confirm morning/evening schedule times and whether a report should be spoken, shown in HUD, or both.
+- Morning/evening schedule times are confirmed as 07:30 and 22:00 JST (Asia/Tokyo), configurable later.
+- Decide separately whether scheduled retrieval should also trigger spoken announcements; default behavior is retrieval and HUD refresh only.
 - Define cache freshness, stale fallback, and failure behavior.
 - Recheck API pricing, terms, request fields, and exact endpoint count.
 
