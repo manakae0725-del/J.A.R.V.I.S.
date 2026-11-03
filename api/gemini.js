@@ -1159,11 +1159,11 @@ module.exports = async function handler(req, res) {
         const formatStamp = value => value ? new Date(value).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "不明";
         answer += "\n発表 " + formatStamp(weather.inspectedTelegram?.reportDateTime) + " / 取得 " + formatStamp(weather.fetchedAt);
         answer += "\n" + weather.attribution;
-        return calendarDirect(res, answer, answer, { weather });
+        return calendarDirect(res, answer, answer, { weather, interactionId: previousInteractionId || null });
       } catch (error) {
         console.warn("[WEATHER] JMA forecast request failed", { code: typeof error?.message === "string" ? error.message : "JMA_WEATHER_ERROR" });
         const message = "気象庁の札幌予報を取得できませんでした。時間をおいて再度お試しください。";
-        return calendarDirect(res, message, message);
+        return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
       }
     }
 
