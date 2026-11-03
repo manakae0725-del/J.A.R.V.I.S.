@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { readBoundedResponseBody, parseFeedEntries, readTag, extractForecastAreas, extractForecastStations, findSapporoArea, findSapporoStation, findSapporoForecastTargets, classifyInfoType, summarizeForecastStructure, parseVpfd51Forecast, parseVpfw50Forecast } = require("../lib/jmaWeather");
+const { readBoundedResponseBody, parseFeedEntries, readTag, extractForecastAreas, extractForecastStations, findSapporoArea, findSapporoStation, findSapporoForecastTargets, classifyInfoType, summarizeForecastStructure, parseVpfd51Forecast, parseVpfw50Forecast, resolveHokkaidoForecastArea } = require("../lib/jmaWeather");
 
 test("selects JMA VPFD51 and VPFW50 telegrams from Atom feed", () => {
   const xml = `<?xml version="1.0"?>
@@ -232,4 +232,26 @@ test("enforces the byte limit when a response has no readable stream", async () 
   const response = { body: null, text: async () => "札幌" };
   assert.equal(await readBoundedResponseBody(response, 6), "札幌");
   await assert.rejects(readBoundedResponseBody(response, 5), /JMA_RESPONSE_TOO_LARGE/);
+});
+
+
+test("resolves Hokkaido forecast regions and representative cities", () => {
+  assert.equal(resolveHokkaidoForecastArea("明日の旭川の天気").code, "012000");
+  assert.equal(resolveHokkaidoForecastArea("帯広の週間天気").code, "014030");
+  assert.equal(resolveHokkaidoForecastArea("釧路の天気").code, "014100");
+  assert.equal(resolveHokkaidoForecastArea("札幌の天気").code, "016000");
+  assert.equal(resolveHokkaidoForecastArea("北海道の天気"), null);
+  assert.equal(resolveHokkaidoForecastArea("東京の天気"), null);
+});
+
+test("selects today's high and low by JST calendar date when XML timestamps use UTC", () => {
+  const xml = `<Report><MeteorologicalInfos type="地点予報"><TimeSeriesInfo>
+    <TimeDefines><TimeDefine timeId="1"><DateTime>2026-11-02T15:00:00Z</DateTime></TimeDefine></TimeDefines>
+    <Item><Kind>
+      <Property><Type>日中の最高気温</Type><TemperaturePart><Temperature refID="1" type="日中の最高気温" unit="度">9</Temperature></TemperaturePart></Property>
+      <Property><Type>朝の最低気温</Type><TemperaturePart><Temperature refID="1" type="朝の最低気温" unit="度">2</Temperature></TemperaturePart></Property>
+    </Kind><Station><Name>札幌</Name><Code>14163</Code></Station></Item>
+  </TimeSeriesInfo></MeteorologicalInfos></Report>`;
+  const parsed = parseVpfd51Forecast(xml, Date.parse("2026-11-03T01:00:00+09:00"));
+  assert.deepEqual(parsed.todayHighLow, { date: "2026-11-03", high: 9, low: 2 });
 });

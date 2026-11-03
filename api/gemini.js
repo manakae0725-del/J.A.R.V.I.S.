@@ -62,7 +62,7 @@ const { googleApiRequest } = require("./_google/client");
 
 const crypto = require("crypto");
 const backgroundTasks = require("../lib/backgroundTasks");
-const { inspectLatestForecast } = require("../lib/jmaWeather");
+const { inspectLatestForecast, resolveHokkaidoForecastArea } = require("../lib/jmaWeather");
 
 const SPREADSHEET_REGISTRY_CATEGORY = "jarvis_spreadsheet_registry";
 
@@ -1110,13 +1110,23 @@ module.exports = async function handler(req, res) {
     if (weatherIntent) {
       const locationQuery = userText.replace(/(?:今日|本日|明日|あした|明後日|あさって|今夜|今朝|週末|今週|来週|現在)(?:の)?/g, "");
       const requestedLocation = locationQuery.match(/([^\s、,。?？のはで]{1,12})(?:の|は|で)?(?:天気|気温|天候|降水確率|雨|雪|晴れ|曇り|寒い|暑い|冷え込む|暖かい)/)?.[1] || null;
-      if (requestedLocation && (!/(?:札幌|石狩地方)/.test(requestedLocation) || /(?:以外|じゃなく|ではなく|別|他)/.test(requestedLocation))) {
-        const message = "現在の天気機能は札幌（石狩地方）を標準地点として対応しています。指定された地域の予報はまだ取得できません。";
+      const hokkaidoArea = resolveHokkaidoForecastArea(userText);
+      if (requestedLocation && /(?:以外|じゃなく|ではなく|別|他)/.test(requestedLocation)) {
+        const message = "指定された地域の予報は現在の対応範囲外です。北海道内の地域名または市町村名を指定してください。";
         return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
       }
+      if (requestedLocation && /北海道/.test(requestedLocation) && !hokkaidoArea) {
+        const message = "北海道全域を一つの予報として扱うことはできません。宗谷・上川/留萌・網走/北見/紋別・十勝・釧路/根室・胆振/日高・石狩/空知/後志・渡島/檜山のいずれか、または市町村名を指定してください。";
+        return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
+      }
+      if (requestedLocation && !hokkaidoArea) {
+        const message = "現在の天気機能は北海道内の地域に対応しています。指定された地域は対応範囲外です。";
+        return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
+      }
+      const selectedArea = hokkaidoArea || resolveHokkaidoForecastArea("札幌");
       if (!(await enforceRateLimit(res, user, "weather-chat-minute", 3, 60))) return;
       try {
-        const weather = await inspectLatestForecast();
+        const weather = await inspectLatestForecast(selectedArea.code, { areaNames: selectedArea.areaNames, weeklyAreaNames: selectedArea.weeklyAreaNames, stationNames: selectedArea.stations });
         const forecast = weather.forecast || {};
         const weeklyRequested = /(?:週間|今週|来週|週末|7日間|一週間|７日間)/.test(userText);
         const futureDayOffset = /(?:明後日|あさって)/.test(userText) ? 2 : /(?:明日|あした|翌日)/.test(userText) ? 1 : 0;
@@ -1144,14 +1154,14 @@ module.exports = async function handler(req, res) {
               if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率 " + day.precipitationProbability + "%");
               return parts.join("：");
             });
-            answer = ( /週末/.test(userText) ? "札幌の週末予報です。\n" : "札幌の週間予報です。\n" ) + (days.length ? days.join("\n") : "対象日の予報データを確認できませんでした。");
+            answer = ( /週末/.test(userText) ? selectedArea.label + "の週末予報です。\n" : selectedArea.label + "の週間予報です。\n" ) + (days.length ? days.join("\n") : "対象日の予報データを確認できませんでした。");
           } else {
-            answer = "札幌の週間予報データを確認できませんでした。未確認の予報値はお伝えしません。";
+            answer = selectedArea.label + "の週間予報データを確認できませんでした。未確認の予報値はお伝えしません。";
           }
         } else if (tomorrowRequested) {
           const day = Array.isArray(forecast.weekly) ? forecast.weekly.find(item => String(item.dateTime || "").slice(0, 10) === targetDate) : null;
           if (day) {
-            const parts = ["札幌の" + targetDayLabel + "の予報は" + (day.weather || "天気未取得") + "です。"];
+            const parts = [selectedArea.label + "の" + targetDayLabel + "の予報は" + (day.weather || "天気未取得") + "です。"];
             if (Number.isFinite(day.high) || Number.isFinite(day.low)) parts.push("最高気温は" + temperatureLabel(day.high) + "、最低気温は" + temperatureLabel(day.low) + "です。");
             if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率は" + day.precipitationProbability + "%です。");
             answer = parts.join(" ");
@@ -1159,19 +1169,19 @@ module.exports = async function handler(req, res) {
             const nextForecast = (forecast.threeHourly || []).find(item => String(item.dateTime || "").slice(0, 10) === targetDate && item.weather && Number.isFinite(item.temperature));
             if (nextForecast) {
               const time = new Date(nextForecast.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
-              answer = "札幌の" + targetDayLabel + " " + time + "からの予報は" + nextForecast.weather + "、気温は" + temperatureLabel(nextForecast.temperature) + "です。";
+              answer = selectedArea.label + "の" + targetDayLabel + " " + time + "からの予報は" + nextForecast.weather + "、気温は" + temperatureLabel(nextForecast.temperature) + "です。";
               const extremes = (forecast.dailyTemperatures || []).filter(item => String(item.dateTime || "").slice(0, 10) === targetDate && Number.isFinite(item.value));
               const high = extremes.find(item => item.type === "最高気温" || item.type === "日中の最高気温");
               const low = extremes.find(item => item.type === "朝の最低気温");
               if (high || low) answer += " 最高気温は" + temperatureLabel(high?.value) + "、最低気温は" + temperatureLabel(low?.value) + "です。";
             } else {
-              answer = "札幌の" + targetDayLabel + "の予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
+              answer = selectedArea.label + "の" + targetDayLabel + "の予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
             }
           }
         } else if (weather.forecastValuesReady && forecast.current) {
           const current = forecast.current;
           const currentTime = new Date(current.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
-          answer = "札幌の" + currentTime + "からの予報は" + current.weather + "、気温は" + temperatureLabel(current.temperature) + "です。";
+          answer = selectedArea.label + "の" + currentTime + "からの予報は" + current.weather + "、気温は" + temperatureLabel(current.temperature) + "です。";
           const highLow = forecast.todayHighLow || {};
           const extremes = [];
           if (Number.isFinite(highLow.high)) extremes.push("最高 " + highLow.high + "℃");
