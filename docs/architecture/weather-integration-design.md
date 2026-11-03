@@ -40,18 +40,18 @@ Provide J.A.R.V.I.S. with reliable current conditions and forecasts for the user
 
 ### Current decision
 
-Provider selection remains **OPEN**. Current findings: (1) JMA public data can generally be reused under the JMA site terms with attribution and appropriate notes for edits, but undocumented website JSON endpoints are not stable contracts; (2) unofficial JMA wrapper APIs explicitly warn that their upstream endpoints may change or fail; (3) Google Weather API supports Japan, but its use and cache restrictions require a careful fit review; (4) JWA's supported commercial API starts at JPY 32,000/month and requires prior permission for commercial use and caching, so it is out of scope for now. The next step is to evaluate official JMA machine-readable XML and the exact permitted use for a private household assistant. Keep the normalized weather model provider-neutral.
+Provider selection: **JMA public XML selected as the primary source for the initial private household implementation**, subject to Preview validation. Current findings: (1) JMA public data can generally be reused under the JMA site terms with attribution and appropriate notes for edits, but undocumented website JSON endpoints are not stable contracts; (2) unofficial JMA wrapper APIs explicitly warn that their upstream endpoints may change or fail; (3) Google Weather API supports Japan, but its use and cache restrictions require a careful fit review; (4) JWA's supported commercial API starts at JPY 32,000/month and requires prior permission for commercial use and caching, so it is out of scope for now. The selected retrieval path is JMA's official PULL-type Atom feeds and the published JMA XML telegrams. Use the high-frequency feed only as an update index; retrieve only matching forecast telegrams and never redownload unchanged documents. Keep a provider adapter so a future source can replace JMA. Keep the normalized weather model provider-neutral.
 
 ## Proposed architecture
 
-1. Use a Japan-supported weather source selected after the provider re-evaluation above. Keep the provider behind a server-side adapter.
-2. Keep the API key server-side only. The browser must call the existing authenticated J.A.R.V.I.S. API layer; never expose a Weather API key in `public/index.html`.
+1. Use the JMA public XML PULL feed as the initial source behind a server-side adapter. Use the official regular feed for scheduled forecast telegrams and the relevant irregular feed only if/when warning data is added.
+2. JMA public XML requires no API key or user registration. Fetch it server-side only through the existing authenticated J.A.R.V.I.S. API layer; never fetch the feed directly from the browser.
 3. Extend the existing `/api/gemini` handler with a bounded weather operation, or share an internal weather module from that handler. Do not add a standalone Vercel API route unless the current function count and deployment constraints have been rechecked.
 4. Normalize provider responses into one internal weather model: location, observation/fetch time, current temperature/condition, daily high/low, hourly forecast entries, precipitation probability, and provider/source metadata. Preserve provider timestamps and timezone.
 5. Use the configured location (initially Sapporo, Japan) rather than requesting GPS permission from Safari. Make the location changeable through settings in a later UI step. Do not silently infer a more precise address.
 6. Cache the last successful normalized response per authenticated user/device using a storage design that does not misuse conversational memory. Until an approved persistent store is available, a device-local cache may be used for HUD continuity, clearly labeled with its last-updated time. Do not create finance tables or use the household-finance schema for weather.
 7. Bind the HUD fields to actual cached data. Show a clear unavailable/stale state instead of sample weather values when no valid result exists.
-8. The existing background scheduler may dispatch weather refreshes only at 07:30 and 22:00 JST (Asia/Tokyo). These are the confirmed default times and may become configurable later. Scheduled work refreshes the HUD only; it does not speak an announcement. It must not make a Weather API request on every minute tick; use a due-time/last-success guard and idempotency.
+8. The existing background scheduler may dispatch weather refreshes only at 07:30 and 22:00 JST (Asia/Tokyo). Use a due-time guard and persisted last-success/idempotency state; query the Atom update index, compare telegram IDs/updated timestamps, and fetch only changed forecast documents. These are the confirmed default times and may become configurable later. Scheduled work refreshes the HUD only; it does not speak an announcement. It must not make a Weather API request on every minute tick; use a due-time/last-success guard and idempotency.
 9. On-demand voice requests should refresh or return a sufficiently recent cached result according to an explicit freshness rule. The assistant must state the observation/update time and distinguish current conditions from forecast.
 10. Keep general web search available for questions outside the structured forecast scope; avoid making a second paid search call when a successful dedicated weather result already answers the request.
 
@@ -101,3 +101,15 @@ This section records current research. Google Weather API supports Japan, but is
 - No Google Cloud registration or billing activation for the current weather implementation.
 - No new Vercel function unless function-count review and user approval allow it.
 - No finance schema or household-finance implementation as part of weather work.
+
+
+## JMA implementation notes (2026-11-03)
+
+- Official PULL page: https://xml.kishou.go.jp/xmlpull.html
+- The page publishes two Atom feeds (high-frequency updated every minute and long-term updated hourly). The high-frequency feed retains at least the latest 10 minutes; the long-term feed retains several days. These are update indexes, not a reason to fetch all telegrams on each tick.
+- Public feed use requires no user registration. JMA warns that maintenance may delay/stop delivery and that it does not warrant actions based on the public XML. The system must retain last-successful data and clearly label its retrieval time.
+- Relevant forecast telegrams: VPFD51 (prefectural forecast, three times daily/as needed) and VPFW50 (prefectural weekly forecast, twice daily, up to seven days). The official catalog documents weather, temperature, and precipitation probability fields.
+- XML schema/dictionaries are versioned by JMA. Parser must tolerate optional/missing elements, reject unknown/incomplete payloads safely, preserve the telegram ID and report time, and be covered by fixtures for schema updates.
+- Attribution in HUD: "出典：気象庁（府県天気予報・府県週間天気予報）". Since J.A.R.V.I.S. normalizes and presents the source data, label it "気象庁の公開データを基にJ.A.R.V.I.S.が加工・表示".
+- JMA's terms require source attribution and a note when content is edited/processed. JMA also notes statutory limits under the Meteorological Service Act. This initial scope is a private household assistant for its authenticated household users, not a public forecast service or a commercial weather product. Do not redistribute forecasts publicly or represent J.A.R.V.I.S. as an official JMA service. If the scope changes to public/commercial forecast provision, obtain a legal review and confirm permit requirements first.
+- JMA's PULL feed may be delayed or unavailable. Never treat it as an emergency-alert channel or guaranteed real-time warning service.
