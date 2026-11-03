@@ -8,17 +8,17 @@ test("selects JMA VPFD51 and VPFW50 telegrams from Atom feed", () => {
   const xml = `<?xml version="1.0"?>
   <feed xmlns="http://www.w3.org/2005/Atom">
     <entry>
-      <id>https://www.data.jma.go.jp/developer/xml/data/20261103090000_0_VPFD51_1.xml</id>
+      <id>https://www.data.jma.go.jp/developer/xml/data/20261103090000_0_VPFD51_016000.xml</id>
       <title>府県天気予報（Ｒ１）</title>
       <updated>2026-11-03T09:00:00Z</updated>
     </entry>
     <entry>
-      <id>https://www.data.jma.go.jp/developer/xml/data/20261103080000_0_VPFW50_1.xml</id>
+      <id>https://www.data.jma.go.jp/developer/xml/data/20261103080000_0_VPFW50_016000.xml</id>
       <title>府県週間天気予報</title>
       <updated>2026-11-03T08:00:00Z</updated>
     </entry>
     <entry>
-      <id>https://www.data.jma.go.jp/developer/xml/data/20261103070000_0_VPFD51_2.xml</id>
+      <id>https://www.data.jma.go.jp/developer/xml/data/20261103070000_0_VPFD51_020000.xml</id>
       <title>府県天気予報（Ｒ１）</title>
       <updated>2026-11-03T07:00:00Z</updated>
     </entry>
@@ -26,8 +26,10 @@ test("selects JMA VPFD51 and VPFW50 telegrams from Atom feed", () => {
   const entries = parseFeedEntries(xml);
   assert.equal(entries.length, 3);
   assert.equal(entries[0].code, "VPFD51");
+  assert.equal(entries[0].areaCode, "016000");
   assert.match(entries[0].id, /20261103090000/);
   assert.equal(entries[2].code, "VPFD51");
+  assert.equal(entries[2].areaCode, "020000");
 });
 
 test("rejects telegram URLs outside the official JMA host and path", () => {
