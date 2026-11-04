@@ -723,9 +723,6 @@ module.exports = async function handler(req, res) {
   if (!user) return;
 
   if (req.body && req.body.mode === "weather-source-check") {
-    if (process.env.VERCEL_ENV !== "preview") {
-      return res.status(403).json({ ok: false, error: "PREVIEW_ONLY_TEST" });
-    }
     if (!(await enforceRateLimit(res, user, "weather-source-check-minute", 3, 60))) return;
     try {
       const result = await inspectLatestForecast();
@@ -3846,7 +3843,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
       const storageKey = process.env.SUPABASE_SECRET_KEY;
       if (!storageUrl || !storageKey) return res.status(503).json({ error: "添付ファイル保存サービスが設定されていません。" });
       for (const item of attachments) {
-        const downloadUrl = storageUrl.replace(/\/+$/, "") + "/storage/v1/object/" + "jarvis-chat-temp/" + item.path.split("/").map(encodeURIComponent).join("/");
+        const downloadUrl = storageUrl.replace(/\/+$/, "") + "/storage/v1/object/authenticated/" + "jarvis-chat-temp/" + item.path.split("/").map(encodeURIComponent).join("/");
         const fileResponse = await fetch(downloadUrl, { headers: { apikey: storageKey, Authorization: "Bearer " + storageKey }, signal: AbortSignal.timeout(20000) });
         if (!fileResponse.ok) return res.status(400).json({ error: "添付ファイルを読み込めませんでした。再度添付してください。" });
         const bytes = Buffer.from(await fileResponse.arrayBuffer());
