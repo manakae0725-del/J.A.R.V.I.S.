@@ -205,9 +205,10 @@ align-items: center;
 margin-bottom: 12px;
 }
 .weather-location {
-font-size: 12px;
+font-size: 11px;
 color: #bfeaff;
 margin-bottom: 2px;
+white-space: nowrap;
 }
 .weather-temp-display {
 font-size: 20px;
@@ -244,6 +245,24 @@ flex-direction: column;
 align-items: center;
 gap: 4px;
 }
+.weather-meta {
+font-size: 8px;
+line-height: 1.45;
+color: #6798bd;
+margin-top: 7px;
+white-space: pre-line;
+overflow-wrap: anywhere;
+}
+.weather-refresh {
+background: transparent;
+border: 1px solid rgba(70, 170, 230, .35);
+border-radius: 4px;
+color: #8acfff;
+font-size: 9px;
+padding: 2px 6px;
+cursor: pointer;
+}
+.weather-refresh:disabled { opacity: .55; cursor: default; }
 /* 通知・ログリストスタイル */
 .notif-item {
 display: flex;
@@ -631,61 +650,23 @@ POWER
 <div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">WEATHER</span>
-<span class="hud-dots">...</span>
+<button id="weatherRefresh" class="weather-refresh" type="button">更新</button>
 </div>
 <div class="weather-main-box">
-<div>
-<div class="weather-location" id="weatherLocation">東京</div>
-<div class="weather-temp-display" id="weatherTemp">13°C</div>
-<div class="weather-condition-text">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-くもり
+  <div>
+    <div class="weather-location" id="weatherLocation">札幌</div>
+    <div class="weather-temp-display" id="weatherTemp">--°C</div>
+    <div class="weather-condition-text" id="weatherCondition">気象庁データ未取得</div>
+  </div>
+  <div class="weather-high-low" id="weatherHighLow">
+    <div>H: --°C</div>
+    <div>L: --°C</div>
+  </div>
 </div>
+<div class="hourly-forecast-grid" id="weatherHourly">
+  <div class="hourly-col"><span>予報</span><span>未取得</span></div>
 </div>
-<div class="weather-high-low">
-<div>H: 15°C</div>
-<div>L: 8°C</div>
-</div></div>
-<div class="hourly-forecast-grid">
-<div class="hourly-col">
-<span>10:00</span>
-<span>13°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>13:00</span>
-<span>14°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>16:00</span>
-<span>15°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<circle cx="12" cy="12" r="5"/>
-<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22
-19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>19:00</span>
-<span>12°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0-10z"/>
-</svg>
-</div>
-<div class="hourly-col">
-<span>22:00</span>
-<span>11°C</span>
-<svg class="hud-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-</svg>
-</div>
+<div class="weather-meta" id="weatherMeta">気象庁データ未取得</div>
 </div>
 </div><div class="hud-card">
 <div class="hud-card-header">
@@ -701,15 +682,6 @@ POWER
 スケジュールの確認
 </div>
 <div class="notif-time">10:32</div>
-</div>
-<div class="notif-item">
-<div class="notif-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-</svg>
-天気情報を取得しました
-</div>
-<div class="notif-time">10:28</div>
 </div>
 <div class="notif-item">
 <div class="notif-left">
@@ -734,34 +706,7 @@ POWER
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-(function(){
- const screen=document.getElementById("authScreen"),button=document.getElementById("googleLoginButton"),message=document.getElementById("authMessage"),signOut=document.getElementById("jarvisSignOut");
- let client=null,resolveReady;
- window.jarvisAuthReady=new Promise(resolve=>{resolveReady=resolve;});
- window.jarvisGetAccessToken=async function(){await window.jarvisAuthReady;if(!client)return null;const result=await client.auth.getSession();return result.data.session?result.data.session.access_token:null;};
- let currentSession=null,hasResolvedInitialSession=false;
- function revealHome(){screen.classList.remove("is-authenticating");document.body.classList.add("home-revealing");screen.classList.add("is-exiting");setTimeout(()=>{screen.hidden=true;screen.classList.remove("is-exiting");document.body.classList.remove("auth-locked");requestAnimationFrame(()=>requestAnimationFrame(()=>{document.body.classList.remove("home-revealing");}));},850);}
- function show(session,eventName=""){currentSession=session||null;const signedIn=Boolean(session);signOut.hidden=!signedIn;window.jarvisCurrentUserId=signedIn&&session.user&&typeof session.user.id==="string"?session.user.id:null;
-  if(!signedIn){screen.hidden=false;screen.classList.remove("is-exiting","is-authenticating");button.disabled=false;}
-  else if(eventName==="SIGNED_IN"||eventName==="PASSWORD_RECOVERY"){revealHome();}
-  window.dispatchEvent(new CustomEvent("jarvis-auth-change",{detail:{userId:window.jarvisCurrentUserId}}));
- }
- async function init(){try{
-  if(!window.supabase||!window.supabase.createClient)throw new Error("認証ライブラリを読み込めません。再読み込みしてください。");
-  const response=await fetch("/api/auth-config",{cache:"no-store"}),config=await response.json();
-  if(!response.ok||!config.url||!config.anonKey)throw new Error("認証設定を取得できません。Supabaseの環境変数を確認してください。");
-  client=window.supabase.createClient(config.url,config.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  window.jarvisSupabase=client;
-  const result=await client.auth.getSession();if(result.error)throw result.error;
-  currentSession=result.data.session||null;
-  show(currentSession,"INITIAL_SESSION");
-  client.auth.onAuthStateChange((event,session)=>{if(event==="INITIAL_SESSION"&&hasResolvedInitialSession)return;show(session,event);});
-  hasResolvedInitialSession=true;resolveReady();
- }catch(error){message.textContent=error?.message||"認証の初期化に失敗しました。";button.disabled=true;resolveReady();}}
- button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;screen.classList.add("is-authenticating");message.textContent="AUTHENTICATING...";try{const sessionResult=await client.auth.getSession();if(sessionResult.error)throw sessionResult.error;if(sessionResult.data.session){currentSession=sessionResult.data.session;show(currentSession,"CORE_TAP");revealHome();return;}const result=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(result.error)throw result.error;}catch(error){message.textContent=error?.message||"UNABLE TO START SIGN-IN.";button.disabled=false;screen.classList.remove("is-authenticating");}});
- signOut.addEventListener("click",async()=>{if(!client)return;signOut.disabled=true;const result=await client.auth.signOut();if(result.error)message.textContent="SIGN-OUT FAILED.";signOut.disabled=false;});
- init();
-})();
+(function(){const screen=document.getElementById("authScreen"),button=document.getElementById("googleLoginButton"),message=document.getElementById("authMessage"),signOut=document.getElementById("jarvisSignOut");let client=null,resolveReady,generation=0,timer=null;window.jarvisAuthReady=new Promise(r=>resolveReady=r);window.jarvisGetAccessToken=async()=>{await window.jarvisAuthReady;if(!client)return null;const s=await client.auth.getSession();return s.data.session?s.data.session.access_token:null;};window.jarvisIsAuthenticated=()=>Boolean(window.jarvisCurrentUserId);function lock(){generation++;clearTimeout(timer);document.body.classList.add("auth-locked");document.body.classList.remove("home-revealing");screen.hidden=false;screen.classList.remove("is-exiting","is-authenticating");window.jarvisStopPrivateActivity?.();}function reveal(){const g=generation;document.body.classList.add("home-revealing");screen.classList.add("is-exiting");clearTimeout(timer);timer=setTimeout(()=>{if(g!==generation||!window.jarvisCurrentUserId)return;screen.hidden=true;screen.classList.remove("is-exiting");document.body.classList.remove("auth-locked");requestAnimationFrame(()=>requestAnimationFrame(()=>{if(g===generation&&window.jarvisCurrentUserId)document.body.classList.remove("home-revealing");}));},850);}function show(session,event){const old=window.jarvisCurrentUserId||null,id=session?.user?.id||null;window.jarvisCurrentUserId=typeof id==="string"?id:null;signOut.hidden=!id;if(!id){lock();button.disabled=false;}else{if(old!==id)lock();if(old!==id||event==="SIGNED_IN"||event==="INITIAL_SESSION")reveal();}window.dispatchEvent(new CustomEvent("jarvis-auth-change",{detail:{userId:window.jarvisCurrentUserId}}));}async function init(){try{if(!window.supabase?.createClient)throw Error("認証ライブラリを読み込めません。");const r=await fetch("/api/auth-config",{cache:"no-store"}),c=await r.json();if(!r.ok||!c.url||!c.anonKey)throw Error("認証設定を取得できません。");client=window.supabase.createClient(c.url,c.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});window.jarvisSupabase=client;client.auth.onAuthStateChange((event,session)=>show(session,event));const s=await client.auth.getSession();if(s.error)throw s.error;show(s.data.session||null,"INITIAL_SESSION");}catch(e){lock();message.textContent=e.message||"認証初期化失敗";button.disabled=true;}finally{resolveReady();}}button.addEventListener("click",async()=>{if(!client)return;button.disabled=true;try{const s=await client.auth.getSession();if(s.data.session){show(s.data.session,"SIGNED_IN");return;}const r=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin}});if(r.error)throw r.error;}catch(e){message.textContent=e.message;button.disabled=false;}});signOut.addEventListener("click",async()=>{if(client){const r=await client.auth.signOut();if(r.error)message.textContent="SIGN-OUT FAILED.";}});lock();init();})();
 </script>
 
 <script>const datetime=document.querySelector("#datetime");function updateDateTime(){const n=new Date();const p=v=>String(v).padStart(2,"0");datetime.textContent=`${n.getFullYear()}.${p(n.getMonth()+1)}.${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`}updateDateTime();setInterval(updateDateTime,1000);</script>
@@ -1313,7 +1258,7 @@ function renderJarvisAttachments() {
     row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 9px;background:rgba(4,25,43,.85);border:1px solid rgba(45,150,220,.35);border-radius:4px;color:#d9efff;font-size:11px";
     const label = document.createElement("span");
     label.textContent = file.name + " · " + (file.size / 1024 / 1024).toFixed(2) + "MB";
-    label.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    label.style.cssText = "display:block;min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
     const remove = document.createElement("button");
     remove.type = "button";
     remove.textContent = "削除";
@@ -1670,6 +1615,112 @@ async function backgroundApiRequest(payload) {
     return data;
 }
 
+let jmaWeatherLoading = false;
+let jmaWeatherLastUserId = null;
+
+function formatJmaStamp(value) {
+    if (!value) return "時刻不明";
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "時刻不明";
+    return date.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+function formatJmaTime(value) {
+    if (!value) return "--:--";
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "--:--";
+    return date.toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
+}
+
+function renderJmaWeather(data) {
+    const location = document.getElementById("weatherLocation");
+    const temperature = document.getElementById("weatherTemp");
+    const condition = document.getElementById("weatherCondition");
+    const highLow = document.getElementById("weatherHighLow");
+    const hourly = document.getElementById("weatherHourly");
+    const meta = document.getElementById("weatherMeta");
+    const forecast = data && data.forecast ? data.forecast : {};
+    const current = forecast.current;
+    if (!data || data.forecastValuesReady !== true || !current) {
+        location.textContent = "札幌";
+        temperature.textContent = "--°C";
+        condition.textContent = "有効な予報データなし";
+        highLow.replaceChildren();
+        hourly.replaceChildren();
+        const empty = document.createElement("div");
+        empty.className = "hourly-col";
+        empty.textContent = "予報未取得";
+        hourly.appendChild(empty);
+        const attribution = data && data.attribution ? data.attribution : "出典：気象庁（気象庁の公開データを基にJ.A.R.V.I.S.が加工・表示）";
+        meta.textContent = (data && data.note ? data.note + "\n" : "") + (data && data.inspectedTelegram ? "発表 " + formatJmaStamp(data.inspectedTelegram.reportDateTime) + "\n" : "") + attribution;
+        return;
+    }
+    location.textContent = "札幌・" + formatJmaTime(current.dateTime) + "予報";
+    temperature.textContent = current.temperature === null ? "--°C" : current.temperature + "°C";
+    condition.textContent = current.weather || "天気予報なし";
+    const highLowData = forecast.todayHighLow || {};
+    highLow.replaceChildren();
+    const high = document.createElement("div");
+    const low = document.createElement("div");
+    high.textContent = (highLowData.label || "今日") + " H: " + (highLowData.high === null || highLowData.high === undefined ? "--" : highLowData.high) + "°C";
+    low.textContent = (highLowData.label || "今日") + " L: " + (highLowData.low === null || highLowData.low === undefined ? "--" : highLowData.low) + "°C";
+    highLow.append(high, low);
+    hourly.replaceChildren();
+    const allEntries = Array.isArray(forecast.threeHourly) ? forecast.threeHourly.filter(item => item && item.dateTime) : [];
+    const currentIndex = allEntries.findIndex(item => item.dateTime === current.dateTime);
+    const entries = allEntries.slice(currentIndex >= 0 ? currentIndex : 0, (currentIndex >= 0 ? currentIndex : 0) + 4);
+    for (const item of entries) {
+        const column = document.createElement("div");
+        column.className = "hourly-col";
+        const time = document.createElement("span");
+        const weather = document.createElement("span");
+        const temp = document.createElement("span");
+        time.textContent = formatJmaTime(item.dateTime);
+        weather.textContent = item.weather || "--";
+        temp.textContent = item.temperature === null || item.temperature === undefined ? "--°" : item.temperature + "°";
+        column.append(time, weather, temp);
+        hourly.appendChild(column);
+    }
+    meta.textContent = "発表 " + formatJmaStamp(data.inspectedTelegram?.reportDateTime) + " / 取得 " + formatJmaStamp(data.fetchedAt) + "\n" + data.attribution;
+}
+
+async function refreshJmaWeather(force = false) {
+    const userId = window.jarvisCurrentUserId || null;
+    const button = document.getElementById("weatherRefresh");
+    const condition = document.getElementById("weatherCondition");
+    if (!userId || jmaWeatherLoading || (!force && jmaWeatherLastUserId === userId)) return;
+    jmaWeatherLoading = true;
+    jmaWeatherLastUserId = userId;
+    if (button) button.disabled = true;
+    if (condition) condition.textContent = "気象庁データ取得中...";
+    try {
+        const response = await backgroundApiRequest({ mode: "weather-source-check" });
+        if (userId !== window.jarvisCurrentUserId) return;
+        renderJmaWeather(response.weather || null);
+    } catch (error) {
+        if (userId === window.jarvisCurrentUserId) {
+            renderJmaWeather(null);
+            if (condition) condition.textContent = String(error?.message || "天気データ取得失敗").includes("PREVIEW_ONLY_TEST") ? "Preview限定機能" : "気象庁データ取得失敗";
+            const meta = document.getElementById("weatherMeta");
+            if (meta) meta.textContent = "更新ボタンから再試行できます。\n出典：気象庁（気象庁の公開データを基にJ.A.R.V.I.S.が加工・表示）";
+        }
+    } finally {
+        jmaWeatherLoading = false;
+        if (button) button.disabled = false;
+        if (window.jarvisCurrentUserId && window.jarvisCurrentUserId !== userId) refreshJmaWeather();
+    }
+}
+
+document.getElementById("weatherRefresh")?.addEventListener("click", () => refreshJmaWeather(true));
+window.addEventListener("jarvis-auth-change", event => {
+    if (event.detail?.userId) {
+        jmaWeatherLastUserId = null;
+        refreshJmaWeather();
+    } else {
+        jmaWeatherLastUserId = null;
+        renderJmaWeather(null);
+    }
+});
+if (window.jarvisCurrentUserId) refreshJmaWeather();
 async function createBackgroundTask(text) {
     const response = document.getElementById("voiceResponse");
     const panel = document.getElementById("jarvisHoloPanel");
@@ -1774,7 +1825,7 @@ window.addEventListener("jarvis-auth-change", () => {
 sendButton.addEventListener(
     "click",
     async function(){
-
+        if (!window.jarvisIsAuthenticated?.()) return;
         const text = textInput.value.trim();
         if(!text && jarvisPendingAttachments.length === 0) return;
         const attachmentsToSend = jarvisPendingAttachments.slice();
@@ -1825,6 +1876,7 @@ touchStartY=touches.item(0).screenY;
 
 document.addEventListener("touchend",function(e){
 
+    if (!window.jarvisIsAuthenticated?.()) return;
     if(
         e.target.closest("#textArea") ||
         e.target.closest("#jarvisHoloPanel")
@@ -1892,6 +1944,8 @@ if(deltaY<-80){
 
 var audioContext = null;
 var currentSource = null;
+var activeConversationController = null;
+var activeTtsController = null;
 var voiceFilterChain = null;
 var conversationActive=false;
 var recognitionRunning=false;
@@ -2193,6 +2247,7 @@ async function saveMemoriesBatch(items, expectedUserId) {
 }
 function setMode(mode) {
 
+    if (!window.jarvisIsAuthenticated?.()) return;
     if (
         mode !== "voice" &&
         mode !== "text"
@@ -2493,71 +2548,11 @@ offset+=2;
 return new Blob([buffer],{type:"audio/wav"});
 }
 
-const SpeechRecognition =
-window.SpeechRecognition ||
-window.webkitSpeechRecognition;
-
-if (SpeechRecognition) {
-    try {
-        recognition = new SpeechRecognition();
-
-        recognition.lang = "ja-JP";
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-       recognition.onresult = async function(event) {
-    recognitionRunning = false;
-
-    status.textContent = "ANALYZING...";
-
-    const text =
-        event.results[0][0].transcript;
-
-            // Do not log recognized speech; it may contain private information.
-
-            if (!conversationActive) return;
-
-            await sendToGemini(text);
-        };
-
-        recognition.onerror = function(event) {
-            recognitionRunning = false;
-
-            console.error(
-                "SpeechRecognition error:",
-                event.error
-            );
-
-            if (
-                conversationActive &&
-                event.error !== "not-allowed" &&
-                event.error !== "service-not-allowed"
-            ) {
-                setTimeout(startListening, 500);
-            }
-        };
-
-        recognition.onend = function() {
-            recognitionRunning = false;
-        };
-
-    } catch(error) {
-        recognition = null;
-
-        console.error(
-            "SpeechRecognition init error:",
-            error
-        );
-    }
-}
-
-function startListening() {
-
-    if (
-        !conversationActive ||
-        recognitionRunning ||
-        !recognition
-    ) return;
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+function ensureRecognition(){if(!window.jarvisIsAuthenticated?.()||!SpeechRecognition)return false;if(recognition)return true;try{recognition=new SpeechRecognition();recognition.lang="ja-JP";recognition.continuous=false;recognition.interimResults=false;recognition.onresult=async e=>{recognitionRunning=false;if(!window.jarvisIsAuthenticated?.()||!conversationActive)return;const t=e.results?.[0]?.[0]?.transcript;if(t)await sendToGemini(t);};recognition.onerror=e=>{recognitionRunning=false;if(window.jarvisIsAuthenticated?.()&&conversationActive&&e.error!=="not-allowed"&&e.error!=="service-not-allowed")setTimeout(startListening,500);};recognition.onend=()=>recognitionRunning=false;return true;}catch(e){recognition=null;return false;}}
+function stopPrivateActivity(){conversationActive=false;recognitionRunning=false;if(recognition){try{recognition.stop();}catch(_){}recognition=null;}if(currentSource){try{currentSource.stop();}catch(_){}currentSource=null;}if(audioContext)try{audioContext.suspend();}catch(_){}if(activeConversationController)activeConversationController.abort();if(activeTtsController)activeTtsController.abort();if(Array.isArray(window.jarvisPendingAttachments))window.jarvisPendingAttachments.length=0;if(typeof renderJarvisAttachments==="function")renderJarvisAttachments();if(typeof setBackgroundMode==="function")setBackgroundMode(false);if(typeof setBackgroundPanelVisible==="function")setBackgroundPanelVisible(false);}
+window.jarvisStopPrivateActivity=stopPrivateActivity;
+function startListening(){if(!window.jarvisIsAuthenticated?.()||!conversationActive||recognitionRunning||!ensureRecognition())return;
 
   try {
     window.setJarvisCoreState("listening");
@@ -2582,6 +2577,7 @@ async function speakWithGemini(text) {
 
     const controller =
         new AbortController();
+    activeTtsController = controller;
 
     const timeout =
         setTimeout(
@@ -3057,6 +3053,7 @@ async function readJarvisApiResponse(response, onPartialText) {
 async function sendToGemini(text, options = {}) {
 
     const requestUserId = window.jarvisCurrentUserId || null;
+    if (!window.jarvisIsAuthenticated?.()) return;
     const cleanText =
         typeof text === "string"
             ? text.trim()
@@ -3125,6 +3122,7 @@ async function sendToGemini(text, options = {}) {
     );
 
     const controller = new AbortController();
+    activeConversationController = controller;
     const timeout = setTimeout(() => {
         controller.abort();
     }, 240000);
