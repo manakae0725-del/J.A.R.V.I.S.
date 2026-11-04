@@ -70,23 +70,29 @@ const sphereMat=new THREE.ShaderMaterial({
  `
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
-// Internal energy particles: a quiet blue vortex flowing through the Core volume.
-const particleCount=520;
+// Internal energy particles: sparse, irregularly drifting points distributed through the full Core volume.
+const particleCount=180;
 const particlePositions=new Float32Array(particleCount*3);
-const particleSeeds=new Float32Array(particleCount*4);
+const particleBasePositions=new Float32Array(particleCount*3);
+const particleSeeds=new Float32Array(particleCount*6);
 for(let i=0;i<particleCount;i++){
- const radius=.24+Math.random()*.78;
+ const z=THREE.MathUtils.randFloat(-1,1);
  const angle=Math.random()*Math.PI*2;
- const phase=Math.random()*Math.PI*2;
- const y=Math.sin(phase)*radius*.48;
- const planar=Math.sqrt(Math.max(.01,radius*radius-y*y));
- particlePositions[i*3]=Math.cos(angle)*planar;
- particlePositions[i*3+1]=y;
- particlePositions[i*3+2]=Math.sin(angle)*planar;
- particleSeeds[i*4]=angle;
- particleSeeds[i*4+1]=radius;
- particleSeeds[i*4+2]=phase;
- particleSeeds[i*4+3]=.65+Math.random()*.9;
+ const radius=Math.cbrt(.08+Math.random()*.92)*1.22;
+ const planar=Math.sqrt(1-z*z)*radius;
+ const px=Math.cos(angle)*planar;
+ const py=z*radius;
+ const pz=Math.sin(angle)*planar;
+ const idx=i*3,seed=i*6;
+ particlePositions[idx]=particleBasePositions[idx]=px;
+ particlePositions[idx+1]=particleBasePositions[idx+1]=py;
+ particlePositions[idx+2]=particleBasePositions[idx+2]=pz;
+ particleSeeds[seed]=.06+Math.random()*.28;
+ particleSeeds[seed+1]=.04+Math.random()*.22;
+ particleSeeds[seed+2]=Math.random()*Math.PI*2;
+ particleSeeds[seed+3]=Math.random()*Math.PI*2;
+ particleSeeds[seed+4]=Math.random()*Math.PI*2;
+ particleSeeds[seed+5]=.015+Math.random()*.045;
 }
 const particleGeometry=new THREE.BufferGeometry();
 particleGeometry.setAttribute('position',new THREE.BufferAttribute(particlePositions,3));
@@ -99,11 +105,9 @@ particleGradient.addColorStop(.38,'rgba(0,125,255,.48)');
 particleGradient.addColorStop(1,'rgba(0,80,255,0)');
 pctx.fillStyle=particleGradient;pctx.fillRect(0,0,64,64);
 const particleTexture=new THREE.CanvasTexture(particleCanvas);
-const particleMaterial=new THREE.PointsMaterial({color:0x168dff,size:.065,map:particleTexture,transparent:true,opacity:.92,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,sizeAttenuation:true});
+const particleMaterial=new THREE.PointsMaterial({color:0x168dff,size:.055,map:particleTexture,transparent:true,opacity:.82,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,sizeAttenuation:true});
 const energyParticles=new THREE.Points(particleGeometry,particleMaterial);
 energyParticles.renderOrder=1;sphere.add(energyParticles);
-
-
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
 const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
@@ -155,16 +159,18 @@ function animate(now){
  sphereMat.uniforms.uTime.value=elapsed;
  const positions=particleGeometry.attributes.position.array;
  for(let i=0;i<particleCount;i++){
-  const seed=i*4,idx=i*3;
-  const angle=particleSeeds[seed]+elapsed*particleSeeds[seed+3]*1.15;
-  const radius=particleSeeds[seed+1];
-  const phase=particleSeeds[seed+2];
-  const y=Math.sin(elapsed*.72+phase)*radius*.48;
-  const wobble=Math.sin(elapsed*1.1+phase)*.025;
-  const planar=Math.sqrt(Math.max(.015,radius*radius-y*y));
-  positions[idx]=Math.cos(angle)*planar+wobble*Math.cos(angle*2.1);
-  positions[idx+1]=y;
-  positions[idx+2]=Math.sin(angle)*planar+wobble*Math.sin(angle*2.1);
+  const idx=i*3,seed=i*6;
+  const bx=particleBasePositions[idx],by=particleBasePositions[idx+1],bz=particleBasePositions[idx+2];
+  const ax=elapsed*particleSeeds[seed]+particleSeeds[seed+2];
+  const ay=elapsed*particleSeeds[seed+1]+particleSeeds[seed+3];
+  const wobble=particleSeeds[seed+5];
+  const x1=bx*Math.cos(ay)+bz*Math.sin(ay);
+  const z1=-bx*Math.sin(ay)+bz*Math.cos(ay);
+  const y2=by*Math.cos(ax)-z1*Math.sin(ax);
+  const z2=by*Math.sin(ax)+z1*Math.cos(ax);
+  positions[idx]=x1+Math.sin(elapsed*.8+particleSeeds[seed+4])*wobble;
+  positions[idx+1]=y2+Math.cos(elapsed*.63+particleSeeds[seed+2])*wobble;
+  positions[idx+2]=z2+Math.sin(elapsed*.71+particleSeeds[seed+3])*wobble;
  }
  particleGeometry.attributes.position.needsUpdate=true;
  const pulse=.92+.08*Math.sin(elapsed*1.25);
