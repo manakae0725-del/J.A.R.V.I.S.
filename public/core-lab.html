@@ -74,10 +74,10 @@ const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 // Subtle world map HUD: coastlines and country borders projected onto the Core.
 const worldMap=new THREE.Group();sphere.add(worldMap);
 const mapMaterial=new THREE.LineBasicMaterial({
- color:0x55d9ff,transparent:true,opacity:.34,
+ color:0x55d9ff,transparent:true,opacity:.13,
  blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false
 });
-const mapRadius=1.352;
+const mapRadius=1.349;
 function mapCoordinate(lon,lat){
  const longitude=THREE.MathUtils.degToRad(lon);
  const latitude=THREE.MathUtils.degToRad(lat);
