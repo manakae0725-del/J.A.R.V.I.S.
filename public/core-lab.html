@@ -71,32 +71,49 @@ const sphereMat=new THREE.ShaderMaterial({
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
-// A restrained inner shuriken: interwoven curved blades, not the outer orbital filaments.
+// Four distinct swept blades: sharp tips, curved cutting edges, and a compact central hub.
 const starGroup=new THREE.Group();starGroup.renderOrder=1;root.add(starGroup);
-function makeBlade(sign,phase){
- const pts=[];
- const steps=100;
- for(let i=0;i<=steps;i++){
-  const u=i/steps;
-  const a=u*Math.PI*2;
-  const r=.20+.79*Math.pow(Math.abs(Math.cos(2*a+phase)),1.55);
-  const x=Math.cos(a)*r;
-  const y=Math.sin(a)*r;
-  const z=sign*(.10+.055*Math.sin(4*a+phase));
-  pts.push(new THREE.Vector3(x,y,z));
- }
- const curve=new THREE.CatmullRomCurve3(pts,true,'centripetal');
- const geo=new THREE.TubeGeometry(curve,260,.0065,6,true);
- const mat=new THREE.MeshBasicMaterial({color:0x70e8ff,transparent:true,opacity:.88,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false});
- const line=new THREE.Mesh(geo,mat);line.renderOrder=1;starGroup.add(line);
- const glowGeo=new THREE.TubeGeometry(curve,260,.026,5,true);
- const glowMat=new THREE.MeshBasicMaterial({color:0x078dff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false});
- const bladeGlow=new THREE.Mesh(glowGeo,glowMat);bladeGlow.renderOrder=1;starGroup.add(bladeGlow);
+const bladeShape=new THREE.Shape();
+bladeShape.moveTo(-.075,-.105);
+bladeShape.bezierCurveTo(-.20,.12,-.105,.48,.055,.94);
+bladeShape.bezierCurveTo(.105,.69,.285,.36,.205,.105);
+bladeShape.bezierCurveTo(.145,-.045,.025,-.12,-.075,-.105);
+const bladeGeo=new THREE.ExtrudeGeometry(bladeShape,{
+ depth:.035,bevelEnabled:true,bevelSegments:3,steps:1,
+ bevelSize:.012,bevelThickness:.012,curveSegments:18
+});
+bladeGeo.translate(0,0,-.0175);
+for(let i=0;i<4;i++){
+ const blade=new THREE.Group();
+ blade.rotation.z=i*Math.PI/2;
+ blade.position.z=(i%2===0?.105:.075);
+ const face=new THREE.Mesh(bladeGeo,new THREE.MeshBasicMaterial({
+  color:0x36cfff,transparent:true,opacity:.30,
+  side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+  depthTest:false,depthWrite:false
+ }));
+ face.renderOrder=1;blade.add(face);
+ const edgeGeo=new THREE.EdgesGeometry(bladeGeo,18);
+ const edge=new THREE.LineSegments(edgeGeo,new THREE.LineBasicMaterial({
+  color:0x9cefff,transparent:true,opacity:.96,
+  blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false
+ }));
+ edge.renderOrder=1;blade.add(edge);
+ const aura=new THREE.Mesh(new THREE.ExtrudeGeometry(bladeShape,{
+  depth:.02,bevelEnabled:true,bevelSegments:2,bevelSize:.025,bevelThickness:.01,curveSegments:18
+ }),new THREE.MeshBasicMaterial({
+  color:0x087dff,transparent:true,opacity:.12,
+  side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+  depthTest:false,depthWrite:false
+ }));
+ aura.position.z=-.012;aura.renderOrder=0;blade.add(aura);
+ starGroup.add(blade);
 }
-makeBlade(1,0);makeBlade(-1,Math.PI/4);
-const starCore=new THREE.Mesh(new THREE.SphereGeometry(.10,32,24),new THREE.MeshBasicMaterial({color:0x8deaff,depthTest:false,depthWrite:false}));
-starCore.renderOrder=1;starGroup.add(starCore);
-
+const hub=new THREE.Mesh(new THREE.SphereGeometry(.105,32,24),new THREE.MeshBasicMaterial({
+ color:0x8deaff,transparent:true,opacity:.9,
+ blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false
+ }));
+hub.position.z=.15;hub.renderOrder=1;starGroup.add(hub);
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
 const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
