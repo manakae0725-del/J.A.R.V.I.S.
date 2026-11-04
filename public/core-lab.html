@@ -106,24 +106,26 @@ const lctx=logoCanvas.getContext('2d');lctx.clearRect(0,0,1024,180);
 lctx.font='300 100px Arial';lctx.textAlign='center';lctx.textBaseline='middle';lctx.letterSpacing='22px';
 lctx.shadowColor='#39cfff';lctx.shadowBlur=22;lctx.fillStyle='#eafaff';lctx.fillText('J.A.R.V.I.S.',512,90);
 
-// Intensify only the separator dot between R and V.
-lctx.shadowBlur=0;
-const fullW=lctx.measureText('J.A.R.V.I.S.').width;
-const prefixW=lctx.measureText('J.A.R').width;
-const dotW=lctx.measureText('.').width;
-const dotX=512-fullW/2+prefixW+22+dotW/2;
-const dotY=119;
-const halo=lctx.createRadialGradient(dotX,dotY,1,dotX,dotY,62);
-halo.addColorStop(0,'rgba(255,255,255,1)');
-halo.addColorStop(.10,'rgba(170,245,255,.98)');
-halo.addColorStop(.28,'rgba(30,190,255,.82)');
-halo.addColorStop(1,'rgba(0,120,255,0)');
-lctx.fillStyle=halo;lctx.beginPath();lctx.arc(dotX,dotY,62,0,Math.PI*2);lctx.fill();
-lctx.shadowColor='#b9f6ff';lctx.shadowBlur=48;lctx.fillStyle='#ffffff';
-lctx.beginPath();lctx.arc(dotX,dotY,8,0,Math.PI*2);lctx.fill();
+
 const logoTex=new THREE.CanvasTexture(logoCanvas);logoTex.colorSpace=THREE.SRGBColorSpace;
 const logo=new THREE.Mesh(new THREE.PlaneGeometry(2.02,.355),new THREE.MeshBasicMaterial({map:logoTex,transparent:true,depthWrite:false,toneMapped:false}));
 logo.position.set(0,0,1.365);root.add(logo);
+
+// Strong, independent additive glow exactly behind the central R/V separator.
+const dotCanvas=document.createElement('canvas');dotCanvas.width=256;dotCanvas.height=256;
+const dctx=dotCanvas.getContext('2d');
+const dg=dctx.createRadialGradient(128,128,2,128,128,126);
+dg.addColorStop(0,'rgba(255,255,255,1)');
+dg.addColorStop(.045,'rgba(235,255,255,1)');
+dg.addColorStop(.12,'rgba(95,225,255,.98)');
+dg.addColorStop(.28,'rgba(0,165,255,.78)');
+dg.addColorStop(.55,'rgba(0,105,255,.34)');
+dg.addColorStop(1,'rgba(0,75,255,0)');
+dctx.fillStyle=dg;dctx.fillRect(0,0,256,256);
+const dotTexture=new THREE.CanvasTexture(dotCanvas);dotTexture.colorSpace=THREE.SRGBColorSpace;
+const dotGlow=new THREE.Mesh(new THREE.PlaneGeometry(.62,.62),new THREE.MeshBasicMaterial({map:dotTexture,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,toneMapped:false}));
+dotGlow.position.set(0,0,1.39);root.add(dotGlow);
+const dotHotspot=new THREE.PointLight(0x75eaff,5.5,1.6);dotHotspot.position.set(0,0,1.48);root.add(dotHotspot);
 
 let last=0,elapsed=0;
 function animate(now){
