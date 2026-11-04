@@ -52,6 +52,46 @@ async function logApiUsage({
 }
 
 
+
+async function getOwnedInteractionId(userId) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !serviceKey) throw new Error("Conversation state storage is not configured");
+  const params = new URLSearchParams({
+    select: "interaction_id",
+    user_id: "eq." + userId,
+    limit: "1"
+  });
+  const response = await fetch(
+    supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/jarvis_conversation_sessions?" + params,
+    { headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey } }
+  );
+  if (!response.ok) throw new Error("Conversation state lookup failed");
+  const rows = await response.json();
+  if (!Array.isArray(rows) || !rows[0]) return null;
+  return typeof rows[0].interaction_id === "string" ? rows[0].interaction_id : null;
+}
+
+async function saveOwnedInteractionId(userId, interactionId) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !serviceKey) throw new Error("Conversation state storage is not configured");
+  const response = await fetch(
+    supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/jarvis_conversation_sessions?on_conflict=user_id",
+    {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: "Bearer " + serviceKey,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({ user_id: userId, interaction_id: interactionId, updated_at: new Date().toISOString() })
+    }
+  );
+  if (!response.ok) throw new Error("Conversation state save failed");
+}
+
 const { requireAuth } = require("./_auth");
 const { enforceRateLimit } = require("./_rateLimit");
 const { runAiCouncil, testOpenAIConnection } = require("./_aiCouncil");
@@ -1082,6 +1122,14 @@ module.exports = async function handler(req, res) {
       (typeof previousInteractionId !== "string" || previousInteractionId.length > 200)
     ) {
       return res.status(400).json({ error: "Invalid conversation state." });
+    }
+
+    // Never trust a browser-supplied interaction ID. Continue only from this user's server-owned state.
+    try {
+      previousInteractionId = await getOwnedInteractionId(user.id);
+    } catch (error) {
+      console.error("[CONVERSATION] State lookup failed", { name: error?.name || "Error" });
+      return res.status(503).json({ error: "Conversation state is temporarily unavailable." });
     }
 
     const geminiKey = process.env.GEMINI_API_KEY;
@@ -4225,6 +4273,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // ==========================================
 
     console.info("[PERF] Request completed", { ...perf, totalMs: Date.now() - perfStartedAt, geminiFirstTokenMs: firstTokenMs, replyChars: result.reply.length, speechChars: result.speechText.length, visualizationType: result.visualization.type });
+    if (typeof interactionId === "string" && interactionId.length > 0 && interactionId.length <= 200) {
+      try {
+        await saveOwnedInteractionId(user.id, interactionId);
+      } catch (error) {
+        console.error("[CONVERSATION] State save failed", { name: error?.name || "Error" });
+        sendClientEvent("error", { message: "会話状態を安全に保存できなかったため、応答を確定できませんでした。再度お試しください。" });
+        return res.end();
+      }
+    }
     sendClientEvent("complete", {
       text: result.reply,
       speechText: result.speechText,
