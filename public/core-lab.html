@@ -124,8 +124,15 @@ dg.addColorStop(1,'rgba(0,75,255,0)');
 dctx.fillStyle=dg;dctx.fillRect(0,0,256,256);
 const dotTexture=new THREE.CanvasTexture(dotCanvas);dotTexture.colorSpace=THREE.SRGBColorSpace;
 const dotGlow=new THREE.Mesh(new THREE.PlaneGeometry(.62,.62),new THREE.MeshBasicMaterial({map:dotTexture,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,toneMapped:false}));
-dotGlow.position.set(0,0,1.39);root.add(dotGlow);
-const dotHotspot=new THREE.PointLight(0x75eaff,5.5,1.6);dotHotspot.position.set(0,0,1.48);root.add(dotHotspot);
+// Calculate the exact center of the period in "R.V." using the same font metrics as the logo.
+const fullTextWidth=lctx.measureText('J.A.R.V.I.S.').width;
+const prefixWidth=lctx.measureText('J.A.R').width;
+const periodWidth=lctx.measureText('.').width;
+const letterGap=22;
+const separatorXpx=(512-fullTextWidth/2)+prefixWidth+letterGap*5+periodWidth/2;
+const separatorXworld=(separatorXpx-512)*(2.02/1024);
+dotGlow.position.set(separatorXworld,0,1.39);root.add(dotGlow);
+const dotHotspot=new THREE.PointLight(0x75eaff,5.5,1.6);dotHotspot.position.set(separatorXworld,0,1.48);root.add(dotHotspot);
 
 let last=0,elapsed=0;
 function animate(now){
