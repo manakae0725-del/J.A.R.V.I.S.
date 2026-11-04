@@ -71,42 +71,6 @@ const sphereMat=new THREE.ShaderMaterial({
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
-// Continent HUD: use the Natural Earth landmass dataset directly (no TopoJSON conversion).
-const worldMap=new THREE.Group();sphere.add(worldMap);
-const mapMaterial=new THREE.LineBasicMaterial({
- // Match the Core's electric-blue center light; additive blending makes the lines emit light.
- color:0x087bff,transparent:true,opacity:.68,
- blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false
-});
-const mapRadius=1.355;
-function mapCoordinate(lon,lat){
- const longitude=THREE.MathUtils.degToRad(lon);
- const latitude=THREE.MathUtils.degToRad(lat);
- return new THREE.Vector3(
-  mapRadius*Math.cos(latitude)*Math.sin(longitude),
-  mapRadius*Math.sin(latitude),
-  mapRadius*Math.cos(latitude)*Math.cos(longitude)
- );
-}
-function addMapRing(ring){
- const points=ring.map(coordinate=>mapCoordinate(coordinate[0],coordinate[1]));
- if(points.length<2)return;
- const geometry=new THREE.BufferGeometry().setFromPoints(points);
- const line=new THREE.Line(geometry,mapMaterial);
- line.renderOrder=2;worldMap.add(line);
-}
-fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson')
- .then(response=>{if(!response.ok)throw new Error('Landmass data unavailable');return response.json();})
- .then(data=>{
-  for(const feature of data.features||[]){
-   const geometry=feature.geometry;if(!geometry)continue;
-   const polygons=geometry.type==='Polygon'?[geometry.coordinates]:
-    geometry.type==='MultiPolygon'?geometry.coordinates:[];
-   for(const polygon of polygons){for(const ring of polygon)addMapRing(ring);}
-  }
-  if(worldMap.children.length===0)throw new Error('No landmass outlines were loaded');
- })
- .catch(error=>console.warn('Core continent overlay unavailable:',error));
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
 const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
