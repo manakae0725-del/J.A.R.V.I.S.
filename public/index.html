@@ -3322,6 +3322,7 @@ async function sendToGemini(text, options = {}) {
 
         pendingJarvisSuggestion = typeof data.suggestion === "string" && data.suggestion.trim() ? { text: data.suggestion.trim().slice(0, 240), previousUserText: cleanText.slice(0, 1200) } : null;
         if (!pendingJarvisSuggestion) renderJarvisSuggestion("");
+        renderJarvisSuggestion(data.suggestion);
         status.textContent = "";
 
         if (
