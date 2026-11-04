@@ -163,9 +163,6 @@ function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
  sphereMat.uniforms.uTime.value=elapsed;
- starGroup.rotation.z=elapsed*.105;
- starGroup.rotation.x=.16+Math.sin(elapsed*.22)*.035;
- starGroup.rotation.y=.12+Math.cos(elapsed*.18)*.035;
  const pulse=.92+.08*Math.sin(elapsed*1.25);
  sphere.scale.setScalar(pulse);
  renderer.render(scene,camera);
