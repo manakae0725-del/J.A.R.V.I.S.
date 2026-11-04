@@ -97,6 +97,7 @@ const { enforceRateLimit } = require("./_rateLimit");
 const { runAiCouncil, testOpenAIConnection } = require("./_aiCouncil");
 const { getAutoCommanderConfig } = require("../lib/commanderRouting");
 const { isExplicitMetricLookupIntent } = require("../lib/spreadsheetIntent");
+const { isExplicitCalendarUpdateIntent, isExplicitCalendarDeleteIntent } = require("./_calendarIntent");
 const { listConnectionsForUser } = require("./_google/tokenStore");
 const { googleApiRequest } = require("./_google/client");
 
@@ -1147,9 +1148,14 @@ module.exports = async function handler(req, res) {
       /(?:ユーザー|今回のユーザーの発言)\s*[:：]\s*([\s\S]*?)(?=\n\s*={10,}|$)/
     );
 
-    const userText = userMarker?.[1]
-      ? userMarker[1].trim()
-      : rawText;
+    const userText = userMarker?.[1] ? userMarker[1].trim() : rawText;
+
+    const pendingSuggestion = req.body?.pendingSuggestion;
+    const pendingSuggestionText = typeof pendingSuggestion?.text === "string" ? pendingSuggestion.text.trim().slice(0, 240) : "";
+    const previousUserText = typeof pendingSuggestion?.previousUserText === "string" ? pendingSuggestion.previousUserText.trim().slice(0, 1200) : "";
+    const normalizedAcknowledgement = userText.toLowerCase().replace(/[\\s、，,。.!！?？]/g, "");
+    const suggestionAcknowledgement = pendingSuggestionText && userText.length <= 48 && /^(はい|うん|ぜひ|お願いします|お願い|よろしく|いいね|いいよ|いいですね|いいですよ|そうですね|そうして|進めて|実行して|ok|okay|yes|sure|please|それもお願い|それもお願いします|それでお願い|それでお願いします|それをお願い|それをお願いします)+$/i.test(normalizedAcknowledgement) && !/(いいえ|やめ|不要|しない|違う|待って|あとで|保留|キャンセル)/i.test(normalizedAcknowledgement) ? pendingSuggestionText : "";
+    const suggestionPreviousUserText = suggestionAcknowledgement ? previousUserText : "";
 
     const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|週間予報|週間天気|(?:今週|来週|週末).{0,4}予報|傘|(?:今日|明日|あした|明後日|あさって|今夜|週末|今週|来週).{0,8}(?:雨|雪|晴れ|曇り|寒|暑)|(?:雨|雪)(?:が|は|降る|降り|の予報)|札幌.{0,6}(?:雨|雪|晴れ|曇り|気温)|[一-龥ぁ-んァ-ン]{2,}(?:は|で)(?:雨|雪|晴れ|曇り|暑い|寒い)|(?:寒い|暑い|冷え込む|暖かい))/.test(userText);
     if (weatherIntent) {
@@ -2880,8 +2886,9 @@ module.exports = async function handler(req, res) {
     const addVerb=/(?:入れて|入れといて|入れておいて|追加して|追加|登録して|登録|作って|作成して|予定にして|スケジュールして|予約して|押さえて|組んで)/.test(userText);
     const hasDateOrTime=!!calendarDate(userText)||/\d{1,2}時/.test(userText);
     const creating=/(?:予定|スケジュール|カレンダー).*(?:入れて|入れといて|入れておいて|追加|登録|作って|作成)|(?:入れて|入れといて|入れておいて|追加して|登録して|予約して|押さえて).*(?:予定|スケジュール|カレンダー)/.test(userText)||(addVerb&&hasDateOrTime);
-    const updating=/(?:予定|スケジュール|カレンダー).*(?:変更|ずらして|時間を変)|(?:変更|ずらして).*(?:予定|スケジュール|カレンダー)/.test(userText);
-    const deleting=/(?:予定|スケジュール|カレンダー).*(?:削除|消して|取り消して)|(?:削除|消して|取り消して).*(?:予定|スケジュール|カレンダー)/.test(userText);
+    // Require an explicit calendar event target and mutation verb; ignore booking/feature discussions.
+    const updating=isExplicitCalendarUpdateIntent(userText);
+    const deleting=isExplicitCalendarDeleteIntent(userText);
     if(creating||updating||deleting){
       try{
         const cs=await listConnectionsForUser(user.id),c=Array.isArray(cs)?cs.find(x=>x?.status==="connected"):null;
@@ -3506,8 +3513,9 @@ Content: ${result.content || ""}
     // ==========================================
 
     let calendarContext = "";
-    const isCalendarQuestion = /予定|カレンダー|スケジュール/.test(userText) &&
-      /(教えて|確認|何が|何件|ある|入って|予定は|見せて|一覧|空いて|いつ|今日|明日|あさって|今週|来週|今月|来月|月曜日|火曜日|水曜日|木曜日|金曜日|土曜日|日曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜)/.test(userText);
+    const calendarQueryText = [userText, suggestionPreviousUserText].join(" ");
+    const isCalendarQuestion = /予定|カレンダー|スケジュール/.test(calendarQueryText) &&
+      /(教えて|確認|何が|何件|ある|入って|予定は|見せて|一覧|空いて|いつ|今日|明日|あさって|今週|来週|今月|来月|月曜日|火曜日|水曜日|木曜日|金曜日|土曜日|日曜日|月曜|火曜|水曜|木曜|金曜|土曜|日曜)/.test(calendarQueryText);
 
     if (isCalendarQuestion) {
       try {
@@ -3521,24 +3529,24 @@ Content: ${result.content || ""}
         } else {
           const japanNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
           const today = japanNow.toISOString().slice(0, 10);
-          const dayOffset = userText.includes("あさって") || userText.includes("明後日") ? 2
-            : userText.includes("明日") || userText.includes("あした") ? 1 : 0;
+          const dayOffset = calendarQueryText.includes("あさって") || calendarQueryText.includes("明後日") ? 2
+            : calendarQueryText.includes("明日") || calendarQueryText.includes("あした") ? 1 : 0;
           const toLocalDate = (date) => date.toISOString().slice(0, 10);
           let startDate = new Date(Date.parse(today + "T00:00:00Z") + dayOffset * 86400000);
           let endDate = new Date(startDate.getTime() + 86400000);
           let rangeLabel = dayOffset === 2 ? "明後日" : dayOffset === 1 ? "明日" : "今日";
 
-          if (userText.includes("今週") || userText.includes("来週")) {
+          if (calendarQueryText.includes("今週") || calendarQueryText.includes("来週")) {
             const mondayOffset = (japanNow.getUTCDay() + 6) % 7;
-            startDate = new Date(Date.parse(today + "T00:00:00Z") + (userText.includes("来週") ? 7 - mondayOffset : -mondayOffset) * 86400000);
+            startDate = new Date(Date.parse(today + "T00:00:00Z") + (calendarQueryText.includes("来週") ? 7 - mondayOffset : -mondayOffset) * 86400000);
             endDate = new Date(startDate.getTime() + 7 * 86400000);
-            rangeLabel = userText.includes("来週") ? "来週" : "今週";
-          } else if (userText.includes("今月") || userText.includes("来月")) {
+            rangeLabel = calendarQueryText.includes("来週") ? "来週" : "今週";
+          } else if (calendarQueryText.includes("今月") || calendarQueryText.includes("来月")) {
             const year = japanNow.getUTCFullYear();
-            const month = japanNow.getUTCMonth() + (userText.includes("来月") ? 1 : 0);
+            const month = japanNow.getUTCMonth() + (calendarQueryText.includes("来月") ? 1 : 0);
             startDate = new Date(Date.UTC(year, month, 1));
             endDate = new Date(Date.UTC(year, month + 1, 1));
-            rangeLabel = userText.includes("来月") ? "来月" : "今月";
+            rangeLabel = calendarQueryText.includes("来月") ? "来月" : "今月";
           }
 
           const timeMin = new Date(Date.parse(toLocalDate(startDate) + "T00:00:00+09:00")).toISOString();
@@ -3589,6 +3597,9 @@ ${calendarContext ? `\n【Google Calendar実データ】\n${calendarContext}\n�
 - 外部サービスへの書き込み、削除、送信、予約、購入、設定変更など、取り消しにくい操作は明確な承認なしに実行しないでください。提案・下書き・読み取りと、実際の実行を明確に区別してください。
 - 実行していない操作を完了したと表現しないでください。失敗・一部成功・未確認も正確に伝えてください。
 - 複数の対応策がある場合は、安全性と費用を優先し、必要な範囲で最も単純な方法を選んでください。有料AIや外部APIの追加利用を安易に提案・実行しないでください。
+
+【次の提案】
+suggestionには今回の依頼や取得データに直接つながり、既存機能で安全に実行可能な次の一手だけを短い一文で返してください。利用可能な機能・データが確認できない場合は空文字列にしてください。定型的な「他に何かありますか」、無関係な提案、依頼内容の繰り返しは禁止です。安全確認はreply内で行い、suggestionを外部操作の許可として扱わないでください。replyとspeechTextに提案を混ぜないでください。
 
 【回答と音声】
 replyは画面表示用、speechTextは読み上げ用です。意味と情報を一致させ、speechTextだけ誤読しやすい固有名詞を必要に応じてひらがなに補正してください。通常の漢字は維持し、注釈・読み方の説明・replyにない情報を加えないでください。「℃」は「度」と読み替えます。
@@ -3881,6 +3892,10 @@ visualization は画面表示専用です。reply と speechText は通常どお
       ? [{ type: "text", text: geminiInput }, ...attachmentInputParts]
       : geminiInput;
 
+    if (suggestionAcknowledgement) {
+      geminiInput += `\n\n直前の提案：「${suggestionAcknowledgement}」\n今回の発言はその提案への短い肯定応答です。既存機能で安全に実行できる読み取り・集計・表示は進めてください。カレンダー変更・削除・追加や外部送信はこの肯定だけで実行せず、既存の確認手順を維持してください。\n`;
+    }
+
     const requestBody = {
       model: "gemini-3.6-flash",
 
@@ -3905,6 +3920,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
             speechText: {
               type: "string",
             },
+            suggestion: { type: "string" },
 
             visualization: {
               type: "object",
@@ -3983,6 +3999,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
           required: [
             "reply",
             "speechText",
+            "suggestion",
             "memory",
             "memoryItems",
             "visualization",
@@ -4282,6 +4299,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
     sendClientEvent("complete", {
       text: result.reply,
       speechText: result.speechText,
+      suggestion: typeof result.suggestion === "string" ? result.suggestion.trim().slice(0, 240) : "",
       visualization: result.visualization,
       interactionId,
 
