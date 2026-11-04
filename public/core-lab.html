@@ -103,8 +103,19 @@ const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
 
 const logoCanvas=document.createElement('canvas');logoCanvas.width=1024;logoCanvas.height=180;
 const lctx=logoCanvas.getContext('2d');lctx.clearRect(0,0,1024,180);
-lctx.font='300 100px Arial';lctx.textAlign='center';lctx.textBaseline='middle';lctx.letterSpacing='22px';
-lctx.shadowColor='#39cfff';lctx.shadowBlur=22;lctx.fillStyle='#eafaff';lctx.fillText('J.A.R.V.I.S.',512,90);
+lctx.font='300 100px Arial';lctx.textAlign='center';lctx.textBaseline='middle';
+const logoText='J.A.R.V.I.S.',tracking=22;
+const glyphWidths=[...logoText].map(ch=>lctx.measureText(ch).width);
+const logoTextWidth=glyphWidths.reduce((a,b)=>a+b,0)+tracking*(logoText.length-1);
+let glyphX=512-logoTextWidth/2;
+let rvDotCenter=0;
+lctx.shadowColor='#39cfff';lctx.shadowBlur=22;lctx.fillStyle='#eafaff';
+[...logoText].forEach((ch,i)=>{
+ const w=glyphWidths[i];
+ if(i===5)rvDotCenter=glyphX+w/2;
+ lctx.fillText(ch,glyphX+w/2,90);
+ glyphX+=w+tracking;
+});
 
 
 const logoTex=new THREE.CanvasTexture(logoCanvas);logoTex.colorSpace=THREE.SRGBColorSpace;
@@ -125,12 +136,7 @@ dctx.fillStyle=dg;dctx.fillRect(0,0,256,256);
 const dotTexture=new THREE.CanvasTexture(dotCanvas);dotTexture.colorSpace=THREE.SRGBColorSpace;
 const dotGlow=new THREE.Mesh(new THREE.PlaneGeometry(.62,.62),new THREE.MeshBasicMaterial({map:dotTexture,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,toneMapped:false}));
 // Calculate the exact center of the period in "R.V." using the same font metrics as the logo.
-const fullTextWidth=lctx.measureText('J.A.R.V.I.S.').width;
-const prefixWidth=lctx.measureText('J.A.R').width;
-const periodWidth=lctx.measureText('.').width;
-const letterGap=22;
-const separatorXpx=(512-fullTextWidth/2)+prefixWidth+letterGap*5+periodWidth/2;
-const separatorXworld=(separatorXpx-512)*(2.02/1024);
+const separatorXworld=(rvDotCenter-512)*(2.02/1024);
 dotGlow.position.set(separatorXworld,0,1.39);root.add(dotGlow);
 const dotHotspot=new THREE.PointLight(0x75eaff,5.5,1.6);dotHotspot.position.set(separatorXworld,0,1.48);root.add(dotHotspot);
 
