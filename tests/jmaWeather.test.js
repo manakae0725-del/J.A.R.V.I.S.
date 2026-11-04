@@ -237,8 +237,16 @@ test("enforces the byte limit when a response has no readable stream", async () 
 
 test("resolves Hokkaido forecast regions and representative cities", () => {
   assert.equal(resolveHokkaidoForecastArea("明日の旭川の天気").code, "012000");
-  assert.equal(resolveHokkaidoForecastArea("帯広の週間天気").code, "014030");
+  const tokachi = resolveHokkaidoForecastArea("帯広の週間天気");
+  assert.equal(tokachi.code, "014030");
+  assert.equal(tokachi.feedAreaCode, "014100");
+  assert.deepEqual(tokachi.areaNames, ["十勝地方"]);
+  assert.deepEqual(tokachi.weeklyAreaNames, ["十勝地方"]);
+  assert.deepEqual(tokachi.stations, ["帯広"]);
   assert.equal(resolveHokkaidoForecastArea("釧路の天気").code, "014100");
+  assert.deepEqual(resolveHokkaidoForecastArea("小樽の天気").stations, ["倶知安"]);
+  assert.deepEqual(resolveHokkaidoForecastArea("苫小牧の天気").stations, ["室蘭"]);
+  assert.equal(resolveHokkaidoForecastArea("紋別の天気").label, "紋別地方");
   assert.equal(resolveHokkaidoForecastArea("札幌の天気").code, "016000");
   assert.equal(resolveHokkaidoForecastArea(" 札幌 の 天気 ").code, "016000");
   assert.equal(resolveHokkaidoForecastArea("北海道の天気"), null);

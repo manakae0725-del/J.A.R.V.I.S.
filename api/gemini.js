@@ -1111,7 +1111,7 @@ module.exports = async function handler(req, res) {
       const locationQuery = userText.replace(/(?:今日|本日|明日|あした|明後日|あさって|今夜|今朝|週末|今週|来週|現在)(?:の)?/g, "");
       const requestedLocation = locationQuery.match(/([^\s、,。?？のはで]{1,12})(?:の|は|で)?(?:天気|気温|天候|降水確率|雨|雪|晴れ|曇り|寒い|暑い|冷え込む|暖かい)/)?.[1] || null;
       const hokkaidoArea = resolveHokkaidoForecastArea(userText);
-      if (requestedLocation && /(?:以外|じゃなく|ではなく|別|他)/.test(requestedLocation)) {
+      if (requestedLocation && /(?:以外|じゃなく|ではなく|別の地域|他の地域)/.test(requestedLocation)) {
         const message = "指定された地域の予報は現在の対応範囲外です。北海道内の地域名または市町村名を指定してください。";
         return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
       }
@@ -1126,7 +1126,7 @@ module.exports = async function handler(req, res) {
       const selectedArea = hokkaidoArea || resolveHokkaidoForecastArea("札幌");
       if (!(await enforceRateLimit(res, user, "weather-chat-minute", 3, 60))) return;
       try {
-        const weather = await inspectLatestForecast(selectedArea.code, { areaNames: selectedArea.areaNames, weeklyAreaNames: selectedArea.weeklyAreaNames, stationNames: selectedArea.stations });
+        const weather = await inspectLatestForecast(selectedArea.code, { feedAreaCode: selectedArea.feedAreaCode, areaNames: selectedArea.areaNames, weeklyAreaNames: selectedArea.weeklyAreaNames, stationNames: selectedArea.stations });
         const forecast = weather.forecast || {};
         const weeklyRequested = /(?:週間|今週|来週|週末|7日間|一週間|７日間)/.test(userText);
         const futureDayOffset = /(?:明後日|あさって)/.test(userText) ? 2 : /(?:明日|あした|翌日)/.test(userText) ? 1 : 0;
