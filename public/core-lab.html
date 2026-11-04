@@ -75,17 +75,18 @@ const particleCount=520;
 const particlePositions=new Float32Array(particleCount*3);
 const particleSeeds=new Float32Array(particleCount*4);
 for(let i=0;i<particleCount;i++){
- const radius=.18+Math.cbrt(Math.random())*.91;
- const y=THREE.MathUtils.randFloatSpread(1.5);
+ const radius=.24+Math.random()*.78;
  const angle=Math.random()*Math.PI*2;
- const planar=Math.sqrt(Math.max(0,1-y*y))*radius;
+ const phase=Math.random()*Math.PI*2;
+ const y=Math.sin(phase)*radius*.48;
+ const planar=Math.sqrt(Math.max(.01,radius*radius-y*y));
  particlePositions[i*3]=Math.cos(angle)*planar;
- particlePositions[i*3+1]=y*radius;
+ particlePositions[i*3+1]=y;
  particlePositions[i*3+2]=Math.sin(angle)*planar;
  particleSeeds[i*4]=angle;
  particleSeeds[i*4+1]=radius;
- particleSeeds[i*4+2]=Math.random()*Math.PI*2;
- particleSeeds[i*4+3]=.22+Math.random()*.58;
+ particleSeeds[i*4+2]=phase;
+ particleSeeds[i*4+3]=.65+Math.random()*.9;
 }
 const particleGeometry=new THREE.BufferGeometry();
 particleGeometry.setAttribute('position',new THREE.BufferAttribute(particlePositions,3));
@@ -98,7 +99,7 @@ particleGradient.addColorStop(.38,'rgba(0,125,255,.48)');
 particleGradient.addColorStop(1,'rgba(0,80,255,0)');
 pctx.fillStyle=particleGradient;pctx.fillRect(0,0,64,64);
 const particleTexture=new THREE.CanvasTexture(particleCanvas);
-const particleMaterial=new THREE.PointsMaterial({color:0x168dff,size:.052,map:particleTexture,transparent:true,opacity:.78,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,sizeAttenuation:true});
+const particleMaterial=new THREE.PointsMaterial({color:0x168dff,size:.065,map:particleTexture,transparent:true,opacity:.92,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,sizeAttenuation:true});
 const energyParticles=new THREE.Points(particleGeometry,particleMaterial);
 energyParticles.renderOrder=1;sphere.add(energyParticles);
 
@@ -152,6 +153,20 @@ function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
  sphereMat.uniforms.uTime.value=elapsed;
+ const positions=particleGeometry.attributes.position.array;
+ for(let i=0;i<particleCount;i++){
+  const seed=i*4,idx=i*3;
+  const angle=particleSeeds[seed]+elapsed*particleSeeds[seed+3]*1.15;
+  const radius=particleSeeds[seed+1];
+  const phase=particleSeeds[seed+2];
+  const y=Math.sin(elapsed*.72+phase)*radius*.48;
+  const wobble=Math.sin(elapsed*1.1+phase)*.025;
+  const planar=Math.sqrt(Math.max(.015,radius*radius-y*y));
+  positions[idx]=Math.cos(angle)*planar+wobble*Math.cos(angle*2.1);
+  positions[idx+1]=y;
+  positions[idx+2]=Math.sin(angle)*planar+wobble*Math.sin(angle*2.1);
+ }
+ particleGeometry.attributes.position.needsUpdate=true;
  const pulse=.92+.08*Math.sin(elapsed*1.25);
  sphere.scale.setScalar(pulse);
  renderer.render(scene,camera);
