@@ -71,6 +71,46 @@ const sphereMat=new THREE.ShaderMaterial({
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
+// Ultra-fine static HUD globe grid, mapped directly onto the Core surface.
+const globeGrid=new THREE.Group();sphere.add(globeGrid);
+const gridMaterial=new THREE.LineBasicMaterial({
+ color:0x48cfff,transparent:true,opacity:.19,
+ blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false
+});
+const gridRadius=1.347;
+function addGridLine(points,closed=false){
+ const geometry=new THREE.BufferGeometry().setFromPoints(points);
+ const line=closed?new THREE.LineLoop(geometry,gridMaterial):new THREE.Line(geometry,gridMaterial);
+ line.renderOrder=1;globeGrid.add(line);
+}
+// Latitude rings: restrained spacing, leaving the central logo area visually calm.
+for(const degrees of [-66,-48,-30,-14,14,30,48,66]){
+ const latitude=THREE.MathUtils.degToRad(degrees);
+ const ringRadius=gridRadius*Math.cos(latitude);
+ const y=gridRadius*Math.sin(latitude);
+ const points=[];
+ for(let i=0;i<160;i++){
+  const phi=i/160*Math.PI*2;
+  points.push(new THREE.Vector3(ringRadius*Math.cos(phi),y,ringRadius*Math.sin(phi)));
+ }
+ addGridLine(points,true);
+}
+// Meridians: fine longitudinal arcs around the sphere.
+for(let degrees=0;degrees<180;degrees+=30){
+ const longitude=THREE.MathUtils.degToRad(degrees);
+ const points=[];
+ for(let i=0;i<=160;i++){
+  const theta=i/160*Math.PI;
+  points.push(new THREE.Vector3(
+   gridRadius*Math.sin(theta)*Math.cos(longitude),
+   gridRadius*Math.cos(theta),
+   gridRadius*Math.sin(theta)*Math.sin(longitude)
+  ));
+ }
+ addGridLine(points,false);
+}
+
+
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
 const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
