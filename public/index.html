@@ -1687,8 +1687,8 @@ function renderJmaWeather(data) {
     highLow.replaceChildren();
     const high = document.createElement("div");
     const low = document.createElement("div");
-    high.textContent = "H: " + (highLowData.high === null || highLowData.high === undefined ? "--" : highLowData.high) + "°C";
-    low.textContent = "L: " + (highLowData.low === null || highLowData.low === undefined ? "--" : highLowData.low) + "°C";
+    high.textContent = (highLowData.label || "今日") + " H: " + (highLowData.high === null || highLowData.high === undefined ? "--" : highLowData.high) + "°C";
+    low.textContent = (highLowData.label || "今日") + " L: " + (highLowData.low === null || highLowData.low === undefined ? "--" : highLowData.low) + "°C";
     highLow.append(high, low);
     hourly.replaceChildren();
     const allEntries = Array.isArray(forecast.threeHourly) ? forecast.threeHourly.filter(item => item && item.dateTime) : [];
