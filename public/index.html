@@ -424,6 +424,45 @@ body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity 
 @media(max-width:480px){.auth-card{padding:30px 22px 24px}.auth-title{letter-spacing:3px}}
 #textArea.is-open{z-index:9500}
 
+/* 2026-11-05 HUD evolution: cinematic command interface, preserving existing controls. */
+:root{--jarvis-cyan:#48eaff;--jarvis-blue:#168cff;--jarvis-line:rgba(55,205,255,.48)}
+.datetime{top:max(24px,env(safe-area-inset-top) + 12px);font-size:clamp(11px,3vw,17px);letter-spacing:.24em;text-shadow:0 0 10px rgba(30,160,255,.45)}
+body:not(.auth-locked):not(.home-revealing):before,
+body:not(.auth-locked):not(.home-revealing):after{content:"";position:fixed;z-index:4;top:18px;bottom:18px;width:18px;pointer-events:none;opacity:.5}
+body:not(.auth-locked):not(.home-revealing):before{left:14px;border-left:1px solid var(--jarvis-line);background:linear-gradient(var(--jarvis-cyan),var(--jarvis-cyan)) left top/12px 1px no-repeat,linear-gradient(var(--jarvis-cyan),var(--jarvis-cyan)) left bottom/12px 1px no-repeat}
+body:not(.auth-locked):not(.home-revealing):after{right:14px;border-right:1px solid var(--jarvis-line);background:linear-gradient(var(--jarvis-cyan),var(--jarvis-cyan)) right top/12px 1px no-repeat,linear-gradient(var(--jarvis-cyan),var(--jarvis-cyan)) right bottom/12px 1px no-repeat}
+.jarvis-holo-panel{top:18%;width:min( min(92vw,680px), calc(100% - 32px));max-height:29vh;padding:15px 20px 42px;border:1px solid rgba(50,205,255,.62);background:linear-gradient(110deg,rgba(0,27,51,.82),rgba(0,13,31,.76) 52%,rgba(0,35,60,.72));box-shadow:0 0 30px rgba(0,145,255,.22),inset 0 0 22px rgba(0,180,255,.10);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.jarvis-holo-panel:before{content:"";position:absolute;inset:5px;pointer-events:none;border:1px solid rgba(65,205,255,.13);clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px))}
+.jarvis-holo-panel:after{content:"";position:absolute;left:5%;right:5%;bottom:12px;height:22px;pointer-events:none;opacity:.82;background:linear-gradient(90deg,transparent,rgba(0,205,255,.22),transparent),repeating-linear-gradient(90deg,transparent 0 5px,rgba(50,225,255,.72) 5px 7px,transparent 7px 11px);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);transform-origin:center;animation:jarvisWaveform 1.25s ease-in-out infinite alternate}
+@keyframes jarvisWaveform{0%{transform:scaleY(.28);filter:brightness(.7)}50%{transform:scaleY(1);filter:brightness(1.5)}100%{transform:scaleY(.48);filter:brightness(.9)}}
+.panel-header{position:relative;z-index:1;padding-bottom:9px;margin-bottom:12px}
+.panel-title{font-size:12px;letter-spacing:2.5px}
+.voice-status{position:relative;z-index:1;margin:2px 0 9px;color:#bcefff;font-size:clamp(13px,3.5vw,17px);letter-spacing:3px;text-shadow:0 0 12px rgba(0,190,255,.8)}
+.voice-response{position:relative;z-index:1;font-size:clamp(12px,3vw,14px);line-height:1.55}
+#textArea{top:78%;width:min( min(92vw,680px), calc(100% - 32px));padding:10px 12px;border-color:rgba(55,205,255,.62);background:linear-gradient(125deg,rgba(0,28,52,.91),rgba(0,12,29,.88));box-shadow:0 0 28px rgba(0,145,255,.22),inset 0 0 22px rgba(0,160,255,.1)}
+#textArea:before{font-size:10px;letter-spacing:2.5px}
+#textInput{min-height:70px;height:70px;font-size:14px;background:rgba(0,8,20,.76);border-color:rgba(45,190,255,.42)}
+#sendButton{min-width:138px;height:40px;letter-spacing:2.5px}
+#attachmentControls button,#backgroundModeToggle,#backgroundTasksToggle{border-color:rgba(45,190,255,.55)!important;background:linear-gradient(110deg,rgba(0,60,105,.7),rgba(0,24,48,.8))!important;color:#bcefff!important}
+.hud-card{border-color:rgba(50,205,255,.48);box-shadow:inset 0 0 22px rgba(0,136,255,.12),0 0 25px rgba(0,100,210,.14)}
+@media(max-width:600px){
+ .datetime{top:calc(env(safe-area-inset-top) + 14px);font-size:11px;letter-spacing:.18em}
+ body:not(.auth-locked):not(.home-revealing):before,body:not(.auth-locked):not(.home-revealing):after{top:12px;bottom:12px;width:9px;opacity:.3}
+ body:not(.auth-locked):not(.home-revealing):before{left:7px}
+ body:not(.auth-locked):not(.home-revealing):after{right:7px}
+ .jarvis-holo-panel{top:16%;width:calc(100% - 34px);max-height:25vh;padding:12px 13px 35px}
+ .jarvis-holo-panel:after{height:17px;bottom:10px}
+ .panel-header{margin-bottom:9px;padding-bottom:7px}
+ .voice-status{font-size:13px;letter-spacing:2px}
+ .voice-response{font-size:12px;line-height:1.45}
+ #textArea{top:78%;width:calc(100% - 34px);padding:8px}
+ #textInput{height:64px;min-height:64px}
+ #sendButton{height:36px}
+}
+@media(max-height:700px){.jarvis-holo-panel{top:15%;max-height:23vh}#textArea{top:76%}}
+@media(prefers-reduced-motion:reduce){.jarvis-holo-panel:after{animation:none;transform:scaleY(.55)}}
+
+
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
   <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
