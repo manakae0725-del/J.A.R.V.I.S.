@@ -72,7 +72,7 @@ const sphereMat=new THREE.ShaderMaterial({
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
 // A restrained inner shuriken: interwoven curved blades, not the outer orbital filaments.
-const starGroup=new THREE.Group();root.add(starGroup);
+const starGroup=new THREE.Group();starGroup.renderOrder=1;root.add(starGroup);
 function makeBlade(sign,phase){
  const pts=[];
  const steps=100;
@@ -87,15 +87,15 @@ function makeBlade(sign,phase){
  }
  const curve=new THREE.CatmullRomCurve3(pts,true,'centripetal');
  const geo=new THREE.TubeGeometry(curve,260,.0065,6,true);
- const mat=new THREE.MeshBasicMaterial({color:0x54dfff,transparent:true,opacity:.72,blending:THREE.AdditiveBlending});
- const line=new THREE.Mesh(geo,mat);starGroup.add(line);
- const glowGeo=new THREE.TubeGeometry(curve,260,.018,5,true);
- const glowMat=new THREE.MeshBasicMaterial({color:0x078dff,transparent:true,opacity:.17,blending:THREE.AdditiveBlending,depthWrite:false});
- starGroup.add(new THREE.Mesh(glowGeo,glowMat));
+ const mat=new THREE.MeshBasicMaterial({color:0x70e8ff,transparent:true,opacity:.88,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false});
+ const line=new THREE.Mesh(geo,mat);line.renderOrder=1;starGroup.add(line);
+ const glowGeo=new THREE.TubeGeometry(curve,260,.026,5,true);
+ const glowMat=new THREE.MeshBasicMaterial({color:0x078dff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false});
+ const bladeGlow=new THREE.Mesh(glowGeo,glowMat);bladeGlow.renderOrder=1;starGroup.add(bladeGlow);
 }
 makeBlade(1,0);makeBlade(-1,Math.PI/4);
-const starCore=new THREE.Mesh(new THREE.SphereGeometry(.10,32,24),new THREE.MeshBasicMaterial({color:0x8deaff}));
-starGroup.add(starCore);
+const starCore=new THREE.Mesh(new THREE.SphereGeometry(.10,32,24),new THREE.MeshBasicMaterial({color:0x8deaff,depthTest:false,depthWrite:false}));
+starCore.renderOrder=1;starGroup.add(starCore);
 
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
