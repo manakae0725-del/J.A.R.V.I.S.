@@ -265,18 +265,21 @@ test("selects today's high and low by JST calendar date when XML timestamps use 
   assert.deepEqual(parsed.todayHighLow, { date: "2026-11-03", high: 9, low: 2 });
 });
 
-test("falls back to weekly forecast for today's HUD high and low when daily extremes are absent", () => {
+test("uses next-day weekly highs and lows when the current day's forecast extremes are no longer available", () => {
   const { selectTodayHighLow } = require("../lib/jmaWeather");
   const now = Date.parse("2026-11-04T21:28:00+09:00");
   const weekly = [
-    { dateTime: "2026-11-04T00:00:00+09:00", high: 7, low: 1 },
-    { dateTime: "2026-11-05T00:00:00+09:00", high: 8, low: 2 }
+    { dateTime: "2026-11-05T00:00:00+09:00", high: 7, low: 1 },
+    { dateTime: "2026-11-06T00:00:00+09:00", high: 8, low: 2 }
   ];
   assert.deepEqual(selectTodayHighLow({ date: "2026-11-04", high: null, low: null }, weekly, now), {
-    date: "2026-11-04", high: 7, low: 1
+    date: "2026-11-05", label: "明日", high: 7, low: 1
   });
   assert.deepEqual(selectTodayHighLow(null, weekly, now), {
-    date: "2026-11-04", high: 7, low: 1
+    date: "2026-11-05", label: "明日", high: 7, low: 1
+  });
+  assert.deepEqual(selectTodayHighLow({ date: "2026-11-04", high: 9, low: 3 }, weekly, now), {
+    date: "2026-11-04", label: "今日", high: 9, low: 3
   });
 });
 
