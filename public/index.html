@@ -400,7 +400,7 @@ body.background-tasks-open #textArea{top:66%;max-height:88vh;overflow-y:auto;ove
 
 #authScreen{position:fixed;inset:0;z-index:100000;display:block;padding:0;background:rgba(1,7,18,.10);color:#d8efff;font-family:"Courier New",Courier,monospace;opacity:1;transition:opacity .85s ease,background .7s ease;pointer-events:none}
 #authScreen[hidden]{display:none!important}
-body.auth-locked #jarvisHoloPanel,body.auth-locked #textArea,body.auth-locked .sideHUD,body.auth-locked #jarvisSignOut{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+body.auth-locked .datetime,body.auth-locked #jarvisHoloPanel,body.auth-locked #textArea,body.auth-locked .sideHUD,body.auth-locked #jarvisSignOut{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
 #authScreen.is-exiting{opacity:0;background:transparent}
 body.home-revealing canvas{opacity:.35;transition:opacity .85s ease}
@@ -859,7 +859,7 @@ for(let i=0;i<21;i++){const a=rand()*Math.PI*2,rr=Math.sqrt(rand())*176;corePts.
 function frame(){
  requestAnimationFrame(frame);t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
  stars.forEach(s=>{ctx.fillStyle='rgba(45,120,255,'+(s.a*(.65+.35*Math.sin(t+s.x*10))+0.04)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
- if (true) {
+ if (!document.body.classList.contains('auth-locked')) {
  // Peripheral cyber-HUD: restrained data traces and segmented markers on the black field, separate from the Core.
  ctx.save();ctx.globalCompositeOperation='screen';
  const hudC='rgba(28,190,255,';
@@ -1007,7 +1007,7 @@ function frame(){
  ctx.restore();
  }
  const r=Math.min(w,h)*.145;
- if (true) {
+ if (!document.body.classList.contains('auth-locked')) {
  // Soft blue mist drifting around the Core; kept translucent so the silhouette stays readable.
  ctx.save();ctx.globalCompositeOperation='screen';
  for(let i=0;i<9;i++){
@@ -1109,7 +1109,7 @@ function frame(){
  // Core activity is expressed through particle motion rather than extra rings.
  // Core remains a flat graphic at the center; particles and 3D-style orbit rings add depth.
  drawCore(r);
- if (true) {
+ if (!document.body.classList.contains('auth-locked')) {
  // Animated holographic projection platform beneath the Core.
  {
   const py=Math.min(h*.88,cy+r*7.2),rx=Math.min(w*.43,r*4.15),ry=Math.max(10,rx*.22);
