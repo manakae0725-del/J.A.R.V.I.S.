@@ -71,46 +71,47 @@ const sphereMat=new THREE.ShaderMaterial({
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
-// Ultra-fine static HUD globe grid, mapped directly onto the Core surface.
-const globeGrid=new THREE.Group();sphere.add(globeGrid);
-const gridMaterial=new THREE.LineBasicMaterial({
- color:0x48cfff,transparent:true,opacity:.19,
+// Subtle world map HUD: coastlines and country borders projected onto the Core.
+const worldMap=new THREE.Group();sphere.add(worldMap);
+const mapMaterial=new THREE.LineBasicMaterial({
+ color:0x55d9ff,transparent:true,opacity:.34,
  blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false
 });
-const gridRadius=1.347;
-function addGridLine(points,closed=false){
+const mapRadius=1.352;
+function mapCoordinate(lon,lat){
+ const longitude=THREE.MathUtils.degToRad(lon);
+ const latitude=THREE.MathUtils.degToRad(lat);
+ return new THREE.Vector3(
+  mapRadius*Math.cos(latitude)*Math.sin(longitude),
+  mapRadius*Math.sin(latitude),
+  mapRadius*Math.cos(latitude)*Math.cos(longitude)
+ );
+}
+function addMapRing(ring){
+ const points=[];
+ for(const coordinate of ring){
+  points.push(mapCoordinate(coordinate[0],coordinate[1]));
+ }
+ if(points.length<2)return;
  const geometry=new THREE.BufferGeometry().setFromPoints(points);
- const line=closed?new THREE.LineLoop(geometry,gridMaterial):new THREE.Line(geometry,gridMaterial);
- line.renderOrder=1;globeGrid.add(line);
+ const line=new THREE.Line(geometry,mapMaterial);
+ line.renderOrder=1;worldMap.add(line);
 }
-// Latitude rings: restrained spacing, leaving the central logo area visually calm.
-for(const degrees of [-66,-48,-30,-14,14,30,48,66]){
- const latitude=THREE.MathUtils.degToRad(degrees);
- const ringRadius=gridRadius*Math.cos(latitude);
- const y=gridRadius*Math.sin(latitude);
- const points=[];
- for(let i=0;i<160;i++){
-  const phi=i/160*Math.PI*2;
-  points.push(new THREE.Vector3(ringRadius*Math.cos(phi),y,ringRadius*Math.sin(phi)));
- }
- addGridLine(points,true);
-}
-// Meridians: fine longitudinal arcs around the sphere.
-for(let degrees=0;degrees<180;degrees+=30){
- const longitude=THREE.MathUtils.degToRad(degrees);
- const points=[];
- for(let i=0;i<=160;i++){
-  const theta=i/160*Math.PI;
-  points.push(new THREE.Vector3(
-   gridRadius*Math.sin(theta)*Math.cos(longitude),
-   gridRadius*Math.cos(theta),
-   gridRadius*Math.sin(theta)*Math.sin(longitude)
-  ));
- }
- addGridLine(points,false);
-}
-
-
+// Natural Earth country polygons provide recognizable continents and national borders.
+fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
+ .then(response=>{if(!response.ok)throw new Error('World map data unavailable');return response.json();})
+ .then(data=>{
+  for(const feature of data.features||[]){
+   const geometry=feature.geometry;
+   if(!geometry)continue;
+   const polygons=geometry.type==='Polygon'?[geometry.coordinates]:
+    geometry.type==='MultiPolygon'?geometry.coordinates:[];
+   for(const polygon of polygons){
+    for(const ring of polygon)addMapRing(ring);
+   }
+  }
+ })
+ .catch(error=>console.warn('Core world map overlay unavailable:',error));
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
 const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
