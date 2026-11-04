@@ -74,7 +74,8 @@ const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 // Continent HUD: use the Natural Earth landmass dataset directly (no TopoJSON conversion).
 const worldMap=new THREE.Group();sphere.add(worldMap);
 const mapMaterial=new THREE.LineBasicMaterial({
- color:0x55d9ff,transparent:true,opacity:.38,
+ // Match the Core's electric-blue center light; additive blending makes the lines emit light.
+ color:0x087bff,transparent:true,opacity:.68,
  blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false
 });
 const mapRadius=1.355;
