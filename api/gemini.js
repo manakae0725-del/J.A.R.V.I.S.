@@ -52,6 +52,46 @@ async function logApiUsage({
 }
 
 
+
+async function getOwnedInteractionId(userId) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !serviceKey) throw new Error("Conversation state storage is not configured");
+  const params = new URLSearchParams({
+    select: "interaction_id",
+    user_id: "eq." + userId,
+    limit: "1"
+  });
+  const response = await fetch(
+    supabaseUrl.replace(/\/+$/, "") + "/rest/v1/jarvis_conversation_sessions?" + params,
+    { headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey } }
+  );
+  if (!response.ok) throw new Error("Conversation state lookup failed");
+  const rows = await response.json();
+  if (!Array.isArray(rows) || !rows[0]) return null;
+  return typeof rows[0].interaction_id === "string" ? rows[0].interaction_id : null;
+}
+
+async function saveOwnedInteractionId(userId, interactionId) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !serviceKey) throw new Error("Conversation state storage is not configured");
+  const response = await fetch(
+    supabaseUrl.replace(/\/+$/, "") + "/rest/v1/jarvis_conversation_sessions?on_conflict=user_id",
+    {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: "Bearer " + serviceKey,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({ user_id: userId, interaction_id: interactionId, updated_at: new Date().toISOString() })
+    }
+  );
+  if (!response.ok) throw new Error("Conversation state save failed");
+}
+
 const { requireAuth } = require("./_auth");
 const { enforceRateLimit } = require("./_rateLimit");
 const { runAiCouncil, testOpenAIConnection } = require("./_aiCouncil");
@@ -62,6 +102,7 @@ const { googleApiRequest } = require("./_google/client");
 
 const crypto = require("crypto");
 const backgroundTasks = require("../lib/backgroundTasks");
+const { inspectLatestForecast, resolveHokkaidoForecastArea } = require("../lib/jmaWeather");
 
 const SPREADSHEET_REGISTRY_CATEGORY = "jarvis_spreadsheet_registry";
 
@@ -681,6 +722,26 @@ module.exports = async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
+  if (req.body && req.body.mode === "weather-source-check") {
+    if (process.env.VERCEL_ENV !== "preview") {
+      return res.status(403).json({ ok: false, error: "PREVIEW_ONLY_TEST" });
+    }
+    if (!(await enforceRateLimit(res, user, "weather-source-check-minute", 3, 60))) return;
+    try {
+      const result = await inspectLatestForecast();
+      return res.status(200).json({ ok: true, weather: result });
+    } catch (error) {
+      console.warn("[WEATHER] JMA source inspection failed", {
+        code: typeof error?.message === "string" ? error.message : "JMA_SOURCE_ERROR"
+      });
+      return res.status(502).json({
+        ok: false,
+        error: "JMA_WEATHER_SOURCE_UNAVAILABLE",
+        message: "気象庁の天気データを確認できませんでした。"
+      });
+    }
+  }
+
   if (req.body && req.body.mode === "attachment-delete") {
     const supabaseUrl = process.env.SUPABASE_URL;
     const storageKey = process.env.SUPABASE_SECRET_KEY;
@@ -1063,15 +1124,19 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Invalid conversation state." });
     }
 
+    // Never trust a browser-supplied interaction ID. Continue only from this user's server-owned state.
+    try {
+      previousInteractionId = await getOwnedInteractionId(user.id);
+    } catch (error) {
+      console.error("[CONVERSATION] State lookup failed", { name: error?.name || "Error" });
+      return res.status(503).json({ error: "Conversation state is temporarily unavailable." });
+    }
+
     const geminiKey = process.env.GEMINI_API_KEY;
     const serperKey = process.env.SERPER_API_KEY;
     const tavilyKey = process.env.TAVILY_API_KEY;
 
-    if (!geminiKey) {
-      return res.status(500).json({
-        error: "GEMINI_API_KEY is not configured",
-      });
-    }
+
 
     let searchContext = "";
     const sources = [];
@@ -1089,6 +1154,116 @@ module.exports = async function handler(req, res) {
       ? userMarker[1].trim()
       : rawText;
 
+    const weatherIntent = !attachments.length && /(?:天気|天候|気温|降水確率|週間予報|週間天気|(?:今週|来週|週末).{0,4}予報|傘|(?:今日|明日|あした|明後日|あさって|今夜|週末|今週|来週).{0,8}(?:雨|雪|晴れ|曇り|寒|暑)|(?:雨|雪)(?:が|は|降る|降り|の予報)|札幌.{0,6}(?:雨|雪|晴れ|曇り|気温)|[一-龥ぁ-んァ-ン]{2,}(?:は|で)(?:雨|雪|晴れ|曇り|暑い|寒い)|(?:寒い|暑い|冷え込む|暖かい))/.test(userText);
+    if (weatherIntent) {
+      const locationQuery = userText.replace(/(?:今日|本日|明日|あした|明後日|あさって|今夜|今朝|週末|今週|来週|現在)(?:の)?/g, "");
+      const requestedLocation = locationQuery.match(/([^\s、,。?？のはで]{1,12})(?:の|は|で)?(?:天気|気温|天候|降水確率|雨|雪|晴れ|曇り|寒い|暑い|冷え込む|暖かい)/)?.[1] || null;
+      const hokkaidoArea = resolveHokkaidoForecastArea(userText);
+      if (requestedLocation && /(?:以外|じゃなく|ではなく|別の地域|他の地域)/.test(requestedLocation)) {
+        const message = "指定された地域の予報は現在の対応範囲外です。北海道内の地域名または市町村名を指定してください。";
+        return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
+      }
+      if (requestedLocation && /北海道/.test(requestedLocation) && !hokkaidoArea) {
+        const message = "北海道全域を一つの予報として扱うことはできません。宗谷・上川/留萌・網走/北見/紋別・十勝・釧路/根室・胆振/日高・石狩/空知/後志・渡島/檜山のいずれか、または市町村名を指定してください。";
+        return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
+      }
+      if (requestedLocation && !hokkaidoArea) {
+        const message = "現在の天気機能は北海道内の地域に対応しています。指定された地域は対応範囲外です。";
+        return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
+      }
+      const selectedArea = hokkaidoArea || resolveHokkaidoForecastArea("札幌");
+      if (!(await enforceRateLimit(res, user, "weather-chat-minute", 3, 60))) return;
+      try {
+        const weather = await inspectLatestForecast(selectedArea.code, { feedAreaCode: selectedArea.feedAreaCode, areaNames: selectedArea.areaNames, weeklyAreaNames: selectedArea.weeklyAreaNames, stationNames: selectedArea.stations });
+        const forecast = weather.forecast || {};
+        const weeklyRequested = /(?:週間|今週|来週|週末|7日間|一週間|７日間)/.test(userText);
+        const futureDayOffset = /(?:明後日|あさって)/.test(userText) ? 2 : /(?:明日|あした|翌日)/.test(userText) ? 1 : 0;
+        const tomorrowRequested = futureDayOffset > 0;
+        const dateLabel = value => {
+          const date = new Date(value);
+          return Number.isFinite(date.getTime())
+            ? date.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short" })
+            : "日付不明";
+        };
+        const temperatureLabel = value => Number.isFinite(value) ? value + "℃" : "未取得";
+        let answer = "";
+        const targetDay = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        targetDay.setUTCDate(targetDay.getUTCDate() + futureDayOffset);
+        const targetDate = targetDay.toISOString().slice(0, 10);
+        const targetDayLabel = futureDayOffset === 2 ? "明後日" : "明日";
+        if (weeklyRequested) {
+          if (Array.isArray(forecast.weekly) && forecast.weekly.length) {
+            const weeklyItems = /週末/.test(userText)
+              ? forecast.weekly.filter(day => { const weekday = new Date(Date.parse(day.dateTime) + 9 * 60 * 60 * 1000).getUTCDay(); return weekday === 0 || weekday === 6; }).slice(0, 2)
+              : forecast.weekly.slice(0, 7);
+            const days = weeklyItems.map(day => {
+              const parts = [dateLabel(day.dateTime), day.weather || "天気未取得"];
+              if (Number.isFinite(day.high) || Number.isFinite(day.low)) parts.push("最高 " + temperatureLabel(day.high) + " / 最低 " + temperatureLabel(day.low));
+              if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率 " + day.precipitationProbability + "%");
+              return parts.join("：");
+            });
+            answer = ( /週末/.test(userText) ? selectedArea.label + "の週末予報です。\n" : selectedArea.label + "の週間予報です。\n" ) + (days.length ? days.join("\n") : "対象日の予報データを確認できませんでした。");
+          } else {
+            answer = selectedArea.label + "の週間予報データを確認できませんでした。未確認の予報値はお伝えしません。";
+          }
+        } else if (tomorrowRequested) {
+          const day = Array.isArray(forecast.weekly) ? forecast.weekly.find(item => String(item.dateTime || "").slice(0, 10) === targetDate) : null;
+          if (day) {
+            const parts = [selectedArea.label + "の" + targetDayLabel + "の予報は" + (day.weather || "天気未取得") + "です。"];
+            if (Number.isFinite(day.high) || Number.isFinite(day.low)) parts.push("最高気温は" + temperatureLabel(day.high) + "、最低気温は" + temperatureLabel(day.low) + "です。");
+            if (Number.isFinite(day.precipitationProbability)) parts.push("降水確率は" + day.precipitationProbability + "%です。");
+            answer = parts.join(" ");
+          } else {
+            const nextForecast = (forecast.threeHourly || []).find(item => String(item.dateTime || "").slice(0, 10) === targetDate && item.weather && Number.isFinite(item.temperature));
+            if (nextForecast) {
+              const time = new Date(nextForecast.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
+              answer = selectedArea.label + "の" + targetDayLabel + " " + time + "からの予報は" + nextForecast.weather + "、気温は" + temperatureLabel(nextForecast.temperature) + "です。";
+              const extremes = (forecast.dailyTemperatures || []).filter(item => String(item.dateTime || "").slice(0, 10) === targetDate && Number.isFinite(item.value));
+              const high = extremes.find(item => item.type === "最高気温" || item.type === "日中の最高気温");
+              const low = extremes.find(item => item.type === "朝の最低気温");
+              if (high || low) answer += " 最高気温は" + temperatureLabel(high?.value) + "、最低気温は" + temperatureLabel(low?.value) + "です。";
+            } else {
+              answer = selectedArea.label + "の" + targetDayLabel + "の予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
+            }
+          }
+        } else if (weather.forecastValuesReady && forecast.current) {
+          const current = forecast.current;
+          const currentTime = new Date(current.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
+          answer = selectedArea.label + "の" + currentTime + "からの予報は" + current.weather + "、気温は" + temperatureLabel(current.temperature) + "です。";
+          const highLow = forecast.todayHighLow || {};
+          const extremes = [];
+          if (Number.isFinite(highLow.high)) extremes.push("最高 " + highLow.high + "℃");
+          if (Number.isFinite(highLow.low)) extremes.push("最低 " + highLow.low + "℃");
+          if (extremes.length) answer += " 今日の予想気温は" + extremes.join("、") + "です。";
+          const next = (forecast.threeHourly || []).filter(item => Date.parse(item.dateTime) > Date.parse(current.dateTime)).slice(0, 3);
+          if (next.length) answer += "\n続く予報：" + next.map(item => {
+            const time = new Date(item.dateTime).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
+            const date = String(item.dateTime || "").slice(0, 10) !== String(current.dateTime || "").slice(0, 10) ? dateLabel(item.dateTime) + " " : "";
+            return date + time + " " + (item.weather || "天気未取得") + " " + temperatureLabel(item.temperature);
+          }).join("、");
+        } else {
+          answer = selectedArea.label + "の有効な予報値を確認できませんでした。未確認の天気や気温はお伝えしません。";
+        }
+        const formatStamp = value => value ? new Date(value).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "不明";
+        if (selectedArea.representativeStation && forecast.targets?.station?.name) {
+          answer += "\n気温は代表地点（" + forecast.targets.station.name + "）の予報値です。";
+        }
+        answer += "\n発表 " + formatStamp(weather.inspectedTelegram?.reportDateTime) + " / 取得 " + formatStamp(weather.fetchedAt);
+        answer += "\n" + weather.attribution;
+        return calendarDirect(res, answer, answer, { weather, interactionId: previousInteractionId || null });
+      } catch (error) {
+        console.warn("[WEATHER] JMA forecast request failed", { code: typeof error?.message === "string" ? error.message : "JMA_WEATHER_ERROR" });
+        const message = "気象庁の" + selectedArea.label + "の予報を取得できませんでした。時間をおいて再度お試しください。";
+        return calendarDirect(res, message, message, { interactionId: previousInteractionId || null });
+      }
+    }
+
+
+    if (!geminiKey) {
+      return res.status(500).json({
+        error: "GEMINI_API_KEY is not configured",
+      });
+    }
 
     // Spreadsheet registry is user-scoped and stored in Supabase memories, never in source code.
     const registrationUrls = [...userText.matchAll(/https?:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+[^\s<>"']*/g)];
@@ -4098,6 +4273,15 @@ visualization は画面表示専用です。reply と speechText は通常どお
     // ==========================================
 
     console.info("[PERF] Request completed", { ...perf, totalMs: Date.now() - perfStartedAt, geminiFirstTokenMs: firstTokenMs, replyChars: result.reply.length, speechChars: result.speechText.length, visualizationType: result.visualization.type });
+    if (typeof interactionId === "string" && interactionId.length > 0 && interactionId.length <= 200) {
+      try {
+        await saveOwnedInteractionId(user.id, interactionId);
+      } catch (error) {
+        console.error("[CONVERSATION] State save failed", { name: error?.name || "Error" });
+        sendClientEvent("error", { message: "会話状態を安全に保存できなかったため、応答を確定できませんでした。再度お試しください。" });
+        return res.end();
+      }
+    }
     sendClientEvent("complete", {
       text: result.reply,
       speechText: result.speechText,

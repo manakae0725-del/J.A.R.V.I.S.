@@ -22,6 +22,10 @@ async function runGemini(body, providerResponse) {
   global.fetch = async (url, options = {}) => {
     requests.push({ url: String(url), options });
     if (String(url).includes("/rest/v1/api_usage")) return { ok: true, status: 201, async json() { return {}; } };
+    if (String(url).includes("/rest/v1/jarvis_conversation_sessions")) {
+      if (options.method === "POST") return { ok: true, status: 204, async json() { return {}; } };
+      return { ok: true, status: 200, async json() { return []; } };
+    }
     if (String(url).includes("/interactions") && providerResponse) {
       if (providerResponse instanceof Error) throw providerResponse;
       return providerResponse;
