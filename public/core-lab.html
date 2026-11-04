@@ -132,8 +132,6 @@ function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
  sphereMat.uniforms.uTime.value=elapsed;
- root.rotation.y=Math.sin(elapsed*.13)*.055;
- root.rotation.x=Math.sin(elapsed*.17)*.025;
  starGroup.rotation.z=elapsed*.105;
  starGroup.rotation.x=.16+Math.sin(elapsed*.22)*.035;
  starGroup.rotation.y=.12+Math.cos(elapsed*.18)*.035;
