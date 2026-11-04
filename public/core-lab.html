@@ -34,7 +34,7 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x00030a);
 const camera=new THREE.PerspectiveCamera(34,innerWidth/innerHeight,.1,100);
 camera.position.set(0,0,7.7);
-const root=new THREE.Group();scene.add(root);
+const root=new THREE.Group();root.scale.setScalar(.88);scene.add(root);
 
 // Dark glass sphere: black-blue body with a restrained cyan clear edge.
 const sphereGeo=new THREE.SphereGeometry(1.34,128,96);
@@ -96,15 +96,6 @@ function makeBlade(sign,phase){
 makeBlade(1,0);makeBlade(-1,Math.PI/4);
 const starCore=new THREE.Mesh(new THREE.SphereGeometry(.10,32,24),new THREE.MeshBasicMaterial({color:0x8deaff}));
 starGroup.add(starCore);
-
-// Small embedded glints on the inner rim, kept inside the Core silhouette.
-const glintGroup=new THREE.Group();root.add(glintGroup);
-for(let i=0;i<8;i++){
- const a=i*Math.PI/4+.16;
- const p=new THREE.Vector3(Math.cos(a)*1.17,Math.sin(a)*1.17,.05*Math.sin(i));
- const g=new THREE.Mesh(new THREE.SphereGeometry(i%2?.012:.019,12,10),new THREE.MeshBasicMaterial({color:0x9ceeff}));
- g.position.copy(p);glintGroup.add(g);
-}
 
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
