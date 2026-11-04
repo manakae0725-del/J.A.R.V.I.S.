@@ -109,7 +109,7 @@ const glyphWidths=[...logoText].map(ch=>lctx.measureText(ch).width);
 const logoTextWidth=glyphWidths.reduce((a,b)=>a+b,0)+tracking*(logoText.length-1);
 let glyphX=512-logoTextWidth/2;
 let rvDotCenter=0;
-lctx.shadowColor='#39cfff';lctx.shadowBlur=22;lctx.fillStyle='#eafaff';
+lctx.shadowColor='#39cfff';lctx.shadowBlur=10;lctx.fillStyle='#eafaff';
 [...logoText].forEach((ch,i)=>{
  const w=glyphWidths[i];
  if(i===5)rvDotCenter=glyphX+w/2;
@@ -120,26 +120,26 @@ lctx.shadowColor='#39cfff';lctx.shadowBlur=22;lctx.fillStyle='#eafaff';
 
 const logoTex=new THREE.CanvasTexture(logoCanvas);logoTex.colorSpace=THREE.SRGBColorSpace;
 const logo=new THREE.Mesh(new THREE.PlaneGeometry(2.02,.355),new THREE.MeshBasicMaterial({map:logoTex,transparent:true,depthWrite:false,toneMapped:false}));
-logo.position.set(0,0,1.365);root.add(logo);
+logo.position.set(0,0,1.405);logo.renderOrder=2;root.add(logo);
 
 // Strong, independent additive glow exactly behind the central R/V separator.
 const dotCanvas=document.createElement('canvas');dotCanvas.width=256;dotCanvas.height=256;
 const dctx=dotCanvas.getContext('2d');
 const dg=dctx.createRadialGradient(128,128,2,128,128,126);
-dg.addColorStop(0,'rgba(255,255,255,1)');
-dg.addColorStop(.045,'rgba(235,255,255,1)');
-dg.addColorStop(.12,'rgba(120,240,255,1)');
-dg.addColorStop(.30,'rgba(0,195,255,.95)');
-dg.addColorStop(.62,'rgba(0,135,255,.62)');
-dg.addColorStop(.84,'rgba(0,95,255,.24)');
+dg.addColorStop(0,'rgba(255,255,255,.78)');
+dg.addColorStop(.045,'rgba(235,255,255,.82)');
+dg.addColorStop(.12,'rgba(120,240,255,.68)');
+dg.addColorStop(.30,'rgba(0,195,255,.48)');
+dg.addColorStop(.62,'rgba(0,135,255,.28)');
+dg.addColorStop(.84,'rgba(0,95,255,.11)');
 dg.addColorStop(1,'rgba(0,75,255,0)');
 dctx.fillStyle=dg;dctx.fillRect(0,0,256,256);
 const dotTexture=new THREE.CanvasTexture(dotCanvas);dotTexture.colorSpace=THREE.SRGBColorSpace;
 const dotGlow=new THREE.Mesh(new THREE.PlaneGeometry(1.02,1.02),new THREE.MeshBasicMaterial({map:dotTexture,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,toneMapped:false}));
 // Calculate the exact center of the period in "R.V." using the same font metrics as the logo.
 const separatorXworld=(rvDotCenter-512)*(2.02/1024);
-dotGlow.position.set(separatorXworld,0,1.39);root.add(dotGlow);
-const dotHotspot=new THREE.PointLight(0x75eaff,7.5,2.2);dotHotspot.position.set(separatorXworld,0,1.48);root.add(dotHotspot);
+dotGlow.position.set(separatorXworld,0,1.39);dotGlow.renderOrder=1;root.add(dotGlow);
+const dotHotspot=new THREE.PointLight(0x75eaff,3.6,2.2);dotHotspot.position.set(separatorXworld,0,1.48);root.add(dotHotspot);
 
 let last=0,elapsed=0;
 function animate(now){
