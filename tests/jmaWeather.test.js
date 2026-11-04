@@ -264,3 +264,19 @@ test("selects today's high and low by JST calendar date when XML timestamps use 
   const parsed = parseVpfd51Forecast(xml, Date.parse("2026-11-03T01:00:00+09:00"));
   assert.deepEqual(parsed.todayHighLow, { date: "2026-11-03", high: 9, low: 2 });
 });
+
+test("falls back to weekly forecast for today's HUD high and low when daily extremes are absent", () => {
+  const { selectTodayHighLow } = require("../lib/jmaWeather");
+  const now = Date.parse("2026-11-04T21:28:00+09:00");
+  const weekly = [
+    { dateTime: "2026-11-04T00:00:00+09:00", high: 7, low: 1 },
+    { dateTime: "2026-11-05T00:00:00+09:00", high: 8, low: 2 }
+  ];
+  assert.deepEqual(selectTodayHighLow({ date: "2026-11-04", high: null, low: null }, weekly, now), {
+    date: "2026-11-04", high: 7, low: 1
+  });
+  assert.deepEqual(selectTodayHighLow(null, weekly, now), {
+    date: "2026-11-04", high: 7, low: 1
+  });
+});
+
