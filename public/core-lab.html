@@ -155,6 +155,7 @@ function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
  sphereMat.uniforms.uTime.value=elapsed;
+ worldMap.rotation.y=elapsed*0.075;
  const pulse=.92+.08*Math.sin(elapsed*1.25);
  sphere.scale.setScalar(pulse);
  renderer.render(scene,camera);
