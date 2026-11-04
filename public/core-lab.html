@@ -71,52 +71,41 @@ const sphereMat=new THREE.ShaderMaterial({
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
-// Fine continent HUD: dissolved coastlines, sampled along the sphere surface.
+// Continent HUD: use the Natural Earth landmass dataset directly (no TopoJSON conversion).
 const worldMap=new THREE.Group();sphere.add(worldMap);
-const mapMaterial=new THREE.MeshBasicMaterial({
- color:0x55d9ff,transparent:true,opacity:.48,
+const mapMaterial=new THREE.LineBasicMaterial({
+ color:0x55d9ff,transparent:true,opacity:.38,
  blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false
 });
-const mapRadius=1.352;
+const mapRadius=1.355;
 function mapCoordinate(lon,lat){
  const longitude=THREE.MathUtils.degToRad(lon);
  const latitude=THREE.MathUtils.degToRad(lat);
  return new THREE.Vector3(
-  Math.cos(latitude)*Math.sin(longitude),
-  Math.sin(latitude),
-  Math.cos(latitude)*Math.cos(longitude)
+  mapRadius*Math.cos(latitude)*Math.sin(longitude),
+  mapRadius*Math.sin(latitude),
+  mapRadius*Math.cos(latitude)*Math.cos(longitude)
  );
 }
 function addMapRing(ring){
- const points=[];
- for(let i=0;i<ring.length-1;i++){
-  const start=mapCoordinate(ring[i][0],ring[i][1]);
-  const end=mapCoordinate(ring[i+1][0],ring[i+1][1]);
-  const angle=start.angleTo(end);
-  const steps=Math.max(2,Math.ceil(angle*mapRadius/0.012));
-  for(let j=0;j<steps;j++){
-   const t=j/steps;
-   points.push(start.clone().lerp(end,t).normalize().multiplyScalar(mapRadius));
-  }
- }
- if(ring.length){points.push(mapCoordinate(ring[ring.length-1][0],ring[ring.length-1][1]).multiplyScalar(mapRadius));}
+ const points=ring.map(coordinate=>mapCoordinate(coordinate[0],coordinate[1]));
  if(points.length<2)return;
  const geometry=new THREE.BufferGeometry().setFromPoints(points);
- // A narrow tube provides a sub-pixel-looking stroke on mobile displays.
- const curve=new THREE.CatmullRomCurve3(points,false,'centripetal');
- const tube=new THREE.TubeGeometry(curve,points.length,.00075,3,false);
- const mesh=new THREE.Mesh(tube,mapMaterial);
- mesh.renderOrder=2;worldMap.add(mesh);
+ const line=new THREE.Line(geometry,mapMaterial);
+ line.renderOrder=2;worldMap.add(line);
 }
-import {feature as topoFeature} from 'https://cdn.jsdelivr.net/npm/topojson-client@3/+esm';
-fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json')
- .then(response=>{if(!response.ok)throw new Error('World map data unavailable');return response.json();})
- .then(topology=>{
-  const land=topoFeature(topology,topology.objects.land);
-  const polygons=land.geometry.type==='Polygon'?[land.geometry.coordinates]:land.geometry.coordinates;
-  for(const polygon of polygons){for(const ring of polygon)addMapRing(ring);}
+fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson')
+ .then(response=>{if(!response.ok)throw new Error('Landmass data unavailable');return response.json();})
+ .then(data=>{
+  for(const feature of data.features||[]){
+   const geometry=feature.geometry;if(!geometry)continue;
+   const polygons=geometry.type==='Polygon'?[geometry.coordinates]:
+    geometry.type==='MultiPolygon'?geometry.coordinates:[];
+   for(const polygon of polygons){for(const ring of polygon)addMapRing(ring);}
+  }
+  if(worldMap.children.length===0)throw new Error('No landmass outlines were loaded');
  })
- .catch(error=>console.warn('Core world map overlay unavailable:',error));
+ .catch(error=>console.warn('Core continent overlay unavailable:',error));
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
 const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
