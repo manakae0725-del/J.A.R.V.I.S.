@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>J.A.R.V.I.S. Core Lab</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#dffaff;font-family:Arial,sans-serif}
+#stage{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 48%,#031126 0%,#00040b 38%,#000 72%)}
+canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+#label{position:fixed;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));text-align:center;font-size:9px;letter-spacing:.34em;color:rgba(110,210,255,.42);pointer-events:none}
+#error{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;color:#9bdfff;font-size:13px}
+</style>
+</head>
+<body>
+<div id="stage"></div><div id="label">CORE VISUALIZATION / PROTOTYPE</div><div id="error">この端末ではWebGLを利用できません。</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+
+const stage=document.querySelector('#stage');
+let renderer;
+try{
+ renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
+}catch(e){document.querySelector('#error').style.display='grid';throw e}
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.18;
+stage.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x00030a);
+const camera=new THREE.PerspectiveCamera(34,innerWidth/innerHeight,.1,100);
+camera.position.set(0,0,7.7);
+const root=new THREE.Group();scene.add(root);
+
+// Dark glass sphere: black-blue body with a restrained cyan clear edge.
+const sphereGeo=new THREE.SphereGeometry(1.34,128,96);
+const sphereMat=new THREE.ShaderMaterial({
+ transparent:false,
+ uniforms:{uTime:{value:0},uResolution:{value:new THREE.Vector2(innerWidth,innerHeight)}},
+ vertexShader:`
+ varying vec3 vNormal; varying vec3 vView; varying vec3 vPos;
+ void main(){vNormal=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vView=normalize(-mv.xyz);vPos=position;gl_Position=projectionMatrix*mv;}
+ `,
+ fragmentShader:`
+ uniform float uTime; varying vec3 vNormal; varying vec3 vView; varying vec3 vPos;
+ float hash(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+ float noise(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+ void main(){
+  vec3 N=normalize(vNormal),V=normalize(vView);
+  float fres=pow(1.-max(dot(N,V),0.),3.2);
+  float edge=pow(1.-max(dot(N,V),0.),5.5);
+  float n=noise(vPos*8.+vec3(0.,uTime*.11,0.));
+  float fine=noise(vPos*34.+vec3(uTime*.025));
+  float radial=1.-smoothstep(.12,1.35,length(vPos.xy));
+  vec3 deep=mix(vec3(.001,.006,.018),vec3(.004,.035,.105),radial*.9);
+  deep+=vec3(.0,.055,.19)*pow(radial,2.2)*(.65+.35*n);
+  deep+=vec3(.015,.11,.26)*fine*.12;
+  vec3 cyan=vec3(.18,.78,1.0);
+  vec3 col=deep+cyan*(fres*.72+edge*.85);
+  float thinRim=pow(max(0.,1.-abs(1.-dot(N,V))*34.),3.);
+  col+=cyan*thinRim*.45;
+  float center=exp(-length(vPos.xy)*5.2);
+  col+=vec3(.015,.16,.48)*center*.36;
+  gl_FragColor=vec4(col,1.);
+ }
+ `
+});
+const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
+
+// A restrained inner shuriken: interwoven curved blades, not the outer orbital filaments.
+const starGroup=new THREE.Group();root.add(starGroup);
+function makeBlade(sign,phase){
+ const pts=[];
+ const steps=100;
+ for(let i=0;i<=steps;i++){
+  const u=i/steps;
+  const a=u*Math.PI*2;
+  const r=.20+.79*Math.pow(Math.abs(Math.cos(2*a+phase)),1.55);
+  const x=Math.cos(a)*r;
+  const y=Math.sin(a)*r;
+  const z=sign*(.10+.055*Math.sin(4*a+phase));
+  pts.push(new THREE.Vector3(x,y,z));
+ }
+ const curve=new THREE.CatmullRomCurve3(pts,true,'centripetal');
+ const geo=new THREE.TubeGeometry(curve,260,.0065,6,true);
+ const mat=new THREE.MeshBasicMaterial({color:0x54dfff,transparent:true,opacity:.72,blending:THREE.AdditiveBlending});
+ const line=new THREE.Mesh(geo,mat);starGroup.add(line);
+ const glowGeo=new THREE.TubeGeometry(curve,260,.018,5,true);
+ const glowMat=new THREE.MeshBasicMaterial({color:0x078dff,transparent:true,opacity:.17,blending:THREE.AdditiveBlending,depthWrite:false});
+ starGroup.add(new THREE.Mesh(glowGeo,glowMat));
+}
+makeBlade(1,0);makeBlade(-1,Math.PI/4);
+const starCore=new THREE.Mesh(new THREE.SphereGeometry(.10,32,24),new THREE.MeshBasicMaterial({color:0x8deaff}));
+starGroup.add(starCore);
+
+// Small embedded glints on the inner rim, kept inside the Core silhouette.
+const glintGroup=new THREE.Group();root.add(glintGroup);
+for(let i=0;i<8;i++){
+ const a=i*Math.PI/4+.16;
+ const p=new THREE.Vector3(Math.cos(a)*1.17,Math.sin(a)*1.17,.05*Math.sin(i));
+ const g=new THREE.Mesh(new THREE.SphereGeometry(i%2?.012:.019,12,10),new THREE.MeshBasicMaterial({color:0x9ceeff}));
+ g.position.copy(p);glintGroup.add(g);
+}
+
+// Soft center light, no external filaments or platform.
+const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
+const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
+
+const logoCanvas=document.createElement('canvas');logoCanvas.width=1024;logoCanvas.height=180;
+const lctx=logoCanvas.getContext('2d');lctx.clearRect(0,0,1024,180);
+lctx.font='300 100px Arial';lctx.textAlign='center';lctx.textBaseline='middle';lctx.letterSpacing='22px';
+lctx.shadowColor='#39cfff';lctx.shadowBlur=22;lctx.fillStyle='#eafaff';lctx.fillText('J.A.R.V.I.S.',512,90);
+const logoTex=new THREE.CanvasTexture(logoCanvas);logoTex.colorSpace=THREE.SRGBColorSpace;
+const logo=new THREE.Mesh(new THREE.PlaneGeometry(2.02,.355),new THREE.MeshBasicMaterial({map:logoTex,transparent:true,depthWrite:false,toneMapped:false}));
+logo.position.set(0,0,1.365);root.add(logo);
+
+let last=0,elapsed=0;
+function animate(now){
+ requestAnimationFrame(animate);
+ const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
+ sphereMat.uniforms.uTime.value=elapsed;
+ root.rotation.y=Math.sin(elapsed*.13)*.055;
+ root.rotation.x=Math.sin(elapsed*.17)*.025;
+ starGroup.rotation.z=elapsed*.105;
+ starGroup.rotation.x=.16+Math.sin(elapsed*.22)*.035;
+ starGroup.rotation.y=.12+Math.cos(elapsed*.18)*.035;
+ const pulse=.92+.08*Math.sin(elapsed*1.25);
+ sphere.scale.setScalar(pulse);
+ renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+
+function resize(){
+ const w=innerWidth,h=innerHeight;
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+ renderer.setSize(w,h);
+ camera.aspect=w/h;camera.fov=w<600?38:34;camera.position.z=w<600?8.4:7.7;camera.updateProjectionMatrix();
+ sphereMat.uniforms.uResolution.value.set(w,h);
+}
+addEventListener('resize',resize);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){last=performance.now();}});
+</script>
+</body>
+</html>
