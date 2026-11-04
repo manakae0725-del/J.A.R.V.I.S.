@@ -63,7 +63,7 @@ async function getOwnedInteractionId(userId) {
     limit: "1"
   });
   const response = await fetch(
-    supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/jarvis_conversation_sessions?" + params,
+    supabaseUrl.replace(/\/+$/, "") + "/rest/v1/jarvis_conversation_sessions?" + params,
     { headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey } }
   );
   if (!response.ok) throw new Error("Conversation state lookup failed");
@@ -77,7 +77,7 @@ async function saveOwnedInteractionId(userId, interactionId) {
   const serviceKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !serviceKey) throw new Error("Conversation state storage is not configured");
   const response = await fetch(
-    supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/jarvis_conversation_sessions?on_conflict=user_id",
+    supabaseUrl.replace(/\/+$/, "") + "/rest/v1/jarvis_conversation_sessions?on_conflict=user_id",
     {
       method: "POST",
       headers: {
