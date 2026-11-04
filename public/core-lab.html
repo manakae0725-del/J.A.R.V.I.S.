@@ -71,10 +71,10 @@ const sphereMat=new THREE.ShaderMaterial({
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
-// Subtle world map HUD: coastlines and country borders projected onto the Core.
+// Minimal continent HUD: coastlines only, without internal country borders.
 const worldMap=new THREE.Group();sphere.add(worldMap);
 const mapMaterial=new THREE.LineBasicMaterial({
- color:0x55d9ff,transparent:true,opacity:.13,
+ color:0x55d9ff,transparent:true,opacity:.085,
  blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false
 });
 const mapRadius=1.349;
@@ -89,27 +89,20 @@ function mapCoordinate(lon,lat){
 }
 function addMapRing(ring){
  const points=[];
- for(const coordinate of ring){
-  points.push(mapCoordinate(coordinate[0],coordinate[1]));
- }
+ for(const coordinate of ring)points.push(mapCoordinate(coordinate[0],coordinate[1]));
  if(points.length<2)return;
  const geometry=new THREE.BufferGeometry().setFromPoints(points);
  const line=new THREE.Line(geometry,mapMaterial);
  line.renderOrder=1;worldMap.add(line);
 }
-// Natural Earth country polygons provide recognizable continents and national borders.
-fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
+// Dissolved land geometry keeps only the recognizable large continent silhouettes.
+import {feature as topoFeature} from 'https://cdn.jsdelivr.net/npm/topojson-client@3/+esm';
+fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json')
  .then(response=>{if(!response.ok)throw new Error('World map data unavailable');return response.json();})
- .then(data=>{
-  for(const feature of data.features||[]){
-   const geometry=feature.geometry;
-   if(!geometry)continue;
-   const polygons=geometry.type==='Polygon'?[geometry.coordinates]:
-    geometry.type==='MultiPolygon'?geometry.coordinates:[];
-   for(const polygon of polygons){
-    for(const ring of polygon)addMapRing(ring);
-   }
-  }
+ .then(topology=>{
+  const land=topoFeature(topology,topology.objects.land);
+  const polygons=land.geometry.type==='Polygon'?[land.geometry.coordinates]:land.geometry.coordinates;
+  for(const polygon of polygons){for(const ring of polygon)addMapRing(ring);}
  })
  .catch(error=>console.warn('Core world map overlay unavailable:',error));
 // Soft center light, no external filaments or platform.
