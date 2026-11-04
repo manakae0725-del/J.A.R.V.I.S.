@@ -71,10 +71,10 @@ const sphereMat=new THREE.ShaderMaterial({
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
-// Minimal continent HUD: coastlines only, without internal country borders.
+// Fine continent HUD: draw only dissolved coastlines as genuinely thin 3D strokes.
 const worldMap=new THREE.Group();sphere.add(worldMap);
-const mapMaterial=new THREE.LineBasicMaterial({
- color:0x55d9ff,transparent:true,opacity:.085,
+const mapMaterial=new THREE.MeshBasicMaterial({
+ color:0x55d9ff,transparent:true,opacity:.42,
  blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false
 });
 const mapRadius=1.349;
@@ -91,11 +91,13 @@ function addMapRing(ring){
  const points=[];
  for(const coordinate of ring)points.push(mapCoordinate(coordinate[0],coordinate[1]));
  if(points.length<2)return;
- const geometry=new THREE.BufferGeometry().setFromPoints(points);
- const line=new THREE.Line(geometry,mapMaterial);
+ // Tube radius controls real geometric thickness; unlike LineBasicMaterial linewidth,
+ // this remains consistent on mobile WebGL where line width is fixed to one pixel.
+ const curve=new THREE.CatmullRomCurve3(points,false,'centripetal');
+ const geometry=new THREE.TubeGeometry(curve,Math.max(points.length*2,24),.0017,3,false);
+ const line=new THREE.Mesh(geometry,mapMaterial);
  line.renderOrder=1;worldMap.add(line);
 }
-// Dissolved land geometry keeps only the recognizable large continent silhouettes.
 import {feature as topoFeature} from 'https://cdn.jsdelivr.net/npm/topojson-client@3/+esm';
 fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json')
  .then(response=>{if(!response.ok)throw new Error('World map data unavailable');return response.json();})
