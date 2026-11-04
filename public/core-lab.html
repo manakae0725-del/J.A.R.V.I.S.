@@ -71,32 +71,42 @@ const sphereMat=new THREE.ShaderMaterial({
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
-// Fine continent HUD: draw only dissolved coastlines as genuinely thin 3D strokes.
+// Fine continent HUD: dissolved coastlines, sampled along the sphere surface.
 const worldMap=new THREE.Group();sphere.add(worldMap);
 const mapMaterial=new THREE.MeshBasicMaterial({
- color:0x55d9ff,transparent:true,opacity:.42,
+ color:0x55d9ff,transparent:true,opacity:.48,
  blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false
 });
-const mapRadius=1.349;
+const mapRadius=1.352;
 function mapCoordinate(lon,lat){
  const longitude=THREE.MathUtils.degToRad(lon);
  const latitude=THREE.MathUtils.degToRad(lat);
  return new THREE.Vector3(
-  mapRadius*Math.cos(latitude)*Math.sin(longitude),
-  mapRadius*Math.sin(latitude),
-  mapRadius*Math.cos(latitude)*Math.cos(longitude)
+  Math.cos(latitude)*Math.sin(longitude),
+  Math.sin(latitude),
+  Math.cos(latitude)*Math.cos(longitude)
  );
 }
 function addMapRing(ring){
  const points=[];
- for(const coordinate of ring)points.push(mapCoordinate(coordinate[0],coordinate[1]));
+ for(let i=0;i<ring.length-1;i++){
+  const start=mapCoordinate(ring[i][0],ring[i][1]);
+  const end=mapCoordinate(ring[i+1][0],ring[i+1][1]);
+  const angle=start.angleTo(end);
+  const steps=Math.max(2,Math.ceil(angle*mapRadius/0.012));
+  for(let j=0;j<steps;j++){
+   const t=j/steps;
+   points.push(start.clone().lerp(end,t).normalize().multiplyScalar(mapRadius));
+  }
+ }
+ if(ring.length){points.push(mapCoordinate(ring[ring.length-1][0],ring[ring.length-1][1]).multiplyScalar(mapRadius));}
  if(points.length<2)return;
- // Tube radius controls real geometric thickness; unlike LineBasicMaterial linewidth,
- // this remains consistent on mobile WebGL where line width is fixed to one pixel.
+ const geometry=new THREE.BufferGeometry().setFromPoints(points);
+ // A narrow tube provides a sub-pixel-looking stroke on mobile displays.
  const curve=new THREE.CatmullRomCurve3(points,false,'centripetal');
- const geometry=new THREE.TubeGeometry(curve,Math.max(points.length*2,24),.0017,3,false);
- const line=new THREE.Mesh(geometry,mapMaterial);
- line.renderOrder=1;worldMap.add(line);
+ const tube=new THREE.TubeGeometry(curve,points.length,.00075,3,false);
+ const mesh=new THREE.Mesh(tube,mapMaterial);
+ mesh.renderOrder=2;worldMap.add(mesh);
 }
 import {feature as topoFeature} from 'https://cdn.jsdelivr.net/npm/topojson-client@3/+esm';
 fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json')
