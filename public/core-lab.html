@@ -70,6 +70,38 @@ const sphereMat=new THREE.ShaderMaterial({
  `
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
+// Internal energy particles: a quiet blue vortex flowing through the Core volume.
+const particleCount=520;
+const particlePositions=new Float32Array(particleCount*3);
+const particleSeeds=new Float32Array(particleCount*4);
+for(let i=0;i<particleCount;i++){
+ const radius=.18+Math.cbrt(Math.random())*.91;
+ const y=THREE.MathUtils.randFloatSpread(1.5);
+ const angle=Math.random()*Math.PI*2;
+ const planar=Math.sqrt(Math.max(0,1-y*y))*radius;
+ particlePositions[i*3]=Math.cos(angle)*planar;
+ particlePositions[i*3+1]=y*radius;
+ particlePositions[i*3+2]=Math.sin(angle)*planar;
+ particleSeeds[i*4]=angle;
+ particleSeeds[i*4+1]=radius;
+ particleSeeds[i*4+2]=Math.random()*Math.PI*2;
+ particleSeeds[i*4+3]=.22+Math.random()*.58;
+}
+const particleGeometry=new THREE.BufferGeometry();
+particleGeometry.setAttribute('position',new THREE.BufferAttribute(particlePositions,3));
+const particleCanvas=document.createElement('canvas');particleCanvas.width=64;particleCanvas.height=64;
+const pctx=particleCanvas.getContext('2d');
+const particleGradient=pctx.createRadialGradient(32,32,0,32,32,32);
+particleGradient.addColorStop(0,'rgba(225,250,255,1)');
+particleGradient.addColorStop(.12,'rgba(90,205,255,.95)');
+particleGradient.addColorStop(.38,'rgba(0,125,255,.48)');
+particleGradient.addColorStop(1,'rgba(0,80,255,0)');
+pctx.fillStyle=particleGradient;pctx.fillRect(0,0,64,64);
+const particleTexture=new THREE.CanvasTexture(particleCanvas);
+const particleMaterial=new THREE.PointsMaterial({color:0x168dff,size:.052,map:particleTexture,transparent:true,opacity:.78,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:true,sizeAttenuation:true});
+const energyParticles=new THREE.Points(particleGeometry,particleMaterial);
+energyParticles.renderOrder=1;sphere.add(energyParticles);
+
 
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
