@@ -1153,7 +1153,7 @@ module.exports = async function handler(req, res) {
     const pendingSuggestion = req.body?.pendingSuggestion;
     const pendingSuggestionText = typeof pendingSuggestion?.text === "string" ? pendingSuggestion.text.trim().slice(0, 240) : "";
     const previousUserText = typeof pendingSuggestion?.previousUserText === "string" ? pendingSuggestion.previousUserText.trim().slice(0, 1200) : "";
-    const normalizedAcknowledgement = userText.toLowerCase().replace(/[\\s、，,。.!！?？]/g, "");
+    const normalizedAcknowledgement = userText.toLowerCase().replace(/[\s、，,。.!！?？]/g, "");
     const suggestionAcknowledgement = pendingSuggestionText && userText.length <= 48 && /^(はい|うん|ぜひ|お願いします|お願い|よろしく|いいね|いいよ|いいですね|いいですよ|そうですね|そうして|進めて|実行して|ok|okay|yes|sure|please|それもお願い|それもお願いします|それでお願い|それでお願いします|それをお願い|それをお願いします)+$/i.test(normalizedAcknowledgement) && !/(いいえ|やめ|不要|しない|違う|待って|あとで|保留|キャンセル)/i.test(normalizedAcknowledgement) ? pendingSuggestionText : "";
     const suggestionPreviousUserText = suggestionAcknowledgement ? previousUserText : "";
 
