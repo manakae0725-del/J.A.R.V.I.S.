@@ -30,8 +30,11 @@ jobs:
           node --check api/_google/client.js
           node --check lib/commanderRouting.js
           node --check lib/backgroundTasks.js
+          node --check lib/jmaWeather.js
       - name: Verify Supabase migration source ledger
         run: node scripts/migration-ledger-check.mjs
+      - name: Run JMA weather parser tests
+        run: node --test tests/jmaWeather.test.js
       - name: Run authentication API tests
         run: node --test scripts/auth.test.cjs
       - name: Run read-only connector API tests
