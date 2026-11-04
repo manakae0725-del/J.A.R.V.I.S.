@@ -71,49 +71,6 @@ const sphereMat=new THREE.ShaderMaterial({
 });
 const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
 
-// Four distinct swept blades: sharp tips, curved cutting edges, and a compact central hub.
-const starGroup=new THREE.Group();starGroup.renderOrder=1;root.add(starGroup);
-const bladeShape=new THREE.Shape();
-bladeShape.moveTo(-.075,-.105);
-bladeShape.bezierCurveTo(-.20,.12,-.105,.48,.055,.94);
-bladeShape.bezierCurveTo(.105,.69,.285,.36,.205,.105);
-bladeShape.bezierCurveTo(.145,-.045,.025,-.12,-.075,-.105);
-const bladeGeo=new THREE.ExtrudeGeometry(bladeShape,{
- depth:.035,bevelEnabled:true,bevelSegments:3,steps:1,
- bevelSize:.012,bevelThickness:.012,curveSegments:18
-});
-bladeGeo.translate(0,0,-.0175);
-for(let i=0;i<4;i++){
- const blade=new THREE.Group();
- blade.rotation.z=i*Math.PI/2;
- blade.position.z=(i%2===0?.105:.075);
- const face=new THREE.Mesh(bladeGeo,new THREE.MeshBasicMaterial({
-  color:0x36cfff,transparent:true,opacity:.30,
-  side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
-  depthTest:false,depthWrite:false
- }));
- face.renderOrder=1;blade.add(face);
- const edgeGeo=new THREE.EdgesGeometry(bladeGeo,18);
- const edge=new THREE.LineSegments(edgeGeo,new THREE.LineBasicMaterial({
-  color:0x9cefff,transparent:true,opacity:.96,
-  blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false
- }));
- edge.renderOrder=1;blade.add(edge);
- const aura=new THREE.Mesh(new THREE.ExtrudeGeometry(bladeShape,{
-  depth:.02,bevelEnabled:true,bevelSegments:2,bevelSize:.025,bevelThickness:.01,curveSegments:18
- }),new THREE.MeshBasicMaterial({
-  color:0x087dff,transparent:true,opacity:.12,
-  side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
-  depthTest:false,depthWrite:false
- }));
- aura.position.z=-.012;aura.renderOrder=0;blade.add(aura);
- starGroup.add(blade);
-}
-const hub=new THREE.Mesh(new THREE.SphereGeometry(.105,32,24),new THREE.MeshBasicMaterial({
- color:0x8deaff,transparent:true,opacity:.9,
- blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false
- }));
-hub.position.z=.15;hub.renderOrder=1;starGroup.add(hub);
 // Soft center light, no external filaments or platform.
 const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
 const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
