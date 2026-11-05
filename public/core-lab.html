@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#00030a">
+<meta name="theme-color" content="#000">
 <title>J.A.R.V.I.S. Core</title>
 <style>
 *{box-sizing:border-box}
@@ -26,7 +26,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.m
 const image=document.querySelector('#art');
 const canvas=document.querySelector('#rings');
 const error=document.querySelector('#error');
-let renderer, camera, ringA, ringB, imageScale=1;
+let renderer,camera,ringA,ringB;
 const scene=new THREE.Scene();
 
 try{
@@ -39,37 +39,41 @@ try{
 camera=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);
 camera.position.z=12;
 
-const ringMaterialA=new THREE.MeshBasicMaterial({
- color:0x63dfff,transparent:true,opacity:.72,blending:THREE.AdditiveBlending,
- depthWrite:false,side:THREE.DoubleSide
-});
-const ringMaterialB=new THREE.MeshBasicMaterial({
- color:0x36bfff,transparent:true,opacity:.54,blending:THREE.AdditiveBlending,
- depthWrite:false,side:THREE.DoubleSide
+// Both rings use the same blue-cyan hue sampled visually from the Core edge.
+const ringMaterial=new THREE.MeshBasicMaterial({
+ color:0x27bfff,transparent:true,opacity:.48,
+ blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
 });
 
-// Two continuous, extremely fine elliptical orbital rings.
-const ringGeometry=new THREE.TorusGeometry(1.31,.0045,8,512);
-ringA=new THREE.Mesh(ringGeometry,ringMaterialA);
-ringB=new THREE.Mesh(ringGeometry.clone(),ringMaterialB);
-ringA.rotation.set(1.12,0,-.48);
-ringB.rotation.set(.92,.12,.52);
+// Smaller than the previous pass, with a hairline tube.
+const ringGeometry=new THREE.TorusGeometry(1.39,.0018,6,512);
+ringA=new THREE.Mesh(ringGeometry,ringMaterial);
+ringB=new THREE.Mesh(ringGeometry.clone(),ringMaterial.clone());
+ringA.material.opacity=.48;
+ringB.material.opacity=.38;
+ringA.rotation.set(1.02,0,-.55);
+ringB.rotation.set(1.02,0,.55);
 ringA.position.z=0;
-ringB.position.z=-.035;
+ringB.position.z=-.025;
 scene.add(ringA,ringB);
 
 function resize(){
  const w=innerWidth,h=innerHeight;
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
  renderer.setSize(w,h);
- const rect=image.getBoundingClientRect();
- const scale=rect.height/4.65;
- imageScale=scale;
+
+ // object-fit:contain uses the image's actual displayed box, not the full viewport.
+ const aspect=image.naturalWidth/image.naturalHeight;
+ const displayW=Math.min(w,h*aspect);
+ const displayH=displayW/aspect;
+ const worldHeight=4.65;
+ const scale=displayH/worldHeight;
  const viewW=w/scale,viewH=h/scale;
- camera.left=-viewW/2;camera.right=viewW/2;
- camera.top=viewH/2;camera.bottom=-viewH/2;
- camera.position.x=(rect.left+rect.width/2-w/2)/scale;
- camera.position.y=(h/2-(rect.top+rect.height/2))/scale;
+ camera.left=-viewW/2;
+ camera.right=viewW/2;
+ camera.top=viewH/2;
+ camera.bottom=-viewH/2;
+ camera.position.set(0,0,12);
  camera.updateProjectionMatrix();
 }
 image.addEventListener('load',resize);
@@ -81,9 +85,8 @@ let last=0,elapsed=0;
 function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
- // Very slow 3D drift; the two rings remain clean and continuous.
- ringA.rotation.z=-.48+Math.sin(elapsed*.12)*.025;
- ringB.rotation.y=.12+Math.sin(elapsed*.1)*.035;
+ ringA.rotation.z=-.55+Math.sin(elapsed*.10)*.012;
+ ringB.rotation.z=.55+Math.sin(elapsed*.09)*.012;
  renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
