@@ -70,7 +70,8 @@ ringSpecs.forEach(s=>{
   // Strong front/back split: deep subdued rear arc, bright readable front arc.
   const t=THREE.MathUtils.clamp((depth-0.46)/0.08,0,1);
   const front=t*t*(3-2*t);
-  const light=0.18+0.82*front;
+  // Stronger depth separation: rear arcs stay subdued while front arcs carry the energy.
+  const light=0.10+0.90*front;
   const intensity=3.2;
   const p=new THREE.Vector3().fromBufferAttribute(positions,i).applyQuaternion(rotation);
   const radial=Math.hypot(p.x,p.y);
@@ -112,8 +113,8 @@ ringSpecs.forEach(s=>{
   glow.position.z=s.z+zOffset;
   scene.add(glow);
  };
- makeGlowLayer(.0028,.24,-.0012);
- makeGlowLayer(.006,.075,-.0024);
+ makeGlowLayer(.0024,.34,-.0010);
+ makeGlowLayer(.0048,.12,-.0020);
 });
 
 // Pure white light points only: cyan and blue glow layers removed.
