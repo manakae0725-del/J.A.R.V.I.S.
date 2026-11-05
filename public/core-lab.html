@@ -39,24 +39,7 @@ try{
 camera=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);
 camera.position.z=12;
 
-// Brighter electric cyan-blue sampled to harmonize with the Core's luminous rim.
 const RING_COLOR=0x42cfff;
-const ringGeometry=new THREE.TorusGeometry(1.39,.0018,6,512);
-function createRing(rotation,opacity,z,radius=1.39){
- const material=new THREE.MeshBasicMaterial({
-  color:RING_COLOR,transparent:true,opacity,
-  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
- });
- const mesh=new THREE.Mesh(
-  radius===1.39?ringGeometry.clone():new THREE.TorusGeometry(radius,.0018,6,512),
-  material
- );
- mesh.rotation.set(...rotation);
- mesh.position.z=z;
- scene.add(mesh);
- return mesh;
-}
-
 const ringSpecs=[
  {rotation:[1.02,0,-.55],opacity:.68,z:0,radius:1.39,speed:.34,phase:0},
  {rotation:[1.02,0,.55],opacity:.58,z:-.025,radius:1.39,speed:-.29,phase:2.2},
@@ -67,25 +50,62 @@ const ringSpecs=[
  {rotation:[1.18,-.58,.92],opacity:.36,z:.035,radius:1.35,speed:.28,phase:2.7},
  {rotation:[-.42,.92,.28],opacity:.37,z:-.085,radius:1.35,speed:-.20,phase:.6}
 ];
-ringSpecs.forEach(s=>createRing(s.rotation,s.opacity,s.z,s.radius));
 
-// Bright, narrow moving highlights travel along each stationary orbital path.
-const sweeps=[];
+// Fixed orbital paths.
 ringSpecs.forEach(s=>{
- const group=new THREE.Group();
- group.rotation.set(...s.rotation);
- group.position.z=s.z+.008;
- const glow=new THREE.MeshBasicMaterial({
-  color:0x9beaff,transparent:true,opacity:.92,
+ const material=new THREE.MeshBasicMaterial({
+  color:RING_COLOR,transparent:true,opacity:s.opacity,
+  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
+ });
+ const ring=new THREE.Mesh(
+  new THREE.TorusGeometry(s.radius,.0018,6,512),material
+ );
+ ring.rotation.set(...s.rotation);
+ ring.position.z=s.z;
+ scene.add(ring);
+});
+
+// A moving highlight and a bright point of light travel on every ring.
+// Each light is parented to its own fixed orbital plane, so the paths never shift.
+const movers=[];
+ringSpecs.forEach((s,i)=>{
+ const orbit=new THREE.Group();
+ orbit.rotation.set(...s.rotation);
+ orbit.position.z=s.z+.012;
+ scene.add(orbit);
+
+ const arcMaterial=new THREE.MeshBasicMaterial({
+  color:0xb4f1ff,transparent:true,opacity:.98,
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
  });
  const arc=new THREE.Mesh(
   new THREE.TorusGeometry(s.radius,.0038,6,96,.42),
-  glow
+  arcMaterial
  );
- group.add(arc);
- scene.add(group);
- sweeps.push({arc,speed:s.speed,phase:s.phase});
+ orbit.add(arc);
+
+ const point=new THREE.Group();
+ const core=new THREE.Mesh(
+  new THREE.SphereGeometry(.012,16,12),
+  new THREE.MeshBasicMaterial({color:0xffffff})
+ );
+ const innerGlow=new THREE.Mesh(
+  new THREE.SphereGeometry(.026,16,12),
+  new THREE.MeshBasicMaterial({
+   color:0x9ceaff,transparent:true,opacity:.78,
+   blending:THREE.AdditiveBlending,depthWrite:false
+  })
+ );
+ const outerGlow=new THREE.Mesh(
+  new THREE.SphereGeometry(.052,16,12),
+  new THREE.MeshBasicMaterial({
+   color:0x28bfff,transparent:true,opacity:.30,
+   blending:THREE.AdditiveBlending,depthWrite:false
+  })
+ );
+ point.add(outerGlow,innerGlow,core);
+ orbit.add(point);
+ movers.push({orbit,arc,point,radius:s.radius,speed:s.speed,phase:s.phase});
 });
 
 function resize(){
@@ -113,7 +133,17 @@ let last=0,elapsed=0;
 function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
- sweeps.forEach(s=>{s.arc.rotation.z=s.phase+elapsed*s.speed;});
+ movers.forEach(m=>{
+  const angle=m.phase+elapsed*m.speed;
+  m.arc.rotation.z=angle;
+  m.point.position.set(
+   Math.cos(angle)*m.radius,
+   Math.sin(angle)*m.radius,
+   .012
+  );
+  const pulse=1+.16*Math.sin(elapsed*2.8+m.phase);
+  m.point.scale.setScalar(pulse);
+ });
  renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
