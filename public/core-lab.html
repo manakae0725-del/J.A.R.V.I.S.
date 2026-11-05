@@ -81,13 +81,34 @@ ringSpecs.forEach(s=>{
  }
  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
  geometry.applyQuaternion(rotation);
- const material=new THREE.MeshBasicMaterial({
+
+ // Narrow bright white core, preserving the original orbit tube thickness.
+ const whiteColors=[];
+ for(let i=0;i<colors.length;i+=3){
+  const level=Math.max(colors[i],colors[i+1],colors[i+2]);
+  whiteColors.push(level,level,level);
+ }
+ const whiteGeometry=geometry.clone();
+ whiteGeometry.setAttribute('color',new THREE.Float32BufferAttribute(whiteColors,3));
+ const coreMaterial=new THREE.MeshBasicMaterial({
   color:0xffffff,vertexColors:true,transparent:true,opacity:Math.min(s.opacity*1.8,.98),
   blending:THREE.AdditiveBlending,depthWrite:true,side:THREE.DoubleSide
  });
- const ring=new THREE.Mesh(geometry,material);
+ const ring=new THREE.Mesh(whiteGeometry,coreMaterial);
  ring.position.z=s.z;
  scene.add(ring);
+
+ // Extremely restrained cyan halo, slightly wider but very low opacity.
+ const haloGeometry=new THREE.TorusGeometry(s.radius,.00235,6,512);
+ haloGeometry.setAttribute('color',geometry.attributes.color.clone());
+ haloGeometry.applyQuaternion(rotation);
+ const haloMaterial=new THREE.MeshBasicMaterial({
+  color:0x42cfff,vertexColors:true,transparent:true,opacity:Math.min(s.opacity*.16,.12),
+  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
+ });
+ const halo=new THREE.Mesh(haloGeometry,haloMaterial);
+ halo.position.z=s.z-.001;
+ scene.add(halo);
 });
 
 // Pure white light points only: cyan and blue glow layers removed.
