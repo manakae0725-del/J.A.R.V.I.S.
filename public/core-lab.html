@@ -138,7 +138,7 @@ ringSpecs.forEach(s=>{
  scene.add(orbit);
 
  // One continuous ultra-thin white light streak with strong luminance contrast.
- function makeTaperedStreak(radius,angleLength){
+ function makeTaperedStreak(radius,angleLength,widthScale=1){
   const segments=64,sides=8,strands=4,positions=[],indices=[],intensities=[];
   // Four distinct hair-thin strands, kept inside the same narrow overall envelope.
   // Separate strands radially in the visible orbital plane (not along camera depth).
@@ -151,11 +151,11 @@ ringSpecs.forEach(s=>{
     // Directional pulse: a bright leading tip with a tapered metallic tail.
     const taper=Math.sin(Math.PI*t);
     const profile=Math.pow(t,1.75)*Math.pow(Math.max(0,1-t),.34);
-    const width=.00042+.00024*Math.pow(taper,1.7);
+    const width=(.00042+.00024*Math.pow(taper,1.7))*widthScale;
     const strandRadius=radius+offsets[strand];
     const cx=Math.cos(a)*strandRadius,cy=Math.sin(a)*strandRadius;
     // Small independent radial weave; the complete bundle remains hair-thin.
-    const weave=Math.sin(t*Math.PI*2.0+strand*1.35)*.00012;
+    const weave=Math.sin(t*Math.PI*2.0+strand*1.35)*.00012*widthScale;
     for(let j=0;j<sides;j++){
      const q=j/sides*Math.PI*2;
      const radial=Math.cos(q)*width+weave;
@@ -175,14 +175,25 @@ ringSpecs.forEach(s=>{
   g.setAttribute('intensity',new THREE.Float32BufferAttribute(intensities,1));
   g.setIndex(indices);return g;
  }
- const streak=new THREE.Mesh(
-  makeTaperedStreak(s.radius,.34),
+ const pulseGroup=new THREE.Group();
+ // Wider cyan envelope beneath the narrow white-metallic core makes the pulse readable in motion.
+ const halo=new THREE.Mesh(
+  makeTaperedStreak(s.radius,.34,5.0),
   new THREE.ShaderMaterial({
    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
    vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,1.35); vec3 metal=mix(vec3(0.025,0.30,0.48),vec3(0.88,0.98,1.0),hot); float alpha=0.018+hot*0.982; gl_FragColor=vec4(metal,alpha);}`
+   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,1.25); float alpha=hot*.26; gl_FragColor=vec4(0.08,0.66,1.0,alpha);}`
   })
  );
+ const streak=new THREE.Mesh(
+  makeTaperedStreak(s.radius,.34,1.0),
+  new THREE.ShaderMaterial({
+   transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+   vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,1.35); vec3 metal=mix(vec3(0.025,0.30,0.48),vec3(0.94,0.99,1.0),hot); float alpha=0.018+hot*0.982; gl_FragColor=vec4(metal,alpha);}`
+  })
+ );
+ pulseGroup.add(halo,streak);
  // A compact white-cyan glint marks the leading edge of the traveling pulse.
  const head=new THREE.Mesh(
   new THREE.SphereGeometry(.009,12,8),
@@ -193,8 +204,9 @@ ringSpecs.forEach(s=>{
  const headLight=new THREE.PointLight(0x8eeaff,1.35,.20,2);
  headLight.position.copy(head.position);
  streak.add(headLight);
- orbit.add(streak);
- movers.push({streak,radius:s.radius,speed:s.speed,phase:s.phase});
+ pulseGroup.add(streak);
+ orbit.add(pulseGroup);
+ movers.push({streak:pulseGroup,radius:s.radius,speed:s.speed,phase:s.phase});
 });
 
 // Add two more moving white streaks, spaced around existing fixed orbits.
