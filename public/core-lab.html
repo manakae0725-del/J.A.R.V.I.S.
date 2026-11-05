@@ -71,40 +71,35 @@ ringSpecs.forEach(s=>{
  orbit.position.z=s.z+.012;
  scene.add(orbit);
 
- const arcMaterial=new THREE.MeshBasicMaterial({
-  color:0xc9f5ff,transparent:true,opacity:1,
-  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
- });
- const arc=new THREE.Mesh(
-  new THREE.TorusGeometry(s.radius,.0032,6,96,.34),
-  arcMaterial
+ // One continuous white light streak. Its width tapers thin -> thick -> thin.
+ function makeTaperedStreak(radius,angleLength){
+  const segments=48, sides=10, positions=[], indices=[];
+  for(let i=0;i<=segments;i++){
+   const t=i/segments, a=t*angleLength;
+   const width=.0012+.010*Math.pow(Math.sin(Math.PI*t),1.15);
+   const cx=Math.cos(a)*radius, cy=Math.sin(a)*radius;
+   for(let j=0;j<sides;j++){
+    const q=j/sides*Math.PI*2;
+    const radial=Math.cos(q)*width;
+    const z=Math.sin(q)*width;
+    positions.push(cx+Math.cos(a)*radial,cy+Math.sin(a)*radial,z);
+   }
+  }
+  for(let i=0;i<segments;i++) for(let j=0;j<sides;j++){
+   const a=i*sides+j,b=i*sides+(j+1)%sides;
+   const c=(i+1)*sides+(j+1)%sides,d=(i+1)*sides+j;
+   indices.push(a,b,d,b,c,d);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  g.setIndex(indices);g.computeVertexNormals();return g;
+ }
+ const streak=new THREE.Mesh(
+  makeTaperedStreak(s.radius,.34),
+  new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})
  );
- orbit.add(arc);
-
- const point=new THREE.Group();
- const core=new THREE.Mesh(
-  new THREE.SphereGeometry(.021,24,18),
-  new THREE.MeshBasicMaterial({color:0xffffff})
- );
- const pinpoint=new THREE.Mesh(
-  new THREE.SphereGeometry(.009,16,12),
-  new THREE.MeshBasicMaterial({color:0xffffff})
- );
- point.add(core,pinpoint);
- orbit.add(point);
- const trail=[];
- [.82,.68,.52,.36,.22,.10].forEach((opacity,index)=>{
-  const bead=new THREE.Mesh(
-   new THREE.SphereGeometry([.012,.010,.008,.006,.0045,.003][index],14,10),
-   new THREE.MeshBasicMaterial({
-    color:0xffffff,transparent:true,opacity,
-    blending:THREE.AdditiveBlending,depthWrite:false
-   })
-  );
-  orbit.add(bead);
-  trail.push(bead);
- });
- movers.push({arc,point,trail,radius:s.radius,speed:s.speed,phase:s.phase});
+ orbit.add(streak);
+ movers.push({streak,radius:s.radius,speed:s.speed,phase:s.phase});
 });
 
 function resize(){
@@ -134,16 +129,8 @@ function animate(now){
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
  movers.forEach(m=>{
   const angle=m.phase+elapsed*m.speed;
-  // The short white arc and fading white beads stay behind the moving point.
-  m.arc.rotation.z=angle-.34;
-  m.trail.forEach((bead,index)=>{
-   const lag=[.055,.115,.18,.25,.32,.39][index];
-   const a=angle-Math.sign(m.speed)*lag;
-   bead.position.set(Math.cos(a)*m.radius,Math.sin(a)*m.radius,.012);
-  });
-  m.point.position.set(Math.cos(angle)*m.radius,Math.sin(angle)*m.radius,.012);
-  const pulse=1+.24*Math.sin(elapsed*3.2+m.phase);
-  m.point.scale.setScalar(pulse);
+  // Move one continuous tapered streak around the fixed orbital path.
+  m.streak.rotation.z=angle-.34;
  });
  renderer.render(scene,camera);
 }
