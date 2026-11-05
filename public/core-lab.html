@@ -90,8 +90,15 @@ ringSpecs.forEach(s=>{
     const disk=1-THREE.MathUtils.smoothstep(radial,1.02,1.52);
     const dim=1-.995*disk;
     const glint=.88+.12*Math.pow(Math.sin(u*7+strand*1.9),8);
-    const brightness=light*3.8*dim*strandBrightness[strand]*glint;
-    colors.push(baseColor.r*brightness,baseColor.g*brightness,baseColor.b*brightness);
+    // Directional surface highlights imitate polished, machined metal.
+    const normal=new THREE.Vector3(Math.cos(v)*Math.cos(u),Math.cos(v)*Math.sin(u),Math.sin(v)).applyQuaternion(rotation);
+    const facing=Math.max(0,normal.z);
+    const specular=Math.pow(facing,20);
+    const rim=Math.pow(1-Math.abs(normal.z),3.2);
+    const brushed=.94+.06*Math.pow(Math.sin(u*54+strand*1.7),2);
+    const brightness=light*3.35*dim*strandBrightness[strand]*glint*brushed;
+    const metallicFlash=specular*2.25+rim*.16;
+    colors.push(baseColor.r*brightness+metallicFlash,baseColor.g*brightness+metallicFlash,baseColor.b*brightness+metallicFlash);
    }
   }
   for(let i=0;i<segments;i++)for(let j=0;j<sides;j++){
