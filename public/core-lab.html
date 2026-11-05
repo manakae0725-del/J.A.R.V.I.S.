@@ -124,19 +124,6 @@ ringSpecs.forEach(s=>{
    fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,1.55); float alpha=0.035+hot*0.965; gl_FragColor=vec4(vec3(1.0),alpha);}`
   })
  );
- // Very faint halo: separate scaled layer, without changing the core streak width.
- const halo=new THREE.Mesh(
-  streak.geometry,
-  new THREE.ShaderMaterial({
-   transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
-   vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-   fragmentShader:`varying float vIntensity; void main(){float soft=pow(vIntensity,1.6); float alpha=soft*0.055; gl_FragColor=vec4(vec3(1.0),alpha);}`
-  })
- );
- halo.scale.setScalar(2.0);
- halo.renderOrder=0;
- streak.renderOrder=1;
- streak.add(halo);
  orbit.add(streak);
  movers.push({streak,radius:s.radius,speed:s.speed,phase:s.phase});
 });
