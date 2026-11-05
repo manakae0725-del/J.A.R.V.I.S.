@@ -67,10 +67,10 @@ ringSpecs.forEach(s=>{
  const span=Math.max(maxZ-minZ,1e-5);
  for(let i=0;i<positions.count;i++){
   const depth=(depths[i]-minZ)/span;
-  // Make the front/back separation clearly readable without changing line width.
-  const t=THREE.MathUtils.clamp((depth-0.22)/0.56,0,1);
+  // Strong front/back split: deep subdued rear arc, bright readable front arc.
+  const t=THREE.MathUtils.clamp((depth-0.46)/0.08,0,1);
   const front=t*t*(3-2*t);
-  const light=0.055+0.945*front;
+  const light=0.008+0.992*front;
   colors.push(baseColor.r*light,baseColor.g*light,baseColor.b*light);
  }
  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
