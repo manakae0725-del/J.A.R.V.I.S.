@@ -49,6 +49,15 @@ const rimLight=new THREE.DirectionalLight(0x168dce,1.25);
 rimLight.position.set(4,-2,-4);
 scene.add(rimLight);
 
+// Invisible foreground mask: orbital filaments must never cross the Core face.
+const coreMask=new THREE.Mesh(
+ new THREE.CircleGeometry(1.02,128),
+ new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:true,depthTest:true,side:THREE.DoubleSide})
+);
+coreMask.position.set(0,0,1.8);
+coreMask.renderOrder=-100;
+scene.add(coreMask);
+
 const ringSpecs=[
  {rotation:[1.02,0,-.55],opacity:.68,z:0,radius:1.39,speed:.34,phase:0},
  {rotation:[1.02,0,.55],opacity:.58,z:-.025,radius:1.39,speed:-.29,phase:2.2},
@@ -201,16 +210,6 @@ ringSpecs.forEach(s=>{
   })
  );
  pulseGroup.add(halo,streak);
- // A compact white-cyan glint marks the leading edge of the traveling pulse.
- const head=new THREE.Mesh(
-  new THREE.SphereGeometry(.009,12,8),
-  new THREE.MeshBasicMaterial({color:0xeafcff,transparent:true,opacity:.98,blending:THREE.AdditiveBlending,depthWrite:false})
- );
- head.position.set(s.radius*Math.cos(.34),s.radius*Math.sin(.34),0);
- streak.add(head);
- const headLight=new THREE.PointLight(0x8eeaff,1.35,.20,2);
- headLight.position.copy(head.position);
- streak.add(headLight);
  pulseGroup.add(streak);
  orbit.add(pulseGroup);
  movers.push({streak:pulseGroup,radius:s.radius,speed:s.speed,phase:s.phase});
