@@ -76,7 +76,7 @@ ringSpecs.forEach(s=>{
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
  });
  const arc=new THREE.Mesh(
-  new THREE.TorusGeometry(s.radius,.0042,6,96,.42),
+  new THREE.TorusGeometry(s.radius,.0032,6,96,.24),
   arcMaterial
  );
  orbit.add(arc);
@@ -92,7 +92,16 @@ ringSpecs.forEach(s=>{
  );
  point.add(core,pinpoint);
  orbit.add(point);
- movers.push({arc,point,radius:s.radius,speed:s.speed,phase:s.phase});
+ const trail=[];
+ [.78,.56,.36,.20].forEach((opacity,index)=>{
+  const bead=new THREE.Mesh(
+   new THREE.SphereGeometry([.010,.008,.006,.004][index],12,10),
+   new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity,depthWrite:false})
+  );
+  orbit.add(bead);
+  trail.push(bead);
+ });
+ movers.push({arc,point,trail,radius:s.radius,speed:s.speed,phase:s.phase});
 });
 
 function resize(){
@@ -122,7 +131,13 @@ function animate(now){
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
  movers.forEach(m=>{
   const angle=m.phase+elapsed*m.speed;
-  m.arc.rotation.z=angle;
+  // The short white arc and fading white beads stay behind the moving point.
+  m.arc.rotation.z=angle-.24;
+  m.trail.forEach((bead,index)=>{
+   const lag=[.045,.095,.15,.21][index];
+   const a=angle-Math.sign(m.speed)*lag;
+   bead.position.set(Math.cos(a)*m.radius,Math.sin(a)*m.radius,.012);
+  });
   m.point.position.set(Math.cos(angle)*m.radius,Math.sin(angle)*m.radius,.012);
   const pulse=1+.24*Math.sin(elapsed*3.2+m.phase);
   m.point.scale.setScalar(pulse);
