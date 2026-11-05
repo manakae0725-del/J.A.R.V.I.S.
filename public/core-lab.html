@@ -3,125 +3,121 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000000">
-<title>J.A.R.V.I.S. Core Lab</title>
+<meta name="theme-color" content="#00030a">
+<title>J.A.R.V.I.S. Core</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#dffaff;font-family:Arial,sans-serif}
-#stage{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 48%,#031126 0%,#00040b 38%,#000 72%)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00030a}
+#stage{position:fixed;inset:0;background:#00030a}
 canvas{display:block;width:100%;height:100%;touch-action:pan-y}
-#label{position:fixed;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));text-align:center;font-size:9px;letter-spacing:.34em;color:rgba(110,210,255,.42);pointer-events:none}
-#error{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;color:#9bdfff;font-size:13px}
+#error{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;color:#9bdfff;font:13px Arial,sans-serif}
+#label{position:fixed;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));text-align:center;font:9px Arial,sans-serif;letter-spacing:.34em;color:rgba(110,210,255,.42);pointer-events:none}
 </style>
 </head>
 <body>
-<div id="stage"></div><div id="label">CORE VISUALIZATION / PROTOTYPE</div><div id="error">この端末ではWebGLを利用できません。</div>
+<div id="stage"></div><div id="label">J.A.R.V.I.S. / CORE</div><div id="error">この端末ではWebGLを利用できません。</div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 
 const stage=document.querySelector('#stage');
+const error=document.querySelector('#error');
 let renderer;
 try{
  renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-}catch(e){document.querySelector('#error').style.display='grid';throw e}
+}catch(e){error.style.display='grid';throw e}
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.18;
+renderer.toneMapping=THREE.NoToneMapping;
 stage.appendChild(renderer.domElement);
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x00030a);
-const camera=new THREE.PerspectiveCamera(34,innerWidth/innerHeight,.1,100);
-camera.position.set(0,0,7.7);
-const root=new THREE.Group();root.scale.setScalar(.54);scene.add(root);
+const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.1,100);
+camera.position.set(0,0,7.2);
+const coreGroup=new THREE.Group();
+scene.add(coreGroup);
 
-// Dark glass sphere: black-blue body with a restrained cyan clear edge.
-const sphereGeo=new THREE.SphereGeometry(1.34,128,96);
-const sphereMat=new THREE.ShaderMaterial({
- transparent:false,
- uniforms:{uTime:{value:0},uResolution:{value:new THREE.Vector2(innerWidth,innerHeight)}},
- vertexShader:`
- varying vec3 vNormal; varying vec3 vView; varying vec3 vPos;
- void main(){vNormal=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vView=normalize(-mv.xyz);vPos=position;gl_Position=projectionMatrix*mv;}
- `,
- fragmentShader:`
- uniform float uTime; varying vec3 vNormal; varying vec3 vView; varying vec3 vPos;
- float hash(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
- float noise(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
- void main(){
-  vec3 N=normalize(vNormal),V=normalize(vView);
-  float fres=pow(1.-max(dot(N,V),0.),3.2);
-  float edge=pow(1.-max(dot(N,V),0.),5.5);
-  float n=noise(vPos*8.+vec3(0.,uTime*.11,0.));
-  float fine=noise(vPos*34.+vec3(uTime*.025));
-  float radial=1.-smoothstep(.12,1.35,length(vPos.xy));
-  vec3 deep=mix(vec3(.001,.006,.018),vec3(.004,.035,.105),radial*.9);
-  deep+=vec3(.0,.055,.19)*pow(radial,2.2)*(.65+.35*n);
-  deep+=vec3(.015,.11,.26)*fine*.12;
-  vec3 cyan=vec3(.18,.78,1.0);
-  vec3 col=deep+cyan*(fres*.72+edge*.85);
-  float thinRim=pow(max(0.,1.-abs(1.-dot(N,V))*34.),3.);
-  col+=cyan*thinRim*.45;
-  float center=exp(-length(vPos.xy)*5.2);
-  col+=vec3(.015,.16,.48)*center*.36;
-  gl_FragColor=vec4(col,1.);
+// Original Core artwork: loaded as-is, without canvas processing or image effects.
+const textureLoader=new THREE.TextureLoader();
+textureLoader.load(
+ '/jarvis-core.jpg%20.PNG',
+ texture=>{
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  const imageAspect=texture.image.width/texture.image.height;
+  const planeHeight=4.65;
+  const planeWidth=planeHeight*imageAspect;
+  const image=new THREE.Mesh(
+   new THREE.PlaneGeometry(planeWidth,planeHeight),
+   new THREE.MeshBasicMaterial({map:texture,toneMapped:false,transparent:false})
+  );
+  image.position.z=-.22;
+  coreGroup.add(image);
+ },
+ undefined,
+ ()=>{error.textContent='Core画像を読み込めません。画像ファイルの配置を確認してください。';error.style.display='grid';}
+);
+
+// Fine 3D filaments: continuous curved strands surrounding the Core.
+const filamentGroup=new THREE.Group();
+coreGroup.add(filamentGroup);
+const cyanMaterials=[
+ new THREE.LineBasicMaterial({color:0x38cfff,transparent:true,opacity:.48,blending:THREE.AdditiveBlending}),
+ new THREE.LineBasicMaterial({color:0x087dff,transparent:true,opacity:.32,blending:THREE.AdditiveBlending}),
+ new THREE.LineBasicMaterial({color:0x9ceeff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending})
+];
+function makeFilament(rx,ry,rz,tilt,phase,material,segments=240){
+ const points=[];
+ for(let i=0;i<=segments;i++){
+  const t=i/segments*Math.PI*2;
+  const wobble=1+.035*Math.sin(t*3+phase)+.018*Math.sin(t*7-phase);
+  const x=Math.cos(t)*rx*wobble;
+  const y=Math.sin(t)*ry*wobble;
+  const z=Math.sin(t*2+phase)*rz;
+  const v=new THREE.Vector3(x,y,z);
+  v.applyAxisAngle(new THREE.Vector3(1,0,0),tilt);
+  points.push(v);
  }
- `
-});
-const sphere=new THREE.Mesh(sphereGeo,sphereMat);root.add(sphere);
-// Soft center light, no external filaments or platform.
-const glow=new THREE.PointLight(0x087bff,2.4,5);glow.position.set(0,0,1.4);scene.add(glow);
-const ambient=new THREE.AmbientLight(0x174c80,.38);scene.add(ambient);
+ const geometry=new THREE.BufferGeometry().setFromPoints(points);
+ return new THREE.Line(geometry,material);
+}
+const strandSpecs=[
+ [1.78,1.48,.42,.48,.2,0],
+ [1.95,1.22,.58,-.62,1.1,1],
+ [1.58,1.72,.36,1.02,2.0,0],
+ [2.08,1.42,.66,.18,2.8,1],
+ [1.72,1.88,.52,-.28,3.6,2],
+ [2.18,1.12,.44,.82,4.4,0],
+ [1.48,1.92,.72,-.92,5.2,1]
+];
+strandSpecs.forEach(s=>filamentGroup.add(makeFilament(...s.slice(0,5),cyanMaterials[s[5]])));
 
-const logoCanvas=document.createElement('canvas');logoCanvas.width=1024;logoCanvas.height=180;
-const lctx=logoCanvas.getContext('2d');lctx.clearRect(0,0,1024,180);
-lctx.font='300 100px Arial';lctx.textAlign='center';lctx.textBaseline='middle';
-const logoText='J.A.R.V.I.S.',tracking=22;
-const glyphWidths=[...logoText].map(ch=>lctx.measureText(ch).width);
-const logoTextWidth=glyphWidths.reduce((a,b)=>a+b,0)+tracking*(logoText.length-1);
-let glyphX=512-logoTextWidth/2;
-let rvDotCenter=0;
-lctx.shadowColor='#39cfff';lctx.shadowBlur=10;lctx.fillStyle='#eafaff';
-[...logoText].forEach((ch,i)=>{
- const w=glyphWidths[i];
- if(i===5)rvDotCenter=glyphX+w/2;
- lctx.fillText(ch,glyphX+w/2,90);
- glyphX+=w+tracking;
-});
+// A restrained set of connecting filaments, not particles or a particle cloud.
+const linksMaterial=new THREE.LineBasicMaterial({color:0x1caeff,transparent:true,opacity:.24,blending:THREE.AdditiveBlending});
+for(let i=0;i<18;i++){
+ const a=i/18*Math.PI*2;
+ const b=a+.42+Math.sin(i*2.1)*.16;
+ const radius=1.58+(i%3)*.17;
+ const p1=new THREE.Vector3(Math.cos(a)*radius,Math.sin(a)*radius*.83,Math.sin(a*2)*.24);
+ const p2=new THREE.Vector3(Math.cos(b)*(radius+.2),Math.sin(b)*(radius+.2)*.83,Math.cos(b*2)*.34);
+ const mid=p1.clone().add(p2).multiplyScalar(.5);
+ mid.z+=.18*Math.sin(i*1.7);
+ const curve=new THREE.QuadraticBezierCurve3(p1,mid,p2);
+ filamentGroup.add(new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints(curve.getPoints(32)),
+  linksMaterial
+ ));
+}
 
-
-const logoTex=new THREE.CanvasTexture(logoCanvas);logoTex.colorSpace=THREE.SRGBColorSpace;
-const logo=new THREE.Mesh(new THREE.PlaneGeometry(2.02,.355),new THREE.MeshBasicMaterial({map:logoTex,transparent:true,depthWrite:false,toneMapped:false}));
-logo.position.set(0,0,1.405);logo.renderOrder=2;root.add(logo);
-
-// Strong, independent additive glow exactly behind the central R/V separator.
-const dotCanvas=document.createElement('canvas');dotCanvas.width=256;dotCanvas.height=256;
-const dctx=dotCanvas.getContext('2d');
-const dg=dctx.createRadialGradient(128,128,2,128,128,126);
-dg.addColorStop(0,'rgba(255,255,255,.78)');
-dg.addColorStop(.045,'rgba(235,255,255,.82)');
-dg.addColorStop(.12,'rgba(120,240,255,.68)');
-dg.addColorStop(.30,'rgba(0,195,255,.48)');
-dg.addColorStop(.62,'rgba(0,135,255,.28)');
-dg.addColorStop(.84,'rgba(0,95,255,.11)');
-dg.addColorStop(1,'rgba(0,75,255,0)');
-dctx.fillStyle=dg;dctx.fillRect(0,0,256,256);
-const dotTexture=new THREE.CanvasTexture(dotCanvas);dotTexture.colorSpace=THREE.SRGBColorSpace;
-const dotGlow=new THREE.Mesh(new THREE.PlaneGeometry(1.02,1.02),new THREE.MeshBasicMaterial({map:dotTexture,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,toneMapped:false}));
-// Calculate the exact center of the period in "R.V." using the same font metrics as the logo.
-const separatorXworld=(rvDotCenter-512)*(2.02/1024);
-dotGlow.position.set(separatorXworld,0,1.39);dotGlow.renderOrder=1;root.add(dotGlow);
-const dotHotspot=new THREE.PointLight(0x75eaff,3.6,2.2);dotHotspot.position.set(separatorXworld,0,1.48);root.add(dotHotspot);
-
-let last=0,elapsed=0;
+const ambient=new THREE.AmbientLight(0x174c80,.3);
+scene.add(ambient);
+let elapsed=0,last=0;
 function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
- sphereMat.uniforms.uTime.value=elapsed;
-
- const pulse=.92+.08*Math.sin(elapsed*1.25);
- sphere.scale.setScalar(pulse);
+ filamentGroup.rotation.y=Math.sin(elapsed*.16)*.12;
+ filamentGroup.rotation.x=Math.sin(elapsed*.13)*.055;
  renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
@@ -130,11 +126,13 @@ function resize(){
  const w=innerWidth,h=innerHeight;
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
  renderer.setSize(w,h);
- camera.aspect=w/h;camera.fov=w<600?38:34;camera.position.z=w<600?8.4:7.7;camera.updateProjectionMatrix();
- sphereMat.uniforms.uResolution.value.set(w,h);
+ camera.aspect=w/h;
+ camera.fov=w<600?43:38;
+ camera.position.z=w<600?7.8:7.2;
+ camera.updateProjectionMatrix();
 }
 addEventListener('resize',resize);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){last=performance.now();}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)last=performance.now();});
 </script>
 </body>
 </html>
