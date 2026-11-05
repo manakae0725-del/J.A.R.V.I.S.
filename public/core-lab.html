@@ -70,7 +70,7 @@ ringSpecs.forEach(s=>{
   // Strong front/back split: deep subdued rear arc, bright readable front arc.
   const t=THREE.MathUtils.clamp((depth-0.46)/0.08,0,1);
   const front=t*t*(3-2*t);
-  const light=0.008+0.992*front;
+  const light=0.12+0.88*front;
   colors.push(baseColor.r*light,baseColor.g*light,baseColor.b*light);
  }
  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
