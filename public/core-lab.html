@@ -129,7 +129,8 @@ ringSpecs.forEach(s=>{
  function makeTaperedStreak(radius,angleLength){
   const segments=64,sides=8,strands=4,positions=[],indices=[],intensities=[];
   // Four distinct hair-thin strands, kept inside the same narrow overall envelope.
-  const offsets=[-.0021,-.0007,.0007,.0021];
+  // Separate strands radially in the visible orbital plane (not along camera depth).
+  const offsets=[-.0015,-.0005,.0005,.0015];
   const brightness=[.58,.88,1.0,.68];
   for(let strand=0;strand<strands;strand++){
    const strandBase=positions.length/3;
@@ -137,14 +138,15 @@ ringSpecs.forEach(s=>{
     const t=i/segments,a=t*angleLength;
     const taper=Math.sin(Math.PI*t);
     const profile=Math.pow(taper,2.8);
-    const width=.00062+.00025*Math.pow(taper,1.7);
-    const cx=Math.cos(a)*radius,cy=Math.sin(a)*radius;
-    // Gentle lateral weave makes each filament separately readable without widening the bundle.
-    const weave=Math.sin(t*Math.PI*2.0+strand*1.35)*.00028;
+    const width=.00048+.00018*Math.pow(taper,1.7);
+    const strandRadius=radius+offsets[strand];
+    const cx=Math.cos(a)*strandRadius,cy=Math.sin(a)*strandRadius;
+    // Small independent radial weave; the complete bundle remains hair-thin.
+    const weave=Math.sin(t*Math.PI*2.0+strand*1.35)*.00012;
     for(let j=0;j<sides;j++){
      const q=j/sides*Math.PI*2;
-     const radial=Math.cos(q)*width;
-     const z=Math.sin(q)*width+offsets[strand]+weave;
+     const radial=Math.cos(q)*width+weave;
+     const z=Math.sin(q)*width;
      positions.push(cx+Math.cos(a)*radial,cy+Math.sin(a)*radial,z);
      intensities.push(.002+.998*profile*brightness[strand]);
     }
