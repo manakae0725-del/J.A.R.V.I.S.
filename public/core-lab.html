@@ -53,7 +53,7 @@ const ringSpecs=[
 
 // Fixed orbital paths with restrained front/back depth contrast.
 ringSpecs.forEach(s=>{
- const geometry=new THREE.TorusGeometry(s.radius,.0018,6,512);
+ const geometry=new THREE.TorusGeometry(s.radius,.00065,6,512);
  const rotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(...s.rotation));
  const positions=geometry.attributes.position;
  const baseColor=new THREE.Color(RING_COLOR);
@@ -99,6 +99,24 @@ ringSpecs.forEach(s=>{
  ring.position.z=s.z;
  scene.add(ring);
 
+ // Two companion hair-thin filaments flank the central orbit.
+ // Their radial spread keeps the complete bundle close to the original line width.
+ [-1,1].forEach((side,index)=>{
+  const strandGeometry=new THREE.TorusGeometry(s.radius+side*.00115,.00062,6,512);
+  strandGeometry.setAttribute('color',new THREE.Float32BufferAttribute(
+   colors.map((v,n)=>v*(index===0?.72:.48)),3
+  ));
+  strandGeometry.applyQuaternion(rotation);
+  const strandMaterial=new THREE.MeshBasicMaterial({
+   color:0xffffff,vertexColors:true,transparent:true,
+   opacity:Math.min(s.opacity*(index===0?1.65:1.35),.88),
+   blending:THREE.AdditiveBlending,depthWrite:true,side:THREE.DoubleSide
+  });
+  const strand=new THREE.Mesh(strandGeometry,strandMaterial);
+  strand.position.z=s.z+(index===0?.0012:-.0012);
+  scene.add(strand);
+ });
+
  // Layered, restrained energy field: a narrow cyan corona plus a very soft outer field.
  // The white orbit core keeps its original .0018 tube width.
  const makeGlowLayer=(tube,opacity,zOffset)=>{
@@ -113,8 +131,8 @@ ringSpecs.forEach(s=>{
   glow.position.z=s.z+zOffset;
   scene.add(glow);
  };
- makeGlowLayer(.0024,.34,-.0010);
- makeGlowLayer(.0048,.12,-.0020);
+ makeGlowLayer(.0018,.18,-.0018);
+ makeGlowLayer(.0032,.055,-.0030);
 });
 
 // Pure white light points only: cyan and blue glow layers removed.
