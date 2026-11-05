@@ -39,10 +39,12 @@ try{
 camera=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);
 camera.position.z=12;
 
+// Brighter electric cyan-blue sampled to harmonize with the Core's luminous rim.
+const RING_COLOR=0x42cfff;
 const ringGeometry=new THREE.TorusGeometry(1.39,.0018,6,512);
 function createRing(rotation,opacity,z,radius=1.39){
  const material=new THREE.MeshBasicMaterial({
-  color:0x27bfff,transparent:true,opacity,
+  color:RING_COLOR,transparent:true,opacity,
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
  });
  const mesh=new THREE.Mesh(
@@ -55,32 +57,30 @@ function createRing(rotation,opacity,z,radius=1.39){
  return mesh;
 }
 
-// Eight fixed orbital paths. Their planes and centers never move.
 const ringSpecs=[
- {rotation:[1.02,0,-.55],opacity:.48,z:0,radius:1.39,speed:.34,phase:0},
- {rotation:[1.02,0,.55],opacity:.38,z:-.025,radius:1.39,speed:-.29,phase:2.2},
- {rotation:[.48,.82,-.42],opacity:.34,z:.018,radius:1.39,speed:.25,phase:4.1},
- {rotation:[.48,-.82,.42],opacity:.30,z:-.045,radius:1.39,speed:-.31,phase:1.1},
- {rotation:[1.34,.28,.18],opacity:.23,z:.055,radius:1.43,speed:.22,phase:3.2},
- {rotation:[.28,1.28,-.72],opacity:.21,z:-.065,radius:1.43,speed:-.26,phase:5.0},
- {rotation:[1.18,-.58,.92],opacity:.19,z:.035,radius:1.35,speed:.28,phase:2.7},
- {rotation:[-.42,.92,.28],opacity:.20,z:-.085,radius:1.35,speed:-.20,phase:.6}
+ {rotation:[1.02,0,-.55],opacity:.68,z:0,radius:1.39,speed:.34,phase:0},
+ {rotation:[1.02,0,.55],opacity:.58,z:-.025,radius:1.39,speed:-.29,phase:2.2},
+ {rotation:[.48,.82,-.42],opacity:.54,z:.018,radius:1.39,speed:.25,phase:4.1},
+ {rotation:[.48,-.82,.42],opacity:.50,z:-.045,radius:1.39,speed:-.31,phase:1.1},
+ {rotation:[1.34,.28,.18],opacity:.40,z:.055,radius:1.43,speed:.22,phase:3.2},
+ {rotation:[.28,1.28,-.72],opacity:.38,z:-.065,radius:1.43,speed:-.26,phase:5.0},
+ {rotation:[1.18,-.58,.92],opacity:.36,z:.035,radius:1.35,speed:.28,phase:2.7},
+ {rotation:[-.42,.92,.28],opacity:.37,z:-.085,radius:1.35,speed:-.20,phase:.6}
 ];
 ringSpecs.forEach(s=>createRing(s.rotation,s.opacity,s.z,s.radius));
 
-// A short, restrained cyan highlight travels around each fixed ring.
-// Only the highlight moves; the ring itself does not orbit or wobble.
+// Bright, narrow moving highlights travel along each stationary orbital path.
 const sweeps=[];
-ringSpecs.forEach((s,i)=>{
+ringSpecs.forEach(s=>{
  const group=new THREE.Group();
  group.rotation.set(...s.rotation);
  group.position.z=s.z+.008;
  const glow=new THREE.MeshBasicMaterial({
-  color:0x7cddff,transparent:true,opacity:.58,
+  color:0x9beaff,transparent:true,opacity:.92,
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
  });
  const arc=new THREE.Mesh(
-  new THREE.TorusGeometry(s.radius,.0032,6,96,.42),
+  new THREE.TorusGeometry(s.radius,.0038,6,96,.42),
   glow
  );
  group.add(arc);
