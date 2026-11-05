@@ -75,7 +75,7 @@ ringSpecs.forEach(s=>{
   const p=new THREE.Vector3().fromBufferAttribute(positions,i).applyQuaternion(rotation);
   const radial=Math.hypot(p.x,p.y);
   // Hide every added orbit segment projected over the Core disk, not only front-facing arcs.
-  const disk=1-THREE.MathUtils.smoothstep(radial,0.72,1.38);
+  const disk=1-THREE.MathUtils.smoothstep(radial,1.02,1.52);
   const dim=1-0.995*disk;
   colors.push(baseColor.r*light*intensity*dim,baseColor.g*light*intensity*dim,baseColor.b*light*intensity*dim);
  }
@@ -126,8 +126,8 @@ ringSpecs.forEach(s=>{
   makeTaperedStreak(s.radius,.34),
   new THREE.ShaderMaterial({
    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
-   vertexShader:`attribute float intensity; varying float vIntensity; varying float vCoreMask; void main(){vIntensity=intensity; vec4 mv=modelViewMatrix*vec4(position,1.0); vCoreMask=1.0-smoothstep(0.78,1.22,length(mv.xy)); gl_Position=projectionMatrix*mv;}`,
-   fragmentShader:`varying float vIntensity; varying float vCoreMask; void main(){float hot=pow(vIntensity,1.55); float alpha=(0.035+hot*0.965)*vCoreMask; gl_FragColor=vec4(vec3(1.0),alpha);}`
+   vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,1.55); float alpha=0.035+hot*0.965; gl_FragColor=vec4(vec3(1.0),alpha);}`
   })
  );
  orbit.add(streak);
