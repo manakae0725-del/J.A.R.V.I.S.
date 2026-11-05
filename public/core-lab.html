@@ -128,22 +128,25 @@ ringSpecs.forEach(s=>{
  // One continuous ultra-thin white light streak with strong luminance contrast.
  function makeTaperedStreak(radius,angleLength){
   const segments=64,sides=8,strands=4,positions=[],indices=[],intensities=[];
-  // Four hair-thin filaments travel together inside the existing narrow light envelope.
+  // Four distinct hair-thin strands, kept inside the same narrow overall envelope.
+  const offsets=[-.0021,-.0007,.0007,.0021];
+  const brightness=[.58,.88,1.0,.68];
   for(let strand=0;strand<strands;strand++){
-   const strandOffset=(strand-(strands-1)/2)*.00115;
    const strandBase=positions.length/3;
    for(let i=0;i<=segments;i++){
     const t=i/segments,a=t*angleLength;
     const taper=Math.sin(Math.PI*t);
     const profile=Math.pow(taper,2.8);
-    const width=.00085+.00045*Math.pow(taper,1.7);
+    const width=.00062+.00025*Math.pow(taper,1.7);
     const cx=Math.cos(a)*radius,cy=Math.sin(a)*radius;
+    // Gentle lateral weave makes each filament separately readable without widening the bundle.
+    const weave=Math.sin(t*Math.PI*2.0+strand*1.35)*.00028;
     for(let j=0;j<sides;j++){
      const q=j/sides*Math.PI*2;
      const radial=Math.cos(q)*width;
-     const z=Math.sin(q)*width+strandOffset;
+     const z=Math.sin(q)*width+offsets[strand]+weave;
      positions.push(cx+Math.cos(a)*radial,cy+Math.sin(a)*radial,z);
-     intensities.push(.002+.998*profile);
+     intensities.push(.002+.998*profile*brightness[strand]);
     }
    }
    for(let i=0;i<segments;i++)for(let j=0;j<sides;j++){
