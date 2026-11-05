@@ -7,14 +7,86 @@
 <title>J.A.R.V.I.S. Core</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00030a}
-main{position:fixed;inset:0;display:grid;place-items:center;background:#00030a}
-img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
+main{position:fixed;inset:0;display:grid;place-items:center;background:#000}
+#art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center}
+#rings{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#error{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;color:#9bdfff;font:13px Arial,sans-serif}
 </style>
 </head>
 <body>
 <main>
-<img src="/jarvis-core.jpg%20.PNG" alt="J.A.R.V.I.S. Core">
+<img id="art" src="/jarvis-core.jpg%20.PNG" alt="J.A.R.V.I.S. Core">
+<canvas id="rings"></canvas>
 </main>
+<div id="error">Core画像またはリング表示を読み込めません。</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+
+const image=document.querySelector('#art');
+const canvas=document.querySelector('#rings');
+const error=document.querySelector('#error');
+let renderer, camera, ringA, ringB, imageScale=1;
+const scene=new THREE.Scene();
+
+try{
+ renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'high-performance'});
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+ renderer.setSize(innerWidth,innerHeight);
+ renderer.setClearColor(0x000000,0);
+}catch(e){error.style.display='grid';throw e}
+
+camera=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);
+camera.position.z=12;
+
+const ringMaterialA=new THREE.MeshBasicMaterial({
+ color:0x63dfff,transparent:true,opacity:.72,blending:THREE.AdditiveBlending,
+ depthWrite:false,side:THREE.DoubleSide
+});
+const ringMaterialB=new THREE.MeshBasicMaterial({
+ color:0x36bfff,transparent:true,opacity:.54,blending:THREE.AdditiveBlending,
+ depthWrite:false,side:THREE.DoubleSide
+});
+
+// Two continuous, extremely fine elliptical orbital rings.
+const ringGeometry=new THREE.TorusGeometry(1.31,.0045,8,512);
+ringA=new THREE.Mesh(ringGeometry,ringMaterialA);
+ringB=new THREE.Mesh(ringGeometry.clone(),ringMaterialB);
+ringA.rotation.set(1.12,0,-.48);
+ringB.rotation.set(.92,.12,.52);
+ringA.position.z=0;
+ringB.position.z=-.035;
+scene.add(ringA,ringB);
+
+function resize(){
+ const w=innerWidth,h=innerHeight;
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+ renderer.setSize(w,h);
+ const rect=image.getBoundingClientRect();
+ const scale=rect.height/4.65;
+ imageScale=scale;
+ const viewW=w/scale,viewH=h/scale;
+ camera.left=-viewW/2;camera.right=viewW/2;
+ camera.top=viewH/2;camera.bottom=-viewH/2;
+ camera.position.x=(rect.left+rect.width/2-w/2)/scale;
+ camera.position.y=(h/2-(rect.top+rect.height/2))/scale;
+ camera.updateProjectionMatrix();
+}
+image.addEventListener('load',resize);
+image.addEventListener('error',()=>{error.style.display='grid';});
+addEventListener('resize',resize);
+if(image.complete&&image.naturalWidth)resize();
+
+let last=0,elapsed=0;
+function animate(now){
+ requestAnimationFrame(animate);
+ const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
+ // Very slow 3D drift; the two rings remain clean and continuous.
+ ringA.rotation.z=-.48+Math.sin(elapsed*.12)*.025;
+ ringB.rotation.y=.12+Math.sin(elapsed*.1)*.035;
+ renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+</script>
 </body>
 </html>
