@@ -127,24 +127,30 @@ ringSpecs.forEach(s=>{
 
  // One continuous ultra-thin white light streak with strong luminance contrast.
  function makeTaperedStreak(radius,angleLength){
-  const segments=64,sides=12,positions=[],indices=[],intensities=[];
-  for(let i=0;i<=segments;i++){
-   const t=i/segments,a=t*angleLength;
-   const taper=Math.sin(Math.PI*t);
-   const profile=Math.pow(taper,2.8);
-   // Subtle thin-to-full-to-thin width modulation on the moving light only.
-   const width=.0028+.0018*Math.pow(taper,1.7);
-   const cx=Math.cos(a)*radius,cy=Math.sin(a)*radius;
-   for(let j=0;j<sides;j++){
-    const q=j/sides*Math.PI*2;
-    const radial=Math.cos(q)*width,z=Math.sin(q)*width;
-    positions.push(cx+Math.cos(a)*radial,cy+Math.sin(a)*radial,z);
-    intensities.push(.002+.998*profile);
+  const segments=64,sides=8,strands=4,positions=[],indices=[],intensities=[];
+  // Four hair-thin filaments travel together inside the existing narrow light envelope.
+  for(let strand=0;strand<strands;strand++){
+   const strandOffset=(strand-(strands-1)/2)*.00115;
+   const strandBase=positions.length/3;
+   for(let i=0;i<=segments;i++){
+    const t=i/segments,a=t*angleLength;
+    const taper=Math.sin(Math.PI*t);
+    const profile=Math.pow(taper,2.8);
+    const width=.00085+.00045*Math.pow(taper,1.7);
+    const cx=Math.cos(a)*radius,cy=Math.sin(a)*radius;
+    for(let j=0;j<sides;j++){
+     const q=j/sides*Math.PI*2;
+     const radial=Math.cos(q)*width;
+     const z=Math.sin(q)*width+strandOffset;
+     positions.push(cx+Math.cos(a)*radial,cy+Math.sin(a)*radial,z);
+     intensities.push(.002+.998*profile);
+    }
    }
-  }
-  for(let i=0;i<segments;i++)for(let j=0;j<sides;j++){
-   const p=i*sides+j,q=i*sides+(j+1)%sides,r=(i+1)*sides+(j+1)%sides,s0=(i+1)*sides+j;
-   indices.push(p,q,s0,q,r,s0);
+   for(let i=0;i<segments;i++)for(let j=0;j<sides;j++){
+    const p=strandBase+i*sides+j,q=strandBase+i*sides+(j+1)%sides;
+    const r=strandBase+(i+1)*sides+(j+1)%sides,s0=strandBase+(i+1)*sides+j;
+    indices.push(p,q,s0,q,r,s0);
+   }
   }
   const g=new THREE.BufferGeometry();
   g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
