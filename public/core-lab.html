@@ -73,38 +73,36 @@ ringSpecs.forEach(s=>{
 
  // One continuous white light streak. Its width tapers thin -> thick -> thin.
  function makeTaperedStreak(radius,angleLength){
-  const segments=64, sides=12, positions=[], colors=[], indices=[];
+  const segments=64,sides=12,positions=[],indices=[],intensities=[];
   for(let i=0;i<=segments;i++){
-   const t=i/segments, a=t*angleLength;
-   const envelope=Math.pow(Math.sin(Math.PI*t),2.8);
-   const width=.00045+.024*envelope;
-   const cx=Math.cos(a)*radius, cy=Math.sin(a)*radius;
+   const t=i/segments,a=t*angleLength;
+   const profile=Math.pow(Math.sin(Math.PI*t),2.6);
+   const width=.0006+.022*profile;
+   const cx=Math.cos(a)*radius,cy=Math.sin(a)*radius;
    for(let j=0;j<sides;j++){
     const q=j/sides*Math.PI*2;
-    const radial=Math.cos(q)*width;
-    const z=Math.sin(q)*width;
+    const radial=Math.cos(q)*width,z=Math.sin(q)*width;
     positions.push(cx+Math.cos(a)*radial,cy+Math.sin(a)*radial,z);
-    const edgeFade=Math.pow(Math.sin(Math.PI*t),.7);
-    const edge=Math.pow(Math.abs(Math.cos(q)),1.4);
-    const intensity=Math.min(1,edgeFade*(.18+.82*edge));
-    colors.push(intensity,intensity,intensity);
+    intensities.push(.015+.985*profile);
    }
   }
-  for(let i=0;i<segments;i++) for(let j=0;j<sides;j++){
-   const a=i*sides+j,b=i*sides+(j+1)%sides;
-   const c=(i+1)*sides+(j+1)%sides,d=(i+1)*sides+j;
-   indices.push(a,b,d,b,c,d);
+  for(let i=0;i<segments;i++)for(let j=0;j<sides;j++){
+   const p=i*sides+j,q=i*sides+(j+1)%sides,r=(i+1)*sides+(j+1)%sides,s0=(i+1)*sides+j;
+   indices.push(p,q,s0,q,r,s0);
   }
   const g=new THREE.BufferGeometry();
   g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  g.setIndex(indices);g.computeVertexNormals();return g;
+  g.setAttribute('intensity',new THREE.Float32BufferAttribute(intensities,1));
+  g.setIndex(indices);return g;
  }
  const streak=new THREE.Mesh(
   makeTaperedStreak(s.radius,.34),
-  new THREE.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})
- );
- orbit.add(streak);
+  new THREE.ShaderMaterial({
+   transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+   vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,3.2); gl_FragColor=vec4(vec3(1.0)*(0.25+hot*7.0),0.06+hot*0.94);}`
+  })
+ ); orbit.add(streak);
  movers.push({streak,radius:s.radius,speed:s.speed,phase:s.phase});
 });
 
