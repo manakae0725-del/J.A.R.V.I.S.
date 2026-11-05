@@ -126,8 +126,8 @@ ringSpecs.forEach(s=>{
   makeTaperedStreak(s.radius,.34),
   new THREE.ShaderMaterial({
    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
-   vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,1.55); float alpha=0.035+hot*0.965; gl_FragColor=vec4(vec3(1.0),alpha);}`
+   vertexShader:`attribute float intensity; varying float vIntensity; varying float vCoreMask; void main(){vIntensity=intensity; vec4 mv=modelViewMatrix*vec4(position,1.0); vCoreMask=1.0-smoothstep(0.78,1.22,length(mv.xy)); gl_Position=projectionMatrix*mv;}`,
+   fragmentShader:`varying float vIntensity; varying float vCoreMask; void main(){float hot=pow(vIntensity,1.55); float alpha=(0.035+hot*0.965)*vCoreMask; gl_FragColor=vec4(vec3(1.0),alpha);}`
   })
  );
  orbit.add(streak);
