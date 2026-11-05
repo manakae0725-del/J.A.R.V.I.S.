@@ -98,17 +98,22 @@ ringSpecs.forEach(s=>{
  ring.position.z=s.z;
  scene.add(ring);
 
- // Extremely restrained cyan halo, slightly wider but very low opacity.
- const haloGeometry=new THREE.TorusGeometry(s.radius,.00235,6,512);
- haloGeometry.setAttribute('color',geometry.attributes.color.clone());
- haloGeometry.applyQuaternion(rotation);
- const haloMaterial=new THREE.MeshBasicMaterial({
-  color:0x42cfff,vertexColors:true,transparent:true,opacity:Math.min(s.opacity*.16,.12),
-  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
- });
- const halo=new THREE.Mesh(haloGeometry,haloMaterial);
- halo.position.z=s.z-.001;
- scene.add(halo);
+ // Layered, restrained energy field: a narrow cyan corona plus a very soft outer field.
+ // The white orbit core keeps its original .0018 tube width.
+ const makeGlowLayer=(tube,opacity,zOffset)=>{
+  const glowGeometry=new THREE.TorusGeometry(s.radius,tube,6,512);
+  glowGeometry.setAttribute('color',geometry.attributes.color.clone());
+  glowGeometry.applyQuaternion(rotation);
+  const glowMaterial=new THREE.MeshBasicMaterial({
+   color:0x42cfff,vertexColors:true,transparent:true,opacity:Math.min(s.opacity*opacity,.22),
+   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
+  });
+  const glow=new THREE.Mesh(glowGeometry,glowMaterial);
+  glow.position.z=s.z+zOffset;
+  scene.add(glow);
+ };
+ makeGlowLayer(.0028,.24,-.0012);
+ makeGlowLayer(.006,.075,-.0024);
 });
 
 // Pure white light points only: cyan and blue glow layers removed.
