@@ -63,8 +63,7 @@ ringSpecs.forEach(s=>{
  scene.add(ring);
 });
 
-// Each ring has a moving, intensely luminous point with a white-hot center
-// and several additive cyan glow layers. Orbital paths remain fixed.
+// Pure white light points only: cyan and blue glow layers removed.
 const movers=[];
 ringSpecs.forEach(s=>{
  const orbit=new THREE.Group();
@@ -83,25 +82,17 @@ ringSpecs.forEach(s=>{
  orbit.add(arc);
 
  const point=new THREE.Group();
- function glowSphere(radius,color,opacity){
-  const mesh=new THREE.Mesh(
-   new THREE.SphereGeometry(radius,20,16),
-   new THREE.MeshBasicMaterial({
-    color,transparent:true,opacity,
-    blending:THREE.AdditiveBlending,depthWrite:false
-   })
-  );
-  point.add(mesh);
-  return mesh;
- }
- // Broad halo, concentrated cyan bloom, brilliant white core.
- const halo=glowSphere(.15,0x087dff,.28);
- const bloom=glowSphere(.085,0x25bfff,.62);
- const inner=glowSphere(.043,0x9ceaff,.96);
- const core=glowSphere(.019,0xffffff,1);
- const flare=glowSphere(.008,0xffffff,1);
+ const core=new THREE.Mesh(
+  new THREE.SphereGeometry(.021,24,18),
+  new THREE.MeshBasicMaterial({color:0xffffff})
+ );
+ const pinpoint=new THREE.Mesh(
+  new THREE.SphereGeometry(.009,16,12),
+  new THREE.MeshBasicMaterial({color:0xffffff})
+ );
+ point.add(core,pinpoint);
  orbit.add(point);
- movers.push({arc,point,halo,bloom,inner,core,flare,radius:s.radius,speed:s.speed,phase:s.phase});
+ movers.push({arc,point,radius:s.radius,speed:s.speed,phase:s.phase});
 });
 
 function resize(){
@@ -135,8 +126,6 @@ function animate(now){
   m.point.position.set(Math.cos(angle)*m.radius,Math.sin(angle)*m.radius,.012);
   const pulse=1+.24*Math.sin(elapsed*3.2+m.phase);
   m.point.scale.setScalar(pulse);
-  m.halo.material.opacity=.24+.12*(.5+.5*Math.sin(elapsed*3+m.phase));
-  m.bloom.material.opacity=.5+.18*(.5+.5*Math.sin(elapsed*3+m.phase));
  });
  renderer.render(scene,camera);
 }
