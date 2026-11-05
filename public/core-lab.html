@@ -77,7 +77,7 @@ ringSpecs.forEach(s=>{
   for(let i=0;i<=segments;i++){
    const t=i/segments,a=t*angleLength;
    const profile=Math.pow(Math.sin(Math.PI*t),2.8);
-   const width=.0028;
+   const width=.0034;
    const cx=Math.cos(a)*radius,cy=Math.sin(a)*radius;
    for(let j=0;j<sides;j++){
     const q=j/sides*Math.PI*2;
@@ -104,6 +104,14 @@ ringSpecs.forEach(s=>{
   })
  ); orbit.add(streak);
  movers.push({streak,radius:s.radius,speed:s.speed,phase:s.phase});
+});
+
+// Add two more moving white streaks, spaced around existing fixed orbits.
+[0,1].forEach(index=>{
+ const base=movers[index];
+ const extra=base.streak.clone();
+ base.streak.parent.add(extra);
+ movers.push({streak:extra,radius:base.radius,speed:base.speed,phase:base.phase+Math.PI});
 });
 
 function resize(){
