@@ -109,7 +109,7 @@ ringSpecs.forEach(s=>{
   new THREE.ShaderMaterial({
    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
    vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-   fragmentShader:`varying float vIntensity; void main(){float soft=pow(vIntensity,1.8); float alpha=soft*0.035; gl_FragColor=vec4(vec3(1.0),alpha);}`
+   fragmentShader:`varying float vIntensity; void main(){float soft=pow(vIntensity,1.6); float alpha=soft*0.055; gl_FragColor=vec4(vec3(1.0),alpha);}`
   })
  );
  halo.scale.setScalar(2.0);
