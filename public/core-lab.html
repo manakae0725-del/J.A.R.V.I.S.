@@ -8,131 +8,13 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00030a}
-#stage{position:fixed;inset:0;background:#00030a}
-canvas{display:block;width:100%;height:100%;touch-action:pan-y}
-#error{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;color:#9bdfff;font:13px Arial,sans-serif}
-#label{position:fixed;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));text-align:center;font:9px Arial,sans-serif;letter-spacing:.34em;color:rgba(110,210,255,.42);pointer-events:none}
+main{position:fixed;inset:0;display:grid;place-items:center;background:#00030a}
+img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
 </style>
 </head>
 <body>
-<div id="stage"></div><div id="label">J.A.R.V.I.S. / CORE</div><div id="error">この端末ではWebGLを利用できません。</div>
-<script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
-
-const stage=document.querySelector('#stage');
-const error=document.querySelector('#error');
-let renderer;
-try{
- renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-}catch(e){error.style.display='grid';throw e}
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
-renderer.setSize(innerWidth,innerHeight);
-renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.NoToneMapping;
-stage.appendChild(renderer.domElement);
-
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x00030a);
-const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.1,100);
-camera.position.set(0,0,7.2);
-const coreGroup=new THREE.Group();
-scene.add(coreGroup);
-
-// Original Core artwork: loaded as-is, without canvas processing or image effects.
-const textureLoader=new THREE.TextureLoader();
-textureLoader.load(
- '/jarvis-core.jpg%20.PNG',
- texture=>{
-  texture.colorSpace=THREE.SRGBColorSpace;
-  texture.anisotropy=renderer.capabilities.getMaxAnisotropy();
-  const imageAspect=texture.image.width/texture.image.height;
-  const planeHeight=4.65;
-  const planeWidth=planeHeight*imageAspect;
-  const image=new THREE.Mesh(
-   new THREE.PlaneGeometry(planeWidth,planeHeight),
-   new THREE.MeshBasicMaterial({map:texture,toneMapped:false,transparent:false})
-  );
-  image.position.z=-.22;
-  coreGroup.add(image);
- },
- undefined,
- ()=>{error.textContent='Core画像を読み込めません。画像ファイルの配置を確認してください。';error.style.display='grid';}
-);
-
-// Fine 3D filaments: continuous curved strands surrounding the Core.
-const filamentGroup=new THREE.Group();
-coreGroup.add(filamentGroup);
-const cyanMaterials=[
- new THREE.LineBasicMaterial({color:0x38cfff,transparent:true,opacity:.48,blending:THREE.AdditiveBlending}),
- new THREE.LineBasicMaterial({color:0x087dff,transparent:true,opacity:.32,blending:THREE.AdditiveBlending}),
- new THREE.LineBasicMaterial({color:0x9ceeff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending})
-];
-function makeFilament(rx,ry,rz,tilt,phase,material,segments=240){
- const points=[];
- for(let i=0;i<=segments;i++){
-  const t=i/segments*Math.PI*2;
-  const wobble=1+.035*Math.sin(t*3+phase)+.018*Math.sin(t*7-phase);
-  const x=Math.cos(t)*rx*wobble;
-  const y=Math.sin(t)*ry*wobble;
-  const z=Math.sin(t*2+phase)*rz;
-  const v=new THREE.Vector3(x,y,z);
-  v.applyAxisAngle(new THREE.Vector3(1,0,0),tilt);
-  points.push(v);
- }
- const geometry=new THREE.BufferGeometry().setFromPoints(points);
- return new THREE.Line(geometry,material);
-}
-const strandSpecs=[
- [1.78,1.48,.42,.48,.2,0],
- [1.95,1.22,.58,-.62,1.1,1],
- [1.58,1.72,.36,1.02,2.0,0],
- [2.08,1.42,.66,.18,2.8,1],
- [1.72,1.88,.52,-.28,3.6,2],
- [2.18,1.12,.44,.82,4.4,0],
- [1.48,1.92,.72,-.92,5.2,1]
-];
-strandSpecs.forEach(s=>filamentGroup.add(makeFilament(...s.slice(0,5),cyanMaterials[s[5]])));
-
-// A restrained set of connecting filaments, not particles or a particle cloud.
-const linksMaterial=new THREE.LineBasicMaterial({color:0x1caeff,transparent:true,opacity:.24,blending:THREE.AdditiveBlending});
-for(let i=0;i<18;i++){
- const a=i/18*Math.PI*2;
- const b=a+.42+Math.sin(i*2.1)*.16;
- const radius=1.58+(i%3)*.17;
- const p1=new THREE.Vector3(Math.cos(a)*radius,Math.sin(a)*radius*.83,Math.sin(a*2)*.24);
- const p2=new THREE.Vector3(Math.cos(b)*(radius+.2),Math.sin(b)*(radius+.2)*.83,Math.cos(b*2)*.34);
- const mid=p1.clone().add(p2).multiplyScalar(.5);
- mid.z+=.18*Math.sin(i*1.7);
- const curve=new THREE.QuadraticBezierCurve3(p1,mid,p2);
- filamentGroup.add(new THREE.Line(
-  new THREE.BufferGeometry().setFromPoints(curve.getPoints(32)),
-  linksMaterial
- ));
-}
-
-const ambient=new THREE.AmbientLight(0x174c80,.3);
-scene.add(ambient);
-let elapsed=0,last=0;
-function animate(now){
- requestAnimationFrame(animate);
- const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
- filamentGroup.rotation.y=Math.sin(elapsed*.16)*.12;
- filamentGroup.rotation.x=Math.sin(elapsed*.13)*.055;
- renderer.render(scene,camera);
-}
-requestAnimationFrame(animate);
-
-function resize(){
- const w=innerWidth,h=innerHeight;
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
- renderer.setSize(w,h);
- camera.aspect=w/h;
- camera.fov=w<600?43:38;
- camera.position.z=w<600?7.8:7.2;
- camera.updateProjectionMatrix();
-}
-addEventListener('resize',resize);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)last=performance.now();});
-</script>
+<main>
+<img src="/jarvis-core.jpg%20.PNG" alt="J.A.R.V.I.S. Core">
+</main>
 </body>
 </html>
