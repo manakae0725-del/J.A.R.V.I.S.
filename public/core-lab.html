@@ -51,42 +51,42 @@ const ringSpecs=[
  {rotation:[-.42,.92,.28],opacity:.37,z:-.085,radius:1.35,speed:-.20,phase:.6}
 ];
 
-// Fixed orbital paths built as three independently woven hair-thin filaments.
+// Fixed orbital paths built from visibly separated, independently shaded filaments.
 ringSpecs.forEach(s=>{
  const rotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(...s.rotation));
  const baseColor=new THREE.Color(RING_COLOR);
- const strandCount=3,segments=768,sides=6;
- const strandPhases=[0,Math.PI*2/3,Math.PI*4/3];
- const strandBrightness=[1.0,.72,.52];
- for(let strand=0;strand<strandCount;strand++){
+ // The strands are spaced far enough apart to remain individually readable on iPhone.
+ const strandOffsets=[-.020,-.010,0,.010,.020];
+ const strandBrightness=[.52,.78,1.0,.84,.60];
+ const segments=768,sides=6;
+ strandOffsets.forEach((offset,strand)=>{
   const positions=[],colors=[],indices=[];
   for(let i=0;i<=segments;i++){
    const u=i/segments*Math.PI*2;
-   // Each filament alternates in front of and behind its neighbors, creating a visible braid.
-   const weave=Math.sin(3*u+strandPhases[strand])*.00105;
-   const centerRadius=s.radius+weave;
+   // A restrained independent weave keeps the bundle dimensional rather than flat.
+   const weave=Math.sin(2*u+strand*1.17)*.0022+Math.sin(5*u-strand*.83)*.0009;
+   const centerRadius=s.radius+offset+weave;
    for(let j=0;j<sides;j++){
-    const v=j/sides*Math.PI*2;
-    const tube=.00048;
+    const v=j/sides*Math.PI*2,tube=.00135;
     const local=new THREE.Vector3(
      (centerRadius+Math.cos(v)*tube)*Math.cos(u),
      (centerRadius+Math.cos(v)*tube)*Math.sin(u),
-     Math.sin(v)*tube
+     Math.sin(v)*tube+(strand-2)*.0014
     ).applyQuaternion(rotation);
     positions.push(local.x,local.y,local.z);
-    const depth=THREE.MathUtils.clamp((local.z+1.39)/2.78,0,1);
-    const front=THREE.MathUtils.smoothstep(depth,.46,.54);
-    const light=.10+.90*front;
+    const depth=THREE.MathUtils.clamp((local.z+1.45)/2.90,0,1);
+    const front=THREE.MathUtils.smoothstep(depth,.43,.57);
+    const light=.12+.88*front;
     const radial=Math.hypot(local.x,local.y);
     const disk=1-THREE.MathUtils.smoothstep(radial,1.02,1.52);
     const dim=1-.995*disk;
-    const brightness=light*3.2*dim*strandBrightness[strand];
+    const glint=.88+.12*Math.pow(Math.sin(u*7+strand*1.9),8);
+    const brightness=light*3.8*dim*strandBrightness[strand]*glint;
     colors.push(baseColor.r*brightness,baseColor.g*brightness,baseColor.b*brightness);
    }
   }
   for(let i=0;i<segments;i++)for(let j=0;j<sides;j++){
-   const a=i*sides+j,b=i*sides+(j+1)%sides;
-   const d=(i+1)*sides+j,e=(i+1)*sides+(j+1)%sides;
+   const a=i*sides+j,b=i*sides+(j+1)%sides,d=(i+1)*sides+j,e=(i+1)*sides+(j+1)%sides;
    indices.push(a,b,d,b,e,d);
   }
   const geometry=new THREE.BufferGeometry();
@@ -95,26 +95,128 @@ ringSpecs.forEach(s=>{
   geometry.setIndex(indices);
   const material=new THREE.MeshBasicMaterial({
    color:0xffffff,vertexColors:true,transparent:true,
-   opacity:Math.min(s.opacity*(strand===0?1.8:1.55),.96),
+   opacity:Math.min(s.opacity*(strand===2?1.0:1.18),.96),
    blending:THREE.AdditiveBlending,depthWrite:true,side:THREE.DoubleSide
   });
   const filament=new THREE.Mesh(geometry,material);
-  filament.position.z=s.z+(strand-1)*.0007;
+  filament.position.z=s.z+(strand-2)*.0018;
   scene.add(filament);
- }
- // Layered, restrained energy field: a narrow cyan corona plus a very soft outer field.
- // The white orbit core keeps its original .0018 tube width.
+ });
+ // A restrained cyan halo sits beneath the individual strands.
  const makeGlowLayer=(tube,opacity,zOffset)=>{
   const glowGeometry=new THREE.TorusGeometry(s.radius,tube,6,512);
-  glowGeometry.setAttribute('color',geometry.attributes.color.clone());
   glowGeometry.applyQuaternion(rotation);
   const glowMaterial=new THREE.MeshBasicMaterial({
-   color:0x42cfff,vertexColors:true,transparent:true,opacity:Math.min(s.opacity*opacity,.22),
+   color:0x42cfff,transparent:true,opacity:Math.min(s.opacity*opacity,.22),
    blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
   });
   const glow=new THREE.Mesh(glowGeometry,glowMaterial);
   glow.position.z=s.z+zOffset;
   scene.add(glow);
  };
- makeGlowLayer(.0018,.18,-.0018);
- makeGlowLayer(.0032,.055,-.0030);
+ makeGlowLayer(.0040,.20,-.0030);
+ makeGlowLayer(.0100,.075,-.0050);
+});
+
+// Pure white light points only: cyan and blue glow layers removed.
+const movers=[];
+ringSpecs.forEach(s=>{
+ const orbit=new THREE.Group();
+ orbit.rotation.set(...s.rotation);
+ orbit.position.z=s.z+.012;
+ scene.add(orbit);
+
+ // One continuous ultra-thin white light streak with strong luminance contrast.
+ function makeTaperedStreak(radius,angleLength){
+  const segments=64,sides=8,strands=4,positions=[],indices=[],intensities=[];
+  // Four distinct hair-thin strands, kept inside the same narrow overall envelope.
+  // Separate strands radially in the visible orbital plane (not along camera depth).
+  const offsets=[-.0015,-.0005,.0005,.0015];
+  const brightness=[.58,.88,1.0,.68];
+  for(let strand=0;strand<strands;strand++){
+   const strandBase=positions.length/3;
+   for(let i=0;i<=segments;i++){
+    const t=i/segments,a=t*angleLength;
+    const taper=Math.sin(Math.PI*t);
+    const profile=Math.pow(taper,2.8);
+    const width=.00048+.00018*Math.pow(taper,1.7);
+    const strandRadius=radius+offsets[strand];
+    const cx=Math.cos(a)*strandRadius,cy=Math.sin(a)*strandRadius;
+    // Small independent radial weave; the complete bundle remains hair-thin.
+    const weave=Math.sin(t*Math.PI*2.0+strand*1.35)*.00012;
+    for(let j=0;j<sides;j++){
+     const q=j/sides*Math.PI*2;
+     const radial=Math.cos(q)*width+weave;
+     const z=Math.sin(q)*width;
+     positions.push(cx+Math.cos(a)*radial,cy+Math.sin(a)*radial,z);
+     intensities.push(.002+.998*profile*brightness[strand]);
+    }
+   }
+   for(let i=0;i<segments;i++)for(let j=0;j<sides;j++){
+    const p=strandBase+i*sides+j,q=strandBase+i*sides+(j+1)%sides;
+    const r=strandBase+(i+1)*sides+(j+1)%sides,s0=strandBase+(i+1)*sides+j;
+    indices.push(p,q,s0,q,r,s0);
+   }
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  g.setAttribute('intensity',new THREE.Float32BufferAttribute(intensities,1));
+  g.setIndex(indices);return g;
+ }
+ const streak=new THREE.Mesh(
+  makeTaperedStreak(s.radius,.34),
+  new THREE.ShaderMaterial({
+   transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+   vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,1.55); float alpha=0.035+hot*0.965; gl_FragColor=vec4(vec3(1.0),alpha);}`
+  })
+ );
+ orbit.add(streak);
+ movers.push({streak,radius:s.radius,speed:s.speed,phase:s.phase});
+});
+
+// Add two more moving white streaks, spaced around existing fixed orbits.
+[0,1].forEach(index=>{
+ const base=movers[index];
+ const extra=base.streak.clone();
+ base.streak.parent.add(extra);
+ movers.push({streak:extra,radius:base.radius,speed:base.speed,phase:base.phase+Math.PI});
+});
+
+function resize(){
+ const w=innerWidth,h=innerHeight;
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+ renderer.setSize(w,h);
+ const aspect=image.naturalWidth/image.naturalHeight;
+ const displayW=Math.min(w,h*aspect);
+ const displayH=displayW/aspect;
+ const scale=displayH/4.65;
+ const viewW=w/scale,viewH=h/scale;
+ camera.left=-viewW/2;
+ camera.right=viewW/2;
+ camera.top=viewH/2;
+ camera.bottom=-viewH/2;
+ camera.position.set(0,0,12);
+ camera.zoom=1.05;
+ camera.updateProjectionMatrix();
+}
+image.addEventListener('load',resize);
+image.addEventListener('error',()=>{error.style.display='grid';});
+addEventListener('resize',resize);
+if(image.complete&&image.naturalWidth)resize();
+
+let last=0,elapsed=0;
+function animate(now){
+ requestAnimationFrame(animate);
+ const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
+ movers.forEach(m=>{
+  const angle=m.phase+elapsed*m.speed;
+  // Move one continuous tapered streak around the fixed orbital path.
+  m.streak.rotation.z=angle-.34;
+ });
+ renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
