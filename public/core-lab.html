@@ -55,18 +55,38 @@ function createRing(rotation,opacity,z,radius=1.39){
  return mesh;
 }
 
-// Existing four rings retained.
-const ringA=createRing([1.02,0,-.55],.48,0);
-const ringB=createRing([1.02,0,.55],.38,-.025);
-const ringC=createRing([.48,.82,-.42],.34,.018);
-const ringD=createRing([.48,-.82,.42],.30,-.045);
+// Eight fixed orbital paths. Their planes and centers never move.
+const ringSpecs=[
+ {rotation:[1.02,0,-.55],opacity:.48,z:0,radius:1.39,speed:.34,phase:0},
+ {rotation:[1.02,0,.55],opacity:.38,z:-.025,radius:1.39,speed:-.29,phase:2.2},
+ {rotation:[.48,.82,-.42],opacity:.34,z:.018,radius:1.39,speed:.25,phase:4.1},
+ {rotation:[.48,-.82,.42],opacity:.30,z:-.045,radius:1.39,speed:-.31,phase:1.1},
+ {rotation:[1.34,.28,.18],opacity:.23,z:.055,radius:1.43,speed:.22,phase:3.2},
+ {rotation:[.28,1.28,-.72],opacity:.21,z:-.065,radius:1.43,speed:-.26,phase:5.0},
+ {rotation:[1.18,-.58,.92],opacity:.19,z:.035,radius:1.35,speed:.28,phase:2.7},
+ {rotation:[-.42,.92,.28],opacity:.20,z:-.085,radius:1.35,speed:-.20,phase:.6}
+];
+ringSpecs.forEach(s=>createRing(s.rotation,s.opacity,s.z,s.radius));
 
-// Four additional, finer-looking orbital paths distributed around different axes.
-// Their lower opacity keeps the Core readable and avoids a dense cage effect.
-const ringE=createRing([1.34,.28,.18],.23,.055,1.43);
-const ringF=createRing([.28,1.28,-.72],.21,-.065,1.43);
-const ringG=createRing([1.18,-.58,.92],.19,.035,1.35);
-const ringH=createRing([-.42,.92,.28],.20,-.085,1.35);
+// A short, restrained cyan highlight travels around each fixed ring.
+// Only the highlight moves; the ring itself does not orbit or wobble.
+const sweeps=[];
+ringSpecs.forEach((s,i)=>{
+ const group=new THREE.Group();
+ group.rotation.set(...s.rotation);
+ group.position.z=s.z+.008;
+ const glow=new THREE.MeshBasicMaterial({
+  color:0x7cddff,transparent:true,opacity:.58,
+  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
+ });
+ const arc=new THREE.Mesh(
+  new THREE.TorusGeometry(s.radius,.0032,6,96,.42),
+  glow
+ );
+ group.add(arc);
+ scene.add(group);
+ sweeps.push({arc,speed:s.speed,phase:s.phase});
+});
 
 function resize(){
  const w=innerWidth,h=innerHeight;
@@ -93,14 +113,7 @@ let last=0,elapsed=0;
 function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
- ringA.rotation.z=-.55+Math.sin(elapsed*.10)*.012;
- ringB.rotation.z=.55+Math.sin(elapsed*.09)*.012;
- ringC.rotation.y=.82+Math.sin(elapsed*.075)*.008;
- ringD.rotation.y=-.82+Math.sin(elapsed*.07)*.008;
- ringE.rotation.z=.18+Math.sin(elapsed*.061)*.006;
- ringF.rotation.x=.28+Math.sin(elapsed*.057)*.006;
- ringG.rotation.y=-.58+Math.sin(elapsed*.052)*.006;
- ringH.rotation.z=.28+Math.sin(elapsed*.049)*.006;
+ sweeps.forEach(s=>{s.arc.rotation.z=s.phase+elapsed*s.speed;});
  renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
