@@ -71,7 +71,7 @@ ringSpecs.forEach(s=>{
   const t=THREE.MathUtils.clamp((depth-0.46)/0.08,0,1);
   const front=t*t*(3-2*t);
   const light=0.18+0.82*front;
-  const intensity=1.65;
+  const intensity=3.2;
   const p=new THREE.Vector3().fromBufferAttribute(positions,i).applyQuaternion(rotation);
   const radial=Math.hypot(p.x,p.y);
   // Hide every added orbit segment projected over the Core disk, not only front-facing arcs.
@@ -82,7 +82,7 @@ ringSpecs.forEach(s=>{
  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
  geometry.applyQuaternion(rotation);
  const material=new THREE.MeshBasicMaterial({
-  color:0xffffff,vertexColors:true,transparent:true,opacity:Math.min(s.opacity*1.35,.95),
+  color:0xffffff,vertexColors:true,transparent:true,opacity:Math.min(s.opacity*1.8,.98),
   blending:THREE.AdditiveBlending,depthWrite:true,side:THREE.DoubleSide
  });
  const ring=new THREE.Mesh(geometry,material);
