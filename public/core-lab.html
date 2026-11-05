@@ -51,14 +51,33 @@ const ringSpecs=[
  {rotation:[-.42,.92,.28],opacity:.37,z:-.085,radius:1.35,speed:-.20,phase:.6}
 ];
 
-// Fixed orbital paths.
+// Fixed orbital paths with restrained front/back depth contrast.
 ringSpecs.forEach(s=>{
+ const geometry=new THREE.TorusGeometry(s.radius,.0018,6,512);
+ const rotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(...s.rotation));
+ const positions=geometry.attributes.position;
+ const baseColor=new THREE.Color(RING_COLOR);
+ const depths=[];
+ let minZ=Infinity,maxZ=-Infinity;
+ for(let i=0;i<positions.count;i++){
+  const p=new THREE.Vector3().fromBufferAttribute(positions,i).applyQuaternion(rotation);
+  depths.push(p.z);minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);
+ }
+ const colors=[];
+ const span=Math.max(maxZ-minZ,1e-5);
+ for(let i=0;i<positions.count;i++){
+  const depth=(depths[i]-minZ)/span;
+  // Back arc stays visible but subdued; front arc receives a restrained lift.
+  const light=0.24+0.76*Math.pow(depth,1.35);
+  colors.push(baseColor.r*light,baseColor.g*light,baseColor.b*light);
+ }
+ geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+ geometry.applyQuaternion(rotation);
  const material=new THREE.MeshBasicMaterial({
-  color:RING_COLOR,transparent:true,opacity:s.opacity,
-  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
+  color:0xffffff,vertexColors:true,transparent:true,opacity:s.opacity,
+  blending:THREE.AdditiveBlending,depthWrite:true,side:THREE.DoubleSide
  });
- const ring=new THREE.Mesh(new THREE.TorusGeometry(s.radius,.0018,6,512),material);
- ring.rotation.set(...s.rotation);
+ const ring=new THREE.Mesh(geometry,material);
  ring.position.z=s.z;
  scene.add(ring);
 });
