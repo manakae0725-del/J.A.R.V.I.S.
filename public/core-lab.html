@@ -26,7 +26,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.m
 const image=document.querySelector('#art');
 const canvas=document.querySelector('#rings');
 const error=document.querySelector('#error');
-let renderer,camera,ringA,ringB;
+let renderer,camera;
 const scene=new THREE.Scene();
 
 try{
@@ -39,35 +39,36 @@ try{
 camera=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);
 camera.position.z=12;
 
-// Both rings use the same blue-cyan hue sampled visually from the Core edge.
-const ringMaterial=new THREE.MeshBasicMaterial({
- color:0x27bfff,transparent:true,opacity:.48,
- blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
-});
-
-// Smaller than the previous pass, with a hairline tube.
+// All four rings share the same fine blue-cyan line and restrained glow.
 const ringGeometry=new THREE.TorusGeometry(1.39,.0018,6,512);
-ringA=new THREE.Mesh(ringGeometry,ringMaterial);
-ringB=new THREE.Mesh(ringGeometry.clone(),ringMaterial.clone());
-ringA.material.opacity=.48;
-ringB.material.opacity=.38;
-ringA.rotation.set(1.02,0,-.55);
-ringB.rotation.set(1.02,0,.55);
-ringA.position.z=0;
-ringB.position.z=-.025;
-scene.add(ringA,ringB);
+function createRing(rotation,opacity,z){
+ const material=new THREE.MeshBasicMaterial({
+  color:0x27bfff,transparent:true,opacity,
+  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
+ });
+ const mesh=new THREE.Mesh(ringGeometry.clone(),material);
+ mesh.rotation.set(...rotation);
+ mesh.position.z=z;
+ scene.add(mesh);
+ return mesh;
+}
+
+// Preserve the two existing shallow orbital rings exactly.
+const ringA=createRing([1.02,0,-.55],.48,0);
+const ringB=createRing([1.02,0,.55],.38,-.025);
+
+// Add two diagonal orbital planes, crossing the original pair around the Core.
+const ringC=createRing([.48,.82,-.42],.34,.018);
+const ringD=createRing([.48,-.82,.42],.30,-.045);
 
 function resize(){
  const w=innerWidth,h=innerHeight;
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
  renderer.setSize(w,h);
-
- // object-fit:contain uses the image's actual displayed box, not the full viewport.
  const aspect=image.naturalWidth/image.naturalHeight;
  const displayW=Math.min(w,h*aspect);
  const displayH=displayW/aspect;
- const worldHeight=4.65;
- const scale=displayH/worldHeight;
+ const scale=displayH/4.65;
  const viewW=w/scale,viewH=h/scale;
  camera.left=-viewW/2;
  camera.right=viewW/2;
@@ -85,8 +86,11 @@ let last=0,elapsed=0;
 function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
+ // Minimal independent drift keeps the orbital paths legible.
  ringA.rotation.z=-.55+Math.sin(elapsed*.10)*.012;
  ringB.rotation.z=.55+Math.sin(elapsed*.09)*.012;
+ ringC.rotation.y=.82+Math.sin(elapsed*.075)*.008;
+ ringD.rotation.y=-.82+Math.sin(elapsed*.07)*.008;
  renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
