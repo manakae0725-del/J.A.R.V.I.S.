@@ -76,8 +76,8 @@ ringSpecs.forEach(s=>{
   const segments=64,sides=12,positions=[],indices=[],intensities=[];
   for(let i=0;i<=segments;i++){
    const t=i/segments,a=t*angleLength;
-   const profile=Math.pow(Math.sin(Math.PI*t),5.5);
-   const width=.00115;
+   const profile=Math.pow(Math.sin(Math.PI*t),2.8);
+   const width=.0028;
    const cx=Math.cos(a)*radius,cy=Math.sin(a)*radius;
    for(let j=0;j<sides;j++){
     const q=j/sides*Math.PI*2;
@@ -100,7 +100,7 @@ ringSpecs.forEach(s=>{
   new THREE.ShaderMaterial({
    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
    vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,2.2); float luminance=0.015+hot*14.0; float alpha=0.015+hot*0.985; gl_FragColor=vec4(vec3(luminance),alpha);}`
+   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,2.0); float alpha=0.025+hot*0.975; gl_FragColor=vec4(vec3(1.0),alpha);}`
   })
  ); orbit.add(streak);
  movers.push({streak,radius:s.radius,speed:s.speed,phase:s.phase});
