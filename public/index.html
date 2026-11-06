@@ -851,6 +851,13 @@ function drawCore(r){
    nucleus.addColorStop(1,'rgba(0,95,255,0)');
    ctx.globalCompositeOperation='lighter';ctx.fillStyle=nucleus;
    ctx.beginPath();ctx.arc(cx,cy,r*.43,0,Math.PI*2);ctx.fill();
+   // Cool electric-blue center tint prevents the highlight from drifting green.
+   const blueCenter=ctx.createRadialGradient(cx-r*.035,cy-r*.045,0,cx,cy,r*.38);
+   blueCenter.addColorStop(0,'rgba(105,195,255,.42)');
+   blueCenter.addColorStop(.22,'rgba(35,125,255,.34)');
+   blueCenter.addColorStop(.58,'rgba(0,85,245,.2)');
+   blueCenter.addColorStop(1,'rgba(0,65,210,0)');
+   ctx.fillStyle=blueCenter;ctx.beginPath();ctx.arc(cx,cy,r*.43,0,Math.PI*2);ctx.fill();
    // Subtle metallic specular sheen, restricted to the home Core surface.
    const metalSheen=ctx.createLinearGradient(cx-r*.82,cy-r*.72,cx+r*.78,cy+r*.72);
    metalSheen.addColorStop(0,'rgba(190,245,255,0)');
