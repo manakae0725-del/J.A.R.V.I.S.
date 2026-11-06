@@ -8,52 +8,12 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
-main{
- position:fixed;
- inset:0;
- display:grid;
- place-items:center;
- overflow:hidden;
- background:#000;
- isolation:isolate;
-}
-#rings{
- position:absolute;
- z-index:1;
- width:min(96vw, 92vh * 1.18);
- height:auto;
- max-height:92vh;
- object-fit:contain;
- object-position:center;
- pointer-events:none;
- user-select:none;
-}
-#core{
- position:absolute;
- z-index:2;
- width:clamp(180px, 42vw, 520px);
- max-height:52vh;
- height:auto;
- object-fit:contain;
- object-position:center;
- pointer-events:auto;
- user-select:none;
- -webkit-user-drag:none;
-}
-#error{
- position:fixed;
- z-index:3;
- inset:0;
- display:none;
- place-items:center;
- padding:24px;
- text-align:center;
- color:#9bdfff;
- font:13px Arial,sans-serif;
- pointer-events:none;
-}
+main{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden;background:#000;isolation:isolate}
+#rings{position:absolute;z-index:1;width:min(96vw,108vh);height:auto;object-fit:contain;object-position:center;pointer-events:none;user-select:none}
+#core{position:absolute;z-index:2;width:clamp(180px,42vw,520px);max-height:52vh;height:auto;object-fit:contain;object-position:center;pointer-events:auto;user-select:none;-webkit-user-drag:none}
+#error{position:fixed;z-index:3;inset:0;display:none;place-items:center;padding:24px;text-align:center;color:#9bdfff;font:13px Arial,sans-serif;pointer-events:none}
 @media (max-width:600px){
- #rings{width:min(108vw, 92vh * 1.18);max-height:78vh}
+ #rings{width:min(108vw,92vh)}
  #core{width:42vw;max-height:42vh}
 }
 </style>
@@ -68,14 +28,12 @@ main{
 const core=document.querySelector('#core');
 const rings=document.querySelector('#rings');
 const error=document.querySelector('#error');
-function checkImages(){
- if(!core.naturalWidth||!rings.naturalWidth) error.style.display='grid';
-}
+function checkImages(){if(!core.naturalWidth||!rings.naturalWidth)error.style.display='grid'}
 core.addEventListener('error',checkImages);
 rings.addEventListener('error',checkImages);
 core.addEventListener('load',checkImages);
 rings.addEventListener('load',checkImages);
-if(core.complete&&rings.complete) checkImages();
+if(core.complete&&rings.complete)checkImages();
 </script>
 </body>
 </html>
