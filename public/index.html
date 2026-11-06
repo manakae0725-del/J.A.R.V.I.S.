@@ -493,7 +493,8 @@ body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{disp
 
 /* Home-only cyan holographic color grade. No geometry, sizing, or layout changes. */
 body:not(.auth-locked) canvas{
- filter:hue-rotate(-22deg) saturate(1.45) brightness(1.15);
+ /* Preserve the intended electric-blue spectrum; hue rotation was shifting blue highlights toward green. */
+ filter:saturate(1.32) brightness(1.08);
 }
 body:not(.auth-locked) .datetime,
 body:not(.auth-locked) .sideHUD,
@@ -845,35 +846,42 @@ function drawCore(r){
    // A compact inner reactor gives the sphere a visible source of energy.
    const corePulse=.88+.12*Math.sin(t*2.15);
    const nucleus=ctx.createRadialGradient(cx-r*.035,cy-r*.045,0,cx,cy,r*.43);
-   nucleus.addColorStop(0,'rgba(245,255,255,'+(.9*corePulse)+')');
-   nucleus.addColorStop(.12,'rgba(135,220,255,.66)');
-   nucleus.addColorStop(.38,'rgba(30,145,255,.2)');
-   nucleus.addColorStop(1,'rgba(0,95,255,0)');
+   nucleus.addColorStop(0,'rgba(235,250,255,'+(.98*corePulse)+')');
+   nucleus.addColorStop(.10,'rgba(65,145,255,.92)');
+   nucleus.addColorStop(.28,'rgba(0,92,255,.72)');
+   nucleus.addColorStop(.58,'rgba(0,55,220,.34)');
+   nucleus.addColorStop(1,'rgba(0,35,160,0)');
    ctx.globalCompositeOperation='lighter';ctx.fillStyle=nucleus;
    ctx.beginPath();ctx.arc(cx,cy,r*.43,0,Math.PI*2);ctx.fill();
-   // Cool electric-blue center tint prevents the highlight from drifting green.
-   const blueCenter=ctx.createRadialGradient(cx-r*.035,cy-r*.045,0,cx,cy,r*.38);
-   blueCenter.addColorStop(0,'rgba(105,195,255,.42)');
-   blueCenter.addColorStop(.22,'rgba(35,125,255,.34)');
-   blueCenter.addColorStop(.58,'rgba(0,85,245,.2)');
-   blueCenter.addColorStop(1,'rgba(0,65,210,0)');
-   ctx.fillStyle=blueCenter;ctx.beginPath();ctx.arc(cx,cy,r*.43,0,Math.PI*2);ctx.fill();
+   // Strong saturated blue core overlay: deliberately visible, not a subtle tint.
+   const blueCenter=ctx.createRadialGradient(cx-r*.035,cy-r*.045,0,cx,cy,r*.46);
+   blueCenter.addColorStop(0,'rgba(225,248,255,.98)');
+   blueCenter.addColorStop(.09,'rgba(25,115,255,.96)');
+   blueCenter.addColorStop(.30,'rgba(0,72,255,.86)');
+   blueCenter.addColorStop(.66,'rgba(0,48,205,.48)');
+   blueCenter.addColorStop(1,'rgba(0,35,155,0)');
+   ctx.save();ctx.globalCompositeOperation='source-atop';
+   ctx.fillStyle=blueCenter;ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.fill();
+   ctx.restore();
    // Subtle metallic specular sheen, restricted to the home Core surface.
    const metalSheen=ctx.createLinearGradient(cx-r*.82,cy-r*.72,cx+r*.78,cy+r*.72);
    metalSheen.addColorStop(0,'rgba(190,245,255,0)');
-   metalSheen.addColorStop(.28,'rgba(155,225,255,.025)');
-   metalSheen.addColorStop(.43,'rgba(225,250,255,.22)');
-   metalSheen.addColorStop(.49,'rgba(255,255,255,.34)');
-   metalSheen.addColorStop(.56,'rgba(115,220,255,.12)');
-   metalSheen.addColorStop(.72,'rgba(20,115,225,.035)');
+   metalSheen.addColorStop(.24,'rgba(155,225,255,.08)');
+   metalSheen.addColorStop(.38,'rgba(190,235,255,.42)');
+   metalSheen.addColorStop(.46,'rgba(250,255,255,.78)');
+   metalSheen.addColorStop(.51,'rgba(255,255,255,.88)');
+   metalSheen.addColorStop(.58,'rgba(125,215,255,.42)');
+   metalSheen.addColorStop(.72,'rgba(20,115,225,.10)');
    metalSheen.addColorStop(1,'rgba(0,70,170,0)');
    ctx.fillStyle=metalSheen;ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.fill();
    // Narrow curved reflections create a polished, machined surface.
    const specular=ctx.createLinearGradient(cx-r,cy-r*.3,cx+r,cy+r*.3);
    specular.addColorStop(0,'rgba(120,220,255,0)');
-   specular.addColorStop(.34,'rgba(155,230,255,.05)');
-   specular.addColorStop(.5,'rgba(245,255,255,.38)');
-   specular.addColorStop(.66,'rgba(110,215,255,.07)');
+   specular.addColorStop(.30,'rgba(155,230,255,.18)');
+   specular.addColorStop(.43,'rgba(220,248,255,.72)');
+   specular.addColorStop(.5,'rgba(255,255,255,.95)');
+   specular.addColorStop(.57,'rgba(145,225,255,.48)');
+   specular.addColorStop(.70,'rgba(110,215,255,.16)');
    specular.addColorStop(1,'rgba(80,180,255,0)');
    ctx.strokeStyle=specular;ctx.lineWidth=Math.max(1,r*.018);
    ctx.beginPath();ctx.ellipse(cx-r*.04,cy-r*.02,r*.91,r*.48,-.42,Math.PI*1.12,Math.PI*1.88);ctx.stroke();
