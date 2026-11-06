@@ -851,6 +851,25 @@ function drawCore(r){
    nucleus.addColorStop(1,'rgba(0,95,255,0)');
    ctx.globalCompositeOperation='lighter';ctx.fillStyle=nucleus;
    ctx.beginPath();ctx.arc(cx,cy,r*.43,0,Math.PI*2);ctx.fill();
+   // Subtle metallic specular sheen, restricted to the home Core surface.
+   const metalSheen=ctx.createLinearGradient(cx-r*.82,cy-r*.72,cx+r*.78,cy+r*.72);
+   metalSheen.addColorStop(0,'rgba(190,245,255,0)');
+   metalSheen.addColorStop(.28,'rgba(155,225,255,.025)');
+   metalSheen.addColorStop(.43,'rgba(225,250,255,.22)');
+   metalSheen.addColorStop(.49,'rgba(255,255,255,.34)');
+   metalSheen.addColorStop(.56,'rgba(115,220,255,.12)');
+   metalSheen.addColorStop(.72,'rgba(20,115,225,.035)');
+   metalSheen.addColorStop(1,'rgba(0,70,170,0)');
+   ctx.fillStyle=metalSheen;ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.fill();
+   // Narrow curved reflections create a polished, machined surface.
+   const specular=ctx.createLinearGradient(cx-r,cy-r*.3,cx+r,cy+r*.3);
+   specular.addColorStop(0,'rgba(120,220,255,0)');
+   specular.addColorStop(.34,'rgba(155,230,255,.05)');
+   specular.addColorStop(.5,'rgba(245,255,255,.38)');
+   specular.addColorStop(.66,'rgba(110,215,255,.07)');
+   specular.addColorStop(1,'rgba(80,180,255,0)');
+   ctx.strokeStyle=specular;ctx.lineWidth=Math.max(1,r*.018);
+   ctx.beginPath();ctx.ellipse(cx-r*.04,cy-r*.02,r*.91,r*.48,-.42,Math.PI*1.12,Math.PI*1.88);ctx.stroke();
    ctx.restore();
  }
 
@@ -1151,6 +1170,16 @@ function frame(){
    ctx.strokeStyle=j%3===0?'rgba(145,225,255,.78)':'rgba(45,150,255,.3)';
    ctx.lineWidth=j%3===0?1.4:.7;ctx.stroke();
   }
+  // Metallic specular edge on the levitating ring.
+  const liftSpec=ctx.createLinearGradient(cx-liftRx,liftY-liftRy,cx+liftRx,liftY+liftRy);
+  liftSpec.addColorStop(0,'rgba(65,175,255,.08)');
+  liftSpec.addColorStop(.3,'rgba(170,235,255,.72)');
+  liftSpec.addColorStop(.5,'rgba(250,255,255,.95)');
+  liftSpec.addColorStop(.72,'rgba(100,220,255,.55)');
+  liftSpec.addColorStop(1,'rgba(45,145,255,.08)');
+  ctx.beginPath();ctx.ellipse(cx,liftY,liftRx*1.04,liftRy*1.04,0,Math.PI*1.04,Math.PI*1.96);
+  ctx.strokeStyle=liftSpec;ctx.lineWidth=1.8;ctx.shadowColor='#b9f4ff';ctx.shadowBlur=6;ctx.stroke();
+  ctx.shadowBlur=5;
   // Inner concentric levitation ring, smaller and slightly brighter at its front edge.
   const innerRx=liftRx*.56,innerRy=liftRy*.58;
   ctx.beginPath();ctx.ellipse(cx,liftY,innerRx,innerRy,0,0,Math.PI*2);
@@ -1176,6 +1205,22 @@ function frame(){
    ctx.strokeStyle=i%4===0?'rgba(95,195,255,.65)':'rgba(40,135,255,.28)';
    ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*inner,py+Math.sin(a)*inner*ry/rx);ctx.lineTo(cx+Math.cos(a)*outer,py+Math.sin(a)*outer*ry/rx);ctx.stroke();
   }
+  // Polished metallic edge reflections on the home projection platform.
+  const platformSpec=ctx.createLinearGradient(cx-rx,py-ry,cx+rx,py+ry);
+  platformSpec.addColorStop(0,'rgba(80,195,255,.08)');
+  platformSpec.addColorStop(.22,'rgba(180,240,255,.72)');
+  platformSpec.addColorStop(.38,'rgba(245,255,255,.92)');
+  platformSpec.addColorStop(.52,'rgba(80,205,255,.3)');
+  platformSpec.addColorStop(.72,'rgba(190,245,255,.82)');
+  platformSpec.addColorStop(1,'rgba(40,145,255,.12)');
+  ctx.beginPath();ctx.ellipse(cx,py,rx,ry,0,Math.PI*1.02,Math.PI*1.98);
+  ctx.strokeStyle=platformSpec;ctx.lineWidth=2.1;ctx.shadowColor='#b8f2ff';ctx.shadowBlur=7;ctx.stroke();
+  const platformShade=ctx.createLinearGradient(cx,py-ry,cx,py+ry);
+  platformShade.addColorStop(0,'rgba(0,70,150,0)');
+  platformShade.addColorStop(.58,'rgba(0,55,125,.04)');
+  platformShade.addColorStop(1,'rgba(0,35,95,.32)');
+  ctx.beginPath();ctx.ellipse(cx,py,rx*.985,ry*.91,0,0,Math.PI*2);
+  ctx.strokeStyle=platformShade;ctx.lineWidth=3.2;ctx.shadowBlur=0;ctx.stroke();
   const emitter=ctx.createRadialGradient(cx,py,0,cx,py,rx*.19);
   emitter.addColorStop(0,'rgba(210,245,255,.95)');emitter.addColorStop(.16,'rgba(55,175,255,.78)');emitter.addColorStop(.48,'rgba(0,105,255,.22)');emitter.addColorStop(1,'rgba(0,100,255,0)');
   ctx.fillStyle=emitter;ctx.beginPath();ctx.ellipse(cx,py,rx*.19,ry*.42,0,0,Math.PI*2);ctx.fill();
