@@ -511,9 +511,49 @@ body:not(.auth-locked) #jarvisSignOut{
 .network-status-row{display:none!important}
 body.auth-locked #networkStatusHUD,body.home-revealing #networkStatusHUD{visibility:hidden!important;opacity:0!important}
 @media(max-width:480px){.network-status-hud{left:86%;top:33.2%;gap:6px;min-width:82px;font-size:11px}.network-status-dot{width:8px;height:8px;flex-basis:8px}}
+/* Persistent side telemetry HUD: paired left status cards and two right waveforms. */
+#leftHUD{left:2.5%!important;right:auto!important;top:13.5%!important;width:min(46vw,245px)!important;height:auto!important;max-height:64vh!important;padding:0!important;transform:none!important;opacity:1!important;overflow:visible!important;z-index:7!important;pointer-events:none!important}
+#leftHUD .hud-card{padding:clamp(7px,1.7vw,12px)!important;margin:0 0 clamp(8px,1.8vh,15px)!important;border-color:rgba(40,190,255,.48)!important;background:linear-gradient(135deg,rgba(2,24,46,.76),rgba(1,12,28,.66) 58%,rgba(0,35,60,.48))!important;box-shadow:inset 0 0 18px rgba(0,136,255,.09),0 0 18px rgba(0,100,210,.10)!important}
+#leftHUD .hud-card-header{margin-bottom:clamp(6px,1.2vh,10px)!important;padding-bottom:5px!important}
+#leftHUD .hud-card-title{font-size:clamp(9px,2.45vw,13px)!important;letter-spacing:clamp(1px,.35vw,2px)!important}
+#leftHUD .status-row,#leftHUD .device-row{font-size:clamp(8px,2.25vw,11px)!important;margin-bottom:clamp(6px,1.15vh,9px)!important;gap:4px!important}
+#leftHUD .status-label-group{width:auto!important;min-width:0!important;gap:5px!important;white-space:nowrap!important}
+#leftHUD .status-value{width:auto!important;min-width:0!important;font-size:clamp(8px,2.05vw,10px)!important;white-space:nowrap!important}
+#leftHUD .status-bar-bg{display:none!important}
+#leftHUD .hud-icon{width:clamp(13px,3.6vw,17px)!important;height:clamp(13px,3.6vw,17px)!important}
+#leftHUD .device-info-left{gap:5px!important;white-space:nowrap!important}
+#leftHUD .device-status-right{gap:4px!important;font-size:clamp(8px,2.1vw,10px)!important;white-space:nowrap!important}
+#leftHUD .battery-inline-container{gap:3px!important}
+#leftHUD .mini-battery-frame{width:20px!important;height:9px!important}
+#leftHUD .network-status-row{display:flex!important}
+.right-telemetry-hud{position:fixed;left:70%;top:39.5%;width:clamp(105px,27vw,190px);z-index:7;display:flex;flex-direction:column;gap:clamp(12px,2.1vh,22px);pointer-events:none;filter:hue-rotate(-17deg) saturate(1.35) brightness(1.12)}
+.telemetry-graph{position:relative;width:100%;height:clamp(48px,8vh,76px);border:1px solid rgba(25,160,235,.23);background:linear-gradient(180deg,rgba(0,25,48,.22),rgba(0,12,28,.10));box-shadow:inset 0 0 12px rgba(0,120,220,.06)}
+.telemetry-graph svg{display:block;width:100%;height:100%;overflow:visible}
+.telemetry-grid{fill:none;stroke:rgba(35,160,220,.19);stroke-width:.7}
+.telemetry-wave{fill:none;stroke:#31c9ff;stroke-width:1.7;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 3px rgba(0,190,255,.48));stroke-dasharray:420;animation:telemetryTrace 8s linear infinite}
+.telemetry-wave-b{stroke:#43d9ff;animation-duration:10s;animation-direction:reverse}
+.telemetry-graph-label{position:absolute;left:0;top:-15px;color:rgba(85,195,235,.72);font:9px monospace;letter-spacing:.08em}
+@keyframes telemetryTrace{to{stroke-dashoffset:-420}}
+body.auth-locked #rightTelemetryHUD,body.home-revealing #rightTelemetryHUD{visibility:hidden!important;opacity:0!important}
+@media(max-width:480px){#leftHUD{left:2.5%!important;top:14%!important;width:46vw!important;max-height:62vh!important}#leftHUD .hud-card{padding:7px 6px!important}#leftHUD .status-row,#leftHUD .device-row{margin-bottom:6px!important}.right-telemetry-hud{left:69%;top:39.5%;width:28vw;gap:clamp(12px,2.2vh,20px)}.telemetry-graph{height:clamp(45px,7.2vh,64px)}}
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 <div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
+<div id="rightTelemetryHUD" class="right-telemetry-hud" aria-hidden="true">
+  <div class="telemetry-graph telemetry-graph-primary">
+    <svg viewBox="0 0 160 58" preserveAspectRatio="none">
+      <g class="telemetry-grid"><path d="M0 14.5H160M0 29H160M0 43.5H160M20 0V58M40 0V58M60 0V58M80 0V58M100 0V58M120 0V58M140 0V58"/></g>
+      <path class="telemetry-wave telemetry-wave-a" d="M0 31 C8 30 8 24 15 27 S23 45 30 39 S39 8 46 13 S54 47 62 42 S72 19 80 24 S89 49 97 38 S106 12 114 18 S124 44 132 37 S143 21 150 27 S156 31 160 25"/>
+    </svg>
+  </div>
+  <div class="telemetry-graph telemetry-graph-secondary">
+    <div class="telemetry-graph-label">SYS / 02</div>
+    <svg viewBox="0 0 160 58" preserveAspectRatio="none">
+      <g class="telemetry-grid"><path d="M0 14.5H160M0 29H160M0 43.5H160M20 0V58M40 0V58M60 0V58M80 0V58M100 0V58M120 0V58M140 0V58"/></g>
+      <path class="telemetry-wave telemetry-wave-b" d="M0 28 C8 15 12 42 20 34 S31 7 39 19 S48 52 57 43 S67 13 75 25 S85 47 94 37 S104 4 113 15 S123 48 132 39 S145 13 153 23 S157 31 160 18"/>
+    </svg>
+  </div>
+</div>
 
 <div class="jarvis-holo-panel" id="jarvisHoloPanel" aria-live="polite">
  <div class="panel-header">
