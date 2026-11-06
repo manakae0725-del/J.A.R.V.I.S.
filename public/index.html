@@ -502,8 +502,18 @@ body:not(.auth-locked) #textArea,
 body:not(.auth-locked) #jarvisSignOut{
  filter:hue-rotate(-17deg) saturate(1.46) brightness(1.14) contrast(1.09);
 }
+
+/* Compact live network indicator, positioned above the upper-right waveform. */
+.network-status-hud{position:fixed;left:86%;top:33.2%;transform:translateX(-50%);z-index:8;display:flex;align-items:center;justify-content:center;gap:7px;min-width:92px;color:rgba(170,235,255,.9);font:500 clamp(10px,2.8vw,14px)/1.2 Arial,sans-serif;letter-spacing:.08em;text-shadow:0 0 8px rgba(40,180,255,.35);pointer-events:none;white-space:nowrap}
+.network-status-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:rgba(110,150,180,.8);box-shadow:0 0 7px rgba(80,150,200,.45)}
+.network-status-hud.is-online .network-status-dot{background:#43eaff;box-shadow:0 0 6px #43eaff,0 0 13px rgba(0,190,255,.75)}
+.network-status-hud.is-online{color:#9beeff}
+.network-status-row{display:none!important}
+body.auth-locked #networkStatusHUD,body.home-revealing #networkStatusHUD{visibility:hidden!important;opacity:0!important}
+@media(max-width:480px){.network-status-hud{left:86%;top:33.2%;gap:6px;min-width:82px;font-size:11px}.network-status-dot{width:8px;height:8px;flex-basis:8px}}
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
+<div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
 
 <div class="jarvis-holo-panel" id="jarvisHoloPanel" aria-live="polite">
  <div class="panel-header">
@@ -554,7 +564,7 @@ body:not(.auth-locked) #jarvisSignOut{
 <span class="hud-card-title">SYSTEM STATUS</span>
 <span class="hud-dots">...</span>
 </div>
-<div class="status-row">
+<div class="status-row network-status-row">
 <div class="status-label-group">
 <svg class="hud-icon" viewBox="0 0 24 24">
 <circle cx="12" cy="12" r="9"/>
@@ -947,8 +957,6 @@ function frame(){
   }
   ctx.strokeStyle='rgba(45,190,255,.68)';ctx.lineWidth=.85;ctx.stroke();
   // Calibration header and a small stacked telemetry meter.
-  ctx.fillStyle='rgba(55,180,255,.55)';ctx.font=Math.max(5,Math.min(7,w*.016))+'px monospace';
-  ctx.fillText('SYS / 02',x-ww/2,y-hh/2-5);
   const by=y+hh/2+8,bw=ww/7;
   for(let i=0;i<7;i++){
    const bh=2+(i%3)*1.5;
@@ -989,6 +997,8 @@ function frame(){
   for(let k=0;k<=4;k++){const yy=y-hh/2+k*hh/4;ctx.beginPath();ctx.moveTo(x-ww/2,yy);ctx.lineTo(x+ww/2,yy);ctx.stroke()}
   for(let k=0;k<=8;k++){const xx=x-ww/2+k*ww/8;ctx.beginPath();ctx.moveTo(xx,y-hh/2);ctx.lineTo(xx,y+hh/2);ctx.stroke()}
   ctx.beginPath();for(let j=0;j<=90;j++){const u=j/90,xx=x-ww/2+u*ww,yy=y+Math.sin(u*18+t*.35)*Math.sin(u*Math.PI)*hh*.34+Math.sin(u*43-t*.2)*hh*.06;if(j===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy)}ctx.stroke();
+  ctx.fillStyle='rgba(55,180,255,.55)';ctx.font=Math.max(5,Math.min(7,w*.016))+'px monospace';
+  ctx.fillText('SYS / 02',x-ww/2,y-hh/2-5);
  }
  // Lower-left orbital node diagram.
  {const x=w*.16,y=h*.685,rr=Math.min(w,h)*.06,nodes=[[-.8,-.15],[-.3,-.72],[.35,-.45],[.78,.05],[.25,.62],[-.42,.48]];
@@ -1337,6 +1347,10 @@ function updateHudStatus(
     activity
 ) {
     hudNetwork.textContent = network;
+    const networkStatusText = document.getElementById('networkStatusText');
+    const networkStatusHUD = document.getElementById('networkStatusHUD');
+    if (networkStatusText) networkStatusText.textContent = network;
+    if (networkStatusHUD) networkStatusHUD.classList.toggle('is-online', network === 'ONLINE');
     hudSignal.textContent = signal;
     hudSysLoad.textContent = sysLoad;
     hudActivity.textContent = activity;
