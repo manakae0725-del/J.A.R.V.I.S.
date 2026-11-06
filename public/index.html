@@ -1149,23 +1149,16 @@ function updateDeviceHud() {
     const userAgent =
         navigator.userAgent.toLowerCase();
 
-    if (
-        /iphone|ipad|ipod/.test(userAgent)
-    ) {
+    if (hudDevice) {
         hudDevice.textContent =
-            "iPhone";
-    } else {
-        hudDevice.textContent =
-            "PC";
+            /iphone|ipad|ipod/.test(userAgent) ? "iPhone" : "PC";
     }
 
-
     /* Wi-Fi / Network */
-
-    hudWifi.textContent =
-        navigator.onLine
-            ? "CONNECTED"
-            : "DISCONNECTED";
+    if (hudWifi) {
+        hudWifi.textContent =
+            navigator.onLine ? "CONNECTED" : "DISCONNECTED";
+    }
 }
 
 window.addEventListener(
@@ -1180,15 +1173,9 @@ window.addEventListener(
 
 async function initBatteryHud() {
 
-    if (
-        !navigator.getBattery
-    ) {
-        hudBattery.textContent =
-            "--%";
-
-        hudPower.textContent =
-            "UNKNOWN";
-
+    if (!navigator.getBattery) {
+        if (hudBattery) hudBattery.textContent = "--%";
+        if (hudPower) hudPower.textContent = "UNKNOWN";
         return;
     }
 
@@ -1204,16 +1191,11 @@ async function initBatteryHud() {
                     battery.level * 100
                 );
 
-            hudBattery.textContent =
-                level + "%";
-
-            hudBatteryFill.style.width =
-                level + "%";
-
-            hudPower.textContent =
-                battery.charging
-                    ? "CHARGING"
-                    : "DISCHARGING";
+            if (hudBattery) hudBattery.textContent = level + "%";
+            if (hudBatteryFill) hudBatteryFill.style.width = level + "%";
+            if (hudPower) {
+                hudPower.textContent = battery.charging ? "CHARGING" : "DISCHARGING";
+            }
         }
 
         updateBattery();
@@ -1235,11 +1217,8 @@ async function initBatteryHud() {
             error
         );
 
-        hudBattery.textContent =
-            "--%";
-
-        hudPower.textContent =
-            "UNKNOWN";
+        if (hudBattery) hudBattery.textContent = "--%";
+        if (hudPower) hudPower.textContent = "UNKNOWN";
     }
 }
 
@@ -1252,14 +1231,14 @@ function updateHudStatus(
     sysLoad,
     activity
 ) {
-    hudNetwork.textContent = network;
+    if (hudNetwork) hudNetwork.textContent = network;
     const networkStatusText = document.getElementById('networkStatusText');
     const networkStatusHUD = document.getElementById('networkStatusHUD');
     if (networkStatusText) networkStatusText.textContent = network;
     if (networkStatusHUD) networkStatusHUD.classList.toggle('is-online', network === 'ONLINE');
-    hudSignal.textContent = signal;
-    hudSysLoad.textContent = sysLoad;
-    hudActivity.textContent = activity;
+    if (hudSignal) hudSignal.textContent = signal;
+    if (hudSysLoad) hudSysLoad.textContent = sysLoad;
+    if (hudActivity) hudActivity.textContent = activity;
 }
 
 const textInput =
@@ -1942,29 +1921,12 @@ if(deltaY<-80){
         }
     }
 
-    /* 横スワイプ */
-    if(absX>absY){
+    /* 横スワイプ：現行UIでは右HUDのみ開閉し、左側の固定表示は変更しない */
+    if(absX>absY && rightHUD){
         if(deltaX<-80){
-            if(rightHUD.classList.contains("open")){
-                rightHUD.classList.remove("open");
-            }
-            else if(leftHUD.classList.contains("open")){
-                leftHUD.classList.remove("open");
-            }
-            else{
-                rightHUD.classList.add("open");
-            }
-        }
-        else if(deltaX>80){
-            if(leftHUD.classList.contains("open")){
-                leftHUD.classList.remove("open");
-            }
-            else if(rightHUD.classList.contains("open")){
-                rightHUD.classList.remove("open");
-            }
-            else{
-                leftHUD.classList.add("open");
-            }
+            rightHUD.classList.add("open");
+        } else if(deltaX>80){
+            rightHUD.classList.remove("open");
         }
     }
 },{passive:true,capture:true});
