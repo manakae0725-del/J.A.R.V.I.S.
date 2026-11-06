@@ -491,16 +491,16 @@ body:not(.auth-locked):not(.home-revealing):after{right:14px;border-right:1px so
 body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{display:none!important}
 @media(max-width:480px){#googleCalendarTest{left:10px!important;right:10px!important;bottom:60px!important;max-height:42vh!important}#googleCalendarToggle{right:10px;bottom:10px}}
 
-/* Home-only cool cyan-blue grade: shift electric blue toward the reference's teal-cyan navy. */
+/* Home-only blue-dominant grade: retain native electric blue; cyan remains an accent. */
 body:not(.auth-locked) canvas{
- filter:hue-rotate(-42deg) saturate(1.38) brightness(1.16) contrast(1.10);
+ filter:saturate(1.42) brightness(1.12) contrast(1.12);
 }
 body:not(.auth-locked) .datetime,
 body:not(.auth-locked) .sideHUD,
 body:not(.auth-locked) #jarvisHoloPanel,
 body:not(.auth-locked) #textArea,
 body:not(.auth-locked) #jarvisSignOut{
- filter:hue-rotate(-42deg) saturate(1.32) brightness(1.18) contrast(1.08);
+ filter:saturate(1.30) brightness(1.12) contrast(1.08);
 }
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
