@@ -8,255 +8,74 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
-main{position:fixed;inset:0;display:grid;place-items:center;background:#000}
-#art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;transform:scale(1.05)}
-#rings{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-#error{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;color:#9bdfff;font:13px Arial,sans-serif}
+main{
+ position:fixed;
+ inset:0;
+ display:grid;
+ place-items:center;
+ overflow:hidden;
+ background:#000;
+ isolation:isolate;
+}
+#rings{
+ position:absolute;
+ z-index:1;
+ width:min(96vw, 92vh * 1.18);
+ height:auto;
+ max-height:92vh;
+ object-fit:contain;
+ object-position:center;
+ pointer-events:none;
+ user-select:none;
+}
+#core{
+ position:absolute;
+ z-index:2;
+ width:clamp(180px, 42vw, 520px);
+ max-height:52vh;
+ height:auto;
+ object-fit:contain;
+ object-position:center;
+ pointer-events:auto;
+ user-select:none;
+ -webkit-user-drag:none;
+}
+#error{
+ position:fixed;
+ z-index:3;
+ inset:0;
+ display:none;
+ place-items:center;
+ padding:24px;
+ text-align:center;
+ color:#9bdfff;
+ font:13px Arial,sans-serif;
+ pointer-events:none;
+}
+@media (max-width:600px){
+ #rings{width:min(108vw, 92vh * 1.18);max-height:78vh}
+ #core{width:42vw;max-height:42vh}
+}
 </style>
 </head>
 <body>
 <main>
-<img id="art" src="/jarvis-core.jpg%20.PNG" alt="J.A.R.V.I.S. Core">
-<canvas id="rings"></canvas>
+ <img id="rings" src="/jarvis-orbit-rings.png" alt="" aria-hidden="true">
+ <img id="core" src="/jarvis-core.jpg%20.PNG" alt="J.A.R.V.I.S. Core">
 </main>
-<div id="error">Core画像またはリング表示を読み込めません。</div>
-<script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
-
-const image=document.querySelector('#art');
-const canvas=document.querySelector('#rings');
+<div id="error">Core画像またはリング画像を読み込めません。</div>
+<script>
+const core=document.querySelector('#core');
+const rings=document.querySelector('#rings');
 const error=document.querySelector('#error');
-let renderer,camera;
-const scene=new THREE.Scene();
-
-try{
- renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'high-performance'});
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
- renderer.setSize(innerWidth,innerHeight);
- renderer.setClearColor(0x000000,0);
-}catch(e){error.style.display='grid';throw e}
-
-camera=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);
-camera.position.z=12;
-
-const RING_COLOR=0x42cfff;
-// Cool studio lighting gives the orbital filaments real metallic highlights.
-scene.add(new THREE.AmbientLight(0x4b8ba8,.72));
-const keyLight=new THREE.DirectionalLight(0xd9f7ff,2.15);
-keyLight.position.set(-3,4,7);
-scene.add(keyLight);
-const rimLight=new THREE.DirectionalLight(0x168dce,1.25);
-rimLight.position.set(4,-2,-4);
-scene.add(rimLight);
-
-// Invisible foreground mask: orbital filaments must never cross the Core face.
-const coreMask=new THREE.Mesh(
- new THREE.CircleGeometry(1.02,128),
- new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:true,depthTest:true,side:THREE.DoubleSide})
-);
-coreMask.position.set(0,0,1.8);
-coreMask.renderOrder=-100;
-scene.add(coreMask);
-
-const ringSpecs=[
- {rotation:[1.02,0,-.55],opacity:.68,z:0,radius:1.39,speed:.34,phase:0},
- {rotation:[1.02,0,.55],opacity:.58,z:-.025,radius:1.39,speed:-.29,phase:2.2},
- {rotation:[.48,.82,-.42],opacity:.54,z:.018,radius:1.39,speed:.25,phase:4.1},
- {rotation:[.48,-.82,.42],opacity:.50,z:-.045,radius:1.39,speed:-.31,phase:1.1},
- {rotation:[1.34,.28,.18],opacity:.40,z:.055,radius:1.43,speed:.22,phase:3.2},
- {rotation:[.28,1.28,-.72],opacity:.38,z:-.065,radius:1.43,speed:-.26,phase:5.0},
- {rotation:[1.18,-.58,.92],opacity:.36,z:.035,radius:1.35,speed:.28,phase:2.7},
- {rotation:[-.42,.92,.28],opacity:.37,z:-.085,radius:1.35,speed:-.20,phase:.6}
-];
-
-// Fixed orbital paths built from visibly separated, independently shaded filaments.
-ringSpecs.forEach(s=>{
- const rotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(...s.rotation));
- const baseColor=new THREE.Color(RING_COLOR);
- // The strands are spaced far enough apart to remain individually readable on iPhone.
- const strandOffsets=[-.020,-.010,0,.010,.020];
- const strandBrightness=[.52,.78,1.0,.84,.60];
- const segments=768,sides=6;
- strandOffsets.forEach((offset,strand)=>{
-  const positions=[],colors=[],indices=[];
-  for(let i=0;i<=segments;i++){
-   const u=i/segments*Math.PI*2;
-   // A restrained independent weave keeps the bundle dimensional rather than flat.
-   const weave=Math.sin(2*u+strand*1.17)*.0022+Math.sin(5*u-strand*.83)*.0009;
-   const centerRadius=s.radius+offset+weave;
-   for(let j=0;j<sides;j++){
-    const v=j/sides*Math.PI*2,tube=.00135;
-    const local=new THREE.Vector3(
-     (centerRadius+Math.cos(v)*tube)*Math.cos(u),
-     (centerRadius+Math.cos(v)*tube)*Math.sin(u),
-     Math.sin(v)*tube+(strand-2)*.0014
-    ).applyQuaternion(rotation);
-    positions.push(local.x,local.y,local.z);
-    const depth=THREE.MathUtils.clamp((local.z+1.45)/2.90,0,1);
-    const front=THREE.MathUtils.smoothstep(depth,.43,.57);
-    const light=.12+.88*front;
-    const radial=Math.hypot(local.x,local.y);
-    const disk=1-THREE.MathUtils.smoothstep(radial,1.02,1.52);
-    const dim=1-.995*disk;
-    const glint=.88+.12*Math.pow(Math.sin(u*7+strand*1.9),8);
-    // Directional surface highlights imitate polished, machined metal.
-    const normal=new THREE.Vector3(Math.cos(v)*Math.cos(u),Math.cos(v)*Math.sin(u),Math.sin(v)).applyQuaternion(rotation);
-    const facing=Math.max(0,normal.z);
-    const specular=Math.pow(facing,20);
-    const rim=Math.pow(1-Math.abs(normal.z),3.2);
-    const brushed=.94+.06*Math.pow(Math.sin(u*54+strand*1.7),2);
-    const brightness=light*3.35*dim*strandBrightness[strand]*glint*brushed;
-    const metallicFlash=specular*2.25+rim*.16;
-    colors.push(baseColor.r*brightness+metallicFlash,baseColor.g*brightness+metallicFlash,baseColor.b*brightness+metallicFlash);
-   }
-  }
-  for(let i=0;i<segments;i++)for(let j=0;j<sides;j++){
-   const a=i*sides+j,b=i*sides+(j+1)%sides,d=(i+1)*sides+j,e=(i+1)*sides+(j+1)%sides;
-   indices.push(a,b,d,b,e,d);
-  }
-  const geometry=new THREE.BufferGeometry();
-  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  geometry.setIndex(indices);
-  const material=new THREE.MeshStandardMaterial({
-   color:0xffffff,vertexColors:true,transparent:true,
-   metalness:.88,roughness:.22,
-   emissive:0x063d58,emissiveIntensity:.72,
-   opacity:Math.min(s.opacity*(strand===2?1.0:1.18),.96),
-   blending:THREE.AdditiveBlending,depthWrite:true,side:THREE.DoubleSide
-  });
-  const filament=new THREE.Mesh(geometry,material);
-  filament.position.z=s.z+(strand-2)*.0018;
-  scene.add(filament);
- });
- // A restrained cyan halo sits beneath the individual strands.
- const makeGlowLayer=(tube,opacity,zOffset)=>{
-  const glowGeometry=new THREE.TorusGeometry(s.radius,tube,6,512);
-  glowGeometry.applyQuaternion(rotation);
-  const glowMaterial=new THREE.MeshBasicMaterial({
-   color:0x42cfff,transparent:true,opacity:Math.min(s.opacity*opacity,.22),
-   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide
-  });
-  const glow=new THREE.Mesh(glowGeometry,glowMaterial);
-  glow.position.z=s.z+zOffset;
-  scene.add(glow);
- };
- makeGlowLayer(.0040,.20,-.0030);
- makeGlowLayer(.0100,.075,-.0050);
-});
-
-// Pure white light points only: cyan and blue glow layers removed.
-const movers=[];
-ringSpecs.forEach(s=>{
- const orbit=new THREE.Group();
- orbit.rotation.set(...s.rotation);
- orbit.position.z=s.z+.012;
- scene.add(orbit);
-
- // One continuous ultra-thin white light streak with strong luminance contrast.
- function makeTaperedStreak(radius,angleLength,widthScale=1){
-  const segments=64,sides=8,strands=4,positions=[],indices=[],intensities=[];
-  // Four distinct hair-thin strands, kept inside the same narrow overall envelope.
-  // Separate strands radially in the visible orbital plane (not along camera depth).
-  const offsets=[-.0015,-.0005,.0005,.0015];
-  const brightness=[.58,.88,1.0,.68];
-  for(let strand=0;strand<strands;strand++){
-   const strandBase=positions.length/3;
-   for(let i=0;i<=segments;i++){
-    const t=i/segments,a=t*angleLength;
-    // Directional pulse: a bright leading tip with a tapered metallic tail.
-    const taper=Math.sin(Math.PI*t);
-    const profile=Math.pow(t,1.75)*Math.pow(Math.max(0,1-t),.34);
-    const width=(.00042+.00024*Math.pow(taper,1.7))*widthScale;
-    const strandRadius=radius+offsets[strand];
-    const cx=Math.cos(a)*strandRadius,cy=Math.sin(a)*strandRadius;
-    // Small independent radial weave; the complete bundle remains hair-thin.
-    const weave=Math.sin(t*Math.PI*2.0+strand*1.35)*.00012*widthScale;
-    for(let j=0;j<sides;j++){
-     const q=j/sides*Math.PI*2;
-     const radial=Math.cos(q)*width+weave;
-     const z=Math.sin(q)*width;
-     positions.push(cx+Math.cos(a)*radial,cy+Math.sin(a)*radial,z);
-     intensities.push(.002+.998*profile*brightness[strand]);
-    }
-   }
-   for(let i=0;i<segments;i++)for(let j=0;j<sides;j++){
-    const p=strandBase+i*sides+j,q=strandBase+i*sides+(j+1)%sides;
-    const r=strandBase+(i+1)*sides+(j+1)%sides,s0=strandBase+(i+1)*sides+j;
-    indices.push(p,q,s0,q,r,s0);
-   }
-  }
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  g.setAttribute('intensity',new THREE.Float32BufferAttribute(intensities,1));
-  g.setIndex(indices);return g;
- }
- const pulseGroup=new THREE.Group();
- // Wider cyan envelope beneath the narrow white-metallic core makes the pulse readable in motion.
- const halo=new THREE.Mesh(
-  makeTaperedStreak(s.radius,.34,5.0),
-  new THREE.ShaderMaterial({
-   transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
-   vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,1.25); float alpha=hot*.26; gl_FragColor=vec4(0.08,0.66,1.0,alpha);}`
-  })
- );
- const streak=new THREE.Mesh(
-  makeTaperedStreak(s.radius,.34,1.0),
-  new THREE.ShaderMaterial({
-   transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
-   vertexShader:`attribute float intensity; varying float vIntensity; void main(){vIntensity=intensity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-   fragmentShader:`varying float vIntensity; void main(){float hot=pow(vIntensity,1.35); vec3 metal=mix(vec3(0.025,0.30,0.48),vec3(0.94,0.99,1.0),hot); float alpha=0.018+hot*0.982; gl_FragColor=vec4(metal,alpha);}`
-  })
- );
- pulseGroup.add(halo,streak);
- pulseGroup.add(streak);
- orbit.add(pulseGroup);
- movers.push({streak:pulseGroup,radius:s.radius,speed:s.speed,phase:s.phase});
-});
-
-// Add two more moving white streaks, spaced around existing fixed orbits.
-[0,1].forEach(index=>{
- const base=movers[index];
- const extra=base.streak.clone();
- base.streak.parent.add(extra);
- movers.push({streak:extra,radius:base.radius,speed:base.speed,phase:base.phase+Math.PI});
-});
-
-function resize(){
- const w=innerWidth,h=innerHeight;
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
- renderer.setSize(w,h);
- const aspect=image.naturalWidth/image.naturalHeight;
- const displayW=Math.min(w,h*aspect);
- const displayH=displayW/aspect;
- const scale=displayH/4.65;
- const viewW=w/scale,viewH=h/scale;
- camera.left=-viewW/2;
- camera.right=viewW/2;
- camera.top=viewH/2;
- camera.bottom=-viewH/2;
- camera.position.set(0,0,12);
- camera.zoom=1.05;
- camera.updateProjectionMatrix();
+function checkImages(){
+ if(!core.naturalWidth||!rings.naturalWidth) error.style.display='grid';
 }
-image.addEventListener('load',resize);
-image.addEventListener('error',()=>{error.style.display='grid';});
-addEventListener('resize',resize);
-if(image.complete&&image.naturalWidth)resize();
-
-let last=0,elapsed=0;
-function animate(now){
- requestAnimationFrame(animate);
- const dt=Math.min((now-last)/1000,.04);last=now;elapsed+=dt;
- movers.forEach(m=>{
-  const angle=m.phase+elapsed*m.speed;
-  // Move one continuous tapered streak around the fixed orbital path.
-  m.streak.rotation.z=angle-.34;
- });
- renderer.render(scene,camera);
-}
-requestAnimationFrame(animate);
+core.addEventListener('error',checkImages);
+rings.addEventListener('error',checkImages);
+core.addEventListener('load',checkImages);
+rings.addEventListener('load',checkImages);
+if(core.complete&&rings.complete) checkImages();
 </script>
 </body>
 </html>
