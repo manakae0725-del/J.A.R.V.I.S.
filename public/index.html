@@ -847,26 +847,7 @@ function frame(){
  ctx.save();ctx.globalCompositeOperation='screen';
  const hudBlue='rgba(35,175,255,';
  const hudDim='rgba(35,175,255,.19)';
- // Left: layered scanner rings, calibrated arcs, and radial ticks.
- {
-  const x=w*.105,y=h*.425,rr=Math.min(w*.078,h*.052);
-  ctx.lineWidth=.75;ctx.strokeStyle=hudDim;
-  [1,.82,.58,.3].forEach((q,i)=>{ctx.beginPath();ctx.arc(x,y,rr*q,0,Math.PI*2);ctx.stroke()});
-  for(let i=0;i<48;i++){
-   const a=i*Math.PI*2/48;
-   const major=i%6===0,inner=rr*(major?.78:.9),outer=rr*(major?1.12:1.03);
-   ctx.strokeStyle=hudBlue+(major?'.62':'.24')+')';ctx.lineWidth=major?1.1:.65;
-   ctx.beginPath();ctx.moveTo(x+Math.cos(a)*inner,y+Math.sin(a)*inner);ctx.lineTo(x+Math.cos(a)*outer,y+Math.sin(a)*outer);ctx.stroke();
-  }
-  ctx.strokeStyle='rgba(40,190,255,.5)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.arc(x,y,rr*.88,-1.12,.22);ctx.stroke();
-  ctx.beginPath();ctx.arc(x,y,rr*.67,.55,2.1);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(x-rr*1.25,y);ctx.lineTo(x-rr*.18,y);ctx.moveTo(x,y-rr*1.25);ctx.lineTo(x,y-rr*.18);ctx.stroke();
-  ctx.fillStyle='rgba(95,215,255,.72)';ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();
-  // Small scan readout tucked to the left edge.
-  ctx.font=Math.max(5,Math.min(7,w*.016))+'px monospace';ctx.fillStyle='rgba(65,180,255,.55)';
-  ctx.fillText('SCAN / 01',Math.max(8,x-rr*1.1),y+rr*1.48);
- }
+ // Legacy upper-left canvas scanner removed; the reference-style SVG radar in #leftReferenceHUD remains.
  // Right: compact waveform and diagnostic readouts, deliberately unlike the left scanner.
  {
   const x=w*.86,y=h*.425,ww=Math.min(w*.17,78),hh=Math.min(h*.09,66);
