@@ -763,7 +763,7 @@ window.setJarvisCoreState = function(state) {
  if (!allowed.includes(state) || state === window.jarvisParticleTransition.targetState) return;
  window.jarvisParticleTransition = { startedAt: performance.now(), targetState: state };
 };
-function resize(){w=innerWidth;h=innerHeight;dpr=Math.min(devicePixelRatio||1,w<=600?1.5:2);canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);cx=w/2;cy=h*.20;scale=Math.min(w,h)/700}
+function resize(){w=innerWidth;h=innerHeight;dpr=Math.min(devicePixelRatio||1,w<=600?1.5:2);canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);cx=w/2;cy=h/2;scale=Math.min(w,h)/700}
 addEventListener('resize',resize);resize();
 let seed=12345;function rand(){seed=(seed*9301+49297)%233280;return seed/233280}
 const particles=Array.from({length:1120},()=>({a:rand()*Math.PI*2,r:rand(),z:rand()*2-1,s:(rand()<.72?.25+rand()*.27:rand()<.88?.52+rand()*.32:.88+rand()*.48),phase:rand()*Math.PI*2,speed:.15+rand()*.55,brightness:.35+rand()*.65,blur:rand()}));
@@ -859,7 +859,7 @@ function drawCore(r){
 let corePts=[];
 for(let i=0;i<21;i++){const a=rand()*Math.PI*2,rr=Math.sqrt(rand())*176;corePts.push({x:500+rr*Math.cos(a),y:500+rr*Math.sin(a)})}
 function frame(){
- requestAnimationFrame(frame);cy=document.body.classList.contains('auth-locked')?h/2:h*.20;t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
+ requestAnimationFrame(frame);cy=h/2;t+=.016;ctx.clearRect(0,0,w,h);ctx.fillStyle='#020817';ctx.fillRect(0,0,w,h);
  stars.forEach(s=>{ctx.fillStyle='rgba(45,120,255,'+(s.a*(.65+.35*Math.sin(t+s.x*10))+0.04)+')';ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill()});
  if (!document.body.classList.contains('auth-locked')) {
  // Peripheral cyber-HUD: restrained data traces and segmented markers on the black field, separate from the Core.
