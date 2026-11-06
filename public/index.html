@@ -1900,7 +1900,7 @@ if(touches&&touches.length>0){
 touchStartX=touches.item(0).screenX;
 touchStartY=touches.item(0).screenY;
 }
-},{passive:true});
+},{passive:true,capture:true});
 
 document.addEventListener("touchend",function(e){
 
@@ -1967,9 +1967,7 @@ if(deltaY<-80){
             }
         }
     }
-});
-
-
+},{passive:true,capture:true});
 var audioContext = null;
 var currentSource = null;
 var activeConversationController = null;
