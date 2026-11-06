@@ -28,7 +28,7 @@ main{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden;back
 const core=document.querySelector('#core');
 const rings=document.querySelector('#rings');
 const error=document.querySelector('#error');
-function checkImages(){if(!core.naturalWidth||!rings.naturalWidth)error.style.display='grid'}
+function checkImages(){if(!core.complete||!rings.complete)return;error.style.display=(!core.naturalWidth||!rings.naturalWidth)?'grid':'none'}
 core.addEventListener('error',checkImages);
 rings.addEventListener('error',checkImages);
 core.addEventListener('load',checkImages);
