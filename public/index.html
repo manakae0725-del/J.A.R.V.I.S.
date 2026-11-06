@@ -536,6 +536,24 @@ body.auth-locked #networkStatusHUD,body.home-revealing #networkStatusHUD{visibil
 @keyframes telemetryTrace{to{stroke-dashoffset:-420}}
 body.auth-locked #rightTelemetryHUD,body.home-revealing #rightTelemetryHUD{visibility:hidden!important;opacity:0!important}
 @media(max-width:480px){#leftHUD{left:2.5%!important;top:14%!important;width:46vw!important;max-height:62vh!important}#leftHUD .hud-card{padding:7px 6px!important}#leftHUD .status-row,#leftHUD .device-row{margin-bottom:6px!important}.right-telemetry-hud{left:69%;top:39.5%;width:28vw;gap:clamp(12px,2.2vh,20px)}.telemetry-graph{height:clamp(45px,7.2vh,64px)}}
+/* Left HUD follows the compact reference: system readout plus circular scanner. */
+#leftHUD{display:none!important}
+#leftReferenceHUD{position:fixed;left:3.4%;top:30.5%;width:clamp(105px,16.2vw,132px);z-index:8;color:rgba(145,230,255,.88);font-family:Arial,sans-serif;pointer-events:none;text-shadow:0 0 6px rgba(0,170,255,.3)}
+.reference-status-heading{display:flex;align-items:flex-end;justify-content:space-between;padding:0 5px 7px 6px;font-size:clamp(8px,1.65vw,10px);line-height:1.2;letter-spacing:.07em}
+.reference-status-bars{height:19px;display:flex;align-items:flex-end;gap:3px;padding-bottom:1px}
+.reference-status-bars i{display:block;width:3px;background:#36dfff;box-shadow:0 0 5px rgba(0,210,255,.65)}
+.reference-status-bars i:nth-child(1){height:7px}.reference-status-bars i:nth-child(2){height:12px}.reference-status-bars i:nth-child(3){height:16px}.reference-status-bars i:nth-child(4){height:10px}
+.reference-status-box{border:1px solid rgba(48,180,230,.23);background:rgba(0,18,36,.22);padding:7px 8px 6px}
+.reference-status-box>div{display:flex;justify-content:space-between;align-items:center;gap:4px;min-height:20px;font-size:clamp(8px,1.8vw,10px);letter-spacing:.02em}
+.reference-status-box span{color:rgba(150,215,240,.82)}
+.reference-status-box b{font-weight:400;color:rgba(185,235,255,.94);white-space:nowrap}
+.reference-radar{display:block;width:clamp(88px,15vw,116px);height:auto;margin:24px auto 0;overflow:visible}
+.reference-radar-lines{fill:none;stroke:rgba(40,190,245,.48);stroke-width:1}
+.reference-radar-center{fill:#4beaff;filter:drop-shadow(0 0 4px #00cfff)}
+.reference-radar-sweep{fill:rgba(0,190,255,.10);stroke:rgba(75,220,255,.4);stroke-width:.8;transform-origin:60px 60px;animation:referenceRadarSweep 5s linear infinite}
+@keyframes referenceRadarSweep{to{transform:rotate(360deg)}}
+body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibility:hidden!important;opacity:0!important}
+@media(max-width:480px){#leftReferenceHUD{left:3.4%;top:30.5%;width:clamp(104px,16.2vw,122px)}.reference-status-heading{font-size:9px}.reference-status-box{padding:6px 7px 5px}.reference-status-box>div{min-height:19px;font-size:9px}.reference-radar{width:clamp(88px,14vw,105px);margin-top:22px}}
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 <div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
@@ -598,158 +616,25 @@ body.auth-locked #rightTelemetryHUD,body.home-revealing #rightTelemetryHUD{visib
     </div>
 
 </div>
-<div id="leftHUD" class="sideHUD">
-<div class="hud-card">
-<div class="hud-card-header">
-<span class="hud-card-title">SYSTEM STATUS</span>
-<span class="hud-dots">...</span>
-</div>
-<div class="status-row network-status-row">
-<div class="status-label-group">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<circle cx="12" cy="12" r="9"/>
-<path d="M3.6 9h16.8M3.6 15h16.8M12 3a15.3 15.3 0 0 1 4 18M12 3a15.3 15.3 0 0 0-4 18"/>
-</svg>
-NETWORK
-</div>
-<div class="status-bar-bg">
-<div class="status-bar-fill" style="width:98%;"></div>
-</div>
-
-<div class="status-value" id="hudNetwork">STANDBY</div>
-
-</div>
-<div class="status-row">
-<div class="status-label-group">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M12 20v-6M6 20V10M18 20V4"/>
-</svg>
-SIGNAL
-</div>
-<div class="status-bar-bg"><div class="status-bar-fill" style="width:86%;"></div>
-</div>
-
-<div class="status-value" id="hudSignal">STANDBY</div>
-
-</div>
-<div class="status-row">
-<div class="status-label-group">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<rect x="4" y="4" width="16" height="16" rx="2"/>
-<path d="M9 9h6v6H9zM9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>
-</svg>
-SYS LOAD
-</div>
-<div class="status-bar-bg">
-<div class="status-bar-fill" style="width:42%;"></div>
-</div>
-
-<div class="status-value" id="hudSysLoad">READY</div>
-
-</div>
-<div class="status-row">
-<div class="status-label-group">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-</svg>
-ACTIVITY
-</div>
-<div class="status-bar-bg">
-<div class="status-bar-fill" style="width:24%;"></div>
-</div>
-
-<div class="status-value" id="hudActivity">IDLE</div>
-
-</div>
-</div>
-<div class="hud-card">
-<div class="hud-card-header">
-<span class="hud-card-title">DEVICE STATUS</span>
-<span class="hud-dots">...</span>
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<rect x="5" y="2" width="14" height="20" rx="2"/>
-<path d="M12 18h.01"/>
-</svg>DEVICE
-</div>
-
-<div class="device-status-right">
-<span class="status-dot"></span>
-<span id="hudDevice">ONLINE</span>
-</div>
-
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95
-0M12 20h.01"/>
-</svg>
-Wi-Fi
-</div>
-
-<div class="device-status-right">
-<span class="status-dot"></span>
-<span id="hudWifi">CONNECTED</span>
-</div>
-
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="m6.5 6.5 11 11L12 23V1l5.5 5.5-11 11"/>
-</svg>
-Bluetooth
-</div>
-<div class="device-status-right">
-<span class="status-dot"></span>
-ON
-</div>
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<rect x="2" y="7" width="18" height="10" rx="2"/>
-<path d="M22 11v2"/>
-</svg>
-BATTERY
-</div>
-
-<div class="battery-inline-container">
-<span
-    id="hudBattery"
-    style="font-size:11px;color:#e0f2ff;font-weight:bold;"
->
---%
-</span>
-
-<div class="mini-battery-frame">
-    <div
-        class="mini-battery-inner"
-        id="hudBatteryFill"
-    ></div>
-</div>
-</div>
-
-</div>
-<div class="device-row">
-<div class="device-info-left">
-<svg class="hud-icon" viewBox="0 0 24 24">
-<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-</svg>
-POWER
-</div>
-
-<div class="device-status-right">
-<span class="status-dot"></span>
-<span id="hudPower">CHARGING</span>
-</div>
-
-</div>
-</div>
-</div>
+<div id="leftReferenceHUD" aria-hidden="true">
+  <div class="reference-status-heading">
+    <span>SYSTEM<br>STATUS</span>
+    <span class="reference-status-bars"><i></i><i></i><i></i><i></i></span>
+  </div>
+  <div class="reference-status-box">
+    <div><span>CPU</span><b>12%</b></div>
+    <div><span>MEM</span><b>28%</b></div>
+    <div><span>NET</span><b>1.26Gbps</b></div>
+  </div>
+  <svg class="reference-radar" viewBox="0 0 120 120">
+    <g class="reference-radar-lines">
+      <circle cx="60" cy="60" r="43"/><circle cx="60" cy="60" r="31"/><circle cx="60" cy="60" r="18"/>
+      <path d="M60 5V115M5 60H115M22 22L98 98M98 22L22 98"/>
+      <path d="M60 0V13M60 107V120M0 60H13M107 60H120"/>
+    </g>
+    <circle class="reference-radar-center" cx="60" cy="60" r="2.2"/>
+    <path class="reference-radar-sweep" d="M60 60L60 17A43 43 0 0 1 89 28Z"/>
+  </svg>
 </div>
 <div id="rightHUD" class="sideHUD">
 <div class="hud-card">
