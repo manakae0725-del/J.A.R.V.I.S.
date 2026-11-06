@@ -806,42 +806,7 @@ function drawCore(r){
  ctx.restore();
 
  if (!document.body.classList.contains('auth-locked')) {
-  // First-pass volumetric energy shell: spherical meridians, latitude bands and moving light currents.
-   // Kept in Canvas 2D so the existing iPhone rendering path and auth integration remain intact.
-   ctx.save();
-   ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.clip();
-   ctx.globalCompositeOperation='screen';
-   const meshPulse=.5+.5*Math.sin(t*.8);
-   const meshStroke=(alpha)=>'rgba(105,205,255,'+alpha+')';
-   // Longitude curves create a spherical wireframe instead of a flat circular disc.
-   for(let i=0;i<7;i++){
-    const tilt=(i-3)*.235;
-    const rx=r*(.22+.78*Math.sqrt(Math.max(.04,1-tilt*tilt)));
-    const ry=r*(.98-Math.abs(tilt)*.42);
-    ctx.beginPath();ctx.ellipse(cx,cy+tilt*r*.12,rx,ry,tilt*.16,0,Math.PI*2);
-    ctx.strokeStyle=meshStroke(.075+(i===3?.11:0));ctx.lineWidth=i===3?1.05:.65;ctx.stroke();
-   }
-   // Latitude bands are intentionally broken into arcs to preserve depth and avoid a cage-like look.
-   for(let i=-2;i<=2;i++){
-    const lat=i*.34,bandY=cy+lat*r*.72,bandRx=r*Math.sqrt(1-lat*lat*.52);
-    ctx.beginPath();ctx.ellipse(cx,bandY,bandRx,Math.max(2,r*.19*(1-Math.abs(lat)*.45)),0,Math.PI*1.08,Math.PI*1.92);
-    ctx.strokeStyle=meshStroke(.13+meshPulse*.035);ctx.lineWidth=.7;ctx.stroke();
-    ctx.beginPath();ctx.ellipse(cx,bandY,bandRx,Math.max(2,r*.19*(1-Math.abs(lat)*.45)),0,Math.PI*.08,Math.PI*.92);
-    ctx.strokeStyle=meshStroke(.055);ctx.lineWidth=.55;ctx.stroke();
-   }
-   // Three orbiting energy filaments, each with a moving luminous segment.
-   for(let i=0;i<3;i++){
-    const rot=t*(.22+i*.075)+i*2.094,rx=r*(1.04+i*.055),ry=r*(.31+i*.045);
-    ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);
-    ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);
-    ctx.strokeStyle='rgba(135,225,255,'+(.19+i*.035)+')';ctx.lineWidth=.95;ctx.shadowColor='#b8f4ff';ctx.shadowBlur=3;ctx.stroke();ctx.shadowBlur=0;
-    const head=(t*(.42+i*.13)+i*.31)%(Math.PI*2);
-    const hx=Math.cos(head)*rx,hy=Math.sin(head)*ry;
-    const halo=ctx.createRadialGradient(hx,hy,0,hx,hy,r*.105);
-    halo.addColorStop(0,'rgba(255,255,255,1)');halo.addColorStop(.12,'rgba(190,245,255,.88)');halo.addColorStop(.28,'rgba(70,195,255,.58)');halo.addColorStop(1,'rgba(35,135,255,0)');
-    ctx.fillStyle=halo;ctx.beginPath();ctx.arc(hx,hy,r*.105,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-   }
+  // Rotating Core wireframe and orbiting filaments removed as requested.
    // A compact inner reactor gives the sphere a visible source of energy.
    const corePulse=.88+.12*Math.sin(t*2.15);
    const nucleus=ctx.createRadialGradient(cx-r*.035,cy-r*.045,0,cx,cy,r*.43);
