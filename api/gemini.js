@@ -732,6 +732,55 @@ module.exports = async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
+  if (req.body && req.body.mode === "usage-summary") {
+    if (!(await enforceRateLimit(res, user, "usage-summary-minute", 20, 60))) return;
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SECRET_KEY;
+    if (!supabaseUrl || !serviceKey) return res.status(503).json({ error: "Usage storage unavailable" });
+    try {
+      const now = new Date();
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+      const params = new URLSearchParams({
+        select: "provider,service,success,input_tokens,output_tokens,total_tokens,character_count,estimated_cost_usd,cost_status,created_at",
+        user_id: "eq." + user.id,
+        created_at: "gte." + monthStart,
+        order: "created_at.desc",
+        limit: "5000"
+      });
+      const usageResponse = await fetch(supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/api_usage?" + params, {
+        headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!usageResponse.ok) throw new Error("Usage query failed");
+      const rows = await usageResponse.json();
+      const byProvider = {};
+      const totals = { requests: rows.length, successful: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, characters: 0, knownCostUsd: 0, pricedRecords: 0, unpricedRecords: 0 };
+      for (const row of rows) {
+        const provider = typeof row.provider === "string" ? row.provider : "unknown";
+        const item = byProvider[provider] || (byProvider[provider] = { requests: 0, successful: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, characters: 0, knownCostUsd: 0, unpricedRecords: 0 });
+        item.requests++;
+        if (row.success === true) { totals.successful++; item.successful++; }
+        const input = Number.isFinite(row.input_tokens) ? row.input_tokens : 0;
+        const output = Number.isFinite(row.output_tokens) ? row.output_tokens : 0;
+        const total = Number.isFinite(row.total_tokens) ? row.total_tokens : input + output;
+        const chars = Number.isFinite(row.character_count) ? row.character_count : 0;
+        totals.inputTokens += input; totals.outputTokens += output; totals.totalTokens += total; totals.characters += chars;
+        item.inputTokens += input; item.outputTokens += output; item.totalTokens += total; item.characters += chars;
+        if (row.estimated_cost_usd !== null && Number.isFinite(Number(row.estimated_cost_usd))) {
+          const cost = Number(row.estimated_cost_usd);
+          totals.knownCostUsd += cost; item.knownCostUsd += cost; totals.pricedRecords++;
+        } else if (row.cost_status !== "free") {
+          totals.unpricedRecords++; item.unpricedRecords++;
+        }
+      }
+      totals.knownCostUsd = Number(totals.knownCostUsd.toFixed(8));
+      return res.status(200).json({ ok: true, period: { start: monthStart, timezone: "UTC" }, totals, byProvider });
+    } catch (error) {
+      console.error("API usage summary failed", { name: error?.name || "Error" });
+      return res.status(503).json({ error: "Usage summary unavailable" });
+    }
+  }
+
   if (req.body && req.body.mode === "weather-source-check") {
     if (!(await enforceRateLimit(res, user, "weather-source-check-minute", 3, 60))) return;
     try {
