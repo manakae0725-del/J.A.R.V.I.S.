@@ -828,6 +828,42 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   }
 }
 
+
+/* 2026-11-07: match the reference attachment controls and separate the task buttons slightly. */
+.attachment-icon-group{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.attachment-icon-button{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:36px!important;height:34px!important;min-width:36px!important;min-height:34px!important;
+  padding:6px!important;border:0!important;border-radius:0!important;
+  background:linear-gradient(145deg,rgba(8,62,88,.92),rgba(2,25,43,.98))!important;
+  clip-path:polygon(0 7px,7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px))!important;
+  box-shadow:none!important;filter:drop-shadow(0 0 .7px rgba(0,205,235,.78)) drop-shadow(0 0 2px rgba(0,150,205,.2))!important;
+}
+.attachment-icon-button svg{display:block;width:21px;height:21px;fill:none;stroke:#73eaff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 3px rgba(0,205,255,.48))}
+.attachment-copy{display:flex;flex:1 1 auto;min-width:0;flex-direction:column;justify-content:center;gap:3px}
+.input-attachment-label{font:9px/1.2 monospace!important;letter-spacing:1.25px;color:#eaf7fc!important;white-space:nowrap}
+.input-attachment-note{font:7px/1.35 monospace!important;letter-spacing:.1px;color:rgba(222,239,247,.84)!important;white-space:normal}
+#attachFileButton,#attachImageButton{cursor:pointer}
+.input-task-row{column-gap:5.5%!important}
+@media(max-width:600px){
+  .input-attachment-row{gap:7px}
+  .attachment-icon-group{gap:5px}
+  .attachment-icon-button{width:35px!important;height:34px!important;min-width:35px!important;padding:6px!important}
+  .attachment-icon-button svg{width:20px;height:20px}
+  .input-attachment-label{font-size:8px!important;letter-spacing:1px}
+  .input-attachment-note{font-size:6.5px!important;letter-spacing:0}
+  .input-task-row{column-gap:5.5%!important}
+}
+@media(max-width:380px){
+  .input-attachment-row{gap:5px}
+  .attachment-icon-group{gap:4px}
+  .attachment-icon-button{width:32px!important;min-width:32px!important}
+  .attachment-icon-button svg{width:18px;height:18px}
+  .input-attachment-label{font-size:7.5px!important;letter-spacing:.8px}
+  .input-attachment-note{font-size:6px!important}
+  .input-task-row{column-gap:5%!important}
+}
+
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
   <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
@@ -995,10 +1031,18 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
     </svg>
 
     <div id="attachmentControls" class="input-attachment-row">
-      <button id="attachFileButton" type="button" aria-label="ファイルを添付">
-        <span class="attach-glyph" aria-hidden="true">⌁</span><span>FILE ATTACH</span>
-      </button>
-      <span class="input-attachment-note">IMG / PDF / TXT　(MAX 5 / 20MB)</span>
+      <div class="attachment-icon-group" aria-label="添付方法">
+        <button id="attachFileButton" class="attachment-icon-button" type="button" aria-label="ファイルを添付" title="ファイルを添付">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 12.5 15.7 5.3a4 4 0 0 1 5.7 5.7l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2" /></svg>
+        </button>
+        <button id="attachImageButton" class="attachment-icon-button" type="button" aria-label="画像を添付" title="画像を添付">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.8"/><circle cx="8.2" cy="9" r="1.7"/><path d="m4 17 5.2-5 3.2 3 2.5-2.2L20 17"/></svg>
+        </button>
+      </div>
+      <div class="attachment-copy">
+        <span class="input-attachment-label">FILE ATTACH</span>
+        <span class="input-attachment-note">IMG / PDF / TXT (MAX 5 / 20MB)</span>
+      </div>
       <input id="attachmentInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" multiple hidden>
       <button id="sendButton" type="button">TRANSMIT</button>
     </div>
@@ -1649,6 +1693,7 @@ const sendButton =
     document.getElementById("sendButton");
 const attachmentInput = document.getElementById("attachmentInput");
 const attachFileButton = document.getElementById("attachFileButton");
+const attachImageButton = document.getElementById("attachImageButton");
 const attachmentPreview = document.getElementById("attachmentPreview");
 let jarvisPendingAttachments = [];
 const JARVIS_ATTACHMENT_RULES = {
@@ -1682,6 +1727,7 @@ function renderJarvisAttachments() {
 }
 if (attachFileButton && attachmentInput) {
   attachFileButton.addEventListener("click", () => attachmentInput.click());
+  if (attachImageButton) attachImageButton.addEventListener("click", () => attachmentInput.click());
   attachmentInput.addEventListener("change", () => {
     const incoming = Array.from(attachmentInput.files || []);
     const next = [...jarvisPendingAttachments];
