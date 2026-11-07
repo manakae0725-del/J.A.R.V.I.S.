@@ -579,6 +579,37 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   #textArea,#textInput,#sendButton{transition:none}
 }
 
+
+/* 2026-11-07 refinement: white typography and compact controls to match reference panel. */
+#textArea,#textArea *{color:#e8f5fb}
+#textArea:before{color:#edfaff;text-shadow:0 0 7px rgba(210,242,255,.18);letter-spacing:2.5px}
+#textInput{color:#f0f8fc}
+#textInput::placeholder,#textInput::-webkit-input-placeholder{
+  color:rgba(224,239,247,.78);font:10px/1.4 monospace;letter-spacing:2px;text-shadow:0 0 5px rgba(220,240,250,.12)
+}
+#attachFileButton{color:#eaf5fa!important}
+.input-attachment-note{color:rgba(224,238,246,.86)}
+#sendButton{
+  min-width:126px;height:36px;padding:0 13px;border-radius:0;
+  color:#f0f8fc;font-size:11px;letter-spacing:2px;
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+}
+#backgroundModeToggle,#backgroundTasksToggle{
+  min-height:32px;padding:5px 8px;border-radius:4px;
+  color:#edf6fa!important;font-size:10px!important;letter-spacing:.8px;
+}
+@media(max-width:600px){
+  #textArea:before{color:#edfaff}
+  #textInput::placeholder,#textInput::-webkit-input-placeholder{font-size:9px;letter-spacing:1.8px}
+  #sendButton{min-width:108px;height:30px;padding:0 9px;font-size:10px;letter-spacing:1.5px}
+  #sendButton:before{width:6px;height:6px;margin-right:7px}
+  #backgroundModeToggle,#backgroundTasksToggle{min-height:29px;padding:4px 5px;font-size:9px!important;letter-spacing:.45px}
+}
+@media(max-width:360px){
+  #sendButton{min-width:100px;height:29px;padding:0 7px}
+  #backgroundModeToggle,#backgroundTasksToggle{font-size:8px!important;letter-spacing:.2px}
+}
+
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
   <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
