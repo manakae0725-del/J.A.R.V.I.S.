@@ -3,6 +3,20 @@ const MAX_INPUT_CHARS = 24000;
 const MAX_OUTPUT_TOKENS = 1200;
 const ALLOWED_PROVIDERS = new Set(["gemini", "openai", "anthropic"]);
 
+function extractUsage(data) {
+  const usage = data?.usage || data?.usage_metadata || data?.usageMetadata || {};
+  const inputTokens = Number.isFinite(usage.input_tokens) ? usage.input_tokens
+    : Number.isFinite(usage.prompt_tokens) ? usage.prompt_tokens
+    : Number.isFinite(usage.promptTokenCount) ? usage.promptTokenCount : null;
+  const outputTokens = Number.isFinite(usage.output_tokens) ? usage.output_tokens
+    : Number.isFinite(usage.completion_tokens) ? usage.completion_tokens
+    : Number.isFinite(usage.candidatesTokenCount) ? usage.candidatesTokenCount : null;
+  const totalTokens = Number.isFinite(usage.total_tokens) ? usage.total_tokens
+    : Number.isFinite(usage.totalTokenCount) ? usage.totalTokenCount
+    : inputTokens !== null && outputTokens !== null ? inputTokens + outputTokens : null;
+  return { inputTokens, outputTokens, totalTokens };
+}
+
 function safeError(code, provider, statusCode = null) {
   const error = new Error(code);
   error.code = code;
@@ -83,7 +97,7 @@ async function callGemini({ systemInstruction, userInput, maxOutputTokens, timeo
     }
   }
   if (!text) throw safeError("INVALID_RESPONSE", "gemini");
-  return { provider: "gemini", model, text };
+  return { provider: "gemini", model, text, usage: extractUsage(data) };
 }
 
 async function callOpenAI({ systemInstruction, userInput, maxOutputTokens, timeoutMs, responseFormat }) {
@@ -121,7 +135,7 @@ async function callOpenAI({ systemInstruction, userInput, maxOutputTokens, timeo
     error.incompleteReason = typeof data.incomplete_details?.reason === "string" ? data.incomplete_details.reason : null;
     throw error;
   }
-  return { provider: "openai", model, text };
+  return { provider: "openai", model, text, usage: extractUsage(data) };
 }
 
 async function callAnthropic({ systemInstruction, userInput, maxOutputTokens, timeoutMs }) {
@@ -148,10 +162,10 @@ async function callAnthropic({ systemInstruction, userInput, maxOutputTokens, ti
     ? data.content.filter(part => part?.type === "text" && typeof part.text === "string").map(part => part.text).join("\n")
     : "";
   if (!text) throw safeError("INVALID_RESPONSE", "anthropic");
-  return { provider: "anthropic", model, text };
+  return { provider: "anthropic", model, text, usage: extractUsage(data) };
 }
 
-async function logUsage(provider, success, statusCode, durationMs, errorCode = null, diagnostics = {}) {
+async function logUsage(provider, success, statusCode, durationMs, errorCode = null, diagnostics = {}, usage = {}) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !supabaseKey) return;
@@ -173,6 +187,10 @@ async function logUsage(provider, success, statusCode, durationMs, errorCode = n
         success,
         status_code: statusCode,
         duration_ms: durationMs,
+        input_tokens: usage.inputTokens ?? null,
+        output_tokens: usage.outputTokens ?? null,
+        total_tokens: usage.totalTokens ?? null,
+        cost_status: "unpriced",
         metadata: errorCode ? { error: errorCode, ...diagnostics } : {}
       })
     });
@@ -250,7 +268,7 @@ async function runAiCouncil(options = {}) {
         responseFormat: provider === "openai" && options.responseFormat === "json_object" ? "json_object" : undefined
       });
       const durationMs = Date.now() - startedAt;
-      await logUsage(provider, true, 200, durationMs);
+      await logUsage(provider, true, 200, durationMs, null, {}, result.usage);
       return { ok: true, ...result, role: PROVIDER_ROLES[provider], durationMs };
     } catch (error) {
       const durationMs = Date.now() - startedAt;
@@ -284,7 +302,7 @@ async function testOpenAIConnection(options = {}) {
       timeoutMs: 8000
     });
     const durationMs = Date.now() - startedAt;
-    await logUsage("openai", true, 200, durationMs);
+    await logUsage("openai", true, 200, durationMs, null, {}, result.usage);
     return { ok: true, provider: "openai", model: result.model, text: result.text.slice(0, 200), durationMs };
   } catch (error) {
     const durationMs = Date.now() - startedAt;
