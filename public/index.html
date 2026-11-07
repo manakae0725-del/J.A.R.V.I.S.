@@ -710,6 +710,59 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
 }
 @media(max-width:600px){.input-console-mark{top:9px;right:13px;font-size:14px;letter-spacing:1.5px}}
 
+
+/* 2026-11-07: layered holographic waveform and metallic console accents. */
+.input-field-shell{
+  position:relative;width:100%;height:68px;overflow:hidden;isolation:isolate;
+  border:1px solid rgba(112,204,226,.68);border-radius:7px;
+  background:
+    radial-gradient(ellipse at 52% 115%,rgba(0,173,224,.12),transparent 58%),
+    linear-gradient(180deg,rgba(5,24,39,.96),rgba(0,12,25,.94));
+  box-shadow:inset 0 1px 0 rgba(220,249,255,.17),inset 0 0 18px rgba(0,137,196,.12),0 1px 0 rgba(194,238,248,.10);
+  transition:border-color .25s ease,box-shadow .25s ease
+}
+.input-field-shell:focus-within{
+  border-color:rgba(105,231,250,.88);
+  box-shadow:0 0 14px rgba(0,190,235,.15),inset 0 0 20px rgba(0,153,220,.15)
+}
+#textInput{
+  position:relative;z-index:2;width:100%;height:100%;min-height:0;max-height:none;
+  border:0!important;border-radius:0!important;background:transparent!important;
+  box-shadow:none!important;padding:10px 11px 32px!important;
+}
+#textInput:focus{border:0!important;box-shadow:none!important;background:transparent!important}
+.input-waveform{
+  position:absolute;z-index:1;left:0;right:0;bottom:1px;width:100%;height:31px;
+  overflow:visible;pointer-events:none;opacity:.9;
+  mask-image:linear-gradient(90deg,transparent 0%,#000 13%,#000 88%,transparent 100%);
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 13%,#000 88%,transparent 100%);
+}
+.wave-motion{transform-origin:50% 50%;animation:waveDrift 8s ease-in-out infinite alternate}
+.wave-glow{animation:waveBreathe 5.5s ease-in-out infinite alternate}
+.wave-line{stroke-dasharray:7 5;animation:waveFlow 12s linear infinite}
+.wave-line-front{stroke-dasharray:3 8;animation-duration:16s;animation-direction:reverse}
+.wave-highlight{animation:waveHighlight 6s ease-in-out infinite alternate}
+@keyframes waveDrift{0%{transform:translateX(-1.2%) scaleY(.92)}100%{transform:translateX(1.2%) scaleY(1.06)}}
+@keyframes waveBreathe{0%{opacity:.12}100%{opacity:.32}}
+@keyframes waveFlow{to{stroke-dashoffset:-144}}
+@keyframes waveHighlight{0%{opacity:.12;transform:translateX(-8px)}100%{opacity:.58;transform:translateX(8px)}}
+.input-console-mark{
+  background:linear-gradient(180deg,#d5faff 0%,#62cde2 48%,#a8f0fa 70%,#368aa8 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent!important;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 7px rgba(55,197,231,.28),0 0 15px rgba(0,153,205,.16);
+  font-size:18px;font-weight:700;letter-spacing:3px;transform:skewX(-18deg)
+}
+@media(max-width:600px){
+  .input-field-shell{height:68px}
+  #textInput{padding:10px 11px 31px!important}
+  .input-waveform{height:29px;bottom:1px}
+  .input-console-mark{font-size:17px;letter-spacing:2.5px}
+}
+@media(prefers-reduced-motion:reduce){
+  .wave-motion,.wave-glow,.wave-line,.wave-line-front,.wave-highlight{animation:none!important}
+}
+
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
   <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
@@ -832,10 +885,38 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
 </div>
 <div id="textArea">
 
-    <textarea
-        id="textInput"
-        placeholder="AWAITING INPUT"
-    ></textarea>
+    <div class="input-field-shell">
+      <textarea
+          id="textInput"
+          placeholder="AWAITING INPUT"
+      ></textarea>
+      <svg class="input-waveform" viewBox="0 0 600 64" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="waveRibbonFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#35dfff" stop-opacity=".23"/>
+            <stop offset=".48" stop-color="#159bd4" stop-opacity=".10"/>
+            <stop offset="1" stop-color="#0876b5" stop-opacity=".015"/>
+          </linearGradient>
+          <linearGradient id="waveRibbonLine" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#31dfff" stop-opacity=".10"/>
+            <stop offset=".32" stop-color="#63efff" stop-opacity=".62"/>
+            <stop offset=".52" stop-color="#b1f8ff" stop-opacity=".92"/>
+            <stop offset=".76" stop-color="#36d9ff" stop-opacity=".54"/>
+            <stop offset="1" stop-color="#24bde9" stop-opacity=".12"/>
+          </linearGradient>
+          <filter id="waveSoftGlow" x="-20%" y="-100%" width="140%" height="300%">
+            <feGaussianBlur stdDeviation="5"/>
+          </filter>
+        </defs>
+        <g class="wave-motion">
+          <path class="wave-glow" d="M0 39 C70 39 95 39 145 39 S205 34 232 19 S274 7 302 34 S344 57 376 35 S424 8 455 31 S500 55 531 39 S570 33 600 39" fill="none" stroke="#28cfff" stroke-width="13" stroke-linecap="round" opacity=".22" filter="url(#waveSoftGlow)"/>
+          <path class="wave-ribbon" d="M0 39 C70 39 95 39 145 39 S205 34 232 19 S274 7 302 34 S344 57 376 35 S424 8 455 31 S500 55 531 39 S570 33 600 39 L600 55 C560 49 548 52 531 51 S485 64 455 46 S404 26 376 49 S329 64 302 47 S259 23 232 34 S177 49 145 48 S62 48 0 48Z" fill="url(#waveRibbonFill)"/>
+          <path class="wave-line wave-line-back" d="M0 41 C70 41 95 41 145 41 S205 36 232 22 S274 10 302 36 S344 59 376 38 S424 11 455 34 S500 57 531 42 S570 36 600 41" fill="none" stroke="url(#waveRibbonLine)" stroke-width="1.8"/>
+          <path class="wave-line wave-line-front" d="M0 43 C70 43 95 43 145 43 S205 38 232 24 S274 12 302 38 S344 61 376 40 S424 13 455 36 S500 59 531 44 S570 38 600 43" fill="none" stroke="#8cefff" stroke-opacity=".28" stroke-width=".8"/>
+          <path class="wave-highlight" d="M180 40 C211 37 220 20 244 17 S278 20 302 39 S345 54 376 37 S424 15 452 31" fill="none" stroke="#b9faff" stroke-opacity=".45" stroke-width="1.05"/>
+        </g>
+      </svg>
+    </div>
     <span class="input-console-mark" aria-hidden="true">///</span>
 
     <div id="attachmentControls" class="input-attachment-row">
