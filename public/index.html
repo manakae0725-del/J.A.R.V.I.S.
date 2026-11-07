@@ -1090,17 +1090,38 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
 }
 #textArea #backgroundModeToggle:before,
 #textArea #backgroundTasksToggle:before{display:none!important;content:none!important}
-#textArea #backgroundModeToggle[aria-pressed="true"]:after{
-  content:"ON";
-  position:absolute;
-  left:75%;
-  top:50%;
-  transform:translateY(-50%);
-  display:block;
-  color:#74f4ff;
-  font:clamp(9px,1.4vw,12px) monospace;
-  letter-spacing:1px;
-  text-shadow:0 0 7px rgba(0,220,255,.85);
+/* The source PNG contains a baked-in OFF label. Cover only that glyph area and render live state. */
+#textArea #backgroundModeToggle{opacity:1!important}
+#textArea #backgroundModeToggle:before{
+  content:""!important;
+  position:absolute!important;
+  left:69%!important;
+  top:16%!important;
+  width:13%!important;
+  height:28%!important;
+  display:block!important;
+  background:linear-gradient(135deg,rgba(3,22,33,.99),rgba(8,29,40,.99))!important;
+  border-radius:2px!important;
+  z-index:1!important;
+  pointer-events:none!important;
+}
+#textArea #backgroundModeToggle:after{
+  content:attr(data-state)!important;
+  position:absolute!important;
+  left:69%!important;
+  top:16%!important;
+  width:13%!important;
+  height:28%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  transform:none!important;
+  color:#bcefff!important;
+  font:clamp(9px,1.4vw,12px) monospace!important;
+  letter-spacing:1px!important;
+  text-shadow:0 0 7px rgba(0,220,255,.85)!important;
+  z-index:2!important;
+  pointer-events:none!important;
 }
 
 /* Dynamic attachment previews and the task list stay functional above the image. */
@@ -2102,6 +2123,7 @@ function setBackgroundMode(enabled) {
     const button = document.getElementById("backgroundModeToggle");
     if (!button) return;
     button.textContent = backgroundModeEnabled ? "RUN AS TASK: ON" : "RUN AS TASK: OFF";
+    button.dataset.state = backgroundModeEnabled ? "ON" : "OFF";
     button.setAttribute("aria-pressed", backgroundModeEnabled ? "true" : "false");
     button.style.color = backgroundModeEnabled ? "#ffffff" : "#9bcfff";
     button.style.borderColor = backgroundModeEnabled ? "#56c7ff" : "#258bc4";
