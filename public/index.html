@@ -468,11 +468,23 @@ body:not(.auth-locked):not(.home-revealing):after{right:14px;border-right:1px so
 #textArea{
   position:fixed;left:50%;top:auto;bottom:max(14px,env(safe-area-inset-bottom) + 12px);
   width:min(94vw,680px);max-width:680px;padding:17px 18px 14px;
-  border:1px solid rgba(72,220,255,.72);border-radius:18px 18px 9px 9px;
+  border:2px solid transparent;border-radius:18px 18px 9px 9px;
   background:
-    radial-gradient(ellipse at 50% 100%,rgba(0,174,220,.15),transparent 58%),
-    linear-gradient(112deg,rgba(0,34,58,.88),rgba(0,13,31,.91) 52%,rgba(0,29,52,.86));
-  box-shadow:0 0 24px rgba(0,177,255,.2),0 0 58px rgba(0,118,210,.1),inset 0 0 24px rgba(0,192,255,.1),inset 0 1px 0 rgba(190,247,255,.16);
+    linear-gradient(155deg,rgba(175,231,246,.13) 0%,rgba(32,83,105,.08) 13%,transparent 29%),
+    radial-gradient(ellipse at 50% 100%,rgba(0,174,220,.13),transparent 58%),
+    linear-gradient(112deg,rgba(0,34,58,.91),rgba(0,13,31,.94) 52%,rgba(0,29,52,.9)) padding-box,
+    linear-gradient(132deg,#d8f7ff 0%,#4c8da5 7%,#142f42 17%,#79c9df 34%,#244e63 49%,#b9eaf5 64%,#1a3c50 80%,#c9f3fc 93%,#365f72 100%) border-box;
+  box-shadow:
+    0 0 0 1px rgba(2,12,24,.95),
+    0 0 0 3px rgba(75,153,178,.24),
+    0 0 25px rgba(0,177,255,.22),
+    0 0 58px rgba(0,118,210,.12),
+    inset 0 1px 0 rgba(239,253,255,.72),
+    inset 0 3px 5px rgba(178,232,246,.18),
+    inset 0 -2px 7px rgba(0,5,14,.92),
+    inset 2px 0 5px rgba(157,223,239,.14),
+    inset -2px 0 5px rgba(0,5,14,.72),
+    inset 0 0 24px rgba(0,192,255,.09);
   -webkit-backdrop-filter:blur(16px) saturate(135%);backdrop-filter:blur(16px) saturate(135%);
   clip-path:polygon(0 13px,12px 0,18% 2px,50% 9px,82% 2px,calc(100% - 12px) 0,100% 13px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px));
   transform:translate(-50%,10px);transition:opacity .32s ease,transform .38s cubic-bezier(.2,.75,.25,1),visibility .32s ease;
@@ -485,15 +497,18 @@ body:not(.auth-locked):not(.home-revealing):after{right:14px;border-right:1px so
   text-shadow:0 0 10px rgba(0,190,255,.28)
 }
 #textArea:after{
-  content:"";position:absolute;left:5%;right:5%;bottom:5px;height:1px;pointer-events:none;
-  background:linear-gradient(90deg,transparent,rgba(63,224,255,.62),transparent);opacity:.75
+  content:"";position:absolute;left:4px;right:4px;top:4px;bottom:4px;pointer-events:none;
+  border:1px solid rgba(179,231,245,.18);border-radius:13px 13px 6px 6px;
+  box-shadow:inset 0 1px 0 rgba(238,253,255,.24),inset 0 -1px 0 rgba(0,5,14,.6);
+  background:linear-gradient(112deg,rgba(221,249,255,.06),transparent 18%,transparent 78%,rgba(143,219,239,.05));
+  clip-path:polygon(0 10px,10px 0,18% 0,50% 7px,82% 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px))
 }
 #textInput{
   display:block;width:100%;height:76px;min-height:76px;max-height:25vh;padding:12px 14px;
-  border:1px solid rgba(69,194,239,.48);border-radius:7px;
-  background:linear-gradient(115deg,rgba(0,9,24,.68),rgba(0,21,39,.58));
+  border:1px solid rgba(128,202,222,.62);border-radius:7px;
+  background:linear-gradient(180deg,rgba(8,24,39,.92),rgba(0,13,27,.82));
   color:#e8f9ff;font:14px/1.5 monospace;letter-spacing:.5px;
-  box-shadow:inset 0 0 18px rgba(0,129,205,.12),inset 0 1px 0 rgba(190,240,255,.05);
+  box-shadow:inset 0 1px 0 rgba(225,249,255,.16),inset 0 0 18px rgba(0,129,205,.12),0 1px 0 rgba(205,239,248,.12);
   resize:none;outline:none;transition:border-color .25s ease,box-shadow .25s ease,background .25s ease
 }
 #textInput:focus{
@@ -519,10 +534,10 @@ body:not(.auth-locked):not(.home-revealing):after{right:14px;border-right:1px so
 #sendButton{
   display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
   min-width:142px;height:44px;margin:0 0 0 auto;padding:0 17px;
-  border:1px solid rgba(75,226,255,.92);border-radius:5px;
-  background:linear-gradient(105deg,rgba(0,101,157,.8),rgba(0,51,91,.92));
-  color:#d6f8ff;font: bold 12px monospace;letter-spacing:2.5px;
-  box-shadow:inset 0 0 15px rgba(0,200,255,.16),0 0 15px rgba(0,184,255,.2),inset 0 1px 0 rgba(220,250,255,.2);
+  border:1px solid rgba(191,241,250,.92);border-radius:5px;
+  background:linear-gradient(155deg,rgba(158,216,230,.38),rgba(13,92,129,.96) 30%,rgba(0,39,72,.98) 72%,rgba(92,163,184,.55));
+  color:#e3fbff;font: bold 12px monospace;letter-spacing:2.5px;
+  box-shadow:inset 0 1px 0 rgba(245,255,255,.66),inset 0 -2px 5px rgba(0,5,15,.84),0 1px 0 rgba(222,250,255,.3),0 0 16px rgba(0,184,255,.24);
   clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
   transition:background .2s ease,box-shadow .2s ease,border-color .2s ease,filter .2s ease
 }
@@ -533,13 +548,12 @@ body:not(.auth-locked):not(.home-revealing):after{right:14px;border-right:1px so
 .input-task-row{display:flex;align-items:stretch;justify-content:space-between;gap:10px;width:100%;margin-top:10px}
 #backgroundModeToggle,#backgroundTasksToggle{
   display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;min-height:42px;padding:8px 10px;
-  border:1px solid rgba(65,203,245,.58)!important;border-radius:7px;
-  background:linear-gradient(145deg,rgba(0,57,91,.78),rgba(0,24,46,.92))!important;
-  color:#c6f3ff!important;font:11px monospace!important;letter-spacing:1.15px;
-  box-shadow:inset 0 1px 0 rgba(205,250,255,.1),inset 0 0 13px rgba(0,160,220,.1),0 0 10px rgba(0,120,190,.08)
+  border:1px solid rgba(151,212,228,.7)!important;border-radius:7px;
+  background:linear-gradient(155deg,rgba(108,164,182,.3),rgba(16,54,73,.96) 40%,rgba(3,23,41,.98) 76%,rgba(65,119,139,.45))!important;
+  color:#d7f6ff!important;font:11px monospace!important;letter-spacing:1.15px;
+  box-shadow:inset 0 1px 0 rgba(232,251,255,.36),inset 0 -2px 4px rgba(0,5,14,.78),0 1px 0 rgba(205,242,250,.22),0 0 10px rgba(0,120,190,.1)
 }
 #backgroundModeToggle[aria-pressed="true"]{border-color:rgba(105,241,255,.95)!important;box-shadow:0 0 15px rgba(0,200,255,.25),inset 0 0 15px rgba(0,180,255,.18)}
-.input-helper{margin-top:8px;color:rgba(151,210,237,.82);font:9px/1.5 monospace;text-align:center}
 body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inset-bottom) + 12px);max-height:88vh;overflow-y:auto}
 @media(max-width:600px){
   #textArea{width:calc(100% - 30px);padding:15px 13px 13px;bottom:max(12px,env(safe-area-inset-bottom) + 10px)}
@@ -552,7 +566,6 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   #sendButton{min-width:119px;height:42px;padding:0 11px;font-size:11px;letter-spacing:1.8px}
   .input-task-row{gap:8px;margin-top:9px}
   #backgroundModeToggle,#backgroundTasksToggle{min-height:40px;padding:7px 5px;font-size:10px!important;letter-spacing:.6px}
-  .input-helper{font-size:8px;line-height:1.4;margin-top:7px}
   body.background-tasks-open #textArea{top:auto;bottom:max(12px,env(safe-area-inset-bottom) + 10px);max-height:88vh}
 }
 @media(max-width:360px){
@@ -706,7 +719,7 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
       <button id="backgroundModeToggle" type="button" aria-pressed="false">RUN AS TASK: OFF</button>
       <button id="backgroundTasksToggle" type="button">TASK LIST</button>
     </div>
-    <div class="input-helper">ONにしてから依頼を送信すると、会話とは別に作業します。OFFは通常会話です。</div>
+
     <div id="backgroundTaskPanel" hidden style="width:100%;max-height:190px;overflow-y:auto;margin-top:8px;padding:8px;background:rgba(3,15,29,.94);border:1px solid rgba(45,150,220,.45);border-radius:6px;box-sizing:border-box;text-align:left">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
         <span style="font-size:10px;letter-spacing:1.5px;color:#9bcfff">BACKGROUND TASKS</span>
