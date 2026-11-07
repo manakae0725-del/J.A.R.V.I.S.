@@ -1493,7 +1493,11 @@ body.background-tasks-open #jarvisHoloPanel{top:17%!important}
 .friday-empty{text-align:center;margin-top:7px;padding:7px 4px;background:rgba(255,150,25,.09);color:#d9b987;font-size:clamp(7px,1.7vw,9px)}
 .external-row{display:flex;justify-content:space-between;align-items:center;gap:4px;margin-top:7px;font-size:clamp(8px,1.9vw,10px);color:#d8efff}
 .external-row b{font:600 clamp(6px,1.55vw,8px) Arial,sans-serif;color:#a7c6d9;white-space:nowrap}
-@media(max-width:480px){#leftHUD.left-system-hud{left:3.8%!important;top:16.8%!important;width:38vw!important;max-height:68vh!important;gap:6px!important}#leftHUD.left-system-hud .hud-card{padding:7px 6px!important}.provider-block{padding-bottom:5px;margin-bottom:4px}.provider-metrics strong{font-size:19px}}
+/* Right HUD uses the same soft fade behavior as the left HUD, without horizontal movement. */
+#rightHUD{transform:translateX(0)!important;transition:opacity .45s ease!important}
+#rightHUD.open{transform:translateX(0)!important;opacity:1!important}
+/* Keep the complete left HUD inside the visible mobile viewport. */
+@media(max-width:480px){#leftHUD.left-system-hud{left:3.8%!important;top:16.8%!important;width:38vw!important;max-height:calc(100dvh - 16.8vh - env(safe-area-inset-bottom) - 16px)!important;gap:6px!important}#leftHUD.left-system-hud .hud-card{padding:7px 6px!important}.provider-block{padding-bottom:5px;margin-bottom:4px}.provider-metrics strong{font-size:19px}}
 
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
