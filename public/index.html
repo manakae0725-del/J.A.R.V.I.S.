@@ -981,6 +981,11 @@ body.auth-locked #rightTelemetryHUD,body.home-revealing #rightTelemetryHUD{visib
 @keyframes referenceRadarSweep{to{transform:rotate(360deg)}}
 body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibility:hidden!important;opacity:0!important}
 @media(max-width:480px){#leftReferenceHUD{left:3.4%;top:30.5%;width:clamp(104px,16.2vw,122px)}.reference-status-heading{font-size:9px}.reference-status-box{padding:6px 7px 5px}.reference-status-box>div{min-height:19px;font-size:9px}.reference-radar{width:clamp(88px,14vw,105px);margin-top:22px}}
+
+/* 2026-11-07: align the STANDBY indicator with the left SYSTEM STATUS heading. */
+.network-status-hud{top:30.5%!important}
+@media(max-width:480px){.network-status-hud{top:30.5%!important}}
+
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 <div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
