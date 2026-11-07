@@ -1366,14 +1366,18 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
 #jarvisHoloPanel:before,#jarvisHoloPanel:after{content:none!important;display:none!important}
 #jarvisHoloPanel .panel-header{display:none!important}
 #jarvisHoloPanel .voice-status{
-  position:relative!important;
+  position:absolute!important;
+  left:13.55%!important;
+  top:38.9%!important;
+  right:auto!important;
+  bottom:auto!important;
   inset:auto!important;
-  flex:0 0 auto!important;
-  margin:0 0 3px!important;
+  margin:0!important;
   padding:0!important;
   color:#bcefff!important;
   font:clamp(10px,2.8vw,15px)/1.3 monospace!important;
   letter-spacing:2px!important;
+  z-index:2!important;
 }
 #jarvisHoloPanel .voice-response{
   position:relative!important;
