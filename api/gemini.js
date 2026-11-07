@@ -981,6 +981,7 @@ module.exports = async function handler(req, res) {
       });
     }
     const result = await testOpenAIConnection({
+      userId: user.id,
       userInput: route.taskText,
       systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. Analyze the user's request and provide a concise useful response. Do not execute or claim external actions. State uncertainty where relevant.",
       maxOutputTokens: 600
@@ -3786,6 +3787,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
           ].filter(Boolean).join("\n");
 
           const result = await runAiCouncil({
+        userId: user.id,
             userInput: specialistContext.slice(0, 24000),
             systemInstruction: "You are J.A.R.V.I.S.'s specialist analyst. Analyze the supplied request using only the supplied context. Do not invent missing data or claim to execute external actions. State uncertainty and provide a concise, actionable analysis.",
             providers: configuredAutoProviders,
