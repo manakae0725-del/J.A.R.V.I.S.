@@ -57,7 +57,7 @@ async function logGoogleUsage(userId, success, statusCode, durationMs, method) {
   const serviceKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !serviceKey) return;
   try {
-    await fetch(supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/api_usage", {
+    await fetch(supabaseUrl.replace(/\/+$/, "") + "/rest/v1/api_usage", {
       method: "POST",
       headers: {
         apikey: serviceKey,
