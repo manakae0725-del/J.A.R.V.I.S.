@@ -986,6 +986,15 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
 .network-status-hud{top:30.5%!important}
 @media(max-width:480px){.network-status-hud{top:30.5%!important}}
 
+
+/* 2026-11-07: tighten the side HUD columns and place the right waveform directly below STANDBY. */
+.right-telemetry-hud{left:auto!important;right:2.5%!important;top:35.5%!important;width:clamp(92px,23vw,165px)!important}
+#leftReferenceHUD{left:2%!important;width:clamp(94px,14vw,116px)!important}
+@media(max-width:480px){
+  .right-telemetry-hud{left:auto!important;right:2.5%!important;top:35.5%!important;width:24vw!important}
+  #leftReferenceHUD{left:2%!important;width:14vw!important}
+}
+
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 <div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
