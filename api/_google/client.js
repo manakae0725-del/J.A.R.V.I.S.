@@ -52,8 +52,39 @@ async function getValidAccessToken(userId, connectionId) {
   }
 }
 
+async function logGoogleUsage(userId, success, statusCode, durationMs, method) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SECRET_KEY;
+  if (!supabaseUrl || !serviceKey) return;
+  try {
+    await fetch(supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/api_usage", {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: "Bearer " + serviceKey,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        provider: "google",
+        service: "api_request",
+        success,
+        status_code: statusCode,
+        duration_ms: durationMs,
+        cost_status: "unpriced",
+        metadata: { method }
+      }),
+      signal: AbortSignal.timeout(3000)
+    });
+  } catch (error) {
+    console.error("[API USAGE] Google usage log failed", { name: error?.name || "Error" });
+  }
+}
+
 async function googleApiRequest(userId, connectionId, url, options = {}) {
   const accessToken = await getValidAccessToken(userId, connectionId);
+  const startedAt = Date.now();
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -61,6 +92,8 @@ async function googleApiRequest(userId, connectionId, url, options = {}) {
       ...(options.headers || {})
     }
   });
+
+  await logGoogleUsage(userId, response.ok, response.status, Date.now() - startedAt, options.method || "GET");
 
   if (!response.ok) {
     const error = new Error("Google API request failed");
