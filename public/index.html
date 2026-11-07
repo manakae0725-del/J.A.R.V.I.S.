@@ -2888,8 +2888,8 @@ var touchStartX=0,touchStartY=0;
 document.addEventListener("touchstart",function(e){
 var touches=e.changedTouches;
 if(touches&&touches.length>0){
-touchStartX=touches.item(0).screenX;
-touchStartY=touches.item(0).screenY;
+touchStartX=touches.item(0).clientX;
+touchStartY=touches.item(0).clientY;
 }
 },{passive:true});
 
@@ -2936,7 +2936,8 @@ if(deltaY<-80){
     /* 横スワイプ：左HUDは左端ジェスチャーで独立開閉。右HUD操作は従来どおり */
     if(absX>absY){
         var leftHUDOpen=leftHUD&&leftHUD.classList.contains("open");
-        var startedAtLeftEdge=touchStartX<=36;
+        /* Safariの戻るジェスチャー領域を避け、左端から少し内側を開始位置にする */
+        var startedAtLeftEdge=touchStartX>=24 && touchStartX<=120;
         var startedWithinLeftHUD=touchStartX<=window.innerWidth*0.45;
 
         if(deltaX>80 && startedAtLeftEdge && leftHUD){
