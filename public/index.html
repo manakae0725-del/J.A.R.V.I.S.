@@ -1441,6 +1441,15 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
 body.background-tasks-open #jarvisHoloPanel{top:17%!important}
 @media(max-width:480px){body.background-tasks-open #jarvisHoloPanel{top:17%!important}}
 
+
+/* Subtle Core-blue tint for interface layers only; the central Core canvas is untouched. */
+.datetime,
+.network-status-hud,
+.sideHUD,
+#textArea,
+#jarvisHoloPanel{
+  filter:hue-rotate(10deg) saturate(1.04);
+}
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 <div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
