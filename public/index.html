@@ -1345,28 +1345,7 @@ function frame(){
  const hudBlue='rgba(35,175,255,';
  const hudDim='rgba(35,175,255,.19)';
  // Legacy upper-left canvas scanner removed; the reference-style SVG radar in #leftReferenceHUD remains.
- // Right: compact waveform and diagnostic readouts, deliberately unlike the left scanner.
- {
-  const x=w*.86,y=h*.425,ww=Math.min(w*.17,78),hh=Math.min(h*.09,66);
-  ctx.strokeStyle='rgba(35,175,255,.25)';ctx.lineWidth=.65;
-  for(let i=0;i<=4;i++){const yy=y-hh/2+i*hh/4;ctx.beginPath();ctx.moveTo(x-ww/2,yy);ctx.lineTo(x+ww/2,yy);ctx.stroke()}
-  for(let i=0;i<=6;i++){const xx=x-ww/2+i*ww/6;ctx.beginPath();ctx.moveTo(xx,y-hh/2);ctx.lineTo(xx,y+hh/2);ctx.stroke()}
-  ctx.beginPath();
-  for(let i=0;i<=56;i++){
-   const u=i/56,xx=x-ww/2+u*ww;
-   const wave=Math.sin(u*18+t*.55)*.25+Math.sin(u*39-t*.3)*.12+Math.sin(u*7+t*.2)*.13;
-   const yy=y-wave*hh;
-   if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
-  }
-  ctx.strokeStyle='rgba(45,190,255,.68)';ctx.lineWidth=.85;ctx.stroke();
-  // Calibration header and a small stacked telemetry meter.
-  const by=y+hh/2+8,bw=ww/7;
-  for(let i=0;i<7;i++){
-   const bh=2+(i%3)*1.5;
-   ctx.fillStyle=hudBlue+([0,3,6].includes(i)?'.52':'.24')+')';
-   ctx.fillRect(x-ww/2+i*(bw+2),by,bw,bh);
-  }
- }
+ // The old canvas waveform was removed: the dedicated right-side HTML telemetry graphs now provide both traces. This prevents the legacy canvas trace from crossing the SYS / 02 label.
  // Thin data rails and nodes add precision without increasing the glow.
  for(let side=0;side<2;side++){
   const x=side===0?w*.035:w*.965,dir=side===0?1:-1;
