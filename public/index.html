@@ -652,6 +652,34 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   filter:drop-shadow(0 0 .65px rgba(0,185,215,.68)) drop-shadow(0 0 1px rgba(0,135,175,.12))!important;
 }
 
+
+/* 2026-11-07: add holographic console action glyphs with CSS pseudo-elements.
+   The TRANSMIT icon remains visible when its label changes to PROCESSING. */
+#sendButton{display:inline-flex;align-items:center;justify-content:center;gap:9px}
+#sendButton:before{
+  content:"";display:inline-block;flex:0 0 21px;width:21px;height:21px;margin:0;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2388efff' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 2 11 13'/%3E%3Cpath d='m22 2-7 20-4-9-9-4 20-7Z'/%3E%3C/svg%3E") center/contain no-repeat;
+  filter:drop-shadow(0 0 4px rgba(0,210,255,.7))
+}
+#backgroundModeToggle,#backgroundTasksToggle{display:flex;align-items:center;justify-content:center;gap:9px}
+#backgroundModeToggle:before,#backgroundTasksToggle:before{
+  content:"";display:inline-block;flex:0 0 20px;width:20px;height:20px;margin:0;
+  background-position:center;background-repeat:no-repeat;background-size:contain;
+  filter:drop-shadow(0 0 3px rgba(0,210,255,.55))
+}
+#backgroundModeToggle:before{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2388efff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3 9 5-9 5-9-5 9-5Z'/%3E%3Cpath d='m3 12 9 5 9-5M3 16l9 5 9-5'/%3E%3C/svg%3E")
+}
+#backgroundTasksToggle:before{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2388efff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5h12M9 12h12M9 19h12'/%3E%3Cpath d='M3 5h.01M3 12h.01M3 19h.01' stroke-width='3'/%3E%3C/svg%3E")
+}
+@media(max-width:600px){
+  #sendButton{gap:7px}
+  #sendButton:before{flex-basis:18px;width:18px;height:18px}
+  #backgroundModeToggle,#backgroundTasksToggle{gap:6px}
+  #backgroundModeToggle:before,#backgroundTasksToggle:before{flex-basis:18px;width:18px;height:18px}
+}
+
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
   <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
