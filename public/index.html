@@ -1378,7 +1378,8 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
   letter-spacing:2px!important;
   z-index:2!important;
 }
-#jarvisHoloPanel .voice-response{
+/* One shared scroll viewport keeps the answer, chart and suggestion in the panel body. */
+#jarvisResponseScroll{
   position:absolute!important;
   left:13.55%!important;
   top:49%!important;
@@ -1386,9 +1387,27 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
   height:39%!important;
   min-height:0!important;
   max-height:none!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:0 2px 2px 0!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+  scrollbar-width:thin!important;
+  scrollbar-color:rgba(0,153,255,.45) transparent!important;
+  z-index:1!important;
+}
+#jarvisHoloPanel .voice-response{
+  position:static!important;
+  width:auto!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
   margin:0!important;
   padding:0!important;
-  overflow:auto!important;
+  overflow:visible!important;
   color:#eafaff!important;
   font:clamp(10px,2.7vw,14px)/1.45 monospace!important;
   white-space:pre-wrap!important;
@@ -1397,12 +1416,13 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
 }
 #jarvisHoloPanel .jarvis-visualization,
 #jarvisHoloPanel .jarvis-suggestion{
-  position:relative!important;
-  z-index:1!important;
-  flex:0 1 auto!important;
-  max-height:35%!important;
-  margin:4px 0 0!important;
-  overflow:auto!important;
+  position:static!important;
+  z-index:auto!important;
+  flex:none!important;
+  width:100%!important;
+  max-height:none!important;
+  margin:10px 0 0!important;
+  overflow:visible!important;
 }
 #jarvisHoloPanel.show{animation:responsePanelReveal .55s ease both!important}
 @keyframes responsePanelReveal{
@@ -1446,9 +1466,11 @@ body.background-tasks-open #jarvisHoloPanel{top:17%!important}
   <div class="panel-hud-dots">● ● ●</div>
  </div>
  <div id="voiceStatus" class="voice-status">VOICE MODE STANDBY</div>
- <div id="voiceResponse" class="voice-response">上から下へスワイプして音声モードを開始します</div>
- <div id="jarvisVisualization" class="jarvis-visualization" hidden aria-label="回答の図表"></div>
- <div id="jarvisSuggestion" class="jarvis-suggestion" hidden aria-label="次の提案"></div>
+ <div id="jarvisResponseScroll" class="jarvis-response-scroll">
+  <div id="voiceResponse" class="voice-response">上から下へスワイプして音声モードを開始します</div>
+  <div id="jarvisVisualization" class="jarvis-visualization" hidden aria-label="回答の図表"></div>
+  <div id="jarvisSuggestion" class="jarvis-suggestion" hidden aria-label="次の提案"></div>
+ </div>
 </div>
 <div id="textArea">
 
