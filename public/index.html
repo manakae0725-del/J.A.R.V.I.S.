@@ -610,6 +610,23 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   #backgroundModeToggle,#backgroundTasksToggle{font-size:8px!important;letter-spacing:.2px}
 }
 
+
+/* 2026-11-07: match the three command buttons to the angular reference geometry. */
+#sendButton{
+  border-radius:0;
+  clip-path:polygon(0 50%,10% 0,90% 0,100% 50%,90% 100%,10% 100%);
+}
+#backgroundModeToggle,#backgroundTasksToggle{
+  border-radius:0;
+  clip-path:polygon(0 12px,12px 0,calc(100% - 14px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px));
+}
+@media(max-width:600px){
+  #sendButton{clip-path:polygon(0 50%,11% 0,89% 0,100% 50%,89% 100%,11% 100%)}
+  #backgroundModeToggle,#backgroundTasksToggle{
+    clip-path:polygon(0 9px,9px 0,calc(100% - 11px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 11px) 100%,9px 100%,0 calc(100% - 9px))
+  }
+}
+
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
   <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
