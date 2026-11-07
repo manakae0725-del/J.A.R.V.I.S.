@@ -1350,7 +1350,7 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
   flex-direction:column!important;
   gap:2px!important;
   overflow:hidden!important;
-  padding:16% 8% 8%!important;
+  padding:0!important;
   border:0!important;
   border-radius:0!important;
   background-color:transparent!important;
@@ -1379,11 +1379,14 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
   z-index:2!important;
 }
 #jarvisHoloPanel .voice-response{
-  position:relative!important;
+  position:absolute!important;
+  left:13.55%!important;
+  top:49%!important;
+  width:73%!important;
+  height:39%!important;
   inset:auto!important;
-  flex:0 1 auto!important;
   min-height:0!important;
-  max-height:100%!important;
+  max-height:none!important;
   margin:0!important;
   padding:0!important;
   overflow:auto!important;
@@ -1411,7 +1414,7 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
   #jarvisHoloPanel{
     top:16%!important;
     width:106vw!important;
-    padding:16% 8% 8%!important;
+    padding:0!important;
   }
   #jarvisHoloPanel .voice-status{font-size:clamp(10px,2.8vw,13px)!important;letter-spacing:1.6px!important}
   #jarvisHoloPanel .voice-response{font-size:clamp(10px,2.7vw,12px)!important;line-height:1.4!important}
