@@ -1,4 +1,5 @@
 async function logApiUsage({
+  userId = null,
   provider,
   service,
   success,
@@ -26,6 +27,7 @@ async function logApiUsage({
           Prefer: "return=minimal"
         },
         body: JSON.stringify({
+          user_id: userId,
           provider,
           service,
           success,
@@ -3113,6 +3115,7 @@ module.exports = async function handler(req, res) {
         );
 
         await logApiUsage({
+        userId: user?.id || null,
           provider: "serper",
           service: isNewsQuestion
             ? "news"
@@ -3325,6 +3328,7 @@ Snippet: ${snippet}
           Date.now() - serperStart;
 
         await logApiUsage({
+        userId: user?.id || null,
           provider: "serper",
           service: isNewsQuestion
             ? "news"
@@ -3398,6 +3402,7 @@ if (
         );
 
         await logApiUsage({
+        userId: user?.id || null,
           provider: "tavily",
           service: "search",
           success: response.ok,
@@ -3474,6 +3479,7 @@ Content: ${result.content || ""}
           Date.now() - tavilyStart;
 
         await logApiUsage({
+        userId: user?.id || null,
           provider: "tavily",
           service: "search",
           success: false,
@@ -4090,6 +4096,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
         Date.now() - geminiStart;
 
       await logApiUsage({
+        userId: user?.id || null,
         provider: "gemini",
         service: "generation",
         success: false,
@@ -4120,6 +4127,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
 
     if (!response.ok) {
       await logApiUsage({
+        userId: user?.id || null,
         provider: "gemini",
         service: "generation",
         success: false,
@@ -4218,6 +4226,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
       if (!streamCompleted) throw new Error("Gemini stream ended before completion");
     } catch (streamError) {
       await logApiUsage({
+        userId: user?.id || null,
         provider: "gemini",
         service: "generation",
         success: false,
@@ -4231,6 +4240,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
     }
 
     await logApiUsage({
+        userId: user?.id || null,
       provider: "gemini",
       service: "generation",
       success: true,
