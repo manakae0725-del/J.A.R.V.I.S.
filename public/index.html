@@ -757,6 +757,9 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   .input-waveform{height:29px;bottom:1px}
   .input-console-mark{width:23px;height:9px}
 }
+/* Header title scaled to the slash mark; widen each slash stroke without changing SVG size. */
+#textArea:before{font-size:9px!important;letter-spacing:2px!important}
+@media(max-width:600px){#textArea:before{font-size:9px!important;letter-spacing:2px!important}}
 @media(prefers-reduced-motion:reduce){
   .wave-motion,.wave-glow,.wave-line,.wave-line-front,.wave-highlight{animation:none!important}
 }
@@ -924,7 +927,7 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
           <stop offset="1" stop-color="#72edff"/>
         </linearGradient>
       </defs>
-      <path d="M2 20 L14 2 H19 L7 20 Z M20 20 L32 2 H37 L25 20 Z M38 20 L50 2 H55 L43 20 Z" fill="url(#consoleSlashMetal)"/>
+      <path d="M2 20 L13 2 H19 L8 20 Z M20 20 L31 2 H37 L26 20 Z M38 20 L49 2 H55 L44 20 Z" fill="url(#consoleSlashMetal)"/>
     </svg>
 
     <div id="attachmentControls" class="input-attachment-row">
