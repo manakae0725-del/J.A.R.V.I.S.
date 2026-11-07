@@ -747,7 +747,7 @@ module.exports = async function handler(req, res) {
         order: "created_at.desc",
         limit: "5000"
       });
-      const usageResponse = await fetch(supabaseUrl.replace(/\\/+$/, "") + "/rest/v1/api_usage?" + params, {
+      const usageResponse = await fetch(supabaseUrl.replace(/\/+$/, "") + "/rest/v1/api_usage?" + params, {
         headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey },
         signal: AbortSignal.timeout(8000)
       });
