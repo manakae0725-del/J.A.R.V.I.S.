@@ -4192,17 +4192,11 @@ async function sendToGemini(text, options = {}) {
         }
 
         window.setJarvisCoreState("responding");
-        const hasVisualization = !!(
-            data.visualization &&
-            typeof data.visualization.type === "string" &&
-            data.visualization.type !== "none"
-        );
-        // In voice mode, keep the visual panel focused on the chart while the
-        // corresponding explanation is spoken through TTS. Text mode remains unchanged.
-        const visualVoiceMode = currentMode === "voice" && hasVisualization;
+        // Keep the complete written answer visible in both TEXT and VOICE modes.
+        // A visualization may fail validation or rendering; it must never hide the answer.
         if (voiceResponse) {
-            voiceResponse.hidden = visualVoiceMode;
-            voiceResponse.setAttribute("aria-hidden", visualVoiceMode ? "true" : "false");
+            voiceResponse.hidden = false;
+            voiceResponse.setAttribute("aria-hidden", "false");
         }
         // Keep an already-visible response panel mounted; restarting its
         // entrance animation here causes a visible fade-out/fade-in flicker.
@@ -4212,22 +4206,17 @@ async function sendToGemini(text, options = {}) {
         const responseScroll = document.getElementById("jarvisResponseScroll");
         if (responseScroll) responseScroll.scrollTop = 0;
 
-        if (visualVoiceMode) {
-            renderJarvisVisualization(data.visualization);
-            renderJarvisSuggestion(data.suggestion);
-        } else if (streamedReplyShown && voiceResponse && voiceResponse.textContent === data.text) {
-            renderJarvisVisualization(data.visualization);
-            renderJarvisSuggestion(data.suggestion);
-        } else {
-            const responseAnimation = animateJarvisResponse(data.text, streamedReplyShown && voiceResponse ? voiceResponse.textContent : "");
-            responseAnimation.then(token => {
-                if (token !== null && requestUserId === window.jarvisCurrentUserId) {
-                    renderJarvisVisualization(data.visualization);
-                    renderJarvisSuggestion(data.suggestion);
-                    if (responseScroll) responseScroll.scrollTop = 0;
-                }
-            });
-        }
+        const responseAnimation = animateJarvisResponse(
+            data.text,
+            streamedReplyShown && voiceResponse ? voiceResponse.textContent : ""
+        );
+        responseAnimation.then(token => {
+            if (token !== null && requestUserId === window.jarvisCurrentUserId) {
+                renderJarvisVisualization(data.visualization);
+                renderJarvisSuggestion(data.suggestion);
+                if (responseScroll) responseScroll.scrollTop = 0;
+            }
+        });
 
         pendingJarvisSuggestion = typeof data.suggestion === "string" && data.suggestion.trim() ? { text: data.suggestion.trim().slice(0, 240), previousUserText: cleanText.slice(0, 1200) } : null;
         if (!pendingJarvisSuggestion) renderJarvisSuggestion("");
