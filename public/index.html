@@ -463,6 +463,109 @@ body:not(.auth-locked):not(.home-revealing):after{right:14px;border-right:1px so
 @media(prefers-reduced-motion:reduce){.jarvis-holo-panel:after{animation:none;transform:scaleY(.55)}}
 
 
+
+/* 2026-11-07: curved glass command console. Existing control IDs and handlers are preserved. */
+#textArea{
+  position:fixed;left:50%;top:auto;bottom:max(14px,env(safe-area-inset-bottom) + 12px);
+  width:min(94vw,680px);max-width:680px;padding:17px 18px 14px;
+  border:1px solid rgba(72,220,255,.72);border-radius:18px 18px 9px 9px;
+  background:
+    radial-gradient(ellipse at 50% 100%,rgba(0,174,220,.15),transparent 58%),
+    linear-gradient(112deg,rgba(0,34,58,.88),rgba(0,13,31,.91) 52%,rgba(0,29,52,.86));
+  box-shadow:0 0 24px rgba(0,177,255,.2),0 0 58px rgba(0,118,210,.1),inset 0 0 24px rgba(0,192,255,.1),inset 0 1px 0 rgba(190,247,255,.16);
+  -webkit-backdrop-filter:blur(16px) saturate(135%);backdrop-filter:blur(16px) saturate(135%);
+  clip-path:polygon(0 13px,12px 0,18% 2px,50% 9px,82% 2px,calc(100% - 12px) 0,100% 13px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px));
+  transform:translate(-50%,10px);transition:opacity .32s ease,transform .38s cubic-bezier(.2,.75,.25,1),visibility .32s ease;
+}
+#textArea.is-open{transform:translate(-50%,0)}
+#textArea.is-closing{transform:translate(-50%,10px)}
+#textArea:before{
+  padding:0 8px 10px;margin:0 2px 10px;border-bottom:1px solid rgba(64,210,255,.3);
+  color:rgba(132,235,255,.94);font:11px/1.35 monospace;letter-spacing:2.8px;
+  text-shadow:0 0 10px rgba(0,190,255,.28)
+}
+#textArea:after{
+  content:"";position:absolute;left:5%;right:5%;bottom:5px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(63,224,255,.62),transparent);opacity:.75
+}
+#textInput{
+  display:block;width:100%;height:76px;min-height:76px;max-height:25vh;padding:12px 14px;
+  border:1px solid rgba(69,194,239,.48);border-radius:7px;
+  background:linear-gradient(115deg,rgba(0,9,24,.68),rgba(0,21,39,.58));
+  color:#e8f9ff;font:14px/1.5 monospace;letter-spacing:.5px;
+  box-shadow:inset 0 0 18px rgba(0,129,205,.12),inset 0 1px 0 rgba(190,240,255,.05);
+  resize:none;outline:none;transition:border-color .25s ease,box-shadow .25s ease,background .25s ease
+}
+#textInput:focus{
+  border-color:rgba(77,226,255,.88);
+  background:radial-gradient(ellipse at 50% 110%,rgba(0,172,225,.16),transparent 62%),linear-gradient(115deg,rgba(0,9,24,.7),rgba(0,21,39,.6));
+  box-shadow:0 0 13px rgba(0,190,255,.13),inset 0 0 20px rgba(0,153,220,.15)
+}
+#textInput::placeholder,#textInput::-webkit-input-placeholder{
+  color:rgba(131,208,239,.68);font:12px/1.5 monospace;letter-spacing:2.4px;text-shadow:0 0 9px rgba(0,169,255,.3)
+}
+.input-attachment-row{
+  display:flex;align-items:center;gap:10px;width:100%;margin:10px 0 5px;flex-wrap:nowrap
+}
+#attachFileButton{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto;
+  min-width:124px;height:42px;padding:0 12px;border:1px solid rgba(65,203,245,.62)!important;border-radius:7px;
+  background:linear-gradient(145deg,rgba(0,65,99,.66),rgba(0,25,48,.88))!important;
+  color:#c6f3ff!important;font:10px monospace!important;letter-spacing:1.5px;
+  box-shadow:inset 0 1px 0 rgba(205,250,255,.12),0 0 12px rgba(0,158,220,.1)
+}
+.attach-glyph{font:25px/1 Georgia,serif;color:#5deaff;text-shadow:0 0 10px rgba(0,209,255,.6);transform:rotate(-35deg)}
+.input-attachment-note{flex:1 1 auto;min-width:0;color:rgba(151,210,237,.82);font:9px/1.45 monospace;letter-spacing:.35px}
+#sendButton{
+  display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+  min-width:142px;height:44px;margin:0 0 0 auto;padding:0 17px;
+  border:1px solid rgba(75,226,255,.92);border-radius:5px;
+  background:linear-gradient(105deg,rgba(0,101,157,.8),rgba(0,51,91,.92));
+  color:#d6f8ff;font: bold 12px monospace;letter-spacing:2.5px;
+  box-shadow:inset 0 0 15px rgba(0,200,255,.16),0 0 15px rgba(0,184,255,.2),inset 0 1px 0 rgba(220,250,255,.2);
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+  transition:background .2s ease,box-shadow .2s ease,border-color .2s ease,filter .2s ease
+}
+#sendButton:before{content:"";display:inline-block;width:7px;height:7px;margin-right:10px;background:#63f7ff;box-shadow:0 0 9px #00dfff;vertical-align:middle}
+#sendButton:active{filter:brightness(1.35);box-shadow:0 0 22px rgba(0,210,255,.48),inset 0 0 16px rgba(0,210,255,.2)}
+#sendButton:disabled{opacity:.65;cursor:wait}
+#attachmentPreview{display:grid;gap:5px;margin:5px 0 0;max-height:90px;overflow-y:auto}
+.input-task-row{display:flex;align-items:stretch;justify-content:space-between;gap:10px;width:100%;margin-top:10px}
+#backgroundModeToggle,#backgroundTasksToggle{
+  display:flex;align-items:center;justify-content:center;flex:1 1 0;min-width:0;min-height:42px;padding:8px 10px;
+  border:1px solid rgba(65,203,245,.58)!important;border-radius:7px;
+  background:linear-gradient(145deg,rgba(0,57,91,.78),rgba(0,24,46,.92))!important;
+  color:#c6f3ff!important;font:11px monospace!important;letter-spacing:1.15px;
+  box-shadow:inset 0 1px 0 rgba(205,250,255,.1),inset 0 0 13px rgba(0,160,220,.1),0 0 10px rgba(0,120,190,.08)
+}
+#backgroundModeToggle[aria-pressed="true"]{border-color:rgba(105,241,255,.95)!important;box-shadow:0 0 15px rgba(0,200,255,.25),inset 0 0 15px rgba(0,180,255,.18)}
+.input-helper{margin-top:8px;color:rgba(151,210,237,.82);font:9px/1.5 monospace;text-align:center}
+body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inset-bottom) + 12px);max-height:88vh;overflow-y:auto}
+@media(max-width:600px){
+  #textArea{width:calc(100% - 30px);padding:15px 13px 13px;bottom:max(12px,env(safe-area-inset-bottom) + 10px)}
+  #textArea:before{font-size:10px;letter-spacing:2.4px;padding-bottom:8px;margin-bottom:9px}
+  #textInput{height:68px;min-height:68px;padding:10px 11px;font-size:13px}
+  .input-attachment-row{gap:7px;margin-top:9px}
+  #attachFileButton{min-width:104px;height:40px;gap:6px;padding:0 8px;font-size:9px!important;letter-spacing:1px}
+  .attach-glyph{font-size:22px}
+  .input-attachment-note{font-size:8px;letter-spacing:0}
+  #sendButton{min-width:119px;height:42px;padding:0 11px;font-size:11px;letter-spacing:1.8px}
+  .input-task-row{gap:8px;margin-top:9px}
+  #backgroundModeToggle,#backgroundTasksToggle{min-height:40px;padding:7px 5px;font-size:10px!important;letter-spacing:.6px}
+  .input-helper{font-size:8px;line-height:1.4;margin-top:7px}
+  body.background-tasks-open #textArea{top:auto;bottom:max(12px,env(safe-area-inset-bottom) + 10px);max-height:88vh}
+}
+@media(max-width:360px){
+  #textArea{padding-left:10px;padding-right:10px}
+  #attachFileButton{min-width:94px}
+  #sendButton{min-width:108px;padding:0 8px}
+  .input-attachment-row{gap:5px}
+  .input-attachment-note{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){
+  #textArea,#textInput,#sendButton{transition:none}
+}
+
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
   <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
@@ -590,23 +693,20 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
         placeholder="AWAITING INPUT"
     ></textarea>
 
-    <div id="attachmentControls" style="display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap">
-      <button id="attachFileButton" type="button" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px">＋ 添付</button>
-      <span style="font-size:10px;color:#8ebbdc">画像・PDF・TXT / 最大5件・合計20MB</span>
+    <div id="attachmentControls" class="input-attachment-row">
+      <button id="attachFileButton" type="button" aria-label="ファイルを添付">
+        <span class="attach-glyph" aria-hidden="true">⌁</span><span>FILE ATTACH</span>
+      </button>
+      <span class="input-attachment-note">IMG / PDF / TXT　(MAX 5 / 20MB)</span>
       <input id="attachmentInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" multiple hidden>
+      <button id="sendButton" type="button">TRANSMIT</button>
     </div>
-    <div id="attachmentPreview" aria-live="polite" style="display:grid;gap:5px;margin:6px 0"></div>
-
-    <br>
-
-    <button id="sendButton">
-        TRANSMIT
-    </button>
-    <div style="display:flex;gap:8px;margin-top:8px;justify-content:center;flex-wrap:wrap">
-      <button id="backgroundModeToggle" type="button" aria-pressed="false" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">RUN AS TASK: OFF</button>
-      <button id="backgroundTasksToggle" type="button" style="background:#071a2d;color:#9bcfff;border:1px solid #258bc4;border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:1px">TASK LIST</button>
+    <div id="attachmentPreview" aria-live="polite"></div>
+    <div class="input-task-row">
+      <button id="backgroundModeToggle" type="button" aria-pressed="false">RUN AS TASK: OFF</button>
+      <button id="backgroundTasksToggle" type="button">TASK LIST</button>
     </div>
-    <div style="margin-top:6px;color:#8ebbdc;font:10px/1.5 monospace;text-align:center">ONにしてから依頼を送信すると、会話とは別に作業します。OFFは通常会話です。</div>
+    <div class="input-helper">ONにしてから依頼を送信すると、会話とは別に作業します。OFFは通常会話です。</div>
     <div id="backgroundTaskPanel" hidden style="width:100%;max-height:190px;overflow-y:auto;margin-top:8px;padding:8px;background:rgba(3,15,29,.94);border:1px solid rgba(45,150,220,.45);border-radius:6px;box-sizing:border-box;text-align:left">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
         <span style="font-size:10px;letter-spacing:1.5px;color:#9bcfff">BACKGROUND TASKS</span>
