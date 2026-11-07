@@ -890,6 +890,263 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
 @media(max-width:600px){.input-task-row{column-gap:8%!important}}
 @media(max-width:380px){.input-task-row{column-gap:7%!important}}
 
+
+/* 2026-11-07: image-backed interactive input console. Existing handlers and IDs are preserved. */
+/* The uploaded PNG has a 1536x667 canvas; its visible panel bounds are
+   x=142..1392 and y=13..618 (1250x605). Background scaling compensates
+   for those transparent margins so the metal frame fills this container. */
+#textArea{
+  position:fixed!important;
+  left:50%!important;
+  top:auto!important;
+  bottom:max(12px,env(safe-area-inset-bottom) + 10px)!important;
+  width:min(94vw,680px)!important;
+  max-width:680px!important;
+  height:auto!important;
+  aspect-ratio:1250 / 605;
+  box-sizing:border-box!important;
+  padding:0!important;
+  overflow:visible!important;
+  border:0!important;
+  border-radius:0!important;
+  background-color:transparent!important;
+  background-image:url("/images/input-console-transparent.png")!important;
+  background-repeat:no-repeat!important;
+  background-position:center center!important;
+  background-size:122.9% 110.25%!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  clip-path:none!important;
+}
+#textArea:before,#textArea:after{display:none!important;content:none!important}
+#textArea.is-open{transform:translate(-50%,0)!important}
+#textArea.is-closing{transform:translate(-50%,10px)!important}
+
+/* Transparent textarea hotspot over the printed input window. */
+#textArea .input-field-shell{
+  position:absolute!important;
+  left:4.8%!important;
+  top:16.9%!important;
+  width:90.6%!important;
+  height:34.5%!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  isolation:auto!important;
+}
+#textArea #textInput{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:7% 3.8% 3%!important;
+  box-sizing:border-box!important;
+  border:0!important;
+  border-radius:0!important;
+  outline:none!important;
+  resize:none!important;
+  overflow:auto!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  color:#effaff!important;
+  caret-color:#65f2ff!important;
+  font:clamp(12px,1.9vw,14px)/1.5 monospace!important;
+  letter-spacing:.35px!important;
+}
+#textArea #textInput::placeholder,
+#textArea #textInput::-webkit-input-placeholder{color:transparent!important;text-shadow:none!important}
+#textArea .input-waveform,#textArea .input-console-mark{display:none!important}
+
+/* Transparent hotspots align to the icons and controls already printed in the PNG. */
+#textArea #attachmentControls{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:auto!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  pointer-events:none!important;
+}
+#textArea .attachment-icon-group{
+  position:absolute!important;
+  left:5.5%!important;
+  top:55.8%!important;
+  width:17.8%!important;
+  height:14.2%!important;
+  display:flex!important;
+  gap:8%!important;
+  margin:0!important;
+  pointer-events:auto!important;
+}
+#textArea .attachment-icon-button{
+  display:block!important;
+  flex:1 1 0!important;
+  width:auto!important;
+  min-width:0!important;
+  height:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:transparent!important;
+  opacity:0!important;
+  filter:none!important;
+  clip-path:none!important;
+  pointer-events:auto!important;
+}
+#textArea .attachment-icon-button svg,
+#textArea .attachment-copy{display:none!important}
+#textArea #attachmentInput{display:none!important}
+#textArea #sendButton{
+  position:absolute!important;
+  left:66.5%!important;
+  top:55.8%!important;
+  width:29.2%!important;
+  min-width:0!important;
+  height:14.3%!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  filter:none!important;
+  clip-path:none!important;
+  color:transparent!important;
+  font-size:0!important;
+  opacity:0!important;
+  pointer-events:auto!important;
+}
+#textArea #sendButton:before{display:none!important;content:none!important}
+#textArea #sendButton:disabled:after{
+  content:"PROCESSING...";
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#e8fbff;
+  font:clamp(8px,1.2vw,11px) monospace;
+  letter-spacing:1px;
+  opacity:1;
+}
+
+/* The baked-in OFF label remains visible. Show ON only when the real toggle is enabled. */
+#textArea .input-task-row{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:auto!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  pointer-events:none!important;
+}
+#textArea #backgroundModeToggle,
+#textArea #backgroundTasksToggle{
+  position:absolute!important;
+  top:75.7%!important;
+  height:14.5%!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  filter:none!important;
+  clip-path:none!important;
+  color:transparent!important;
+  font-size:0!important;
+  opacity:0!important;
+  pointer-events:auto!important;
+}
+#textArea #backgroundModeToggle{
+  left:9%!important;
+  width:43.5%!important;
+  max-width:none!important;
+  flex:none!important;
+}
+#textArea #backgroundTasksToggle{
+  left:59.6%!important;
+  width:31.5%!important;
+  max-width:none!important;
+  flex:none!important;
+}
+#textArea #backgroundModeToggle:before,
+#textArea #backgroundTasksToggle:before{display:none!important;content:none!important}
+#textArea #backgroundModeToggle[aria-pressed="true"]:after{
+  content:"ON";
+  position:absolute;
+  left:75%;
+  top:50%;
+  transform:translateY(-50%);
+  display:block;
+  color:#74f4ff;
+  font:clamp(9px,1.4vw,12px) monospace;
+  letter-spacing:1px;
+  text-shadow:0 0 7px rgba(0,220,255,.85);
+}
+
+/* Dynamic attachment previews and the task list stay functional above the image. */
+#textArea #attachmentPreview{
+  position:absolute!important;
+  left:5%!important;
+  right:5%!important;
+  top:70.5%!important;
+  max-height:4.5%!important;
+  margin:0!important;
+  overflow:auto!important;
+  z-index:8!important;
+  pointer-events:auto!important;
+}
+#textArea #backgroundTaskPanel{
+  position:absolute!important;
+  left:5%!important;
+  right:5%!important;
+  top:54%!important;
+  bottom:3%!important;
+  width:auto!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:10px!important;
+  overflow:auto!important;
+  z-index:12!important;
+  background:rgba(0,12,27,.97)!important;
+  border:1px solid rgba(78,218,255,.85)!important;
+  box-shadow:0 0 18px rgba(0,174,255,.3)!important;
+}
+#textArea #backgroundTaskPanel[hidden]{display:none!important}
+#textArea #backgroundTasksToggle{z-index:14!important}
+body.background-tasks-open #textArea{
+  top:auto!important;
+  bottom:max(12px,env(safe-area-inset-bottom) + 10px)!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+@media(max-width:380px){
+  #textArea{width:96vw!important}
+  #textArea #textInput{font-size:12px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #textArea{transition:none!important}
+}
+
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
   <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
