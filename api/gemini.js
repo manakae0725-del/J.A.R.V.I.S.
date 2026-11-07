@@ -206,9 +206,11 @@ function calendarDirect(res,text,speechText,extra={}){return res.status(200).jso
 
 const FALLBACK_VISUALIZATION_TYPES = new Set(["none", "bar", "line", "diagram", "pie", "donut", "flowchart", "structure", "blueprint", "gauge", "matrix"]);
 
-async function respondWithOpenAIFallback(res, geminiInput, sources, searchPerformed) {
+async function respondWithOpenAIFallback(res, geminiInput, sources, searchPerformed, userId = null) {
   try {
     const fallback = await runAiCouncil({
+            userId: user.id,
+      userId,
       userInput: [
         "Gemini final response generation is unavailable. Produce the complete user-facing final response from the supplied context.",
         "Return plain natural Japanese text only. Do not return JSON, XML, markdown code fences, or metadata.",
@@ -897,7 +899,7 @@ module.exports = async function handler(req, res) {
   if (req.body && req.body.mode === "openai-connection-test") {
     if (!(await enforceRateLimit(res, user, "openai-connection-test-minute", 1, 60))) return;
     if (!(await enforceRateLimit(res, user, "openai-connection-test-day", 3, 86400))) return;
-    const result = await testOpenAIConnection();
+    const result = await testOpenAIConnection({ userId: user.id });
     return res.status(result.ok ? 200 : 502).json(result);
   }
 
@@ -4109,7 +4111,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
 
       if (error.name === "AbortError") {
         console.warn("Gemini request timed out; attempting OpenAI fallback");
-        return await respondWithOpenAIFallback(res, geminiInput, sources, isSearchQuestion && searchContext.length > 0);
+        return await respondWithOpenAIFallback(res, geminiInput, sources, isSearchQuestion && searchContext.length > 0, user.id);
       }
 
       console.error("Gemini network request failed", {
