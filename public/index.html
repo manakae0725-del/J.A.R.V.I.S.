@@ -995,6 +995,18 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
   #leftReferenceHUD{left:2%!important;width:14vw!important}
 }
 
+
+/* 2026-11-07: final side-HUD spacing and left status frame alignment. */
+.right-telemetry-hud{top:33.8%!important;width:clamp(86px,21.5vw,150px)!important}
+#leftReferenceHUD{width:clamp(104px,17vw,124px)!important}
+.reference-status-heading{width:100%;box-sizing:border-box}
+.reference-status-box{display:block;width:100%;box-sizing:border-box}
+.reference-status-box>div{width:100%;box-sizing:border-box;white-space:nowrap}
+@media(max-width:480px){
+  .right-telemetry-hud{top:33.8%!important;width:21.5vw!important}
+  #leftReferenceHUD{width:clamp(104px,17vw,124px)!important}
+}
+
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 <div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
