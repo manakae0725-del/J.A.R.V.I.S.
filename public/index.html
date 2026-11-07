@@ -912,8 +912,8 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   background-color:transparent!important;
   background-image:url("/images/input-console-transparent.png")!important;
   background-repeat:no-repeat!important;
-  background-position:center center!important;
-  background-size:122.9% 110.25%!important;
+  background-position:center top!important;
+  background-size:122.9% 104%!important;
   box-shadow:none!important;
   -webkit-backdrop-filter:none!important;
   backdrop-filter:none!important;
@@ -940,6 +940,7 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   isolation:auto!important;
 }
 #textArea #textInput{
+  caret-color:transparent!important;
   position:absolute!important;
   inset:0!important;
   display:block!important;
@@ -1153,6 +1154,40 @@ body.background-tasks-open #textArea{
 #textArea #sendButton,
 #textArea #backgroundModeToggle,
 #textArea #backgroundTasksToggle{opacity:1!important}
+
+
+/* 2026-11-07: fix image top crop, hide caret, and add task-list close control. */
+/* Keep the complete top and bottom metal edges inside the image viewport.
+   The PNG's transparent margins are asymmetric: y=13px at top, y=49px at bottom. */
+#textArea{
+  background-position:center top!important;
+  background-size:122.9% 104%!important;
+}
+#textArea #textInput{caret-color:transparent!important}
+#textArea #backgroundTaskPanel{position:absolute!important}
+#textArea #closeBackgroundTasks{
+  position:absolute!important;
+  top:7px!important;
+  right:7px!important;
+  z-index:20!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:28px!important;
+  height:28px!important;
+  min-width:28px!important;
+  min-height:28px!important;
+  padding:0!important;
+  border:1px solid rgba(92,224,255,.85)!important;
+  border-radius:4px!important;
+  background:rgba(2,30,52,.96)!important;
+  color:#bff7ff!important;
+  font:22px/1 monospace!important;
+  box-shadow:0 0 9px rgba(0,190,255,.28)!important;
+  cursor:pointer!important;
+  pointer-events:auto!important;
+}
+#textArea #closeBackgroundTasks:active{background:rgba(0,100,145,.95)!important}
 
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
@@ -1393,10 +1428,11 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
     </div>
 
     <div id="backgroundTaskPanel" hidden style="width:100%;max-height:190px;overflow-y:auto;margin-top:8px;padding:8px;background:rgba(3,15,29,.94);border:1px solid rgba(45,150,220,.45);border-radius:6px;box-sizing:border-box;text-align:left">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;padding-right:32px">
         <span style="font-size:10px;letter-spacing:1.5px;color:#9bcfff">BACKGROUND TASKS</span>
         <button id="refreshBackgroundTasks" type="button" style="background:#102b40;color:#e7f7ff;border:1px solid #258bc4;border-radius:4px;padding:4px 8px;font:inherit;font-size:10px">REFRESH</button>
       </div>
+      <button id="closeBackgroundTasks" type="button" aria-label="Close task list" title="Close task list">×</button>
       <div id="backgroundTaskList" aria-live="polite" style="display:grid;gap:7px;font-size:11px;color:#d9efff">ログイン後にタスクが表示されます。</div>
     </div>
 
@@ -2581,6 +2617,9 @@ document.getElementById("backgroundTasksToggle")?.addEventListener("click", () =
     const shouldOpen = panel.hidden;
     setBackgroundPanelVisible(shouldOpen);
     if (shouldOpen) refreshBackgroundTasks();
+});
+document.getElementById("closeBackgroundTasks")?.addEventListener("click", () => {
+    setBackgroundPanelVisible(false);
 });
 document.getElementById("refreshBackgroundTasks")?.addEventListener("click", refreshBackgroundTasks);
 setInterval(() => {
