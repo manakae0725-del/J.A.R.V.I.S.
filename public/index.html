@@ -949,7 +949,7 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   min-height:0!important;
   max-height:none!important;
   margin:0!important;
-  padding:7% 3.8% 3%!important;
+  padding:7% 8% 3%!important;
   box-sizing:border-box!important;
   border:0!important;
   border-radius:0!important;
@@ -960,8 +960,8 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   background-image:none!important;
   box-shadow:none!important;
   color:#effaff!important;
-  caret-color:#65f2ff!important;
-  font:clamp(12px,1.9vw,14px)/1.5 monospace!important;
+  caret-color:transparent!important;
+  font:clamp(16px,4.6vw,18px)/1.35 monospace!important;
   letter-spacing:.35px!important;
 }
 #textArea #textInput::placeholder,
@@ -1314,29 +1314,7 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
 }
 
 
-/* 2026-11-07: refine console crown to the supplied reference; shallow continuous arc. */
-#textArea{
-  clip-path:polygon(
-    0 28px,
-    1.5% 17px, 3% 8px, 5% 2px, 7% 0,
-    14% 1px, 22% 3px, 30% 6px, 38% 9px, 45% 12px, 50% 14px,
-    55% 12px, 62% 9px, 70% 6px, 78% 3px, 86% 1px, 93% 0,
-    95% 2px, 97% 8px, 98.5% 17px, 100% 28px,
-    100% calc(100% - 12px), calc(100% - 12px) 100%,
-    12px 100%, 0 calc(100% - 12px)
-  )!important;
-}
-#textArea:after{
-  clip-path:polygon(
-    0 23px,
-    1.5% 13px, 3% 6px, 5% 1px, 7% 0,
-    14% 1px, 22% 2px, 30% 4px, 38% 7px, 45% 9px, 50% 11px,
-    55% 9px, 62% 7px, 70% 4px, 78% 2px, 86% 1px, 93% 0,
-    95% 1px, 97% 6px, 98.5% 13px, 100% 23px,
-    100% calc(100% - 10px), calc(100% - 10px) 100%,
-    10px 100%, 0 calc(100% - 10px)
-  )!important;
-}
+/* Removed: this later clip-path was cutting into the PNG's original top silhouette. */
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 <div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
