@@ -1,4 +1,5 @@
 async function logApiUsage({
+  userId = null,
   provider,
   service,
   success,
@@ -27,6 +28,7 @@ async function logApiUsage({
           Prefer: "return=minimal"
         },
         body: JSON.stringify({
+          user_id: userId,
           provider,
           service,
           success,
@@ -137,6 +139,7 @@ export default async function handler(req, res) {
       const durationMs = Date.now() - ttsStart;
       const timedOut = error?.name === "AbortError";
       await logApiUsage({
+        userId: user?.id || null,
         provider: "elevenlabs",
         service: "tts",
         success: false,
@@ -164,6 +167,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       await logApiUsage({
+        userId: user?.id || null,
         provider: "elevenlabs",
         service: "tts",
         success: false,
@@ -180,6 +184,7 @@ export default async function handler(req, res) {
       arrayBuffer = await response.arrayBuffer();
     } catch (error) {
       await logApiUsage({
+        userId: user?.id || null,
         provider: "elevenlabs",
         service: "tts",
         success: false,
@@ -193,6 +198,7 @@ export default async function handler(req, res) {
 
     if (!arrayBuffer.byteLength) {
       await logApiUsage({
+        userId: user?.id || null,
         provider: "elevenlabs",
         service: "tts",
         success: false,
@@ -204,6 +210,7 @@ export default async function handler(req, res) {
     }
 
     await logApiUsage({
+        userId: user?.id || null,
       provider: "elevenlabs",
       service: "tts",
       success: true,
