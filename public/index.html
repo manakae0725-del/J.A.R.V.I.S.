@@ -4209,23 +4209,28 @@ async function sendToGemini(text, options = {}) {
         if (!holoPanel.classList.contains("show")) {
             holoPanel.classList.add("show");
         }
+        const responseScroll = document.getElementById("jarvisResponseScroll");
+        if (responseScroll) responseScroll.scrollTop = 0;
+
         if (visualVoiceMode) {
             renderJarvisVisualization(data.visualization);
+            renderJarvisSuggestion(data.suggestion);
         } else if (streamedReplyShown && voiceResponse && voiceResponse.textContent === data.text) {
             renderJarvisVisualization(data.visualization);
+            renderJarvisSuggestion(data.suggestion);
         } else {
             const responseAnimation = animateJarvisResponse(data.text, streamedReplyShown && voiceResponse ? voiceResponse.textContent : "");
             responseAnimation.then(token => {
                 if (token !== null && requestUserId === window.jarvisCurrentUserId) {
                     renderJarvisVisualization(data.visualization);
                     renderJarvisSuggestion(data.suggestion);
+                    if (responseScroll) responseScroll.scrollTop = 0;
                 }
             });
         }
 
         pendingJarvisSuggestion = typeof data.suggestion === "string" && data.suggestion.trim() ? { text: data.suggestion.trim().slice(0, 240), previousUserText: cleanText.slice(0, 1200) } : null;
         if (!pendingJarvisSuggestion) renderJarvisSuggestion("");
-        renderJarvisSuggestion(data.suggestion);
         status.textContent = "";
 
         if (
