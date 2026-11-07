@@ -4707,7 +4707,7 @@ async function sendToGemini(text, options = {}) {
  function renderProvider(key,row){
   const state=$(key+"State"),requests=$(key+"Requests"),tokens=$(key+"Tokens");
   if(!row){state.textContent="NO DATA";state.classList.remove("is-online");requests.textContent="0";tokens.textContent="NO USAGE RECORDED";return;}
-  state.textContent=row.successful>0?"RECENT SUCCESS":"REQUESTS LOGGED";
+  state.textContent=row.successful>0?"SUCCESS THIS MONTH":"REQUESTS LOGGED";
   state.classList.toggle("is-online",row.successful>0);
   requests.textContent=fmt(row.requests);
   tokens.textContent=fmt(row.totalTokens)+" TOKENS";
@@ -4718,7 +4718,7 @@ async function sendToGemini(text, options = {}) {
   try{
    const token=await window.jarvisGetAccessToken?.();
    if(!token||userId!==window.jarvisCurrentUserId)return;
-   const [usage,google]=await Promise.allSettled([get("/api/usage/summary",token),get("/api/google/status",token)]);
+   const [usage,google]=await Promise.allSettled([fetch("/api/gemini",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({mode:"usage-summary"}),cache:"no-store"}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||("HTTP "+r.status));return d;}),get("/api/google/status",token)]);
    if(userId!==window.jarvisCurrentUserId)return;
    if(usage.status==="fulfilled"){
     const d=usage.value,groups={};
