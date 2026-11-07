@@ -747,17 +747,15 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
 @keyframes waveFlow{to{stroke-dashoffset:-144}}
 @keyframes waveHighlight{0%{opacity:.12;transform:translateX(-8px)}100%{opacity:.58;transform:translateX(8px)}}
 .input-console-mark{
-  background:linear-gradient(180deg,#d5faff 0%,#62cde2 48%,#a8f0fa 70%,#368aa8 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent!important;
-  -webkit-text-fill-color:transparent;
-  text-shadow:0 0 7px rgba(55,197,231,.28),0 0 15px rgba(0,153,205,.16);
-  font-size:18px;font-weight:700;letter-spacing:3px;transform:skewX(-18deg)
+  position:absolute;top:9px;right:13px;z-index:3;
+  display:block;width:54px;height:21px;overflow:visible;
+  pointer-events:none;filter:drop-shadow(0 0 2px rgba(25,174,211,.18))
 }
 @media(max-width:600px){
   .input-field-shell{height:68px}
   #textInput{padding:10px 11px 31px!important}
   .input-waveform{height:29px;bottom:1px}
-  .input-console-mark{font-size:17px;letter-spacing:2.5px}
+  .input-console-mark{width:54px;height:21px}
 }
 @media(prefers-reduced-motion:reduce){
   .wave-motion,.wave-glow,.wave-line,.wave-line-front,.wave-highlight{animation:none!important}
@@ -917,7 +915,17 @@ body.auth-locked #leftReferenceHUD,body.home-revealing #leftReferenceHUD{visibil
         </g>
       </svg>
     </div>
-    <span class="input-console-mark" aria-hidden="true">///</span>
+    <svg class="input-console-mark" viewBox="0 0 56 22" role="presentation" aria-hidden="true">
+      <defs>
+        <linearGradient id="consoleSlashMetal" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#06445d"/>
+          <stop offset=".38" stop-color="#087da0"/>
+          <stop offset=".72" stop-color="#27c6e8"/>
+          <stop offset="1" stop-color="#72edff"/>
+        </linearGradient>
+      </defs>
+      <path d="M2 20 L14 2 H19 L7 20 Z M20 20 L32 2 H37 L25 20 Z M38 20 L50 2 H55 L43 20 Z" fill="url(#consoleSlashMetal)"/>
+    </svg>
 
     <div id="attachmentControls" class="input-attachment-row">
       <button id="attachFileButton" type="button" aria-label="ファイルを添付">
