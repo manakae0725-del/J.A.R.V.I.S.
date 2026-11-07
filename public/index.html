@@ -1442,14 +1442,6 @@ body.background-tasks-open #jarvisHoloPanel{top:17%!important}
 @media(max-width:480px){body.background-tasks-open #jarvisHoloPanel{top:17%!important}}
 
 
-/* Subtle Core-blue tint for interface layers only; the central Core canvas is untouched. */
-.datetime,
-.network-status-hud,
-.sideHUD,
-#textArea,
-#jarvisHoloPanel{
-  filter:hue-rotate(10deg) saturate(1.04);
-}
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 <div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
@@ -1665,12 +1657,12 @@ function drawCore(r){
  // Login-only Core color and luminance reference; keep the signed-in Core unchanged.
  const loginCore=document.body.classList.contains('auth-locked');
  const g=ctx.createRadialGradient(cx,cy,r*.08,cx,cy,r*1.08);
- g.addColorStop(0,loginCore?'rgba(105,220,255,.42)':'rgba(45,150,255,.28)');
- g.addColorStop(.18,loginCore?'rgba(35,155,255,.58)':'rgba(25,125,255,.36)');
- g.addColorStop(.38,loginCore?'rgba(0,125,255,.62)':'rgba(0,105,245,.42)');
- g.addColorStop(.68,loginCore?'rgba(0,75,205,.48)':'rgba(0,48,170,.38)');
- g.addColorStop(.88,loginCore?'rgba(0,42,150,.36)':'rgba(0,28,115,.3)');
- g.addColorStop(1,loginCore?'rgba(0,125,245,.24)':'rgba(0,100,230,.18)');
+ g.addColorStop(0,loginCore?'rgba(105,220,255,.42)':'rgba(45,165,255,.28)');
+ g.addColorStop(.18,loginCore?'rgba(35,155,255,.58)':'rgba(25,140,255,.36)');
+ g.addColorStop(.38,loginCore?'rgba(0,125,255,.62)':'rgba(0,122,245,.42)');
+ g.addColorStop(.68,loginCore?'rgba(0,75,205,.48)':'rgba(0,58,170,.38)');
+ g.addColorStop(.88,loginCore?'rgba(0,42,150,.36)':'rgba(0,36,115,.3)');
+ g.addColorStop(1,loginCore?'rgba(0,125,245,.24)':'rgba(0,112,230,.18)');
  ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
  const rim=ctx.createRadialGradient(cx,cy,r*.68,cx,cy,r);
  rim.addColorStop(0,'rgba(70,210,255,0)');
@@ -1679,8 +1671,8 @@ function drawCore(r){
  ctx.fillStyle=rim;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
  ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.clip();
  // A fine, original-style dotted Voronoi boundary texture, not a 3D replacement.
- for(let x=cx-r;x<=cx+r;x+=5){for(let y=cy-r;y<=cy+r;y+=5){if(Math.hypot(x-cx,y-cy)>=r)continue;let d1=1e9,d2=1e9;for(const p of corePts){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){d2=d1;d1=d}else if(d<d2)d2=d}if(Math.abs(d1-d2)<1.2){ctx.fillStyle=loginCore?'rgba(75,195,255,.32)':'rgba(55,165,255,.24)';ctx.fillRect(x,y,1,1)}}}
- corePts.forEach(p=>{ctx.fillStyle=loginCore?'rgba(155,225,255,.78)':'rgba(120,195,255,.62)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
+ for(let x=cx-r;x<=cx+r;x+=5){for(let y=cy-r;y<=cy+r;y+=5){if(Math.hypot(x-cx,y-cy)>=r)continue;let d1=1e9,d2=1e9;for(const p of corePts){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){d2=d1;d1=d}else if(d<d2)d2=d}if(Math.abs(d1-d2)<1.2){ctx.fillStyle=loginCore?'rgba(75,195,255,.32)':'rgba(55,180,255,.24)';ctx.fillRect(x,y,1,1)}}}
+ corePts.forEach(p=>{ctx.fillStyle=loginCore?'rgba(155,225,255,.78)':'rgba(120,210,255,.62)';ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill()});
  ctx.restore();
 
  if (!document.body.classList.contains('auth-locked')) {
@@ -1689,19 +1681,19 @@ function drawCore(r){
    const corePulse=.88+.12*Math.sin(t*2.15);
    const nucleus=ctx.createRadialGradient(cx-r*.035,cy-r*.045,0,cx,cy,r*.43);
    nucleus.addColorStop(0,'rgba(235,250,255,'+(.98*corePulse)+')');
-   nucleus.addColorStop(.10,'rgba(65,145,255,.92)');
-   nucleus.addColorStop(.28,'rgba(0,92,255,.72)');
-   nucleus.addColorStop(.58,'rgba(0,55,220,.34)');
-   nucleus.addColorStop(1,'rgba(0,35,160,0)');
+   nucleus.addColorStop(.10,'rgba(65,160,255,.92)');
+   nucleus.addColorStop(.28,'rgba(0,108,255,.72)');
+   nucleus.addColorStop(.58,'rgba(0,66,220,.34)');
+   nucleus.addColorStop(1,'rgba(0,44,160,0)');
    ctx.globalCompositeOperation='lighter';ctx.fillStyle=nucleus;
    ctx.beginPath();ctx.arc(cx,cy,r*.43,0,Math.PI*2);ctx.fill();
    // Strong saturated blue core overlay: deliberately visible, not a subtle tint.
    const blueCenter=ctx.createRadialGradient(cx-r*.035,cy-r*.045,0,cx,cy,r*.46);
    blueCenter.addColorStop(0,'rgba(225,248,255,.98)');
-   blueCenter.addColorStop(.09,'rgba(25,115,255,.96)');
-   blueCenter.addColorStop(.30,'rgba(0,72,255,.86)');
-   blueCenter.addColorStop(.66,'rgba(0,48,205,.48)');
-   blueCenter.addColorStop(1,'rgba(0,35,155,0)');
+   blueCenter.addColorStop(.09,'rgba(25,130,255,.96)');
+   blueCenter.addColorStop(.30,'rgba(0,86,255,.86)');
+   blueCenter.addColorStop(.66,'rgba(0,58,205,.48)');
+   blueCenter.addColorStop(1,'rgba(0,43,155,0)');
    ctx.save();ctx.globalCompositeOperation='source-atop';
    ctx.fillStyle=blueCenter;ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.fill();
    ctx.restore();
@@ -1712,11 +1704,11 @@ function drawCore(r){
  // Strong center light with a broad radial falloff reaching the Core's outer edge.
  const glowR=r*1.02;
  const blueGlow=ctx.createRadialGradient(cx,cy,0,cx,cy,glowR);
- blueGlow.addColorStop(0,loginCore?'rgba(210,250,255,1)':'rgba(185,235,255,.95)');
- blueGlow.addColorStop(.12,loginCore?'rgba(55,190,255,.88)':'rgba(45,155,255,.72)');
- blueGlow.addColorStop(.34,loginCore?'rgba(0,125,255,.5)':'rgba(0,105,255,.38)');
- blueGlow.addColorStop(.62,loginCore?'rgba(0,90,235,.27)':'rgba(0,75,235,.2)');
- blueGlow.addColorStop(.84,loginCore?'rgba(0,65,210,.14)':'rgba(0,55,200,.1)');
+ blueGlow.addColorStop(0,loginCore?'rgba(210,250,255,1)':'rgba(190,240,255,.95)');
+ blueGlow.addColorStop(.12,loginCore?'rgba(55,190,255,.88)':'rgba(45,168,255,.72)');
+ blueGlow.addColorStop(.34,loginCore?'rgba(0,125,255,.5)':'rgba(0,120,255,.38)');
+ blueGlow.addColorStop(.62,loginCore?'rgba(0,90,235,.27)':'rgba(0,86,235,.2)');
+ blueGlow.addColorStop(.84,loginCore?'rgba(0,65,210,.14)':'rgba(0,64,200,.1)');
  blueGlow.addColorStop(1,'rgba(0,45,170,0)');
  ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor=loginCore?'#20caff':'#1685ff';ctx.shadowBlur=loginCore?48:36;
  ctx.fillStyle=blueGlow;ctx.beginPath();ctx.arc(cx,cy,glowR,0,Math.PI*2);ctx.fill();ctx.restore();
