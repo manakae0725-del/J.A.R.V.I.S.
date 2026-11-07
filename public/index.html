@@ -1464,6 +1464,36 @@ body.background-tasks-open #jarvisHoloPanel{top:17%!important}
 #dailyOverviewSyncState.is-offline{color:#e7c77b}
 @media(max-width:480px){.daily-overview-card{padding:8px 9px;margin-bottom:9px}.daily-overview-row,.daily-overview-task,.daily-overview-time{font-size:9px}}
 
+
+/* 2026-11-07: live left HUD based on the approved reference image. */
+#leftHUD.left-system-hud{display:flex!important;flex-direction:column;left:3.8%!important;right:auto!important;top:16.8%!important;bottom:auto!important;width:min(38vw,270px)!important;height:auto!important;max-height:70vh!important;overflow-y:auto!important;overflow-x:hidden!important;padding:0!important;gap:clamp(6px,1vh,10px)!important;transform:none!important;opacity:1!important;z-index:12!important;pointer-events:none!important;scrollbar-width:none!important}
+#leftHUD.left-system-hud .hud-card{width:100%;padding:clamp(7px,1.6vw,12px)!important;margin:0!important;border-radius:3px!important}
+#leftHUD .hud-card-header{margin-bottom:7px;padding-bottom:5px}
+#leftHUD .hud-card-title{font-size:clamp(9px,2.25vw,13px);letter-spacing:clamp(.8px,.28vw,1.8px)}
+.left-hud-state,.provider-state{font:clamp(7px,1.7vw,9px) Arial,sans-serif;color:#9bdfff;border:1px solid rgba(80,190,255,.4);padding:3px 5px;white-space:nowrap}
+.provider-block{padding:2px 0 7px;border-bottom:1px solid rgba(40,160,220,.17);margin-bottom:6px}
+.provider-block:last-child{border:0;margin:0;padding-bottom:0}
+.provider-heading{display:flex;align-items:center;gap:6px;color:#d9f5ff;font-size:clamp(9px,2.1vw,12px);font-weight:600}
+.provider-mark{font-size:17px;line-height:1;color:#e9f8ff}
+.gemini-mark{color:#4bcfff}
+.provider-state{margin-left:auto}
+.provider-state.is-online{color:#69f5b0;border-color:rgba(70,235,150,.45)}
+.provider-metrics{display:flex;align-items:baseline;justify-content:space-between;margin-top:5px;color:#e8f8ff}
+.provider-metrics strong{font:600 clamp(18px,5vw,25px) Arial,sans-serif;letter-spacing:.02em}
+.provider-metrics span,.provider-sub{font:clamp(7px,1.65vw,9px) Arial,sans-serif;color:#91bad3}
+.provider-sub{text-align:right;margin-top:2px}
+.cost-total{font:600 clamp(17px,4.7vw,24px) Arial,sans-serif;color:#e9f9ff;text-align:center;letter-spacing:.02em}
+.cost-detail{text-align:center;margin-top:5px;font:clamp(7px,1.65vw,9px) Arial,sans-serif;color:#9ac9e5}
+.friday-card{border-color:rgba(255,169,45,.72)!important;background:linear-gradient(135deg,rgba(49,27,5,.76),rgba(28,15,4,.67) 58%,rgba(65,34,0,.5))!important;box-shadow:inset 0 0 18px rgba(255,145,0,.11),0 0 18px rgba(255,145,0,.14)!important}
+.friday-card .hud-card-title{color:#ffe0a3}
+.friday-state{font:clamp(7px,1.7vw,9px) Arial,sans-serif;color:#ffc15a;border:1px solid rgba(255,170,55,.55);padding:3px 6px}
+.friday-subtitle{font:clamp(7px,1.6vw,9px) Arial,sans-serif;letter-spacing:.08em;color:#d6ad72;margin-bottom:7px}
+.friday-notice{display:flex;justify-content:space-between;font-size:clamp(8px,1.9vw,10px);color:#ffe4b5}
+.friday-empty{text-align:center;margin-top:7px;padding:7px 4px;background:rgba(255,150,25,.09);color:#d9b987;font-size:clamp(7px,1.7vw,9px)}
+.external-row{display:flex;justify-content:space-between;align-items:center;gap:4px;margin-top:7px;font-size:clamp(8px,1.9vw,10px);color:#d8efff}
+.external-row b{font:600 clamp(6px,1.55vw,8px) Arial,sans-serif;color:#a7c6d9;white-space:nowrap}
+@media(max-width:480px){#leftHUD.left-system-hud{left:3.8%!important;top:16.8%!important;width:38vw!important;max-height:68vh!important;gap:6px!important}#leftHUD.left-system-hud .hud-card{padding:7px 6px!important}.provider-block{padding-bottom:5px;margin-bottom:4px}.provider-metrics strong{font-size:19px}}
+
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 <div id="networkStatusHUD" class="network-status-hud" aria-live="polite"><span class="network-status-dot"></span><span id="networkStatusText">STANDBY</span></div>
@@ -1573,25 +1603,41 @@ body.background-tasks-open #jarvisHoloPanel{top:17%!important}
     </div>
 
 </div>
-<div id="leftReferenceHUD" aria-hidden="true">
-  <div class="reference-status-heading">
-    <span>SYSTEM<br>STATUS</span>
-    <span class="reference-status-bars"><i></i><i></i><i></i><i></i></span>
-  </div>
-  <div class="reference-status-box">
-    <div><span>CPU</span><b>12%</b></div>
-    <div><span>MEM</span><b>28%</b></div>
-    <div><span>NET</span><b>1.26Gbps</b></div>
-  </div>
-  <svg class="reference-radar" viewBox="0 0 120 120">
-    <g class="reference-radar-lines">
-      <circle cx="60" cy="60" r="43"/><circle cx="60" cy="60" r="31"/><circle cx="60" cy="60" r="18"/>
-      <path d="M60 5V115M5 60H115M22 22L98 98M98 22L22 98"/>
-      <path d="M60 0V13M60 107V120M0 60H13M107 60H120"/>
-    </g>
-    <circle class="reference-radar-center" cx="60" cy="60" r="2.2"/>
-    <path class="reference-radar-sweep" d="M60 60L60 17A43 43 0 0 1 89 28Z"/>
-  </svg>
+<div id="leftHUD" class="sideHUD left-system-hud" aria-label="System status">
+  <section class="hud-card ai-system-card">
+    <div class="hud-card-header">
+      <span class="hud-card-title">AI SYSTEM</span>
+      <span class="left-hud-state" id="aiSystemState">STATUS CHECK</span>
+    </div>
+    <div class="provider-block">
+      <div class="provider-heading"><span class="provider-mark openai-mark">◎</span><span>OPENAI</span><span class="provider-state" id="openaiState">NO DATA</span></div>
+      <div class="provider-metrics"><strong id="openaiRequests">--</strong><span>REQUESTS THIS MONTH</span></div>
+      <div class="provider-sub" id="openaiTokens">TOKEN DATA UNAVAILABLE</div>
+    </div>
+    <div class="provider-block">
+      <div class="provider-heading"><span class="provider-mark gemini-mark">✦</span><span>GEMINI</span><span class="provider-state" id="geminiState">NO DATA</span></div>
+      <div class="provider-metrics"><strong id="geminiRequests">--</strong><span>REQUESTS THIS MONTH</span></div>
+      <div class="provider-sub" id="geminiTokens">TOKEN DATA UNAVAILABLE</div>
+    </div>
+  </section>
+  <section class="hud-card api-cost-card">
+    <div class="hud-card-header"><span class="hud-card-title">API COST</span><span class="left-hud-state" id="costPeriod">MONTHLY</span></div>
+    <div class="cost-total" id="knownCost">USD --</div>
+    <div class="cost-detail" id="costDetail">COST DATA NOT AVAILABLE</div>
+  </section>
+  <section class="hud-card friday-card">
+    <div class="hud-card-header"><span class="hud-card-title">F.R.I.D.A.Y.</span><span class="friday-state">STANDBY</span></div>
+    <div class="friday-subtitle">SECURITY MONITORING</div>
+    <div class="friday-notice"><span>通知</span><strong id="fridayNoticeCount">--</strong></div>
+    <div class="friday-empty" id="fridayNoticeText">監視機能は未接続です</div>
+  </section>
+  <section class="hud-card external-card">
+    <div class="hud-card-header"><span class="hud-card-title">EXTERNAL CONNECTIONS</span><span class="left-hud-state">STATUS</span></div>
+    <div class="external-row"><span>GitHub</span><b>NOT CHECKED</b></div>
+    <div class="external-row"><span>Vercel</span><b>NOT CHECKED</b></div>
+    <div class="external-row"><span>Supabase</span><b id="supabaseState">UNKNOWN</b></div>
+    <div class="external-row"><span>Google</span><b id="googleState">UNKNOWN</b></div>
+  </section>
 </div>
 <div id="rightHUD" class="sideHUD">
 <div class="hud-card">
@@ -4635,6 +4681,73 @@ async function sendToGemini(text, options = {}) {
   window.addEventListener("pageshow",updateRefreshState);
   window.addEventListener("pagehide",stopRefresh);
   updateRefreshState();
+})();
+</script>
+
+
+<script>
+(function(){
+ "use strict";
+ const root=document.getElementById("leftHUD");
+ if(!root)return;
+ const $=id=>document.getElementById(id);
+ const fmt=n=>Number(n||0).toLocaleString("ja-JP");
+ async function get(path,token){
+  const r=await fetch(path,{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||("HTTP "+r.status));
+  return d;
+ }
+ function providerKey(value){
+  const v=String(value||"").toLowerCase();
+  if(v.includes("openai"))return "openai";
+  if(v.includes("gemini"))return "gemini";
+  return null;
+ }
+ function renderProvider(key,row){
+  const state=$(key+"State"),requests=$(key+"Requests"),tokens=$(key+"Tokens");
+  if(!row){state.textContent="NO DATA";state.classList.remove("is-online");requests.textContent="0";tokens.textContent="NO USAGE RECORDED";return;}
+  state.textContent=row.successful>0?"RECENT SUCCESS":"REQUESTS LOGGED";
+  state.classList.toggle("is-online",row.successful>0);
+  requests.textContent=fmt(row.requests);
+  tokens.textContent=fmt(row.totalTokens)+" TOKENS";
+ }
+ async function refresh(){
+  if(!window.jarvisIsAuthenticated?.()||document.hidden)return;
+  const userId=window.jarvisCurrentUserId;
+  try{
+   const token=await window.jarvisGetAccessToken?.();
+   if(!token||userId!==window.jarvisCurrentUserId)return;
+   const [usage,google]=await Promise.allSettled([get("/api/usage/summary",token),get("/api/google/status",token)]);
+   if(userId!==window.jarvisCurrentUserId)return;
+   if(usage.status==="fulfilled"){
+    const d=usage.value,groups={};
+    for(const [name,row] of Object.entries(d.byProvider||{})){const key=providerKey(name);if(!key)continue;groups[key]??={requests:0,successful:0,totalTokens:0};for(const k of ["requests","successful","totalTokens"])groups[key][k]+=Number(row[k]||0);}
+    renderProvider("openai",groups.openai);renderProvider("gemini",groups.gemini);
+    $("aiSystemState").textContent="USAGE SYNCED";
+    $("knownCost").textContent="USD "+Number(d.totals?.knownCostUsd||0).toFixed(4);
+    const unpriced=Number(d.totals?.unpricedRecords||0);
+    $("costDetail").textContent=unpriced?unpriced+" REQUESTS NOT PRICED":"PRICED RECORDS: "+fmt(d.totals?.pricedRecords||0);
+   }else{
+    $("aiSystemState").textContent="DATA UNAVAILABLE";
+    $("costDetail").textContent="USAGE SUMMARY UNAVAILABLE";
+   }
+   if(google.status==="fulfilled"){
+    const connections=Array.isArray(google.value.connections)?google.value.connections:[];
+    const connected=connections.some(c=>["connected","ready"].includes(String(c.status||c.connection_status||"").toLowerCase()));
+    $("googleState").textContent=connected?"CONNECTED":"NOT CONNECTED";
+   }else $("googleState").textContent="UNKNOWN";
+   $("supabaseState").textContent=usage.status==="fulfilled"?"CONNECTED":"UNKNOWN";
+  }catch(_){
+   $("aiSystemState").textContent="SYNC ERROR";
+  }
+ }
+ let timer=null;
+ function start(){if(timer===null&&window.jarvisIsAuthenticated?.()){refresh();timer=setInterval(refresh,60000);}}
+ function stop(){if(timer!==null){clearInterval(timer);timer=null;}}
+ window.addEventListener("jarvis-auth-change",e=>{if(e.detail?.userId)start();else{stop();renderProvider("openai",null);renderProvider("gemini",null);$("aiSystemState").textContent="OFFLINE";$("knownCost").textContent="USD --";$("costDetail").textContent="SIGN IN TO VIEW USAGE";$("googleState").textContent="UNKNOWN";$("supabaseState").textContent="UNKNOWN";}});
+ document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();else start();});
+ if(window.jarvisCurrentUserId)start();
 })();
 </script>
 
