@@ -757,6 +757,39 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   .input-waveform{height:29px;bottom:1px}
   .input-console-mark{width:23px;height:9px}
 }
+
+/* 2026-11-07: compact mobile console to match the reference proportions. */
+@media(max-width:600px){
+  #textArea{
+    width:calc(100% - 18px);
+    padding:11px 10px 9px;
+  }
+  #textArea:before{
+    font-size:8px!important;
+    letter-spacing:1.7px!important;
+    padding:0 6px 6px;
+    margin:0 2px 7px;
+  }
+  .input-field-shell{height:60px}
+  #textInput{padding:8px 10px 27px!important}
+  .input-waveform{height:25px;bottom:1px}
+  .input-attachment-row{gap:7px;margin-top:7px;margin-bottom:3px}
+  #attachFileButton{height:36px;min-width:104px;padding:0 7px;font-size:9px!important}
+  .attach-glyph{font-size:20px}
+  .input-attachment-note{font-size:8px}
+  #sendButton{min-width:108px;height:36px;padding:0 9px;font-size:10px;letter-spacing:1.4px}
+  #sendButton:before{width:6px;height:6px;margin-right:7px}
+  .input-task-row{margin-top:7px;gap:3.2%;justify-content:center}
+  #backgroundModeToggle{flex:0 0 37%;max-width:37%;min-height:34px;padding:5px 4px;font-size:9px!important;letter-spacing:.35px}
+  #backgroundTasksToggle{flex:0 0 25%;max-width:25%;min-height:34px;padding:5px 4px;font-size:9px!important;letter-spacing:.35px}
+  #backgroundModeToggle:before,#backgroundTasksToggle:before{flex-basis:16px;width:16px;height:16px}
+}
+@media(max-width:380px){
+  #backgroundModeToggle{flex-basis:40%;max-width:40%}
+  #backgroundTasksToggle{flex-basis:28%;max-width:28%}
+  #sendButton{min-width:102px}
+}
+
 /* Header title scaled to the slash mark; widen each slash stroke without changing SVG size. */
 #textArea:before{font-size:9px!important;letter-spacing:2px!important}
 @media(max-width:600px){#textArea:before{font-size:9px!important;letter-spacing:2px!important}}
