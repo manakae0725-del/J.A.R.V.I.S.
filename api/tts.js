@@ -4,7 +4,8 @@ async function logApiUsage({
   success,
   statusCode,
   durationMs,
-  metadata = {}
+  metadata = {},
+  characterCount = null
 }) {
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -31,6 +32,8 @@ async function logApiUsage({
           success,
           status_code: statusCode,
           duration_ms: durationMs,
+          character_count: characterCount,
+          cost_status: "unpriced",
           metadata
         })
       }
@@ -139,6 +142,7 @@ export default async function handler(req, res) {
         success: false,
         statusCode: timedOut ? 504 : null,
         durationMs,
+        characterCount: spokenText.length,
         metadata: {
           model: "eleven_v3",
           voice: "XrrS5KddqXY8b3ulN2uu",
@@ -205,6 +209,7 @@ export default async function handler(req, res) {
       success: true,
       statusCode: response.status,
       durationMs,
+      characterCount: spokenText.length,
       metadata: {
         model: "eleven_v3",
         voice: "XrrS5KddqXY8b3ulN2uu"
