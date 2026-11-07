@@ -165,7 +165,7 @@ async function callAnthropic({ systemInstruction, userInput, maxOutputTokens, ti
   return { provider: "anthropic", model, text, usage: extractUsage(data) };
 }
 
-async function logUsage(provider, success, statusCode, durationMs, errorCode = null, diagnostics = {}, usage = {}) {
+async function logUsage(provider, success, statusCode, durationMs, errorCode = null, diagnostics = {}, usage = {}, userId = null) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !supabaseKey) return;
@@ -182,6 +182,7 @@ async function logUsage(provider, success, statusCode, durationMs, errorCode = n
         Prefer: "return=minimal"
       },
       body: JSON.stringify({
+        user_id: userId,
         provider,
         service: "ai_council",
         success,
@@ -268,7 +269,7 @@ async function runAiCouncil(options = {}) {
         responseFormat: provider === "openai" && options.responseFormat === "json_object" ? "json_object" : undefined
       });
       const durationMs = Date.now() - startedAt;
-      await logUsage(provider, true, 200, durationMs, null, {}, result.usage);
+      await logUsage(provider, true, 200, durationMs, null, {}, result.usage, options.userId || null);
       return { ok: true, ...result, role: PROVIDER_ROLES[provider], durationMs };
     } catch (error) {
       const durationMs = Date.now() - startedAt;
@@ -277,7 +278,7 @@ async function runAiCouncil(options = {}) {
       const diagnostics = {};
       if (typeof error?.responseStatus === "string") diagnostics.response_status = error.responseStatus;
       if (typeof error?.incompleteReason === "string") diagnostics.incomplete_reason = error.incompleteReason;
-      await logUsage(provider, false, statusCode, durationMs, errorCode, diagnostics);
+      await logUsage(provider, false, statusCode, durationMs, errorCode, diagnostics, {}, options.userId || null);
       console.warn("[AI COUNCIL] Provider returned no usable response", { provider, error: errorCode, statusCode, ...diagnostics });
       return {
         ok: false,
@@ -302,13 +303,13 @@ async function testOpenAIConnection(options = {}) {
       timeoutMs: 8000
     });
     const durationMs = Date.now() - startedAt;
-    await logUsage("openai", true, 200, durationMs, null, {}, result.usage);
+    await logUsage("openai", true, 200, durationMs, null, {}, result.usage, options.userId || null);
     return { ok: true, provider: "openai", model: result.model, text: result.text.slice(0, 200), durationMs };
   } catch (error) {
     const durationMs = Date.now() - startedAt;
     const errorCode = typeof error?.code === "string" ? error.code : "PROVIDER_UNAVAILABLE";
     const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : null;
-    await logUsage("openai", false, statusCode, durationMs, errorCode);
+    await logUsage("openai", false, statusCode, durationMs, errorCode, {}, {}, options.userId || null);
     return {
       ok: false, provider: "openai", error: errorCode, statusCode,
       responseStatus: typeof error?.responseStatus === "string" ? error.responseStatus : null,
