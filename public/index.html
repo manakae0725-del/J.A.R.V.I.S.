@@ -637,6 +637,21 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
   filter:drop-shadow(0 0 .8px rgba(0,190,225,.62)) drop-shadow(0 0 1.5px rgba(0,150,205,.16));
 }
 
+
+/* 2026-11-07: remove the bright top-edge highlight; retain only a thin cyan perimeter. */
+#sendButton{
+  border:0!important;
+  background:linear-gradient(155deg,rgba(8,75,101,.9),rgba(3,43,67,.98) 58%,rgba(0,24,43,.98))!important;
+  box-shadow:inset 0 -2px 5px rgba(0,5,15,.82),0 0 8px rgba(0,145,190,.12)!important;
+  filter:drop-shadow(0 0 .65px rgba(0,185,215,.72)) drop-shadow(0 0 1px rgba(0,135,175,.14))!important;
+}
+#backgroundModeToggle,#backgroundTasksToggle{
+  border:0!important;
+  background:linear-gradient(155deg,rgba(8,65,88,.92),rgba(3,38,59,.98) 60%,rgba(0,22,39,.98))!important;
+  box-shadow:inset 0 -2px 4px rgba(0,5,14,.8),0 0 7px rgba(0,135,180,.1)!important;
+  filter:drop-shadow(0 0 .65px rgba(0,185,215,.68)) drop-shadow(0 0 1px rgba(0,135,175,.12))!important;
+}
+
 </style></head><body class="auth-locked">
 <div id="authScreen" aria-label="J.A.R.V.I.S. authentication"><div class="auth-card"><p id="authMessage" role="status" aria-live="polite"></p><button id="googleLoginButton" type="button" tabindex="-1" aria-label="Authenticate with Google"></button></div></div><button id="jarvisSignOut" type="button" hidden>サインアウト</button><button id="googleCalendarToggle" type="button" aria-controls="googleCalendarTest" aria-expanded="false" hidden>Googleテストを開く</button><div id="googleCalendarTest" style="display:none;position:fixed;left:12px;right:12px;bottom:64px;z-index:12000;padding:12px;background:rgba(0,10,25,.96);border:1px solid #168bd1;color:#dff5ff;font:13px system-ui;max-height:45vh;overflow:auto">
   <div style="font-weight:700;margin-bottom:8px">Google Calendar 接続テスト（仮）</div>
