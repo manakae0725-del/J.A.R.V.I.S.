@@ -448,6 +448,107 @@ body:not(.auth-locked):not(.home-revealing) #jarvisHoloPanel{transition:opacity 
 #googleCalendarToggle{display:none!important}
 body.auth-locked #googleCalendarTest,body.auth-locked #googleCalendarToggle{display:none!important}
 @media(max-width:480px){#googleCalendarTest{left:10px!important;right:10px!important;bottom:60px!important;max-height:42vh!important}#googleCalendarToggle{right:10px;bottom:10px}}
+
+/* Daily Calendar + Tasks modules: fixed HUD width, content-driven height. */
+.daily-overview-card{
+  width:100%;
+  padding:9px 10px;
+  margin-bottom:10px;
+  animation:none;
+}
+.daily-overview-card .hud-card-header{
+  margin-bottom:7px;
+  padding-bottom:5px;
+}
+.daily-overview-count{
+  color:rgba(115,211,255,.82);
+  font:9px/1.2 'Courier New',monospace;
+  letter-spacing:.7px;
+  white-space:nowrap;
+}
+.daily-overview-list{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.daily-overview-row{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr);
+  align-items:start;
+  gap:7px;
+  color:#d8efff;
+  font:10px/1.35 'Courier New',monospace;
+}
+.daily-overview-time{
+  color:#55caff;
+  white-space:nowrap;
+  text-shadow:0 0 7px rgba(0,153,255,.35);
+}
+.daily-overview-detail{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.daily-overview-title{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  overflow:hidden;
+  color:#e5f6ff;
+}
+.daily-overview-sub{
+  margin-top:2px;
+  color:rgba(126,190,225,.68);
+  font-size:8px;
+}
+.daily-overview-task{
+  display:flex;
+  align-items:flex-start;
+  gap:7px;
+  color:#d8efff;
+  font:10px/1.35 'Courier New',monospace;
+}
+.daily-overview-check{
+  flex:0 0 9px;
+  width:9px;
+  height:9px;
+  margin-top:1px;
+  border:1px solid rgba(65,210,255,.72);
+  box-shadow:0 0 5px rgba(0,170,255,.22);
+}
+.daily-overview-task-title{
+  min-width:0;
+  flex:1;
+  overflow-wrap:anywhere;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  overflow:hidden;
+}
+.daily-overview-empty{
+  padding:1px 0;
+  color:rgba(142,195,225,.68);
+  font:9px/1.4 'Courier New',monospace;
+}
+.daily-overview-footer{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:7px;
+  padding-top:5px;
+  border-top:1px solid rgba(0,153,255,.18);
+  color:rgba(126,190,225,.58);
+  font:8px/1.2 'Courier New',monospace;
+  letter-spacing:.5px;
+}
+#dailyOverviewSyncState{color:#55d9ff;text-align:right}
+#dailyOverviewSyncState.is-error{color:#ffadad}
+#dailyOverviewSyncState.is-offline{color:#e7c77b}
+@media(max-width:480px){
+  .daily-overview-card{padding:8px 9px;margin-bottom:9px}
+  .daily-overview-row,.daily-overview-task{font-size:9px}
+  .daily-overview-time{font-size:9px}
+}
+
 </style>
 <canvas id="c"></canvas><div class="datetime" id="datetime" aria-label="現在日時">2026.10.27 05:07:15</div>
 
@@ -668,7 +769,30 @@ POWER
 </div>
 <div class="weather-meta" id="weatherMeta">気象庁データ未取得</div>
 </div>
-</div><div class="hud-card">
+<div class="hud-card daily-overview-card" id="dailyScheduleCard">
+  <div class="hud-card-header">
+    <span class="hud-card-title">CALENDAR</span>
+    <span class="daily-overview-count" id="dailyScheduleCount">TODAY</span>
+  </div>
+  <div class="daily-overview-list" id="dailyScheduleList" aria-live="polite">
+    <div class="daily-overview-empty">取得待機中</div>
+  </div>
+</div>
+<div class="hud-card daily-overview-card" id="dailyTasksCard">
+  <div class="hud-card-header">
+    <span class="hud-card-title">TASKS</span>
+    <span class="daily-overview-count" id="dailyTaskCount">OPEN --</span>
+  </div>
+  <div class="daily-overview-list" id="dailyTaskList" aria-live="polite">
+    <div class="daily-overview-empty">取得待機中</div>
+  </div>
+  <div class="daily-overview-footer">
+    <span>GOOGLE SYNC</span>
+    <span id="dailyOverviewSyncState">WAITING</span>
+  </div>
+</div>
+</div>
+\f<div class="hud-card">
 <div class="hud-card-header">
 <span class="hud-card-title">NOTIFICATION</span>
 <span class="hud-dots">...</span>
@@ -3613,4 +3737,248 @@ async function sendToGemini(text, options = {}) {
  const result=new URLSearchParams(location.search).get("google_connection");
  if(result){say("Google接続結果: "+result);history.replaceState(null,"",location.pathname);}
 })();
-</script></body></html>
+</script>
+<script>
+(function(){
+  "use strict";
+  const hud=document.getElementById("rightHUD");
+  const scheduleList=document.getElementById("dailyScheduleList");
+  const scheduleCount=document.getElementById("dailyScheduleCount");
+  const taskList=document.getElementById("dailyTaskList");
+  const taskCount=document.getElementById("dailyTaskCount");
+  const syncState=document.getElementById("dailyOverviewSyncState");
+  if(!hud||!scheduleList||!scheduleCount||!taskList||!taskCount||!syncState) return;
+
+  const REFRESH_MS=5*60*1000;
+  let connectionId=null;
+  let refreshTimer=null;
+  let inFlight=false;
+  let lastSuccessfulSync=null;
+
+  function isActive(){
+    return hud.classList.contains("open") &&
+      !document.hidden &&
+      !document.body.classList.contains("auth-locked") &&
+      Boolean(window.jarvisIsAuthenticated?.());
+  }
+
+  function setSyncState(label,kind){
+    syncState.textContent=label;
+    syncState.classList.toggle("is-error",kind==="error");
+    syncState.classList.toggle("is-offline",kind==="offline");
+  }
+
+  async function apiRequest(path){
+    const token=await window.jarvisGetAccessToken?.();
+    if(!token) throw new Error("ログインが必要です。");
+    const response=await fetch(path,{
+      method:"GET",
+      headers:{Authorization:"Bearer "+token},
+      cache:"no-store"
+    });
+    const data=await response.json().catch(()=>({error:"Invalid JSON response"}));
+    if(!response.ok){
+      const error=new Error(data.error||("HTTP "+response.status));
+      error.status=response.status;
+      throw error;
+    }
+    return data;
+  }
+
+  async function resolveConnection(){
+    if(connectionId) return connectionId;
+    const data=await apiRequest("/api/google/status");
+    const connections=Array.isArray(data.connections)?data.connections:[];
+    const ready=connections.find(c=>
+      c.status==="connected"||c.status==="ready"||
+      c.connection_status==="connected"||c.connection_status==="ready"
+    )||connections[0];
+    connectionId=ready?.id||ready?.connection_id||null;
+    return connectionId;
+  }
+
+  function localDayRange(){
+    const now=new Date();
+    const start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    const end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
+    return {start:start.toISOString(),end:end.toISOString()};
+  }
+
+  function formatClock(value){
+    const date=new Date(value);
+    if(!Number.isFinite(date.getTime())) return "--:--";
+    return date.toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",hour12:false});
+  }
+
+  function eventClock(event){
+    const start=event?.start||{};
+    const end=event?.end||{};
+    if(start.date) return "終日";
+    if(!start.dateTime) return "--:--";
+    const first=formatClock(start.dateTime);
+    const last=end.dateTime?formatClock(end.dateTime):"";
+    return last?first+"-"+last:first;
+  }
+
+  function renderEvents(events){
+    const rows=(Array.isArray(events)?events:[]).slice().sort((a,b)=>{
+      const av=Date.parse(a?.start?.dateTime||a?.start?.date||"")||0;
+      const bv=Date.parse(b?.start?.dateTime||b?.start?.date||"")||0;
+      return av-bv;
+    });
+    scheduleCount.textContent=rows.length+" EVENTS";
+    scheduleList.replaceChildren();
+    if(!rows.length){
+      const empty=document.createElement("div");
+      empty.className="daily-overview-empty";
+      empty.textContent="本日の予定なし";
+      scheduleList.appendChild(empty);
+      return;
+    }
+    rows.slice(0,3).forEach(event=>{
+      const row=document.createElement("div");
+      row.className="daily-overview-row";
+      const time=document.createElement("div");
+      time.className="daily-overview-time";
+      time.textContent=eventClock(event);
+      const detail=document.createElement("div");
+      detail.className="daily-overview-detail";
+      const title=document.createElement("div");
+      title.className="daily-overview-title";
+      title.textContent=event?.summary||"名称未設定の予定";
+      detail.appendChild(title);
+      row.append(time,detail);
+      scheduleList.appendChild(row);
+    });
+    if(rows.length>3){
+      const more=document.createElement("div");
+      more.className="daily-overview-empty";
+      more.textContent="ほか "+(rows.length-3)+" 件";
+      scheduleList.appendChild(more);
+    }
+  }
+
+  function renderTasks(tasks){
+    const rows=(Array.isArray(tasks)?tasks:[])
+      .filter(task=>task&&task.status!=="completed"&&!task.deleted)
+      .sort((a,b)=>String(a.due||"9999").localeCompare(String(b.due||"9999")));
+    taskCount.textContent=rows.length+" OPEN";
+    taskList.replaceChildren();
+    if(!rows.length){
+      const empty=document.createElement("div");
+      empty.className="daily-overview-empty";
+      empty.textContent="未完了タスクなし";
+      taskList.appendChild(empty);
+      return;
+    }
+    rows.slice(0,3).forEach(task=>{
+      const row=document.createElement("div");
+      row.className="daily-overview-task";
+      const check=document.createElement("span");
+      check.className="daily-overview-check";
+      check.setAttribute("aria-hidden","true");
+      const title=document.createElement("span");
+      title.className="daily-overview-task-title";
+      title.textContent=task.title||"名称未設定のタスク";
+      row.append(check,title);
+      taskList.appendChild(row);
+    });
+    if(rows.length>3){
+      const more=document.createElement("div");
+      more.className="daily-overview-empty";
+      more.textContent="ほか "+(rows.length-3)+" 件";
+      taskList.appendChild(more);
+    }
+  }
+
+  async function refresh(){
+    if(!isActive()||inFlight) return;
+    inFlight=true;
+    try{
+      const id=await resolveConnection();
+      if(!id){
+        scheduleCount.textContent="CALENDAR";
+        taskCount.textContent="TASKS";
+        const scheduleEmpty=document.createElement("div");
+        scheduleEmpty.className="daily-overview-empty";
+        scheduleEmpty.textContent="Googleアカウント未接続";
+        scheduleList.replaceChildren(scheduleEmpty);
+        const taskEmpty=document.createElement("div");
+        taskEmpty.className="daily-overview-empty";
+        taskEmpty.textContent="Googleアカウント未接続";
+        taskList.replaceChildren(taskEmpty);
+        setSyncState("NOT CONNECTED","offline");
+        return;
+      }
+
+      const range=localDayRange();
+      const calendarQuery=new URLSearchParams({
+        connectionId:id,timeMin:range.start,timeMax:range.end
+      });
+      const taskQuery=new URLSearchParams({
+        connectionId:id,taskListId:"@default",showCompleted:"false"
+      });
+      const results=await Promise.allSettled([
+        apiRequest("/api/google/calendar?"+calendarQuery.toString()),
+        apiRequest("/api/google/tasks?"+taskQuery.toString())
+      ]);
+
+      let successCount=0;
+      if(results[0].status==="fulfilled"){
+        renderEvents(results[0].value.events||[]);
+        successCount++;
+      }
+      if(results[1].status==="fulfilled"){
+        renderTasks(results[1].value.tasks||[]);
+        successCount++;
+      }
+      if(successCount===2){
+        lastSuccessfulSync=new Date();
+        setSyncState("SYNCED "+formatClock(lastSuccessfulSync.toISOString()),"");
+      }else if(successCount===1){
+        setSyncState("PARTIAL UPDATE","error");
+      }else{
+        const error=results.find(result=>result.status==="rejected")?.reason;
+        if(error?.status===404||error?.status===409) connectionId=null;
+        setSyncState("SYNC ERROR","error");
+      }
+    }catch(error){
+      if(error?.status===404||error?.status===409) connectionId=null;
+      setSyncState("SYNC ERROR","error");
+      console.warn("Daily HUD sync failed:",error?.message||"unknown error");
+    }finally{
+      inFlight=false;
+    }
+  }
+
+  function stopRefresh(){
+    if(refreshTimer!==null){
+      clearInterval(refreshTimer);
+      refreshTimer=null;
+    }
+  }
+
+  function updateRefreshState(){
+    if(isActive()){
+      if(refreshTimer===null){
+        refresh();
+        refreshTimer=setInterval(refresh,REFRESH_MS);
+      }
+    }else{
+      stopRefresh();
+      if(document.body.classList.contains("auth-locked")) connectionId=null;
+    }
+  }
+
+  const hudObserver=new MutationObserver(updateRefreshState);
+  hudObserver.observe(hud,{attributes:true,attributeFilter:["class"]});
+  const bodyObserver=new MutationObserver(updateRefreshState);
+  bodyObserver.observe(document.body,{attributes:true,attributeFilter:["class"]});
+  document.addEventListener("visibilitychange",updateRefreshState);
+  window.addEventListener("pageshow",updateRefreshState);
+  window.addEventListener("pagehide",stopRefresh);
+  updateRefreshState();
+})();
+</script>
+
+</body></html>
