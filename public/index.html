@@ -1466,7 +1466,7 @@ body.background-tasks-open #jarvisHoloPanel{top:17%!important}
 
 
 /* 2026-11-07: live left HUD based on the approved reference image. */
-#leftHUD.left-system-hud{display:flex!important;flex-direction:column;left:3.8%!important;right:auto!important;top:16.8%!important;bottom:auto!important;width:min(38vw,270px)!important;height:auto!important;max-height:70vh!important;overflow-y:auto!important;overflow-x:hidden!important;padding:0!important;gap:clamp(6px,1vh,10px)!important;transform:translateX(0)!important;opacity:0!important;z-index:12!important;pointer-events:none!important;scrollbar-width:none!important;transition:opacity .45s ease!important}
+#leftHUD.left-system-hud{display:flex!important;flex-direction:column;left:3.8%!important;right:auto!important;top:16.8%!important;bottom:auto!important;width:min(38vw,270px)!important;height:auto!important;max-height:70vh!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;touch-action:pan-y!important;padding:0!important;gap:clamp(6px,1vh,10px)!important;transform:translateX(0)!important;opacity:0!important;z-index:12!important;pointer-events:auto!important;scrollbar-width:none!important;transition:opacity .45s ease!important}
 #leftHUD.left-system-hud.open{transform:translateX(0)!important;opacity:1!important}
 #leftHUD.left-system-hud .hud-card{width:100%;padding:clamp(7px,1.6vw,12px)!important;margin:0!important;border-radius:3px!important}
 #leftHUD .hud-card-header{margin-bottom:7px;padding-bottom:5px}
@@ -2888,12 +2888,13 @@ sendButton.addEventListener(
     }
 );
 
-var touchStartX=0,touchStartY=0;
+var touchStartX=0,touchStartY=0,touchStartedInsideLeftHUD=false;
 document.addEventListener("touchstart",function(e){
 var touches=e.changedTouches;
 if(touches&&touches.length>0){
 touchStartX=touches.item(0).clientX;
 touchStartY=touches.item(0).clientY;
+touchStartedInsideLeftHUD=!!(e.target&&e.target.closest&&e.target.closest("#leftHUD"));
 }
 },{passive:true});
 
@@ -2911,8 +2912,8 @@ document.addEventListener("touchend",function(e){
 
     if(!touches||touches.length===0)return;
 
-    var touchEndX=touches.item(0).screenX;
-    var touchEndY=touches.item(0).screenY;
+    var touchEndX=touches.item(0).clientX;
+    var touchEndY=touches.item(0).clientY;
 
     var deltaX=touchEndX-touchStartX;
     var deltaY=touchEndY-touchStartY;
@@ -2921,6 +2922,11 @@ document.addEventListener("touchend",function(e){
     var absY=Math.abs(deltaY);
 
     if(absX<80&&absY<80)return;
+
+    /* 左HUD内の縦操作はHUDスクロールに任せ、音声/テキスト切替を発火させない */
+    if(touchStartedInsideLeftHUD && absY>absX){
+        return;
+    }
 
     /* 縦スワイプ */
     if(absY>absX){
@@ -2941,7 +2947,7 @@ if(deltaY<-80){
     if(absX>absY){
         var leftHUDOpen=leftHUD&&leftHUD.classList.contains("open");
         /* Safariの戻るジェスチャー領域を避け、左端から少し内側を開始位置にする */
-        var startedAtLeftEdge=touchStartX>=24 && touchStartX<=120;
+        var startedAtLeftEdge=touchStartX>=24 && touchStartX<=180;
         var startedWithinLeftHUD=touchStartX<=window.innerWidth*0.45;
 
         if(deltaX>80 && startedAtLeftEdge && leftHUD){
