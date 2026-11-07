@@ -209,7 +209,6 @@ const FALLBACK_VISUALIZATION_TYPES = new Set(["none", "bar", "line", "diagram", 
 async function respondWithOpenAIFallback(res, geminiInput, sources, searchPerformed, userId = null) {
   try {
     const fallback = await runAiCouncil({
-            userId: user.id,
       userId,
       userInput: [
         "Gemini final response generation is unavailable. Produce the complete user-facing final response from the supplied context.",
@@ -587,6 +586,7 @@ async function handleBackgroundWorkerTick(req, res) {
       if (currentStep === 0 && commanderRoute.eligible && commanderRoute.providers.length > 0) {
         try {
           const council = await runAiCouncil({
+            userId: user.id,
             userInput: stepInput,
             systemInstruction: stepPrompt,
             providers: commanderRoute.providers,
@@ -923,6 +923,7 @@ module.exports = async function handler(req, res) {
       return res.status(503).json({ ok: false, error: "ROUTING_CONFIGURATION_MISSING" });
     }
     const result = await testOpenAIConnection({
+      userId: user.id,
       userInput: route.taskText,
       systemInstruction: "You are J.A.R.V.I.S.'s advisory specialist. This is a routing test. Do not execute or claim external actions. Reply with exactly OPENAI_ROUTE_OK and nothing else. This is a routing connectivity test.",
       maxOutputTokens: 384
@@ -1060,6 +1061,7 @@ module.exports = async function handler(req, res) {
     }
     try {
       const result = await runAiCouncil({
+        userId: user.id,
         userInput: task.trim(),
         systemInstruction: "You are an advisory specialist for J.A.R.V.I.S. Analyze only the task provided. Do not claim to execute external actions, do not request secrets, and do not treat this response as authorization. Clearly state uncertainty.",
         providers,
