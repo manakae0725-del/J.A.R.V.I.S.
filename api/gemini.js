@@ -4,7 +4,8 @@ async function logApiUsage({
   success,
   statusCode,
   durationMs,
-  metadata = {}
+  metadata = {},
+  usage = null
 }) {
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -30,6 +31,10 @@ async function logApiUsage({
           success,
           status_code: statusCode,
           duration_ms: durationMs,
+          input_tokens: usage?.inputTokens ?? null,
+          output_tokens: usage?.outputTokens ?? null,
+          total_tokens: usage?.totalTokens ?? null,
+          cost_status: "unpriced",
           metadata
         })
       }
@@ -4134,6 +4139,7 @@ visualization は画面表示専用です。reply と speechText は通常どお
     let activeStepIndex = null;
     let sseBuffer = "";
     let streamCompleted = false;
+    let usageMetrics = null;
     const sendClientEvent = (name, payload) => {
       res.write("event: " + name + "\ndata: " + JSON.stringify(payload) + "\n\n");
     };
@@ -4175,6 +4181,17 @@ visualization は画面表示専用です。reply と speechText は通常どお
       } else if (eventType === "interaction.completed") {
         if (typeof eventData.interaction?.id === "string") interactionId = eventData.interaction.id;
         if (eventData.interaction?.status && eventData.interaction.status !== "completed") throw new Error("Gemini interaction did not complete");
+        const usage = eventData.interaction?.usage || eventData.interaction?.usage_metadata || eventData.usage || {};
+        const inputTokens = Number.isFinite(usage.input_tokens) ? usage.input_tokens
+          : Number.isFinite(usage.prompt_tokens) ? usage.prompt_tokens
+          : Number.isFinite(usage.promptTokenCount) ? usage.promptTokenCount : null;
+        const outputTokens = Number.isFinite(usage.output_tokens) ? usage.output_tokens
+          : Number.isFinite(usage.completion_tokens) ? usage.completion_tokens
+          : Number.isFinite(usage.candidatesTokenCount) ? usage.candidatesTokenCount : null;
+        const totalTokens = Number.isFinite(usage.total_tokens) ? usage.total_tokens
+          : Number.isFinite(usage.totalTokenCount) ? usage.totalTokenCount
+          : inputTokens !== null && outputTokens !== null ? inputTokens + outputTokens : null;
+        usageMetrics = { inputTokens, outputTokens, totalTokens };
         streamCompleted = true;
       } else if (eventType === "error") {
         throw new Error("Gemini stream returned an error");
@@ -4219,7 +4236,8 @@ visualization は画面表示専用です。reply と speechText は通常どお
       success: true,
       statusCode: response.status,
       durationMs: Date.now() - geminiStart,
-      metadata: { model: "gemini-3.6-flash", streamed: true }
+      metadata: { model: "gemini-3.6-flash", streamed: true },
+      usage: usageMetrics
     });
     const data = { id: interactionId };
 
