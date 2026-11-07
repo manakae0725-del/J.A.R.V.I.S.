@@ -628,10 +628,13 @@ body.background-tasks-open #textArea{top:auto;bottom:max(14px,env(safe-area-inse
 }
 
 
-/* 2026-11-07: restore a fine luminous perimeter around clipped button silhouettes. */
-#sendButton,#backgroundModeToggle,#backgroundTasksToggle{
-  border:0!important;
-  filter:drop-shadow(0 0 .8px rgba(190,248,255,.98)) drop-shadow(0 0 2px rgba(34,194,239,.28));
+/* 2026-11-07: keep clipped button outlines cyan; remove the white fringe on TRANSMIT. */
+#sendButton,#backgroundModeToggle,#backgroundTasksToggle{border:0!important}
+#sendButton{
+  filter:drop-shadow(0 0 .8px rgba(0,190,225,.72)) drop-shadow(0 0 1.5px rgba(0,150,205,.18));
+}
+#backgroundModeToggle,#backgroundTasksToggle{
+  filter:drop-shadow(0 0 .8px rgba(0,190,225,.62)) drop-shadow(0 0 1.5px rgba(0,150,205,.16));
 }
 
 </style></head><body class="auth-locked">
